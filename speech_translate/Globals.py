@@ -1,6 +1,6 @@
 import os
 
-from handler.Json import JsonHandler
+from utils.Json import JsonHandler
 
 
 # ------------------ #
@@ -26,5 +26,6 @@ class Globals:
 
 
 # ------------------ #
+version = "1.0.0"
 gClass = Globals()
 fJson = JsonHandler(os.path.join(dir_setting, "setting.json"), dir_setting)
