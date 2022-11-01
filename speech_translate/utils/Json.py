@@ -1,7 +1,7 @@
 import json
 import os
 
-from components.MBox import Mbox
+from components.MBox import Mbox  # uses message box for error because this is important
 
 
 default_setting = {
@@ -10,9 +10,9 @@ default_setting = {
 }
 
 
-class JsonHandler:
+class SettingJsonHandler:
     """
-    Class to handle json files
+    Class to handle setting.json
     """
 
     def __init__(self, settingPath: str, settingDir: str):
@@ -21,6 +21,13 @@ class JsonHandler:
         self.settingDir = settingDir
         self.createDirectoryIfNotExist(self.settingDir)
         self.createDefaultSettingIfNotExist(self.settingPath, default_setting)
+
+        # Load setting
+        success, msg, data = self.loadSetting()
+        if success:
+            self.settingCache = data
+        else:
+            Mbox("Error", "Error: Loading setting file. " + self.settingPath + "\nReason: " + msg, 2)
 
     def createDirectoryIfNotExist(self, path: str):
         """
@@ -53,6 +60,7 @@ class JsonHandler:
             with open(self.settingPath, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=4)
             success = True
+            self.settingCache = data
         except Exception as e:
             msg = str(e)
         finally:
@@ -73,3 +81,9 @@ class JsonHandler:
             msg = str(e)
         finally:
             return success, msg, data
+
+    def getSetting(self):
+        """
+        Get setting value
+        """
+        return self.settingCache

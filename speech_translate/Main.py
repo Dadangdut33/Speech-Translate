@@ -6,7 +6,7 @@ from pystray import Icon as icon, Menu as menu, MenuItem as item
 from PIL import Image, ImageDraw
 
 from components.MBox import Mbox
-from utils.Tooltip import CreateToolTip 
+from utils.Tooltip import CreateToolTip
 from Globals import gClass, version
 
 
@@ -62,77 +62,105 @@ class MainWindow:
         self.root = tk.Tk()
 
         self.root.title(f"Speech Translate")
-        self.root.geometry("800x600")
+        self.root.geometry("1000x400")
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.root.wm_attributes("-topmost", False)  # Default False
 
         # ------------------ Frames ------------------
         self.f1_toolbar = ttk.Frame(self.root)
-        self.f1_toolbar.pack(side="top", fill="x", expand=True)
+        self.f1_toolbar.pack(side="top", fill="x", expand=False)
 
         self.f2_textBox = ttk.Frame(self.root)
         self.f2_textBox.pack(side="top", fill="both", expand=True)
 
         self.f3_toolbar = ttk.Frame(self.root)
-        self.f3_toolbar.pack(side="top", fill="x", expand=True)
+        self.f3_toolbar.pack(side="top", fill="x", expand=False)
 
-        self.f4_textbox = ttk.Frame(self.root)
-        self.f4_textbox.pack(side="top", fill="both", expand=True)
-
-        self.f5_statusbar = ttk.Frame(self.root)
-        self.f5_statusbar.pack(side="bottom", fill="x", expand=True)
+        self.f4_statusbar = ttk.Frame(self.root)
+        self.f4_statusbar.pack(side="bottom", fill="x", expand=False)
 
         # ------------------ Elements ------------------
-        # f1_toolbar
-        self.btn_record_stop = ttk.Button(self.f1_toolbar, text="Record")
-        self.btn_record_stop.pack(side="left", padx=5, pady=5)
+        # -- f1_toolbar
+        # mode
+        self.modeLabel = ttk.Label(self.f1_toolbar, text="Mode:")
+        self.modeLabel.pack(side="left", fill="x", padx=5, pady=5, expand=False)
 
-        self.btn_record_file = ttk.Button(self.f1_toolbar, text="Record from file")
+        self.modeCombobox = ttk.Combobox(self.f1_toolbar, values=["Transcribe", "Translate", "Trasncribe and Translate"])
+        self.modeCombobox.current(0)
+        self.modeCombobox.pack(side="left", fill="x", padx=5, pady=5, expand=False)
+
+        # model
+        self.modelLabel = ttk.Label(self.f1_toolbar, text="Model:")
+        self.modelLabel.pack(side="left", fill="x", padx=5, pady=5, expand=False)
+
+        self.modelCombobox = ttk.Combobox(self.f1_toolbar, values=["Tiny (~32x speed)", "Base (~16x speed)", "Small (~6x speed)", "Medium (~2x speed)", "Large (1x speed)"])
+        self.modelCombobox.current(0)
+        self.modelCombobox.pack(side="left", fill="x", padx=5, pady=5, expand=False)
+        CreateToolTip(
+            self.modelCombobox,
+            """
+            \rModel size, larger models are more accurate but slower and require more VRAM/CPU power. 
+            \rIf you have a low end GPU, use Tiny or Base. Don't use large unless you really need it or have super computer because it's very slow.
+            \rModel specs: \n- Tiny: ~1 GB Vram\n- Base: ~1 GB Vram\n- Small: ~2 GB Vram\n- Medium: ~5 GB Vram\n- Large: ~10 GB Vram""".strip(),
+            wraplength=400,
+        )
+
+        # from
+        self.fromLabel = ttk.Label(self.f1_toolbar, text="From:")
+        self.fromLabel.pack(side="left", padx=5, pady=5)
+
+        self.selectSourceLang = ttk.Combobox(self.f1_toolbar, values=["auto", "english"])
+        self.selectSourceLang.current(0)
+        self.selectSourceLang.pack(side="left", padx=5, pady=5)
+
+        # to
+        self.toLabel = ttk.Label(self.f1_toolbar, text="To:")
+        self.toLabel.pack(side="left", padx=5, pady=5)
+
+        self.selectTargetLang = ttk.Combobox(self.f1_toolbar, values=["english", "spanish"])
+        self.selectTargetLang.current(0)
+        self.selectTargetLang.pack(side="left", padx=5, pady=5)
+
+        # swap
+        self.btnSwap = ttk.Button(self.f1_toolbar, text="Swap")
+        self.btnSwap.pack(side="left", padx=5, pady=5)
+
+        # clear
+        self.btnClear = ttk.Button(self.f1_toolbar, text="Clear")
+        self.btnClear.pack(side="left", padx=5, pady=5)
+
+        # -- f2_textBox
+        self.tbLeftBg = tk.Frame(self.f2_textBox, bg="#7E7E7E")
+        self.tbLeftBg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+
+        self.textBoxLeft = tk.Text(self.tbLeftBg, height=5, width=25, relief="flat", font=("Segoe UI", 10))  # font=("Segoe UI", 10), yscrollcommand=True, relief="flat"
+        self.textBoxLeft.bind("<Key>", self.allowedTbKey)
+        self.textBoxLeft.pack(padx=1, pady=1, fill="both", expand=True)
+
+        self.tbRightBg = tk.Frame(self.f2_textBox, bg="#7E7E7E")
+        self.tbRightBg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+
+        self.textBoxRight = tk.Text(self.tbRightBg, height=5, width=25, relief="flat", font=("Segoe UI", 10))
+        self.textBoxRight.bind("<Key>", self.allowedTbKey)
+        self.textBoxRight.pack(padx=1, pady=1, fill="both", expand=True)
+
+        # -- f3_toolbar
+        self.btn_record_stop = ttk.Button(self.f3_toolbar, text="Record Mic")
+        self.btn_record_stop.pack(side="left", padx=5, pady=5)
+        CreateToolTip(self.btn_record_stop, "Record using your default microphone")
+
+        self.btn_record_stop = ttk.Button(self.f3_toolbar, text="Record PC Sound")
+        self.btn_record_stop.pack(side="left", padx=5, pady=5)
+        CreateToolTip(self.btn_record_stop, "Record sound from your PC ")
+
+        self.btn_record_file = ttk.Button(self.f3_toolbar, text="Record from file")
         self.btn_record_file.pack(side="left", padx=5, pady=5)
         CreateToolTip(self.btn_record_file, "Record from a file (video or audio)")
 
-        # f2_textBox
-        self.tbTopBg = tk.Frame(self.f2_textBox, bg="#7E7E7E")
-        self.tbTopBg.pack(side="top", fill="both", expand=True, padx=5, pady=5)
-
-        self.textBoxTop = tk.Text(self.tbTopBg, height=5, width=100, relief="flat")  # font=("Segoe UI", 10), yscrollcommand=True, relief="flat"
-        self.textBoxTop.pack(padx=1, pady=1, fill="both", expand=True)
-
-        # f3_toolbar
-        self.fromLabel = ttk.Label(self.f3_toolbar, text="From:")
-        self.fromLabel.pack(side="left", padx=5, pady=5)
-
-        self.selectSourceLang = ttk.Combobox(
-            self.f3_toolbar,
-            values=["auto", "english"],
-        )
-        self.selectSourceLang.pack(side="left", padx=5, pady=5)
-
-        self.toLabel = ttk.Label(self.f3_toolbar, text="To:")
-        self.toLabel.pack(side="left", padx=5, pady=5)
-        self.selectTargetLang = ttk.Combobox(
-            self.f3_toolbar,
-            values=["english", "spanish"],
-        )
-        self.selectTargetLang.pack(side="left", padx=5, pady=5)
-
-        self.btnSwap = ttk.Button(self.f3_toolbar, text="Swap")
-        self.btnSwap.pack(side="left", padx=5, pady=5)
-
-        self.btnClear = ttk.Button(self.f3_toolbar, text="Clear")
-        self.btnClear.pack(side="left", padx=5, pady=5)
-
-        # f4_textbox
-        self.tbBottomBg = tk.Frame(self.f4_textbox, bg="#7E7E7E")
-        self.tbBottomBg.pack(side="top", fill="both", expand=True, padx=5, pady=5)
-
-        self.textBoxBottom = tk.Text(self.tbBottomBg, height=5, width=100, relief="flat")
-        self.textBoxBottom.pack(padx=1, pady=1, fill="both", expand=True)
-
-        # f5_statusbar
+        # -- f4_statusbar
         # load bar
-        self.loadBar = ttk.Progressbar(self.f5_statusbar, orient="horizontal", length=200, mode="determinate")
-        self.loadBar.pack(side="left", padx=5, pady=5)
+        self.loadBar = ttk.Progressbar(self.f4_statusbar, orient="horizontal", length=200, mode="determinate")
+        self.loadBar.pack(side="left", padx=5, pady=5, fill="x", expand=True)
 
         # ------------------ Menubar ------------------
         self.menubar = tk.Menu(self.root)
@@ -206,6 +234,20 @@ class MainWindow:
         Mbox("About", "Speech Translate", 0)  # placeholder for now
 
     # --------------------------------------
+    # Disable writing, allow copy
+    def allowedTbKey(self, event):
+        key = event.keysym
+
+        # Allow
+        if key.lower() in ["left", "right"]:  # Arrow left right
+            return
+        if 12 == event.state and key == "a":  # Ctrl + a
+            return
+        if 12 == event.state and key == "c":  # Ctrl + c
+            return
+
+        # If not allowed
+        return "break"
 
 
 if __name__ == "__main__":
