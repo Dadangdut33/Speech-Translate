@@ -1,4 +1,5 @@
 from sys import exit
+import threading
 import tkinter as tk
 import tkinter.ttk as ttk
 from notifypy import Notify
@@ -8,6 +9,7 @@ from PIL import Image, ImageDraw
 from components.MBox import Mbox
 from utils.Tooltip import CreateToolTip
 from utils.Helper import modelKeys
+from utils.Record import transcribe, getInputDevice, getOutputDevice
 from Globals import gClass, version, select_lang
 
 
@@ -63,7 +65,7 @@ class MainWindow:
         self.root = tk.Tk()
 
         self.root.title(f"Speech Translate")
-        self.root.geometry("1000x400")
+        self.root.geometry("960x400")
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.root.wm_attributes("-topmost", False)  # Default False
 
@@ -132,34 +134,58 @@ class MainWindow:
         self.btn_clear.pack(side="left", padx=5, pady=5)
 
         # -- f2_textBox
-        self.tb_left_bg = tk.Frame(self.f2_textBox, bg="#7E7E7E")
-        self.tb_left_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+        self.tb_transcribed_bg = tk.Frame(self.f2_textBox, bg="#7E7E7E")
+        self.tb_transcribed_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
 
-        self.tb_left = tk.Text(self.tb_left_bg, height=5, width=25, relief="flat", font=("Lucida Console", 10))  # font=("Segoe UI", 10), yscrollcommand=True, relief="flat"
-        self.tb_left.bind("<Key>", self.tb_allowed_key)
-        self.tb_left.pack(fill="both", expand=True, padx=1, pady=1)
+        self.tb_transcribed = tk.Text(self.tb_transcribed_bg, height=5, width=25, relief="flat", font=("Lucida Console", 10))  # font=("Segoe UI", 10), yscrollcommand=True, relief="flat"
+        self.tb_transcribed.bind("<Key>", self.tb_allowed_key)
+        self.tb_transcribed.pack(fill="both", expand=True, padx=1, pady=1)
 
-        self.tb_right_bg = tk.Frame(self.f2_textBox, bg="#7E7E7E")
-        self.tb_right_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+        self.tb_translated_bg = tk.Frame(self.f2_textBox, bg="#7E7E7E")
+        self.tb_translated_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
 
-        self.tb_right = tk.Text(self.tb_right_bg, height=5, width=25, relief="flat", font=("Lucida Console", 10))
-        self.tb_right.bind("<Key>", self.tb_allowed_key)
-        self.tb_right.pack(fill="both", expand=True, padx=1, pady=1)
+        self.tb_translated = tk.Text(self.tb_translated_bg, height=5, width=25, relief="flat", font=("Lucida Console", 10))
+        self.tb_translated.bind("<Key>", self.tb_allowed_key)
+        self.tb_translated.pack(fill="both", expand=True, padx=1, pady=1)
 
         # -- f3_toolbar
-        self.f3_center_btn = ttk.Frame(self.f3_toolbar)
-        self.f3_center_btn.pack(side="bottom")
+        self.f3_frameLeft = ttk.Frame(self.f3_toolbar)
+        self.f3_frameLeft.pack(side="left", fill="x", expand=True)
 
-        self.btn_record_mic = ttk.Button(self.f3_center_btn, text="Record Mic")
-        self.btn_record_mic.pack(side="left", padx=5, pady=5, anchor="center")
+        self.f3_leftRow1 = ttk.Frame(self.f3_frameLeft)
+        self.f3_leftRow1.pack(side="top", fill="x", expand=True)
+
+        self.f3_leftRow2 = ttk.Frame(self.f3_frameLeft)
+        self.f3_leftRow2.pack(side="top", fill="x", expand=True)
+
+        self.f3_frameRight = ttk.Frame(self.f3_toolbar)
+        self.f3_frameRight.pack(side="right", fill="x", expand=True)
+
+        self.label_microphone = ttk.Label(self.f3_leftRow1, text="Default Microphone:", font="TkDefaultFont 9 bold")
+        self.label_microphone.pack(side="left", padx=5, pady=0, ipady=0)
+
+        self.label_microphone_value = ttk.Label(self.f3_leftRow1, text=getInputDevice()["name"])  # type: ignore
+        self.label_microphone_value.pack(side="left", ipadx=0, padx=0, pady=0, ipady=0)
+
+        self.label_speaker = ttk.Label(self.f3_leftRow2, text="Default Speaker:", font="TkDefaultFont 9 bold")  # type: ignore
+        self.label_speaker.pack(side="left", padx=5, pady=0, ipady=0)
+
+        self.label_speaker_value = ttk.Label(self.f3_leftRow2, text=getOutputDevice()["name"])  # type: ignore
+        self.label_speaker_value.pack(side="left", ipadx=0, padx=0, pady=0, ipady=0)
+
+        # self.f3_center_btn = ttk.Frame(self.f3_toolbar) # f3_toolbar
+        # self.f3_center_btn.pack(side="bottom")
+
+        self.btn_record_mic = ttk.Button(self.f3_frameRight, text="Record Mic", command=self.rec_from_mic)
+        self.btn_record_mic.pack(side="right", padx=5, pady=5)
         CreateToolTip(self.btn_record_mic, "Record using your default microphone")
 
-        self.btn_record_pc = ttk.Button(self.f3_center_btn, text="Record PC Sound")
-        self.btn_record_pc.pack(side="left", padx=5, pady=5)
+        self.btn_record_pc = ttk.Button(self.f3_frameRight, text="Record PC Sound")
+        self.btn_record_pc.pack(side="right", padx=5, pady=5)
         CreateToolTip(self.btn_record_pc, "Record sound from your PC ")
 
-        self.btn_record_file = ttk.Button(self.f3_center_btn, text="Record from file")
-        self.btn_record_file.pack(side="left", padx=5, pady=5)
+        self.btn_record_file = ttk.Button(self.f3_frameRight, text="Record from file")
+        self.btn_record_file.pack(side="right", padx=5, pady=5)
         CreateToolTip(self.btn_record_file, "Record from a file (video or audio)")
 
         # -- f4_statusbar
@@ -262,16 +288,16 @@ class MainWindow:
 
     # clear textboxes
     def tb_clear(self):
-        self.tb_left.delete(1.0, tk.END)
-        self.tb_right.delete(1.0, tk.END)
+        self.tb_transcribed.delete(1.0, tk.END)
+        self.tb_translated.delete(1.0, tk.END)
 
     # Swap textboxes
     def tb_swap_content(self):
-        tmp = self.tb_left.get(1.0, tk.END)
-        self.tb_left.delete(1.0, tk.END)
-        self.tb_left.insert(tk.END, self.tb_right.get(1.0, tk.END))
-        self.tb_right.delete(1.0, tk.END)
-        self.tb_right.insert(tk.END, tmp)
+        tmp = self.tb_transcribed.get(1.0, tk.END)
+        self.tb_transcribed.delete(1.0, tk.END)
+        self.tb_transcribed.insert(tk.END, self.tb_translated.get(1.0, tk.END))
+        self.tb_translated.delete(1.0, tk.END)
+        self.tb_translated.insert(tk.END, tmp)
 
     # swap select language and textbox
     def cb_swap_lang(self):
@@ -289,32 +315,54 @@ class MainWindow:
         index = self.cb_mode.current()
 
         if index == 0:  # transcribe only
-            self.tb_left_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
-            self.tb_left.pack(fill="both", expand=True, padx=1, pady=1)
+            self.tb_transcribed_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+            self.tb_transcribed.pack(fill="both", expand=True, padx=1, pady=1)
 
-            self.tb_right_bg.pack_forget()
-            self.tb_right.pack_forget()
+            self.tb_translated_bg.pack_forget()
+            self.tb_translated.pack_forget()
 
             self.cb_sourceLang.config(state="readonly")
             self.cb_targetLang.config(state="disabled")
         elif index == 1:  # translate only
-            self.tb_left_bg.pack_forget()
-            self.tb_left.pack_forget()
+            self.tb_transcribed_bg.pack_forget()
+            self.tb_transcribed.pack_forget()
 
-            self.tb_right_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
-            self.tb_right.pack(fill="both", expand=True, padx=1, pady=1)
+            self.tb_translated_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+            self.tb_translated.pack(fill="both", expand=True, padx=1, pady=1)
 
             self.cb_sourceLang.config(state="readonly")
             self.cb_targetLang.config(state="readonly")
         elif index == 2:  # transcribe and translate
-            self.tb_left_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
-            self.tb_left.pack(fill="both", expand=True, padx=1, pady=1)
+            self.tb_transcribed_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+            self.tb_transcribed.pack(fill="both", expand=True, padx=1, pady=1)
 
-            self.tb_right_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
-            self.tb_right.pack(fill="both", expand=True, padx=1, pady=1)
+            self.tb_translated_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+            self.tb_translated.pack(fill="both", expand=True, padx=1, pady=1)
 
             self.cb_sourceLang.config(state="readonly")
             self.cb_targetLang.config(state="readonly")
+
+    # ------------------ Rec ------------------
+    # From mic
+    def rec_from_mic(self):
+        self.tb_clear()
+        self.tb_transcribed.insert(tk.END, "Listening...")
+
+        # get value of cb mode
+        # mode = self.cb_mode.get()
+        model = self.cb_model.get()
+        sourceLang = self.cb_sourceLang.get()
+
+        gClass.recording = True
+        # TEST
+        transcribeThread = threading.Thread(
+            target=transcribe,
+            args=(
+                model,
+                sourceLang.lower(),
+            ),
+        )
+        transcribeThread.start()
 
 
 if __name__ == "__main__":
