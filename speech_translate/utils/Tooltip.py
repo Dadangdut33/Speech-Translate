@@ -1,3 +1,4 @@
+__all__ = ["CreateToolTip"]
 import tkinter as tk
 
 
@@ -6,9 +7,9 @@ class CreateToolTip(object):
     create a tooltip for a given widget
     """
 
-    def __init__(self, widget, text="widget info", delay=250, wraplength=180, opacity=1.0, always_on_top=True):
-        self.waittime = delay  # miliseconds
-        self.wraplength = wraplength  # pixels
+    def __init__(self, widget, text="widget info", delay=250, wrapLength=180, opacity=1.0, always_on_top=True):
+        self.waitTime = delay  # miliseconds
+        self.wrapLength = wrapLength  # pixels
         self.widget = widget
         self.text = text
         self.opacity = opacity
@@ -28,7 +29,7 @@ class CreateToolTip(object):
 
     def schedule(self):
         self.unschedule()
-        self.id = self.widget.after(self.waittime, self.showtip)
+        self.id = self.widget.after(self.waitTime, self.showTip)
 
     def unschedule(self):
         id = self.id
@@ -36,18 +37,18 @@ class CreateToolTip(object):
         if id:
             self.widget.after_cancel(id)
 
-    def showtip(self, event=None):
+    def showTip(self, event=None):
         x = y = 0
         x, y, cx, cy = self.widget.bbox("insert")
         x += self.widget.winfo_rootx() + 25
         y += self.widget.winfo_rooty() + 20
-        
+
         # creates a toplevel window
         self.tw = tk.Toplevel(self.widget)
-        
+
         # Make it stay on top
         self.tw.wm_attributes("-topmost", self.always_on_top)
-        
+
         # Make it a little transparent
         self.tw.wm_attributes("-alpha", self.opacity)
 
@@ -55,7 +56,7 @@ class CreateToolTip(object):
         self.tw.wm_overrideredirect(True)
         self.tw.wm_geometry("+%d+%d" % (x, y))
 
-        label = tk.Label(self.tw, text=self.text, justify="left", background="#ffffff", relief="solid", borderwidth=1, wraplength=self.wraplength)
+        label = tk.Label(self.tw, text=self.text, justify="left", background="#ffffff", relief="solid", borderwidth=1, wraplength=self.wrapLength)
         label.pack(ipadx=1)
 
     def hidetip(self):

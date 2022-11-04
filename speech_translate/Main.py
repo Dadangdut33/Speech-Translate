@@ -7,7 +7,8 @@ from PIL import Image, ImageDraw
 
 from components.MBox import Mbox
 from utils.Tooltip import CreateToolTip
-from Globals import gClass, version
+from utils.Helper import modelKeys
+from Globals import gClass, version, select_lang
 
 
 class AppTray:
@@ -82,78 +83,82 @@ class MainWindow:
         # ------------------ Elements ------------------
         # -- f1_toolbar
         # mode
-        self.modeLabel = ttk.Label(self.f1_toolbar, text="Mode:")
-        self.modeLabel.pack(side="left", fill="x", padx=5, pady=5, expand=False)
+        self.lbl_mode = ttk.Label(self.f1_toolbar, text="Mode:")
+        self.lbl_mode.pack(side="left", fill="x", padx=5, pady=5, expand=False)
 
-        self.modeCombobox = ttk.Combobox(self.f1_toolbar, values=["Transcribe", "Translate", "Trasncribe and Translate"])
-        self.modeCombobox.current(0)
-        self.modeCombobox.pack(side="left", fill="x", padx=5, pady=5, expand=False)
+        self.cb_mode = ttk.Combobox(self.f1_toolbar, values=["Transcribe", "Translate", "Trasncribe and Translate"], state="readonly")
+        self.cb_mode.current(0)
+        self.cb_mode.pack(side="left", fill="x", padx=5, pady=5, expand=False)
+        self.cb_mode.bind("<<ComboboxSelected>>", self.cb_mode_change)
 
         # model
-        self.modelLabel = ttk.Label(self.f1_toolbar, text="Model:")
-        self.modelLabel.pack(side="left", fill="x", padx=5, pady=5, expand=False)
+        self.lbl_model = ttk.Label(self.f1_toolbar, text="Model:")
+        self.lbl_model.pack(side="left", fill="x", padx=5, pady=5, expand=False)
 
-        self.modelCombobox = ttk.Combobox(self.f1_toolbar, values=["Tiny (~32x speed)", "Base (~16x speed)", "Small (~6x speed)", "Medium (~2x speed)", "Large (1x speed)"])
-        self.modelCombobox.current(0)
-        self.modelCombobox.pack(side="left", fill="x", padx=5, pady=5, expand=False)
+        self.cb_model = ttk.Combobox(self.f1_toolbar, values=modelKeys, state="readonly")
+        self.cb_model.current(0)
+        self.cb_model.pack(side="left", fill="x", padx=5, pady=5, expand=False)
         CreateToolTip(
-            self.modelCombobox,
+            self.cb_model,
             """
             \rModel size, larger models are more accurate but slower and require more VRAM/CPU power. 
             \rIf you have a low end GPU, use Tiny or Base. Don't use large unless you really need it or have super computer because it's very slow.
             \rModel specs: \n- Tiny: ~1 GB Vram\n- Base: ~1 GB Vram\n- Small: ~2 GB Vram\n- Medium: ~5 GB Vram\n- Large: ~10 GB Vram""".strip(),
-            wraplength=400,
+            wrapLength=400,
         )
 
         # from
-        self.fromLabel = ttk.Label(self.f1_toolbar, text="From:")
-        self.fromLabel.pack(side="left", padx=5, pady=5)
+        self.lbl_source = ttk.Label(self.f1_toolbar, text="From:")
+        self.lbl_source.pack(side="left", padx=5, pady=5)
 
-        self.selectSourceLang = ttk.Combobox(self.f1_toolbar, values=["auto", "english"])
-        self.selectSourceLang.current(0)
-        self.selectSourceLang.pack(side="left", padx=5, pady=5)
+        self.cb_sourceLang = ttk.Combobox(self.f1_toolbar, values=["Auto Detect"] + select_lang, state="readonly")
+        self.cb_sourceLang.current(0)
+        self.cb_sourceLang.pack(side="left", padx=5, pady=5)
 
         # to
-        self.toLabel = ttk.Label(self.f1_toolbar, text="To:")
-        self.toLabel.pack(side="left", padx=5, pady=5)
+        self.lbl_to = ttk.Label(self.f1_toolbar, text="To:")
+        self.lbl_to.pack(side="left", padx=5, pady=5)
 
-        self.selectTargetLang = ttk.Combobox(self.f1_toolbar, values=["english", "spanish"])
-        self.selectTargetLang.current(0)
-        self.selectTargetLang.pack(side="left", padx=5, pady=5)
+        self.cb_targetLang = ttk.Combobox(self.f1_toolbar, values=select_lang, state="readonly")
+        self.cb_targetLang.current(0)
+        self.cb_targetLang.pack(side="left", padx=5, pady=5)
 
         # swap
-        self.btnSwap = ttk.Button(self.f1_toolbar, text="Swap")
-        self.btnSwap.pack(side="left", padx=5, pady=5)
+        self.btn_swap = ttk.Button(self.f1_toolbar, text="Swap", command=self.cb_swap_lang)
+        self.btn_swap.pack(side="left", padx=5, pady=5)
 
         # clear
-        self.btnClear = ttk.Button(self.f1_toolbar, text="Clear")
-        self.btnClear.pack(side="left", padx=5, pady=5)
+        self.btn_clear = ttk.Button(self.f1_toolbar, text="Clear", command=self.tb_clear)
+        self.btn_clear.pack(side="left", padx=5, pady=5)
 
         # -- f2_textBox
-        self.tbLeftBg = tk.Frame(self.f2_textBox, bg="#7E7E7E")
-        self.tbLeftBg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+        self.tb_left_bg = tk.Frame(self.f2_textBox, bg="#7E7E7E")
+        self.tb_left_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
 
-        self.textBoxLeft = tk.Text(self.tbLeftBg, height=5, width=25, relief="flat", font=("Segoe UI", 10))  # font=("Segoe UI", 10), yscrollcommand=True, relief="flat"
-        self.textBoxLeft.bind("<Key>", self.allowedTbKey)
-        self.textBoxLeft.pack(padx=1, pady=1, fill="both", expand=True)
+        self.tb_left = tk.Text(self.tb_left_bg, height=5, width=25, relief="flat", font=("Lucida Console", 10))  # font=("Segoe UI", 10), yscrollcommand=True, relief="flat"
+        self.tb_left.bind("<Key>", self.tb_allowed_key)
+        self.tb_left.pack(fill="both", expand=True, padx=1, pady=1)
 
-        self.tbRightBg = tk.Frame(self.f2_textBox, bg="#7E7E7E")
-        self.tbRightBg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+        self.tb_right_bg = tk.Frame(self.f2_textBox, bg="#7E7E7E")
+        self.tb_right_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
 
-        self.textBoxRight = tk.Text(self.tbRightBg, height=5, width=25, relief="flat", font=("Segoe UI", 10))
-        self.textBoxRight.bind("<Key>", self.allowedTbKey)
-        self.textBoxRight.pack(padx=1, pady=1, fill="both", expand=True)
+        self.tb_right = tk.Text(self.tb_right_bg, height=5, width=25, relief="flat", font=("Lucida Console", 10))
+        self.tb_right.bind("<Key>", self.tb_allowed_key)
+        self.tb_right.pack(fill="both", expand=True, padx=1, pady=1)
 
         # -- f3_toolbar
-        self.btn_record_stop = ttk.Button(self.f3_toolbar, text="Record Mic")
-        self.btn_record_stop.pack(side="left", padx=5, pady=5)
-        CreateToolTip(self.btn_record_stop, "Record using your default microphone")
+        self.f3_center_btn = ttk.Frame(self.f3_toolbar)
+        self.f3_center_btn.pack(side="bottom")
 
-        self.btn_record_stop = ttk.Button(self.f3_toolbar, text="Record PC Sound")
-        self.btn_record_stop.pack(side="left", padx=5, pady=5)
-        CreateToolTip(self.btn_record_stop, "Record sound from your PC ")
+        self.btn_record_mic = ttk.Button(self.f3_center_btn, text="Record Mic")
+        self.btn_record_mic.pack(side="left", padx=5, pady=5, anchor="center")
+        CreateToolTip(self.btn_record_mic, "Record using your default microphone")
 
-        self.btn_record_file = ttk.Button(self.f3_toolbar, text="Record from file")
+        self.btn_record_pc = ttk.Button(self.f3_center_btn, text="Record PC Sound")
+        self.btn_record_pc.pack(side="left", padx=5, pady=5)
+        CreateToolTip(self.btn_record_pc, "Record sound from your PC ")
+
+        self.btn_record_file = ttk.Button(self.f3_center_btn, text="Record from file")
         self.btn_record_file.pack(side="left", padx=5, pady=5)
         CreateToolTip(self.btn_record_file, "Record from a file (video or audio)")
 
@@ -164,31 +169,32 @@ class MainWindow:
 
         # ------------------ Menubar ------------------
         self.menubar = tk.Menu(self.root)
-        self.fmView = tk.Menu(self.menubar, tearoff=0)
-        self.fmView.add_checkbutton(label="Stay on top", command=self.toggle_always_on_top)
-        self.fmView.add_separator()
-        self.fmView.add_command(label="Hide", command=lambda: self.root.withdraw())
-        self.fmView.add_command(label="Exit", command=self.quit_app)
-        self.menubar.add_cascade(label="File", menu=self.fmView)
+        self.fm_view = tk.Menu(self.menubar, tearoff=0)
+        self.fm_view.add_checkbutton(label="Stay on top", command=self.toggle_always_on_top)
+        self.fm_view.add_separator()
+        self.fm_view.add_command(label="Hide", command=lambda: self.root.withdraw())
+        self.fm_view.add_command(label="Exit", command=self.quit_app)
+        self.menubar.add_cascade(label="File", menu=self.fm_view)
 
-        self.fmHelp = tk.Menu(self.menubar, tearoff=0)
-        self.fmHelp.add_command(label="About", command=self.open_About)  # placeholder for now
-        self.menubar.add_cascade(label="Help", menu=self.fmHelp)
+        self.fm_help = tk.Menu(self.menubar, tearoff=0)
+        self.fm_help.add_command(label="About", command=self.open_about)  # placeholder for now
+        self.menubar.add_cascade(label="Help", menu=self.fm_help)
 
         self.root.config(menu=self.menubar)
 
         # ------------------ Variables ------------------
         # Flags
-        self.alwaysOnTop = False
-        self.notifiedHidden = False
+        self.always_on_top = False
+        self.notified_hidden = False
         gClass.mw = self  # type: ignore
 
         # ------------------ Bind keys ------------------
-        self.root.bind("<F1>", self.open_About)
+        self.root.bind("<F1>", self.open_about)
 
-        # ------------------ Poll ------------------
+        # ------------------ on Start ------------------
         # Start polling
         self.root.after(1000, self.isRunningPoll)
+        self.onInit()
 
     # ------------------ Handle Main window ------------------
     # Quit the app
@@ -208,12 +214,12 @@ class MainWindow:
     # Close window
     def on_close(self):
         # Only show notification once
-        if not self.notifiedHidden:
+        if not self.notified_hidden:
             notification = Notify()
             notification.title = "Speech Translate"
             notification.message = "The app is still running in the background."
             notification.send()
-            self.notifiedHidden = True
+            self.notified_hidden = True
 
         self.root.withdraw()
 
@@ -226,16 +232,16 @@ class MainWindow:
 
     # Toggle Stay on top
     def toggle_always_on_top(self):
-        self.alwaysOnTop = not self.alwaysOnTop
-        self.root.wm_attributes("-topmost", self.alwaysOnTop)
+        self.always_on_top = not self.always_on_top
+        self.root.wm_attributes("-topmost", self.always_on_top)
 
     # ------------------ Open External Window ------------------
-    def open_About(self, event=None):
+    def open_about(self, _event=None):
         Mbox("About", "Speech Translate", 0)  # placeholder for now
 
-    # --------------------------------------
+    # ------------------ Handler ------------------
     # Disable writing, allow copy
-    def allowedTbKey(self, event):
+    def tb_allowed_key(self, event):
         key = event.keysym
 
         # Allow
@@ -248,6 +254,67 @@ class MainWindow:
 
         # If not allowed
         return "break"
+
+    # ------------------ Functions ------------------
+    # on start
+    def onInit(self):
+        self.cb_mode_change()
+
+    # clear textboxes
+    def tb_clear(self):
+        self.tb_left.delete(1.0, tk.END)
+        self.tb_right.delete(1.0, tk.END)
+
+    # Swap textboxes
+    def tb_swap_content(self):
+        tmp = self.tb_left.get(1.0, tk.END)
+        self.tb_left.delete(1.0, tk.END)
+        self.tb_left.insert(tk.END, self.tb_right.get(1.0, tk.END))
+        self.tb_right.delete(1.0, tk.END)
+        self.tb_right.insert(tk.END, tmp)
+
+    # swap select language and textbox
+    def cb_swap_lang(self):
+        # swap lang
+        tmp = self.cb_targetLang.get()
+        self.cb_sourceLang.set(self.cb_targetLang.get())
+        self.cb_targetLang.set(tmp)
+
+        # swap text
+        self.tb_swap_content()
+
+    # change mode
+    def cb_mode_change(self, _event=None):
+        # get index of cb mode
+        index = self.cb_mode.current()
+
+        if index == 0:  # transcribe only
+            self.tb_left_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+            self.tb_left.pack(fill="both", expand=True, padx=1, pady=1)
+
+            self.tb_right_bg.pack_forget()
+            self.tb_right.pack_forget()
+
+            self.cb_sourceLang.config(state="readonly")
+            self.cb_targetLang.config(state="disabled")
+        elif index == 1:  # translate only
+            self.tb_left_bg.pack_forget()
+            self.tb_left.pack_forget()
+
+            self.tb_right_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+            self.tb_right.pack(fill="both", expand=True, padx=1, pady=1)
+
+            self.cb_sourceLang.config(state="readonly")
+            self.cb_targetLang.config(state="readonly")
+        elif index == 2:  # transcribe and translate
+            self.tb_left_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+            self.tb_left.pack(fill="both", expand=True, padx=1, pady=1)
+
+            self.tb_right_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+            self.tb_right.pack(fill="both", expand=True, padx=1, pady=1)
+
+            self.cb_sourceLang.config(state="readonly")
+            self.cb_targetLang.config(state="readonly")
 
 
 if __name__ == "__main__":

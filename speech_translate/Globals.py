@@ -1,7 +1,7 @@
 import os
 
 from utils.Json import SettingJsonHandler
-
+from whisper import tokenizer
 
 # ------------------ #
 # Paths
@@ -29,3 +29,6 @@ class Globals:
 version = "1.0.0"
 gClass = Globals()
 fSetting = SettingJsonHandler(os.path.join(dir_setting, "setting.json"), dir_setting)
+available_languages = sorted(tokenizer.TO_LANGUAGE_CODE.keys())
+select_lang = [x.capitalize() for x in available_languages]
+# ------------------ #

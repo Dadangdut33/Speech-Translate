@@ -1,3 +1,4 @@
+__all__ = ["default_setting", "SettingJsonHandler"]
 import json
 import os
 
@@ -65,6 +66,13 @@ class SettingJsonHandler:
             msg = str(e)
         finally:
             return success, msg
+
+    def savePartialSetting(self, key: str, value):
+        """
+        Save only a part of the setting
+        """
+        self.settingCache[key] = value
+        return self.saveSetting(self.settingCache)
 
     def loadSetting(self):
         """

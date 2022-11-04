@@ -4,6 +4,10 @@ A speech transcription and translation application using whisper AI
 
 # Development
 
+## Incompatibility
+
+As of right now (4th of November 2022) pytorch is not compatible with python 3.11 so you cann't use python 3.11. I use python 3.10.8.
+
 ## Setup
 
 1. Create your virtual environment by running `python -m venv venv`
