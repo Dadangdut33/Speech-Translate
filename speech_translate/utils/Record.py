@@ -76,7 +76,7 @@ def whisper_transcribe(
 
 
 def whisper_translate(
-    audio_name: str, model: whisper.Whisper, lang_source: str, lang_target: str, auto: bool, verbose: bool, engine: Literal["Whisper", "Google", "LibreTranslate"], transcribed_text: str | None = None
+    audio_name: str, model: whisper.Whisper, lang_source: str, lang_target: str, auto: bool, verbose: bool, engine: Literal["Whisper", "Google", "LibreTranslate", "MyMemory", "Pons"], transcribed_text: str | None = None
 ) -> None:
     """Translate Audio
 
@@ -87,7 +87,7 @@ def whisper_translate(
         lang_target (str): Target Language
         auto (bool): Auto Detect Language
         verbose (bool): Verbose
-        engine (Literal["Whisper", "Google", "LibreTranslate"]): Engine to use for translation
+        engine (Literal["Whisper", "Google", "LibreTranslate", "MyMemory", "Pons"]): Engine to use for translation
         transcribed_text (str | None, optional): Transcribed Text. Defaults to None. If provided will use this model for online translation instead of offline using whisper.
     """
     gClass.translating = True
@@ -109,6 +109,7 @@ def whisper_translate(
                 print(e)
                 return
         elif engine == "Google":
+            assert transcribed_text is not None
             oldMethod = "alt" in lang_target
             success, result_Tl = google_tl(transcribed_text, lang_source, lang_target, oldMethod)
             if not success:
@@ -119,6 +120,7 @@ def whisper_translate(
                 notification.message = result_Tl
                 notification.send()
         elif engine == "LibreTranslate":
+            assert transcribed_text is not None
             success, result_Tl = libre_tl(
                 transcribed_text, lang_source, lang_target, fJson.settingCache["libre_https"], fJson.settingCache["libre_host"], fJson.settingCache["libre_port"], fJson.settingCache["libre_api_key"]
             )

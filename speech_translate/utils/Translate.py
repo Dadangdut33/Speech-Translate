@@ -1,11 +1,13 @@
 from notifypy import Notify
 import requests
-from .LangCode import google_Lang, libre_Lang
+from .LangCode import google_lang, libre_lang, myMemory_lang, pons_lang
 
 try:
-    from deep_translator import GoogleTranslator
+    from deep_translator import GoogleTranslator, MyMemoryTranslator, PonsTranslator
 except Exception as e:
     GoogleTranslator = None
+    MyMemoryTranslator = None
+    PonsTranslator = None
     if "HTTPSConnectionPool" in str(e):
         notification = Notify()
         notification.application_name = "Speech Translate"
@@ -19,29 +21,34 @@ except Exception as e:
 class tl_cons:
     """Translate Connections
     Attributes:
-        google_tl (function): Google Translate
-        memory_tl (function): MyMemoryTranslator
-        pons_tl (function): PonsTranslator
+        GoogleTranslator (function): Google Translate
+        MyMemoryTranslator (function): MyMemoryTranslator
+        PonsTranslator (function): PonsTranslator
     """
 
-    def __init__(self, GoogleTranslator):
+    def __init__(self, GoogleTranslator, MyMemoryTranslator, PonsTranslator):
         self.GoogleTranslator = GoogleTranslator
-
-        if self.GoogleTranslator is None:
-            self.connected = False
-        else:
-            self.connected = True
+        self.MyMemoryTranslator = MyMemoryTranslator
+        self.PonsTranslator = PonsTranslator
 
 
-tlCons = tl_cons(GoogleTranslator)
+tlCons = tl_cons(GoogleTranslator, MyMemoryTranslator, PonsTranslator)
 
 
-def google_tl(text, from_lang, to_lang, oldMethod=False):
+def no_connection_notify():
+    notification = Notify()
+    notification.application_name = "Speech Translate"
+    notification.title = "Not connected to internet"
+    notification.message = "Translation for language other than English will not work until you reconnect to the internet."
+    notification.send()
+
+
+def google_tl(text: str, from_lang: str, to_lang: str, oldMethod: bool = False):
     """Translate Using Google Translate
     Args:
-        text ([str]): Text to translate
-        from_lang (str, optional): [Language From]. Defaults to "auto".
-        to_lang ([type]): Language to translate
+        text (str): Text to translate
+        from_lang (str): Language From
+        to_lang (str): Language to translate
         oldMethod (bool, optional): Use old method. Defaults to False.
     Returns:
         is_Success: Success or not
@@ -51,8 +58,8 @@ def google_tl(text, from_lang, to_lang, oldMethod=False):
     result = ""
     # --- Get lang code ---
     try:
-        to_LanguageCode_Google = google_Lang[to_lang]
-        from_LanguageCode_Google = google_Lang[from_lang]
+        to_LanguageCode_Google = google_lang[to_lang]
+        from_LanguageCode_Google = google_lang[from_lang]
     except KeyError as e:
         print("Error: " + str(e))
         return is_Success, "Error Language Code Undefined"
@@ -65,12 +72,7 @@ def google_tl(text, from_lang, to_lang, oldMethod=False):
 
                 tlCons.GoogleTranslator = GoogleTranslator
             except Exception as e:
-                notification = Notify()
-                notification.application_name = "Speech Translate"
-                notification.title = "Not connected to internet"
-                notification.message = "Translation for language other than English will not work until you reconnect to the internet."
-                notification.send()
-
+                no_connection_notify()
                 return is_Success, "Error: Not connected to internet"
 
         if not oldMethod:
@@ -91,13 +93,96 @@ def google_tl(text, from_lang, to_lang, oldMethod=False):
         return is_Success, result
 
 
-# LibreTranslator
-def libre_tl(text, from_lang, to_lang, https=False, host="libretranslate.de", port="", apiKeys=""):
-    """Translate Using LibreTranslate
+def memory_tl(text: str, from_lang: str, to_lang: str):
+    """Translate Using MyMemoryTranslator
+    Args:
+        text (str): Text to translate
+        from_lang (str): Language From
+        to_lang (str): Language to translate
+    Returns:
+        [type]: Translation result
+    """
+    is_Success = False
+    result = ""
+    # --- Get lang code ---
+    try:
+        to_LanguageCode_Memory = myMemory_lang[to_lang]
+        from_LanguageCode_Memory = myMemory_lang[from_lang]
+    except KeyError as e:
+        print("Error: " + str(e))
+        return is_Success, "Error Language Code Undefined"
+    # --- Translate ---
+    try:
+        if tlCons.MyMemoryTranslator is None:
+            try:
+                from deep_translator import MyMemoryTranslator
+
+                tlCons.MyMemoryTranslator = MyMemoryTranslator
+            except Exception as e:
+                no_connection_notify()
+                return is_Success, "Error: Not connected to internet"
+
+        result = tlCons.MyMemoryTranslator(source=from_LanguageCode_Memory, target=to_LanguageCode_Memory).translate(text.strip())
+        is_Success = True
+    except Exception as e:
+        print(str(e))
+        result = str(e)
+    finally:
+        print("-" * 50)
+        print("Query: " + text.strip())
+        print("-" * 50)
+        print("Translation Get: " + result)  # type: ignore
+
+
+def pons_tl(text, from_lang, to_lang):
+    """Translate Using PONS
     Args:
         text ([str]): Text to translate
-        from_lang (str, optional): [Language From]. Defaults to "auto".
-        to_lang ([type]): Language to translate
+        from_lang (str): Language From
+        to_lang (str): Language to translate
+    Returns:
+        [type]: Translation result
+    """
+    is_Success = False
+    result = ""
+    # --- Get lang code ---
+    try:
+        to_LanguageCode_Pons = pons_lang[to_lang]
+        from_LanguageCode_Pons = pons_lang[from_lang]
+    except KeyError as e:
+        print("Error: " + str(e))
+        return is_Success, "Error Language Code Undefined"
+    # --- Translate ---
+    try:
+        if tlCons.PonsTranslator is None:
+            try:
+                from deep_translator import PonsTranslator
+
+                tlCons.PonsTranslator = PonsTranslator
+            except Exception as e:
+                no_connection_notify()
+                return is_Success, "Error: Not connected to internet"
+
+        result = tlCons.PonsTranslator(source=from_LanguageCode_Pons, target=to_LanguageCode_Pons).translate(text.strip())
+        is_Success = True
+    except Exception as e:
+        print(str(e))
+        result = str(e)
+    finally:
+        print("-" * 50)
+        print("Query: " + text.strip())
+        print("-" * 50)
+        print("Translation Get: " + result)  # type: ignore
+        return is_Success, result
+
+
+# LibreTranslator
+def libre_tl(text: str, from_lang: str, to_lang: str, https: bool = False, host: str = "libretranslate.de", port: str = "", apiKeys: str = ""):
+    """Translate Using LibreTranslate
+    Args:
+        text (str): Text to translate
+        from_lang (str): Language From
+        to_lang (str): Language to translate
         https (bool, optional): Use https. Defaults to False.
         host (str, optional): Host. Defaults to "libretranslate.de".
         port (str, optional): Port. Defaults to "".
@@ -109,8 +194,8 @@ def libre_tl(text, from_lang, to_lang, https=False, host="libretranslate.de", po
     result = ""
     # --- Get lang code ---
     try:
-        to_LanguageCode_Libre = libre_Lang[to_lang]
-        from_LanguageCode_Libre = libre_Lang[from_lang]
+        to_LanguageCode_Libre = libre_lang[to_lang]
+        from_LanguageCode_Libre = libre_lang[from_lang]
     except KeyError as e:
         print("Error: " + str(e))
         return is_Success, "Error Language Code Undefined"

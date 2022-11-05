@@ -1,3 +1,4 @@
+# List of whisper languages
 whisper_compatible = [
     "afrikaans",
     "albanian",
@@ -112,7 +113,7 @@ whisper_compatible = [
 ]
 
 # List of supported languages by Google TL
-google_Lang = {
+google_lang = {
     "auto detect": "auto",
     "afrikaans": "af",
     "albanian": "sq",
@@ -204,7 +205,7 @@ google_Lang = {
 }
 
 # List of supported languages by libreTranslate
-libre_Lang = {
+libre_lang = {
     "auto detect": "auto",
     "arabic": "ar",
     "chinese (simplified)": "zh",
@@ -231,15 +232,138 @@ libre_Lang = {
     "vietnamese": "vi",
 }
 
-gLang_target = list(google_Lang.keys()) 
+# List of supported languages by MyMemoryTranslator
+myMemory_lang = {
+    "auto detect": "auto",
+    "afrikaans": "af",
+    "albanian": "sq",
+    "amharic": "am",
+    "arabic": "ar",
+    "armenian": "hy",
+    "azerbaijani": "az",
+    "basque": "eu",
+    "belarusian": "be",
+    "bengali": "bn",
+    "bosnian": "bs",
+    "bulgarian": "bg",
+    "burmese": "my",
+    "catalan": "ca",
+    "cebuano": "ceb",
+    "chinese (simplified)": "zh-cn",
+    "chinese (traditional)": "zh-tw",
+    "corsican": "co",
+    "czech": "cs",
+    "danish": "da",
+    "dutch": "nl",
+    "english": "en",
+    "esperanto": "eo",
+    "estonian": "et",
+    "filipino": "fil",
+    "filipino (tagalog)": "tl",
+    "finnish": "fi",
+    "french": "fr",
+    "galician": "gl",
+    "georgian": "ka",
+    "german": "de",
+    "greek": "el",
+    "gujarati": "gu",
+    "haitian": "ht",
+    "hausa": "ha",
+    "hawaiian": "haw",
+    "hebrew": "he",
+    "hindi": "hi",
+    "hungarian": "hu",
+    "icelandic": "is",
+    "indonesian": "id",
+    "irish": "ga",
+    "italian": "it",
+    "japanese": "ja",
+    "javanese": "jw",
+    "kannada": "kn",
+    "kazakh": "kk",
+    "khmer": "km",
+    "korean": "ko",
+    "kurdish": "ku",
+    "lao": "lo",
+    "latin": "la",
+    "latvian": "lv",
+    "lithuanian": "lt",
+    "luxembourgish": "lb",
+    "macedonian": "mk",
+    "malay": "ms",
+    "malayalam": "ml",
+    "maltese": "mt",
+    "maori": "mi",
+    "marathi": "mr",
+    "mongolian": "mn",
+    "nepali": "ne",
+    "norwegian": "no",
+    "persian": "fa",
+    "polish": "pl",
+    "portuguese": "pt",
+    "punjabi": "pa",
+    "romanian": "ro",
+    "russian": "ru",
+    "samoan": "sm",
+    "serbian": "sr",
+    "spanish": "es",
+    "sundanese": "su",
+    "swahili": "sw",
+    "swedish": "sv",
+    "tajik": "tg",
+    "tamil": "ta",
+    "telugu": "te",
+    "thai": "th",
+    "turkish": "tr",
+    "ukrainian": "uk",
+    "urdu": "ur",
+    "uzbek": "uz",
+    "vietnamese": "vi",
+    "welsh": "cy",
+    "xhosa": "xh",
+    "yiddish": "yi",
+    "yoruba": "yo",
+}
+
+# List of supported languages by Pons
+pons_lang = {
+    "arabic": "ar",
+    "bulgarian": "bg",
+    "chinese (simplified)": "zh-cn",
+    "chinese (traditional)": "zh-cn",
+    "czech": "cs",
+    "danish": "da",
+    "dutch": "nl",
+    "english": "en",
+    "french": "fr",
+    "german": "de",
+    "greek": "el",
+    "hungarian": "hu",
+    "italian": "it",
+    "latin": "la",
+    "norwegian": "no",
+    "polish": "pl",
+    "portuguese": "pt",
+    "russian": "ru",
+    "spanish": "es",
+    "swedish": "sv",
+    "turkish": "tr",
+}
+
+gLang_target = list(google_lang.keys())
 gLang_target.pop(0)
 
-libre_target = list(libre_Lang.keys())
+libre_target = list(libre_lang.keys())
 libre_target.pop(0)
+
+myMemory_target = list(myMemory_lang.keys())
+myMemory_target.pop(0)
 
 # select engine
 engine_select_target_dict = {
     "Whisper": ["english"],
     "Google": gLang_target,
     "LibreTranslate": libre_target,
+    "MyMemoryTranslator": myMemory_target,
+    "Pons": list(pons_lang.keys()),
 }
