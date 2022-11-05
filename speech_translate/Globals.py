@@ -24,6 +24,7 @@ class Globals:
         # Flags
         self.running = True
         self.recording = False
+        self.processing = False
 
         # References to class
         self.mw = None

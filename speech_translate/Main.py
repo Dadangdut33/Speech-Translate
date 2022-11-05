@@ -203,7 +203,7 @@ class MainWindow:
 
         # -- f4_statusbar
         # load bar
-        self.loadBar = ttk.Progressbar(self.f4_statusbar, orient="horizontal", maximum=100, value=0, length=200, mode="determinate")
+        self.loadBar = ttk.Progressbar(self.f4_statusbar, orient="horizontal", length=200, mode="determinate")
         self.loadBar.pack(side="left", padx=5, pady=5, fill="x", expand=True)
 
         # ------------------ Menubar ------------------
@@ -397,6 +397,9 @@ class MainWindow:
         self.loadBar.stop()
         self.loadBar.config(mode="determinate")
 
+        # check first if it's recording or not
+        if not gClass.recording: return
+        
         if rec_type == "mic":
             self.btn_record_mic.config(text="Stop")
         elif rec_type == "pc":

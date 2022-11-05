@@ -5,6 +5,7 @@ from scipy.io.wavfile import write
 
 import tkinter as tk
 from datetime import datetime
+from time import sleep
 import os
 import sys
 
@@ -25,9 +26,7 @@ def getOutputDevice():
 
 
 def whisper_transcribe(audio_name, model: whisper.Whisper, lang: str, verbose: bool, auto: bool):
-    if not gClass.recording:
-        return  # stop if canceled
-
+    gClass.processing = True
     # Transcribed
     print("> Transcribing Audio")
     try:
@@ -35,7 +34,10 @@ def whisper_transcribe(audio_name, model: whisper.Whisper, lang: str, verbose: b
             result = model.transcribe(f"{audio_name}.wav")
         else:
             result = model.transcribe(f"{audio_name}.wav", language=lang)
+
+        gClass.processing = False
     except Exception as e:
+        gClass.processing = False
         print(e)
         return
 
@@ -95,8 +97,13 @@ def transcribe_mic(modelInput: str, lang: str, verbose: bool = False, cutOff: in
 
     # clean up
     if not fJson.settingCache["keep_audio"]:
-        for audio in tempList:
-            try:
-                os.remove(f"{audio}.wav")
-            except FileNotFoundError:
-                pass
+        while gClass.processing:
+            sleep(0.1)  # waiting for process to finish
+
+        if not gClass.processing:
+            print("cleaning up")
+            for audio in tempList:
+                try:
+                    os.remove(f"{audio}.wav")
+                except FileNotFoundError:
+                    pass

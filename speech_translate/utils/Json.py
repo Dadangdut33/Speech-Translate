@@ -9,8 +9,8 @@ from notifypy import Notify
 default_setting = {
     "mode": "Transcribe",
     "model": "tiny",
-    "sourceLang": "en",
-    "targetLang": "id",
+    "sourceLang": "English",
+    "targetLang": "Indonesia",
     "keep_audio": False,
     "max_temp": 10,
     "separate_with": "\n",
