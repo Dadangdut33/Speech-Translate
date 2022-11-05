@@ -135,6 +135,8 @@ def libre_tl(text, from_lang, to_lang, https=False, host="libretranslate.de", po
         print(str(e))
         if "NewConnectionError" in str(e):
             result = "Error: Could not connect. Please make sure that the server is running and the port is correct. If you are not hosting it yourself, please try again with an internet connection."
+        if "request expecting value" in str(e):
+            result = "Error: Invalid parameter value. Check for https, host, port, and apiKeys. If you use external server, make sure https is set to True."
     finally:
         print("-" * 50)
         print("Query: " + text.strip())

@@ -317,7 +317,7 @@ class MainWindow:
     # cb engine change
     def cb_engine_change(self, _event=None):
         # save
-        fJson.settingCache["tl_engine"] = self.cb_engine.get()
+        fJson.savePartialSetting("tl_engine", self.cb_engine.get())
 
         # update the target cb list
         self.cb_targetLang["values"] = [upFirstCase(x) for x in engine_select_target_dict[self.cb_engine.get()]]
