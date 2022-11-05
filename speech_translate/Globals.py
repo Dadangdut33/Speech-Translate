@@ -1,4 +1,4 @@
-__all__ = ["dir_project", "dir_setting", "dir_temp", "version", "autoStr", "gClass", "fSetting", "available_languages", "select_lang"]
+__all__ = ["dir_project", "dir_setting", "dir_temp", "version", "autoStr", "gClass", "fJson", "available_languages", "select_lang"]
 
 import os
 
@@ -10,6 +10,7 @@ from whisper import tokenizer
 dir_project: str = os.path.dirname(os.path.realpath(__file__))
 dir_setting: str = os.path.join(dir_project, "../setting")
 dir_temp: str = os.path.join(dir_project, "../temp")
+app_icon: str = os.path.join(dir_project, "../assets/icon.ico")
 
 # ------------------ #
 class Globals:
@@ -32,7 +33,7 @@ class Globals:
 # ------------------ #
 version: str = "1.0.0"
 gClass: Globals = Globals()
-fSetting: SettingJsonHandler = SettingJsonHandler(os.path.join(dir_setting, "setting.json"), dir_setting, dir_temp)
+fJson: SettingJsonHandler = SettingJsonHandler(os.path.join(dir_setting, "setting.json"), dir_setting, dir_temp)
 available_languages: list[str] = sorted(tokenizer.TO_LANGUAGE_CODE.keys())
 select_lang: list[str] = [x.capitalize() for x in available_languages]
 autoStr: str = "Auto Detect"

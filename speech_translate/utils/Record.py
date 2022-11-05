@@ -10,7 +10,7 @@ import sys
 
 sys.path.append("..")
 
-from Globals import dir_temp, autoStr, gClass
+from Globals import dir_temp, autoStr, gClass, fJson
 from .Helper import modelSelectDict
 
 fs = 44100  # Sample rate
@@ -29,11 +29,15 @@ def whisper_transcribe(audio_name, model: whisper.Whisper, lang: str, verbose: b
         return  # stop if canceled
 
     # Transcribed
-    print("Transcribing Audio")
-    if auto:
-        result = model.transcribe(f"{audio_name}.wav")
-    else:
-        result = model.transcribe(f"{audio_name}.wav", language=lang)
+    print("> Transcribing Audio")
+    try:
+        if auto:
+            result = model.transcribe(f"{audio_name}.wav")
+        else:
+            result = model.transcribe(f"{audio_name}.wav", language=lang)
+    except Exception as e:
+        print(e)
+        return
 
     if not verbose:
         predicted_text = result["text"]
@@ -41,7 +45,8 @@ def whisper_transcribe(audio_name, model: whisper.Whisper, lang: str, verbose: b
     else:
         print(result)
 
-    gClass.mw.tb_transcribed.insert(tk.END, result["text"] + " ")  # type: ignore
+    assert gClass.mw is not None
+    gClass.mw.tb_transcribed.insert(tk.END, result["text"] + fJson.settingCache["separate_with"])  # type: ignore
 
 
 def record(audio_name, seconds=5):
@@ -50,32 +55,48 @@ def record(audio_name, seconds=5):
 
     # Record
     myrecording = sd.rec(int(seconds * fs), samplerate=fs, channels=2)
-    print("Recording Audio")
+    print(">>>")
+    print("> Recording Audio")
     sd.wait()  # Wait until recording is finished
     print("Audio recording complete")
     write(f"{audio_name}.wav", fs, myrecording)  # Save as WAV file
 
 
-def transcribe(modelInput: str, lang: str, verbose: bool = False, cutOff: int = 5):
+def transcribe_mic(modelInput: str, lang: str, verbose: bool = False, cutOff: int = 5):
     english = lang == "english"
     auto = lang == autoStr.lower()
     model = modelSelectDict[modelInput]
+    tempList = []
 
     # there are no english models for large
     if model != "large" and english:
         model = model + ".en"
 
     audio_model = whisper.load_model(model)
-    audio_name = os.path.join(dir_temp, datetime.now().strftime("%Y-%m-%d %H_%M_%S"))
 
-    count = 0
+    # turn off loadbar
+    assert gClass.mw is not None
+    gClass.mw.stop_loadBar("mic")
+
     while gClass.recording:
-        record(audio_name, cutOff)
-        # whisper_transcribe(audio_name, audio_model, lang, verbose, auto)
-        transcribeThread = threading.Thread(target=whisper_transcribe, args=(audio_name, audio_model, lang, verbose, auto))
-        transcribeThread.start()
+        audio_name = os.path.join(dir_temp, datetime.now().strftime("%Y-%m-%d %H_%M_%S_%f"))
+        tempList.append(audio_name)
+        record(audio_name, cutOff)  # record
+        transcribeThread = threading.Thread(target=whisper_transcribe, args=(audio_name, audio_model, lang, verbose, auto))  # transcribe thread
+        transcribeThread.start()  # transcribe in a thread so its not blocking
 
-        count += 1
-        if count == 2:
-            gClass.recording = False
-            break
+        # temp max
+        if len(tempList) > fJson.settingCache["max_temp"]:
+            # pop from the first element
+            try:
+                os.remove(tempList.pop(0) + ".wav")
+            except FileNotFoundError:
+                pass
+
+    # clean up
+    if not fJson.settingCache["keep_audio"]:
+        for audio in tempList:
+            try:
+                os.remove(f"{audio}.wav")
+            except FileNotFoundError:
+                pass

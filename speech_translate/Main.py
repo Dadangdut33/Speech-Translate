@@ -2,15 +2,16 @@ from sys import exit
 import threading
 import tkinter as tk
 import tkinter.ttk as ttk
+from typing import Literal
 from notifypy import Notify
 from pystray import Icon as icon, Menu as menu, MenuItem as item
 from PIL import Image, ImageDraw
 
 from components.MBox import Mbox
 from utils.Tooltip import CreateToolTip
-from utils.Helper import modelKeys
-from utils.Record import transcribe, getInputDevice, getOutputDevice
-from Globals import gClass, version, select_lang
+from utils.Helper import modelKeys, modelSelectDict
+from utils.Record import transcribe_mic, getInputDevice, getOutputDevice
+from Globals import gClass, fJson, version, select_lang
 
 
 class AppTray:
@@ -102,12 +103,12 @@ class MainWindow:
         self.cb_model.pack(side="left", fill="x", padx=5, pady=5, expand=False)
         CreateToolTip(
             self.cb_model,
-            """
-            \rModel size, larger models are more accurate but slower and require more VRAM/CPU power. 
+            """Model size, larger models are more accurate but slower and require more VRAM/CPU power. 
             \rIf you have a low end GPU, use Tiny or Base. Don't use large unless you really need it or have super computer because it's very slow.
             \rModel specs: \n- Tiny: ~1 GB Vram\n- Base: ~1 GB Vram\n- Small: ~2 GB Vram\n- Medium: ~5 GB Vram\n- Large: ~10 GB Vram""".strip(),
             wrapLength=400,
         )
+        self.cb_model.bind("<<ComboboxSelected>>", lambda _: fJson.savePartialSetting("model", modelSelectDict[self.cb_model.get()]))
 
         # from
         self.lbl_source = ttk.Label(self.f1_toolbar, text="From:")
@@ -116,6 +117,7 @@ class MainWindow:
         self.cb_sourceLang = ttk.Combobox(self.f1_toolbar, values=["Auto Detect"] + select_lang, state="readonly")
         self.cb_sourceLang.current(0)
         self.cb_sourceLang.pack(side="left", padx=5, pady=5)
+        self.cb_sourceLang.bind("<<ComboboxSelected>>", lambda _: fJson.savePartialSetting("sourceLang", self.cb_sourceLang.get()))
 
         # to
         self.lbl_to = ttk.Label(self.f1_toolbar, text="To:")
@@ -124,6 +126,7 @@ class MainWindow:
         self.cb_targetLang = ttk.Combobox(self.f1_toolbar, values=select_lang, state="readonly")
         self.cb_targetLang.current(0)
         self.cb_targetLang.pack(side="left", padx=5, pady=5)
+        self.cb_targetLang.bind("<<ComboboxSelected>>", lambda _: fJson.savePartialSetting("targetLang", self.cb_targetLang.get()))
 
         # swap
         self.btn_swap = ttk.Button(self.f1_toolbar, text="Swap", command=self.cb_swap_lang)
@@ -137,16 +140,26 @@ class MainWindow:
         self.tb_transcribed_bg = tk.Frame(self.f2_textBox, bg="#7E7E7E")
         self.tb_transcribed_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
 
-        self.tb_transcribed = tk.Text(self.tb_transcribed_bg, height=5, width=25, relief="flat", font=("Lucida Console", 10))  # font=("Segoe UI", 10), yscrollcommand=True, relief="flat"
+        self.sb_transcribed = tk.Scrollbar(self.tb_transcribed_bg)
+        self.sb_transcribed.pack(side="right", fill="y")
+
+        self.tb_transcribed = tk.Text(self.tb_transcribed_bg, height=5, width=25, relief="flat")  # font=("Segoe UI", 10), yscrollcommand=True, relief="flat"
         self.tb_transcribed.bind("<Key>", self.tb_allowed_key)
-        self.tb_transcribed.pack(fill="both", expand=True, padx=1, pady=1)
+        self.tb_transcribed.pack(side="left", fill="both", expand=True, padx=1, pady=1)
+        self.tb_transcribed.config(yscrollcommand=self.sb_transcribed.set)
+        self.sb_transcribed.config(command=self.tb_transcribed.yview)
 
         self.tb_translated_bg = tk.Frame(self.f2_textBox, bg="#7E7E7E")
         self.tb_translated_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
 
-        self.tb_translated = tk.Text(self.tb_translated_bg, height=5, width=25, relief="flat", font=("Lucida Console", 10))
+        self.sb_translated = tk.Scrollbar(self.tb_translated_bg)
+        self.sb_translated.pack(side="right", fill="y")
+
+        self.tb_translated = tk.Text(self.tb_translated_bg, height=5, width=25, relief="flat")
         self.tb_translated.bind("<Key>", self.tb_allowed_key)
         self.tb_translated.pack(fill="both", expand=True, padx=1, pady=1)
+        self.tb_translated.config(yscrollcommand=self.sb_translated.set)
+        self.sb_translated.config(command=self.tb_translated.yview)
 
         # -- f3_toolbar
         self.f3_frameLeft = ttk.Frame(self.f3_toolbar)
@@ -190,7 +203,7 @@ class MainWindow:
 
         # -- f4_statusbar
         # load bar
-        self.loadBar = ttk.Progressbar(self.f4_statusbar, orient="horizontal", length=200, mode="determinate")
+        self.loadBar = ttk.Progressbar(self.f4_statusbar, orient="horizontal", maximum=100, value=0, length=200, mode="determinate")
         self.loadBar.pack(side="left", padx=5, pady=5, fill="x", expand=True)
 
         # ------------------ Menubar ------------------
@@ -242,7 +255,8 @@ class MainWindow:
         # Only show notification once
         if not self.notified_hidden:
             notification = Notify()
-            notification.title = "Speech Translate"
+            notification.application_name = "Speech Translate"
+            notification.title = "Hidden to tray"
             notification.message = "The app is still running in the background."
             notification.send()
             self.notified_hidden = True
@@ -263,7 +277,7 @@ class MainWindow:
 
     # ------------------ Open External Window ------------------
     def open_about(self, _event=None):
-        Mbox("About", "Speech Translate", 0)  # placeholder for now
+        Mbox("About", "Speech Translate", 0)  # !placeholder for now
 
     # ------------------ Handler ------------------
     # Disable writing, allow copy
@@ -285,6 +299,11 @@ class MainWindow:
     # on start
     def onInit(self):
         self.cb_mode_change()
+        self.tb_clear()
+        self.cb_mode.set(fJson.settingCache["mode"])
+        self.cb_model.set({v: k for k, v in modelSelectDict.items()}[fJson.settingCache["model"]])
+        self.cb_sourceLang.set(fJson.settingCache["sourceLang"])
+        self.cb_targetLang.set(fJson.settingCache["targetLang"])
 
     # clear textboxes
     def tb_clear(self):
@@ -306,8 +325,13 @@ class MainWindow:
         self.cb_sourceLang.set(self.cb_targetLang.get())
         self.cb_targetLang.set(tmp)
 
-        # swap text
-        self.tb_swap_content()
+        # save
+        fJson.savePartialSetting("sourceLang", self.cb_sourceLang.get())
+        fJson.savePartialSetting("targetLang", self.cb_targetLang.get())
+
+        # swap text only if mode is transcribe and translate
+        if self.cb_mode.current() == 2:
+            self.tb_swap_content()
 
     # change mode
     def cb_mode_change(self, _event=None):
@@ -342,27 +366,74 @@ class MainWindow:
             self.cb_sourceLang.config(state="readonly")
             self.cb_targetLang.config(state="readonly")
 
+        # save
+        fJson.savePartialSetting("mode", self.cb_mode.get())
+
+    def disable_interactions(self):
+        self.cb_mode.config(state="disabled")
+        self.cb_model.config(state="disabled")
+        self.cb_sourceLang.config(state="disabled")
+        self.cb_targetLang.config(state="disabled")
+        self.btn_swap.config(state="disabled")
+        self.btn_record_mic.config(state="disabled")
+        self.btn_record_pc.config(state="disabled")
+        self.btn_record_file.config(state="disabled")
+
+    def enable_interactions(self):
+        self.cb_mode.config(state="readonly")
+        self.cb_model.config(state="readonly")
+        self.cb_sourceLang.config(state="readonly")
+        self.cb_targetLang.config(state="readonly")
+        self.btn_swap.config(state="normal")
+        self.btn_record_mic.config(state="normal")
+        self.btn_record_pc.config(state="normal")
+        self.btn_record_file.config(state="normal")
+
+    def start_loadBar(self):
+        self.loadBar.config(mode="indeterminate")
+        self.loadBar.start()
+
+    def stop_loadBar(self, rec_type: Literal["mic", "pc", "file"]):
+        self.loadBar.stop()
+        self.loadBar.config(mode="determinate")
+
+        if rec_type == "mic":
+            self.btn_record_mic.config(text="Stop")
+        elif rec_type == "pc":
+            self.btn_record_pc.config(text="Stop")
+        elif rec_type == "file":
+            self.btn_record_file.config(text="Stop")
+
     # ------------------ Rec ------------------
     # From mic
     def rec_from_mic(self):
         self.tb_clear()
-        self.tb_transcribed.insert(tk.END, "Listening...")
 
         # get value of cb mode
-        # mode = self.cb_mode.get()
+        mode = self.cb_mode.get()
         model = self.cb_model.get()
         sourceLang = self.cb_sourceLang.get()
 
+        # ui changes
+        self.start_loadBar()
+        self.disable_interactions()
+        self.btn_record_mic.config(text="Loading", command=self.rec_from_mic_stop, state="normal")
+
+        # Record
         gClass.recording = True
-        # TEST
         transcribeThread = threading.Thread(
-            target=transcribe,
+            target=transcribe_mic,
             args=(
                 model,
                 sourceLang.lower(),
             ),
         )
         transcribeThread.start()
+
+    def rec_from_mic_stop(self):
+        gClass.recording = False
+        self.btn_record_mic.config(text="Record From Mic", command=self.rec_from_mic)
+        self.enable_interactions()
 
 
 if __name__ == "__main__":

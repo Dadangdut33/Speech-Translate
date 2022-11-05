@@ -3,11 +3,17 @@ import json
 import os
 
 from components.MBox import Mbox  # uses message box for error because this is important
+from notifypy import Notify
 
 
 default_setting = {
-    "source_language": "en",
-    "target_language": "id",
+    "mode": "Transcribe",
+    "model": "tiny",
+    "sourceLang": "en",
+    "targetLang": "id",
+    "keep_audio": False,
+    "max_temp": 10,
+    "separate_with": "\n",
 }
 
 
@@ -73,7 +79,14 @@ class SettingJsonHandler:
         Save only a part of the setting
         """
         self.settingCache[key] = value
-        return self.saveSetting(self.settingCache)
+        success, msg = self.saveSetting(self.settingCache)
+
+        if not success:
+            notification = Notify()
+            notification.application_name = "Speech Translate"
+            notification.title = "Error: Saving setting file"
+            notification.message = "Reason: " + msg
+            notification.send()
 
     def loadSetting(self):
         """
