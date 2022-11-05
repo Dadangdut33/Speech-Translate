@@ -8,10 +8,11 @@ from pystray import Icon as icon, Menu as menu, MenuItem as item
 from PIL import Image, ImageDraw
 
 from components.MBox import Mbox
-from utils.Tooltip import CreateToolTip
-from utils.Helper import modelKeys, modelSelectDict
-from utils.Record import transcribe_mic, getInputDevice, getOutputDevice
-from Globals import gClass, fJson, version, select_lang
+from components.Tooltip import CreateToolTip
+from utils.LangCode import whisper_compatible, engine_select_target_dict
+from utils.Helper import modelKeys, modelSelectDict, upFirstCase
+from utils.Record import rec_mic, getInputDevice, getOutputDevice
+from Globals import gClass, fJson, version
 
 
 class AppTray:
@@ -66,7 +67,7 @@ class MainWindow:
         self.root = tk.Tk()
 
         self.root.title(f"Speech Translate")
-        self.root.geometry("960x400")
+        self.root.geometry("1200x400")
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.root.wm_attributes("-topmost", False)  # Default False
 
@@ -89,8 +90,7 @@ class MainWindow:
         self.lbl_mode = ttk.Label(self.f1_toolbar, text="Mode:")
         self.lbl_mode.pack(side="left", fill="x", padx=5, pady=5, expand=False)
 
-        self.cb_mode = ttk.Combobox(self.f1_toolbar, values=["Transcribe", "Translate", "Trasncribe and Translate"], state="readonly")
-        self.cb_mode.current(0)
+        self.cb_mode = ttk.Combobox(self.f1_toolbar, values=["Transcribe", "Translate", "Transcribe & Translate"], state="readonly")
         self.cb_mode.pack(side="left", fill="x", padx=5, pady=5, expand=False)
         self.cb_mode.bind("<<ComboboxSelected>>", self.cb_mode_change)
 
@@ -99,7 +99,6 @@ class MainWindow:
         self.lbl_model.pack(side="left", fill="x", padx=5, pady=5, expand=False)
 
         self.cb_model = ttk.Combobox(self.f1_toolbar, values=modelKeys, state="readonly")
-        self.cb_model.current(0)
         self.cb_model.pack(side="left", fill="x", padx=5, pady=5, expand=False)
         CreateToolTip(
             self.cb_model,
@@ -110,12 +109,19 @@ class MainWindow:
         )
         self.cb_model.bind("<<ComboboxSelected>>", lambda _: fJson.savePartialSetting("model", modelSelectDict[self.cb_model.get()]))
 
+        # engine
+        self.lbl_engine = ttk.Label(self.f1_toolbar, text="TL Engine:")
+        self.lbl_engine.pack(side="left", fill="x", padx=5, pady=5, expand=False)
+
+        self.cb_engine = ttk.Combobox(self.f1_toolbar, values=["Whisper", "Google", "LibreTranslate"], state="readonly")
+        self.cb_engine.pack(side="left", fill="x", padx=5, pady=5, expand=False)
+        self.cb_engine.bind("<<ComboboxSelected>>", self.cb_engine_change)
+
         # from
         self.lbl_source = ttk.Label(self.f1_toolbar, text="From:")
         self.lbl_source.pack(side="left", padx=5, pady=5)
 
-        self.cb_sourceLang = ttk.Combobox(self.f1_toolbar, values=["Auto Detect"] + select_lang, state="readonly")
-        self.cb_sourceLang.current(0)
+        self.cb_sourceLang = ttk.Combobox(self.f1_toolbar, values=["Auto Detect"] + [upFirstCase(x) for x in whisper_compatible], state="readonly")
         self.cb_sourceLang.pack(side="left", padx=5, pady=5)
         self.cb_sourceLang.bind("<<ComboboxSelected>>", lambda _: fJson.savePartialSetting("sourceLang", self.cb_sourceLang.get()))
 
@@ -123,8 +129,7 @@ class MainWindow:
         self.lbl_to = ttk.Label(self.f1_toolbar, text="To:")
         self.lbl_to.pack(side="left", padx=5, pady=5)
 
-        self.cb_targetLang = ttk.Combobox(self.f1_toolbar, values=select_lang, state="readonly")
-        self.cb_targetLang.current(0)
+        self.cb_targetLang = ttk.Combobox(self.f1_toolbar, values=[upFirstCase(x) for x in whisper_compatible], state="readonly")
         self.cb_targetLang.pack(side="left", padx=5, pady=5)
         self.cb_targetLang.bind("<<ComboboxSelected>>", lambda _: fJson.savePartialSetting("targetLang", self.cb_targetLang.get()))
 
@@ -298,12 +303,28 @@ class MainWindow:
     # ------------------ Functions ------------------
     # on start
     def onInit(self):
-        self.cb_mode_change()
-        self.tb_clear()
         self.cb_mode.set(fJson.settingCache["mode"])
         self.cb_model.set({v: k for k, v in modelSelectDict.items()}[fJson.settingCache["model"]])
         self.cb_sourceLang.set(fJson.settingCache["sourceLang"])
         self.cb_targetLang.set(fJson.settingCache["targetLang"])
+        self.cb_engine.set(fJson.settingCache["tl_engine"])
+
+        # update on start
+        self.cb_engine_change()
+        self.cb_mode_change()
+        self.tb_clear()
+
+    # cb engine change
+    def cb_engine_change(self, _event=None):
+        # save
+        fJson.settingCache["tl_engine"] = self.cb_engine.get()
+
+        # update the target cb list
+        self.cb_targetLang["values"] = [upFirstCase(x) for x in engine_select_target_dict[self.cb_engine.get()]]
+
+        # check if the target lang is in the new list
+        if self.cb_targetLang.get() not in self.cb_targetLang["values"]:
+            self.cb_targetLang.current(0)
 
     # clear textboxes
     def tb_clear(self):
@@ -372,6 +393,7 @@ class MainWindow:
     def disable_interactions(self):
         self.cb_mode.config(state="disabled")
         self.cb_model.config(state="disabled")
+        self.cb_engine.config(state="disabled")
         self.cb_sourceLang.config(state="disabled")
         self.cb_targetLang.config(state="disabled")
         self.btn_swap.config(state="disabled")
@@ -382,6 +404,7 @@ class MainWindow:
     def enable_interactions(self):
         self.cb_mode.config(state="readonly")
         self.cb_model.config(state="readonly")
+        self.cb_engine.config(state="readonly")
         self.cb_sourceLang.config(state="readonly")
         self.cb_targetLang.config(state="readonly")
         self.btn_swap.config(state="normal")
@@ -398,8 +421,9 @@ class MainWindow:
         self.loadBar.config(mode="determinate")
 
         # check first if it's recording or not
-        if not gClass.recording: return
-        
+        if not gClass.recording:
+            return
+
         if rec_type == "mic":
             self.btn_record_mic.config(text="Stop")
         elif rec_type == "pc":
@@ -415,7 +439,11 @@ class MainWindow:
         # get value of cb mode
         mode = self.cb_mode.get()
         model = self.cb_model.get()
-        sourceLang = self.cb_sourceLang.get()
+        sourceLang = self.cb_sourceLang.get().lower()
+        targetLang = self.cb_targetLang.get().lower()
+        engine = self.cb_engine.get()
+        verbose = fJson.settingCache["verbose"]
+        cutOff = fJson.settingCache["cutOff"]
 
         # ui changes
         self.start_loadBar()
@@ -424,17 +452,20 @@ class MainWindow:
 
         # Record
         gClass.recording = True
-        transcribeThread = threading.Thread(
-            target=transcribe_mic,
-            args=(
-                model,
-                sourceLang.lower(),
-            ),
-        )
-        transcribeThread.start()
+        if mode == "Transcribe":
+            transcribeThread = threading.Thread(target=rec_mic, args=(model, sourceLang, targetLang, True, False, engine, verbose, cutOff))
+            transcribeThread.start()
+        elif mode == "Translate":
+            translateThread = threading.Thread(target=rec_mic, args=(model, sourceLang, targetLang, False, True, engine, verbose, cutOff))
+            translateThread.start()
+        elif mode == "Transcribe & Translate":
+            transcribeTranslateThread = threading.Thread(target=rec_mic, args=(model, sourceLang, targetLang, True, True, engine, verbose, cutOff))
+            transcribeTranslateThread.start()
 
     def rec_from_mic_stop(self):
         gClass.recording = False
+        self.loadBar.stop()
+        self.loadBar.config(mode="determinate")
         self.btn_record_mic.config(text="Record From Mic", command=self.rec_from_mic)
         self.enable_interactions()
 

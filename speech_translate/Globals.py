@@ -1,4 +1,4 @@
-__all__ = ["dir_project", "dir_setting", "dir_temp", "version", "autoStr", "gClass", "fJson", "available_languages", "select_lang"]
+__all__ = ["dir_project", "dir_setting", "dir_temp", "version", "gClass", "fJson"]
 
 import os
 
@@ -24,7 +24,8 @@ class Globals:
         # Flags
         self.running = True
         self.recording = False
-        self.processing = False
+        self.transcribing = False
+        self.translating = False
 
         # References to class
         self.mw = None
@@ -35,6 +36,3 @@ class Globals:
 version: str = "1.0.0"
 gClass: Globals = Globals()
 fJson: SettingJsonHandler = SettingJsonHandler(os.path.join(dir_setting, "setting.json"), dir_setting, dir_temp)
-available_languages: list[str] = sorted(tokenizer.TO_LANGUAGE_CODE.keys())
-select_lang: list[str] = [x.capitalize() for x in available_languages]
-autoStr: str = "Auto Detect"

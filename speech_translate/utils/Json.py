@@ -11,9 +11,16 @@ default_setting = {
     "model": "tiny",
     "sourceLang": "English",
     "targetLang": "Indonesia",
+    "verbose": False,
     "keep_audio": False,
     "max_temp": 10,
+    "cutOff": 5,
     "separate_with": "\n",
+    "tl_engine": "Google",
+    "libre_api_key": "",
+    "libre_host": "libretranslate.de",
+    "libre_port": "",
+    "libre_https": True,
 }
 
 
