@@ -8,4 +8,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Project specific
 setting/
+temp/
