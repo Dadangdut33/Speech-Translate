@@ -1,7 +1,26 @@
-from notifypy import Notify
+from notifypy import Notify, exceptions
 import requests
-from .LangCode import google_lang, libre_lang, myMemory_lang, pons_lang
+import sys
 
+sys.path.append("..")
+
+from Globals import app_icon, app_name
+from .LangCode import google_lang, libre_lang, myMemory_lang
+
+
+def no_connection_notify():
+    notification = Notify()
+    notification.title = "Not connected to internet"
+    notification.message = "Translation for engine other than Whisper or your local LibreTranslate Deployment (If you have one) will not work until you reconnect to the internet."
+    notification.application_name = app_name
+    try:
+        notification.icon = app_icon
+    except exceptions.InvalidIconPath:
+        pass
+    notification.send()
+
+
+# Import the translator
 try:
     from deep_translator import GoogleTranslator, MyMemoryTranslator, PonsTranslator
 except Exception as e:
@@ -9,11 +28,7 @@ except Exception as e:
     MyMemoryTranslator = None
     PonsTranslator = None
     if "HTTPSConnectionPool" in str(e):
-        notification = Notify()
-        notification.application_name = "Speech Translate"
-        notification.title = "Not connected to internet"
-        notification.message = "Translation for language other than English will not work until you reconnect to the internet."
-        notification.send()
+        no_connection_notify()
     else:
         print("Error", str(e))
 
@@ -33,14 +48,6 @@ class tl_cons:
 
 
 tlCons = tl_cons(GoogleTranslator, MyMemoryTranslator, PonsTranslator)
-
-
-def no_connection_notify():
-    notification = Notify()
-    notification.application_name = "Speech Translate"
-    notification.title = "Not connected to internet"
-    notification.message = "Translation for language other than English will not work until you reconnect to the internet."
-    notification.send()
 
 
 def google_tl(text: str, from_lang: str, to_lang: str, oldMethod: bool = False):
@@ -88,7 +95,6 @@ def google_tl(text: str, from_lang: str, to_lang: str, oldMethod: bool = False):
     finally:
         print("-" * 50)
         print("Query: " + text.strip())
-        print("-" * 50)
         print("Translation Get: " + result)
         return is_Success, result
 
@@ -130,48 +136,6 @@ def memory_tl(text: str, from_lang: str, to_lang: str):
     finally:
         print("-" * 50)
         print("Query: " + text.strip())
-        print("-" * 50)
-        print("Translation Get: " + result)  # type: ignore
-
-
-def pons_tl(text, from_lang, to_lang):
-    """Translate Using PONS
-    Args:
-        text ([str]): Text to translate
-        from_lang (str): Language From
-        to_lang (str): Language to translate
-    Returns:
-        [type]: Translation result
-    """
-    is_Success = False
-    result = ""
-    # --- Get lang code ---
-    try:
-        to_LanguageCode_Pons = pons_lang[to_lang]
-        from_LanguageCode_Pons = pons_lang[from_lang]
-    except KeyError as e:
-        print("Error: " + str(e))
-        return is_Success, "Error Language Code Undefined"
-    # --- Translate ---
-    try:
-        if tlCons.PonsTranslator is None:
-            try:
-                from deep_translator import PonsTranslator
-
-                tlCons.PonsTranslator = PonsTranslator
-            except Exception as e:
-                no_connection_notify()
-                return is_Success, "Error: Not connected to internet"
-
-        result = tlCons.PonsTranslator(source=from_LanguageCode_Pons, target=to_LanguageCode_Pons).translate(text.strip())
-        is_Success = True
-    except Exception as e:
-        print(str(e))
-        result = str(e)
-    finally:
-        print("-" * 50)
-        print("Query: " + text.strip())
-        print("-" * 50)
         print("Translation Get: " + result)  # type: ignore
         return is_Success, result
 
@@ -225,6 +189,5 @@ def libre_tl(text: str, from_lang: str, to_lang: str, https: bool = False, host:
     finally:
         print("-" * 50)
         print("Query: " + text.strip())
-        print("-" * 50)
         print("Translation Get: " + result)
         return is_Success, result

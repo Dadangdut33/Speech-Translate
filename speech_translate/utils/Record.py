@@ -4,8 +4,7 @@ import whisper
 import sounddevice as sd
 from scipy.io.wavfile import write
 
-from notifypy import Notify
-import tkinter as tk
+from notifypy import Notify, exceptions
 from datetime import datetime
 from time import sleep, time
 import os
@@ -13,9 +12,9 @@ import sys
 
 sys.path.append("..")
 
-from Globals import dir_temp, gClass, fJson
+from Globals import dir_temp, gClass, fJson, app_icon, app_name
 from .Helper import modelSelectDict
-from .Translate import google_tl, libre_tl
+from .Translate import google_tl, libre_tl, memory_tl
 
 fs = 44100  # Sample rate
 
@@ -28,8 +27,33 @@ def getOutputDevice():
     return sd.query_devices(kind="output")
 
 
+def notifyError(title: str, message: str) -> None:
+    """Notify Error
+
+    Args:
+        title (str): Title of the notification
+        message (str): Message of the notification
+    """
+    notification = Notify()
+    notification.title = title
+    notification.message = message
+    notification.application_name = app_name
+    try:
+        notification.icon = app_icon
+    except exceptions.InvalidIconPath:
+        pass
+    notification.send()
+
+
 def whisper_transcribe(
-    audio_name: str, model: whisper.Whisper, lang_source: str, auto: bool, verbose: bool, translate: bool = False, engine: Literal["Whisper", "Google", "LibreTranslate"] | None = None, lang_target: str | None = None
+    audio_name: str,
+    model: whisper.Whisper,
+    lang_source: str,
+    auto: bool,
+    verbose: bool,
+    translate: bool = False,
+    engine: Literal["Whisper", "Google", "LibreTranslate", "MyMemoryTranslator"] | None = None,
+    lang_target: str | None = None,
 ) -> None:
     """Transcribe Audio using whisper
 
@@ -40,13 +64,14 @@ def whisper_transcribe(
         auto (bool): Auto Detect Language
         verbose (bool): Verbose or not
         translate (bool, optional): Translate or not. Defaults to False.
-        engine (Literal["Whisper", "Google", "LibreTranslate"], optional): Engine to use for translation. Defaults to None.
+        engine (Literal["Whisper", "Google", "LibreTranslate", "MyMemoryTranslator"], optional): Engine to use for translation. Defaults to None.
         lang_target (str | None, optional): Target Language. Defaults to None.
     """
-    gClass.transcribing = True
+    gClass.enableTranscribing()
     result_Tc = ""
 
     # Transcribe
+    print("-" * 50)
     print("> Transcribing Audio:", audio_name)
     try:
         if auto:
@@ -54,29 +79,35 @@ def whisper_transcribe(
         else:
             result_Tc = model.transcribe(audio_name, language=lang_source)
 
-        gClass.transcribing = False  # flag processing as done
+        gClass.disableTranscribing()  # flag processing as done
     except Exception as e:
-        gClass.transcribing = False  # flag processing as done if error
+        gClass.disableTranscribing()  # flag processing as done if error
         print(e)
         return
 
+    print("-" * 50)
+    print("Transcribed:")  # type: ignore
     if not verbose:
-        print("You said: " + result_Tc["text"])  # type: ignore
+        print(result_Tc["text"].strip())  # type: ignore
     else:
-        print("=" * 20)
         print(result_Tc)
-        print("=" * 20)
 
-    assert gClass.mw is not None
-    gClass.mw.tb_transcribed.insert(tk.END, result_Tc["text"].strip() + fJson.settingCache["separate_with"])  # type: ignore
-
+    # insert to textbox
+    gClass.insertTbTranscribed(result_Tc["text"].strip() + fJson.settingCache["separate_with"])  # type: ignore
     if translate:
         translateThread = threading.Thread(target=whisper_translate, args=(audio_name, model, lang_source, lang_target, auto, verbose, engine, result_Tc["text"]))
         translateThread.start()
 
 
 def whisper_translate(
-    audio_name: str, model: whisper.Whisper, lang_source: str, lang_target: str, auto: bool, verbose: bool, engine: Literal["Whisper", "Google", "LibreTranslate", "MyMemory", "Pons"], transcribed_text: str | None = None
+    audio_name: str,
+    model: whisper.Whisper,
+    lang_source: str,
+    lang_target: str,
+    auto: bool,
+    verbose: bool,
+    engine: Literal["Whisper", "Google", "LibreTranslate", "MyMemoryTranslator"],
+    transcribed_text: str | None = None,
 ) -> None:
     """Translate Audio
 
@@ -87,17 +118,18 @@ def whisper_translate(
         lang_target (str): Target Language
         auto (bool): Auto Detect Language
         verbose (bool): Verbose
-        engine (Literal["Whisper", "Google", "LibreTranslate", "MyMemory", "Pons"]): Engine to use for translation
+        engine (Literal["Whisper", "Google", "LibreTranslate", "MyMemory", "MyMemoryTranslator"]): Engine to use for translation
         transcribed_text (str | None, optional): Transcribed Text. Defaults to None. If provided will use this model for online translation instead of offline using whisper.
     """
     gClass.translating = True
     result_Tl = ""
 
     # Translate
+    print("-" * 50)
     if transcribed_text is None:
-        print("> Translating Audio", audio_name)
+        print("> Task: Translating Audio", audio_name)
     else:
-        print("> Translating Text", transcribed_text)
+        print("> Task: Translating Text")
     try:
         if engine == "Whisper":
             try:
@@ -108,29 +140,27 @@ def whisper_translate(
             except Exception as e:
                 print(e)
                 return
+
         elif engine == "Google":
             assert transcribed_text is not None
             oldMethod = "alt" in lang_target
             success, result_Tl = google_tl(transcribed_text, lang_source, lang_target, oldMethod)
             if not success:
-                # notify the error
-                notification = Notify()
-                notification.application_name = "Speech Translate"
-                notification.title = "Error: translation with google failed"
-                notification.message = result_Tl
-                notification.send()
+                notifyError("Error: translation with google failed", result_Tl)
+
         elif engine == "LibreTranslate":
             assert transcribed_text is not None
             success, result_Tl = libre_tl(
                 transcribed_text, lang_source, lang_target, fJson.settingCache["libre_https"], fJson.settingCache["libre_host"], fJson.settingCache["libre_port"], fJson.settingCache["libre_api_key"]
             )
             if not success:
-                # notify the error
-                notification = Notify()
-                notification.application_name = "Speech Translate"
-                notification.title = "Error: translation with libre failed"
-                notification.message = result_Tl
-                notification.send()
+                notifyError("Error: translation with libre failed", result_Tl)
+
+        elif engine == "MyMemoryTranslator":
+            assert transcribed_text is not None
+            success, result_Tl = memory_tl(transcribed_text, lang_source, lang_target)
+            if not success:
+                notifyError("Error: translation with mymemory failed", str(result_Tl))
 
         gClass.translating = False  # flag processing as done. No need to check for transcription because it is done before this
     except Exception as e:
@@ -138,25 +168,19 @@ def whisper_translate(
         print(e)
         return
 
-    print("translating flag: ")
-    print(gClass.translating)
-    assert gClass.mw is not None
     if engine == "Whisper":
-        gClass.mw.tb_translated.insert(tk.END, result_Tl["text"].strip() + fJson.settingCache["separate_with"])  # type: ignore
-        if not verbose:
-            print("Translated: " + result_Tl["text"])  # type: ignore
-        else:
+        gClass.insertTbTranslated(result_Tl["text"].strip() + fJson.settingCache["separate_with"])  # type: ignore
+        if verbose:
             print(result_Tl)  # type: ignore
     else:
-        gClass.mw.tb_translated.insert(tk.END, result_Tl + fJson.settingCache["separate_with"])  # type: ignore
-        print(result_Tl)  # type: ignore
+        gClass.insertTbTranslated(result_Tl.strip() + fJson.settingCache["separate_with"])  # type: ignore
 
 
-def record_from_mic(audio_name, seconds=5) -> None:
+def record_from_mic(audio_name: str, seconds=5) -> None:
     """Record Audio From Microphone
 
     Args:
-        audio_name (_type_): Name of the audio file
+        audio_name (str): Name of the audio file
         seconds (int, optional): Seconds to record. Defaults to 5.
 
     Returns:
@@ -167,9 +191,8 @@ def record_from_mic(audio_name, seconds=5) -> None:
 
     # Record
     myrecording = sd.rec(int(seconds * fs), samplerate=fs, channels=2)
-    print("=" * 20)
-    print(">>>")
-    print("> Recording Audio")
+    print("-" * 50)
+    print("> Task: Recording Audio")
     sd.wait()  # Wait until recording is finished
     print("Audio recording complete")
     write(audio_name, fs, myrecording)  # Save as WAV file
@@ -191,6 +214,8 @@ def rec_mic(modelInput: str, langSource: str, langTarget: str, transcibe: bool, 
     Returns:
         None
     """
+    print(f"> Start [{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}]")
+
     tempList = []  # List of all the temp files
     src_english = langSource == "english"
     auto = langSource == "auto detect"
@@ -235,18 +260,43 @@ def rec_mic(modelInput: str, langSource: str, langTarget: str, transcibe: bool, 
         startTime = time()
         while gClass.transcribing:
             timeNow = time() - startTime
-            print(f"Waiting for transcription to finish ({timeNow})", end="\r", flush=True)
+            print(f"> Waiting for transcription to finish ({timeNow:.2f}s)", end="\r", flush=True)
             sleep(0.1)  # waiting for process to finish
+        print(end="\r\r", flush=True)
 
         startTime = time()
         while gClass.translating:
             timeNow = time() - startTime
-            print(f"Waiting for translation to finish ({timeNow})", end="\r", flush=True)
+            print(f"> Waiting for translation to finish ({timeNow:.2f}s)", end="\r", flush=True)
             sleep(0.1)  # waiting for process to finish
+        print(end="\r\r", flush=True)
 
-        print("cleaning up")
+        print("-" * 50)
+        print("Task: Cleaning up")
         for audio in tempList:
             try:
                 os.remove(audio)
             except FileNotFoundError:
                 pass
+        print("> Done!")
+
+    print(f"> End [{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}]")
+
+
+def rec_pc(modelInput: str, langSource: str, langTarget: str, transcibe: bool, translate: bool, engine: str, verbose: bool = False) -> None:
+    """Function to record audio from default microphone. It will then transcribe/translate the audio depending on the input.
+
+    Args:
+        modelInput (str): The model to use for the input.
+        langSource (str): The language of the input.
+        langTarget (str): The language to translate to.
+        transcibe (bool): Whether to transcribe the audio.
+        translate (bool): Whether to translate the audio.
+        engine (str): The engine to use for the translation.
+        verbose (bool, optional): Whether to print the verbose output. Defaults to False.
+
+    Returns:
+        None
+    """
+    print(f"> Start [{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}]")
+    pass

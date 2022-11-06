@@ -3,16 +3,16 @@ import threading
 import tkinter as tk
 import tkinter.ttk as ttk
 from typing import Literal
-from notifypy import Notify
+from notifypy import Notify, exceptions
 from pystray import Icon as icon, Menu as menu, MenuItem as item
 from PIL import Image, ImageDraw
 
 from components.MBox import Mbox
 from components.Tooltip import CreateToolTip
-from utils.LangCode import whisper_compatible, engine_select_target_dict
+from utils.LangCode import whisper_compatible, engine_select_target_dict, engine_select_source_dict
 from utils.Helper import modelKeys, modelSelectDict, upFirstCase
 from utils.Record import rec_mic, getInputDevice, getOutputDevice
-from Globals import gClass, fJson, version
+from Globals import gClass, fJson, version, app_icon, app_icon_missing, app_name
 
 
 class AppTray:
@@ -29,8 +29,6 @@ class AppTray:
 
     # -- Tray icon
     def create_image(self, width, height, color1, color2):
-        # !Generic icon for now
-        # TODO: Make icon
         # Generate an image and draw a pattern
         image = Image.new("RGB", (width, height), color1)
         dc = ImageDraw.Draw(image)
@@ -41,9 +39,10 @@ class AppTray:
 
     # -- Create tray
     def create_tray(self):
+        trayIco = Image.open(app_icon) if not app_icon_missing else self.create_image(64, 64, "black", "white")
         self.menu_items = (item("Show", self.open_app), item("Exit", self.exit_app))
         self.menu = menu(*self.menu_items)
-        self.icon = icon("Speech Translate", self.create_image(64, 64, "black", "white"), f"Speech Translate V{version}", self.menu)
+        self.icon = icon("Speech Translate", trayIco, f"Speech Translate V{version}", self.menu)
         self.icon.run_detached()
 
     # -- Open app
@@ -113,7 +112,7 @@ class MainWindow:
         self.lbl_engine = ttk.Label(self.f1_toolbar, text="TL Engine:")
         self.lbl_engine.pack(side="left", fill="x", padx=5, pady=5, expand=False)
 
-        self.cb_engine = ttk.Combobox(self.f1_toolbar, values=["Whisper", "Google", "LibreTranslate"], state="readonly")
+        self.cb_engine = ttk.Combobox(self.f1_toolbar, values=["Whisper", "Google", "LibreTranslate", "MyMemoryTranslator"], state="readonly")
         self.cb_engine.pack(side="left", fill="x", padx=5, pady=5, expand=False)
         self.cb_engine.bind("<<ComboboxSelected>>", self.cb_engine_change)
 
@@ -121,7 +120,7 @@ class MainWindow:
         self.lbl_source = ttk.Label(self.f1_toolbar, text="From:")
         self.lbl_source.pack(side="left", padx=5, pady=5)
 
-        self.cb_sourceLang = ttk.Combobox(self.f1_toolbar, values=["Auto Detect"] + [upFirstCase(x) for x in whisper_compatible], state="readonly")
+        self.cb_sourceLang = ttk.Combobox(self.f1_toolbar, values=engine_select_source_dict["Whisper"], state="readonly")  # initial value
         self.cb_sourceLang.pack(side="left", padx=5, pady=5)
         self.cb_sourceLang.bind("<<ComboboxSelected>>", lambda _: fJson.savePartialSetting("sourceLang", self.cb_sourceLang.get()))
 
@@ -129,7 +128,7 @@ class MainWindow:
         self.lbl_to = ttk.Label(self.f1_toolbar, text="To:")
         self.lbl_to.pack(side="left", padx=5, pady=5)
 
-        self.cb_targetLang = ttk.Combobox(self.f1_toolbar, values=[upFirstCase(x) for x in whisper_compatible], state="readonly")
+        self.cb_targetLang = ttk.Combobox(self.f1_toolbar, values=[upFirstCase(x) for x in whisper_compatible], state="readonly")  # initial value
         self.cb_targetLang.pack(side="left", padx=5, pady=5)
         self.cb_targetLang.bind("<<ComboboxSelected>>", lambda _: fJson.savePartialSetting("targetLang", self.cb_targetLang.get()))
 
@@ -240,6 +239,12 @@ class MainWindow:
         self.root.after(1000, self.isRunningPoll)
         self.onInit()
 
+        # ------------------ Set Icon ------------------
+        try:
+            self.root.iconbitmap(app_icon)
+        except:
+            pass
+
     # ------------------ Handle Main window ------------------
     # Quit the app
     def quit_app(self):
@@ -260,9 +265,13 @@ class MainWindow:
         # Only show notification once
         if not self.notified_hidden:
             notification = Notify()
-            notification.application_name = "Speech Translate"
             notification.title = "Hidden to tray"
             notification.message = "The app is still running in the background."
+            notification.application_name = app_name
+            try:
+                notification.icon = app_icon
+            except exceptions.InvalidIconPath:
+                pass
             notification.send()
             self.notified_hidden = True
 
@@ -319,12 +328,24 @@ class MainWindow:
         # save
         fJson.savePartialSetting("tl_engine", self.cb_engine.get())
 
-        # update the target cb list
-        self.cb_targetLang["values"] = [upFirstCase(x) for x in engine_select_target_dict[self.cb_engine.get()]]
+        self.cb_lang_update()
 
-        # check if the target lang is in the new list
+    def cb_lang_update(self):
+        # update the target cb list
+        self.cb_targetLang["values"] = engine_select_target_dict[self.cb_engine.get()]
+
+        # update source only if mode is not transcribe only
+        mode = self.cb_mode.get()
+        if mode != "Transcribe":
+            self.cb_sourceLang["values"] = engine_select_source_dict[self.cb_engine.get()]
+
+        # check if the target lang is not in the new list
         if self.cb_targetLang.get() not in self.cb_targetLang["values"]:
             self.cb_targetLang.current(0)
+
+        # check if the source lang is not in the new list
+        if self.cb_sourceLang.get() not in self.cb_sourceLang["values"]:
+            self.cb_sourceLang.current(0)
 
     # clear textboxes
     def tb_clear(self):
@@ -368,6 +389,9 @@ class MainWindow:
 
             self.cb_sourceLang.config(state="readonly")
             self.cb_targetLang.config(state="disabled")
+
+            # reset source lang selection
+            self.cb_sourceLang["values"] = engine_select_source_dict["Whisper"]
         elif index == 1:  # translate only
             self.tb_transcribed_bg.pack_forget()
             self.tb_transcribed.pack_forget()
@@ -377,6 +401,8 @@ class MainWindow:
 
             self.cb_sourceLang.config(state="readonly")
             self.cb_targetLang.config(state="readonly")
+            self.cb_lang_update()
+
         elif index == 2:  # transcribe and translate
             self.tb_transcribed_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
             self.tb_transcribed.pack(fill="both", expand=True, padx=1, pady=1)
@@ -386,6 +412,7 @@ class MainWindow:
 
             self.cb_sourceLang.config(state="readonly")
             self.cb_targetLang.config(state="readonly")
+            self.cb_lang_update()
 
         # save
         fJson.savePartialSetting("mode", self.cb_mode.get())

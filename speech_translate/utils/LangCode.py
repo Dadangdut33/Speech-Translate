@@ -1,3 +1,5 @@
+from .Helper import upFirstCase
+
 # List of whisper languages
 whisper_compatible = [
     "afrikaans",
@@ -129,10 +131,10 @@ google_lang = {
     "burmese": "my",
     "catalan:valencian": "cat",
     "cebuano": "ceb",
-    "chinese (simplified)": "zh-cn",
-    "chinese (simplified) - alt": "zh-CN",
+    "chinese": "zh-cn",
+    "chinese-alt": "zh-CN",
     "chinese (traditional)": "zh-tw",
-    "chinese (traditional) - alt": "zh-TW",
+    "chinese (traditional)-alt": "zh-TW",
     "corsican": "co",
     "czech": "ces",
     "danish": "da",
@@ -208,7 +210,7 @@ google_lang = {
 libre_lang = {
     "auto detect": "auto",
     "arabic": "ar",
-    "chinese (simplified)": "zh",
+    "chinese": "zh",
     "chinese (traditional)": "zh",
     "dutch": "nl",
     "english": "en",
@@ -249,7 +251,7 @@ myMemory_lang = {
     "burmese": "my",
     "catalan": "ca",
     "cebuano": "ceb",
-    "chinese (simplified)": "zh-cn",
+    "chinese": "zh-cn",
     "chinese (traditional)": "zh-tw",
     "corsican": "co",
     "czech": "cs",
@@ -325,31 +327,7 @@ myMemory_lang = {
     "yoruba": "yo",
 }
 
-# List of supported languages by Pons
-pons_lang = {
-    "arabic": "ar",
-    "bulgarian": "bg",
-    "chinese (simplified)": "zh-cn",
-    "chinese (traditional)": "zh-cn",
-    "czech": "cs",
-    "danish": "da",
-    "dutch": "nl",
-    "english": "en",
-    "french": "fr",
-    "german": "de",
-    "greek": "el",
-    "hungarian": "hu",
-    "italian": "it",
-    "latin": "la",
-    "norwegian": "no",
-    "polish": "pl",
-    "portuguese": "pt",
-    "russian": "ru",
-    "spanish": "es",
-    "swedish": "sv",
-    "turkish": "tr",
-}
-
+# select target engine
 gLang_target = list(google_lang.keys())
 gLang_target.pop(0)
 
@@ -359,11 +337,32 @@ libre_target.pop(0)
 myMemory_target = list(myMemory_lang.keys())
 myMemory_target.pop(0)
 
-# select engine
 engine_select_target_dict = {
-    "Whisper": ["english"],
-    "Google": gLang_target,
-    "LibreTranslate": libre_target,
-    "MyMemoryTranslator": myMemory_target,
-    "Pons": list(pons_lang.keys()),
+    "Whisper": ["English"],
+    "Google": [upFirstCase(x) for x in gLang_target] ,
+    "LibreTranslate": [upFirstCase(x) for x in libre_target] ,
+    "MyMemoryTranslator": [upFirstCase(x) for x in myMemory_target],
+}
+
+# source engine
+google_whisper_compatible = list(google_lang.keys())
+for lang in google_whisper_compatible:
+    if lang not in whisper_compatible:
+        google_whisper_compatible.remove(lang)
+
+libre_whisper_compatible = list(libre_lang.keys())
+for lang in libre_whisper_compatible:
+    if lang not in whisper_compatible:
+        libre_whisper_compatible.remove(lang)
+
+myMemory_whisper_compatible = list(myMemory_lang.keys())
+for lang in myMemory_whisper_compatible:
+    if lang not in whisper_compatible:
+        myMemory_whisper_compatible.remove(lang)
+
+engine_select_source_dict = {
+    "Whisper": ["Auto detect"] + [upFirstCase(x) for x in whisper_compatible],
+    "Google": ["Auto detect"] + [upFirstCase(x) for x in google_whisper_compatible],
+    "LibreTranslate": ["Auto detect"] + [upFirstCase(x) for x in libre_whisper_compatible],
+    "MyMemoryTranslator": ["Auto detect"] + [upFirstCase(x) for x in myMemory_whisper_compatible],
 }
