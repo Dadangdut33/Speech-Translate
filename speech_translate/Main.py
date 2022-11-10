@@ -1,18 +1,33 @@
-from sys import exit
+import platform
 import threading
 import tkinter as tk
 import tkinter.ttk as ttk
+from sys import exit
 from typing import Literal
-from notifypy import Notify, exceptions
-from pystray import Icon as icon, Menu as menu, MenuItem as item
-from PIL import Image, ImageDraw
 
+import win32.lib.win32con as win32con
+import win32gui
 from components.MBox import Mbox
 from components.Tooltip import CreateToolTip
-from utils.LangCode import whisper_compatible, engine_select_target_dict, engine_select_source_dict
+from Globals import app_icon, app_icon_missing, app_name, fJson, gClass, version
+from notifypy import Notify, exceptions
+from PIL import Image, ImageDraw
+from pystray import Icon as icon
+from pystray import Menu as menu
+from pystray import MenuItem as item
 from utils.Helper import modelKeys, modelSelectDict, upFirstCase
-from utils.Record import rec_mic, getInputDevice, getOutputDevice
-from Globals import gClass, fJson, version, app_icon, app_icon_missing, app_name
+from utils.LangCode import engine_select_source_dict, engine_select_target_dict, whisper_compatible
+from utils.Record import getInputDevice, getOutputDevice, rec_mic
+
+
+def hideConsole(win):
+    if win is not None:
+        win32gui.ShowWindow(win, win32con.SW_HIDE)
+
+
+def showConsole(win):
+    if win is not None:
+        win32gui.ShowWindow(win, win32con.SW_SHOW)
 
 
 class AppTray:
@@ -197,7 +212,7 @@ class MainWindow:
         self.btn_record_mic.pack(side="right", padx=5, pady=5)
         CreateToolTip(self.btn_record_mic, "Record using your default microphone")
 
-        self.btn_record_pc = ttk.Button(self.f3_frameRight, text="Record PC Sound")
+        self.btn_record_pc = ttk.Button(self.f3_frameRight, text="Record PC Sound", command=self.rec_from_pc)
         self.btn_record_pc.pack(side="right", padx=5, pady=5)
         CreateToolTip(self.btn_record_pc, "Record sound from your PC ")
 
@@ -212,12 +227,18 @@ class MainWindow:
 
         # ------------------ Menubar ------------------
         self.menubar = tk.Menu(self.root)
+        self.fm_file = tk.Menu(self.menubar, tearoff=0)
+        self.fm_file.add_checkbutton(label="Stay on top", command=self.toggle_always_on_top)
+        self.fm_file.add_separator()
+        self.fm_file.add_command(label="Hide", command=lambda: self.root.withdraw())
+        self.fm_file.add_command(label="Exit", command=self.quit_app)
+        self.menubar.add_cascade(label="File", menu=self.fm_file)
+
         self.fm_view = tk.Menu(self.menubar, tearoff=0)
-        self.fm_view.add_checkbutton(label="Stay on top", command=self.toggle_always_on_top)
-        self.fm_view.add_separator()
-        self.fm_view.add_command(label="Hide", command=lambda: self.root.withdraw())
-        self.fm_view.add_command(label="Exit", command=self.quit_app)
-        self.menubar.add_cascade(label="File", menu=self.fm_view)
+        # self.fm_view.add_command(label="Settings", command=self.open_settings)
+        if platform.system() == "Windows":
+            self.fm_view.add_checkbutton(label="Log", command=self.toggle_log)
+        self.menubar.add_cascade(label="View", menu=self.fm_view)
 
         self.fm_help = tk.Menu(self.menubar, tearoff=0)
         self.fm_help.add_command(label="About", command=self.open_about)  # placeholder for now
@@ -227,6 +248,7 @@ class MainWindow:
 
         # ------------------ Variables ------------------
         # Flags
+        self.logOpened = False
         self.always_on_top = False
         self.notified_hidden = False
         gClass.mw = self  # type: ignore
@@ -245,7 +267,7 @@ class MainWindow:
         except:
             pass
 
-    # ------------------ Handle Main window ------------------
+    # ------------------ Handle window ------------------
     # Quit the app
     def quit_app(self):
         if gClass.tray:
@@ -288,6 +310,14 @@ class MainWindow:
     def toggle_always_on_top(self):
         self.always_on_top = not self.always_on_top
         self.root.wm_attributes("-topmost", self.always_on_top)
+
+    def toggle_log(self):
+        if self.logOpened:
+            hideConsole(gClass.consoleWindow)
+        else:
+            showConsole(gClass.consoleWindow)
+
+        self.logOpened = not self.logOpened
 
     # ------------------ Open External Window ------------------
     def open_about(self, _event=None):
@@ -472,6 +502,10 @@ class MainWindow:
         verbose = fJson.settingCache["verbose"]
         cutOff = fJson.settingCache["cutOff"]
 
+        if sourceLang == targetLang:
+            Mbox("Invalid options!", "Source and target language cannot be the same", 2)
+            return
+
         # ui changes
         self.start_loadBar()
         self.disable_interactions()
@@ -496,8 +530,39 @@ class MainWindow:
         self.btn_record_mic.config(text="Record From Mic", command=self.rec_from_mic)
         self.enable_interactions()
 
+    def rec_from_pc(self):
+        # check if on windows or not
+        if platform.system() != "Windows":
+            Mbox(
+                "Not available",
+                """This feature is only available on Windows. 
+                \rIn order to record PC sound from OS other than Windows you will need to create a virtual audio loopback to pass the speaker output as an input. You can use software like PulseAudio to do this.
+                \rAfter that you can change your default input device to the virtual audio loopback.""",
+                0,
+                self.root,
+            )
+            return
+
+        # get value of cb mode
+        mode = self.cb_mode.get()
+        model = self.cb_model.get()
+        sourceLang = self.cb_sourceLang.get().lower()
+        targetLang = self.cb_targetLang.get().lower()
+        engine = self.cb_engine.get()
+        verbose = fJson.settingCache["verbose"]
+        cutOff = fJson.settingCache["cutOff"]
+
+        if sourceLang == targetLang:
+            Mbox("Invalid options!", "Source and target language cannot be the same", 2)
+            return
+
 
 if __name__ == "__main__":
+    if platform.system() == "Windows":
+        consoleWindow = win32gui.GetForegroundWindow()
+        hideConsole(consoleWindow)
+        gClass.consoleWindow = consoleWindow
+
     main = MainWindow()
     tray = AppTray()  # Start tray app in the background
     main.root.mainloop()  # Start main app
