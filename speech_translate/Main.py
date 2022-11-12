@@ -11,14 +11,17 @@ from sys import exit
 import sounddevice as sd
 import win32.lib.win32con as win32con
 import win32gui
-from components.MBox import Mbox
-from components.Tooltip import CreateToolTip
-from Globals import app_icon, app_icon_missing, app_name, fJson, gClass, version
 from notifypy import Notify, exceptions
 from PIL import Image, ImageDraw
 from pystray import Icon as icon
 from pystray import Menu as menu
 from pystray import MenuItem as item
+
+# User defined
+from Globals import app_icon, app_icon_missing, app_name, fJson, gClass, version
+from Logging import logger
+from components.MBox import Mbox
+from components.Tooltip import CreateToolTip
 from utils.Helper import modelKeys, modelSelectDict, upFirstCase, startFile
 from utils.LangCode import engine_select_source_dict, engine_select_target_dict, whisper_compatible
 from utils.Record import from_file, getInputDevices, getOutputDevices, rec_mic, rec_pc
@@ -322,9 +325,13 @@ class MainWindow:
     # ------------------ Handle window ------------------
     # Quit the app
     def quit_app(self):
+        if not self.logOpened:  # reopen console window on app exit
+            showConsole(gClass.cw)
+
         if gClass.tray:
             gClass.tray.icon.stop()
         self.root.destroy()
+
         try:
             exit()
         except SystemExit:
@@ -662,12 +669,12 @@ class MainWindow:
                 transcribeTranslateThread = threading.Thread(target=rec_mic, args=(mic, model, sourceLang, targetLang, True, True, engine), daemon=True)
                 transcribeTranslateThread.start()
         except Exception as e:
-            print(e)
+            logger.exception(e)
             self.errorNotif(str(e))
             self.rec_from_mic_stop()
 
     def rec_from_mic_stop(self):
-        print("> Recording Mic Stopped")
+        logger.info("Recording Mic Stopped")
         gClass.disableRecording()
         sd.stop()  # stop the sounddevice recording
 
@@ -729,7 +736,7 @@ class MainWindow:
             transcribeTranslateThread.start()
 
     def rec_from_file_stop(self):
-        print("> Processing file cancelled")
+        logger.info("Processing file cancelled")
         if gClass.tc_proc is not None:
             gClass.tc_proc.terminate()
             gClass.tc_proc = None

@@ -6,14 +6,15 @@ from notifypy import Notify, exceptions
 sys.path.append("..")
 
 from Globals import app_icon, app_name
+from Logging import logger
 
 from .LangCode import google_lang, libre_lang, myMemory_lang
 
 
-def no_connection_notify():
+def no_connection_notify(customTitle: str = "No Internet Connection", customMessage: str = "Translation for engine other than Whisper or your local LibreTranslate Deployment (If you have one) will not work until you reconnect to the internet."):
     notification = Notify()
-    notification.title = "Not connected to internet"
-    notification.message = "Translation for engine other than Whisper or your local LibreTranslate Deployment (If you have one) will not work until you reconnect to the internet."
+    notification.title = customTitle
+    notification.message = customMessage
     notification.application_name = app_name
     try:
         notification.icon = app_icon
@@ -32,7 +33,8 @@ except Exception as e:
     if "HTTPSConnectionPool" in str(e):
         no_connection_notify()
     else:
-        print("Error", str(e))
+        no_connection_notify("Uncaught Error", str(e))
+        logger.exception(f"Error {str(e)}")
 
 
 class tl_cons:
@@ -70,7 +72,7 @@ def google_tl(text: str, from_lang: str, to_lang: str, oldMethod: bool = False):
         to_LanguageCode_Google = google_lang[to_lang]
         from_LanguageCode_Google = google_lang[from_lang]
     except KeyError as e:
-        print("Error: " + str(e))
+        logger.exception("Error: " + str(e))
         return is_Success, "Error Language Code Undefined"
 
     # --- Translate ---
@@ -92,12 +94,12 @@ def google_tl(text: str, from_lang: str, to_lang: str, oldMethod: bool = False):
 
         is_Success = True
     except Exception as e:
-        print(str(e))
+        logger.exception(str(e))
         result = str(e)
     finally:
-        print("-" * 50)
-        print("Query: " + text.strip())
-        print("Translation Get: " + result)
+        logger.info("-" * 50)
+        logger.info("Query: " + text.strip())
+        logger.info("Translation Get: " + result)
         return is_Success, result
 
 
@@ -117,7 +119,7 @@ def memory_tl(text: str, from_lang: str, to_lang: str):
         to_LanguageCode_Memory = myMemory_lang[to_lang]
         from_LanguageCode_Memory = myMemory_lang[from_lang]
     except KeyError as e:
-        print("Error: " + str(e))
+        logger.exception("Error: " + str(e))
         return is_Success, "Error Language Code Undefined"
     # --- Translate ---
     try:
@@ -133,12 +135,12 @@ def memory_tl(text: str, from_lang: str, to_lang: str):
         result = tlCons.MyMemoryTranslator(source=from_LanguageCode_Memory, target=to_LanguageCode_Memory).translate(text.strip())
         is_Success = True
     except Exception as e:
-        print(str(e))
+        logger.exception(str(e))
         result = str(e)
     finally:
-        print("-" * 50)
-        print("Query: " + text.strip())
-        print("Translation Get: " + result)  # type: ignore
+        logger.info("-" * 50)
+        logger.info("Query: " + text.strip())
+        logger.info("Translation Get: " + result)  # type: ignore
         return is_Success, result
 
 
@@ -163,7 +165,7 @@ def libre_tl(text: str, from_lang: str, to_lang: str, https: bool = False, host:
         to_LanguageCode_Libre = libre_lang[to_lang]
         from_LanguageCode_Libre = libre_lang[from_lang]
     except KeyError as e:
-        print("Error: " + str(e))
+        logger.exception("Error: " + str(e))
         return is_Success, "Error Language Code Undefined"
     # --- Translate ---
     try:
@@ -183,13 +185,13 @@ def libre_tl(text: str, from_lang: str, to_lang: str, https: bool = False, host:
             is_Success = True
     except Exception as e:
         result = str(e)
-        print(str(e))
+        logger.exception(str(e))
         if "NewConnectionError" in str(e):
             result = "Error: Could not connect. Please make sure that the server is running and the port is correct. If you are not hosting it yourself, please try again with an internet connection."
         if "request expecting value" in str(e):
             result = "Error: Invalid parameter value. Check for https, host, port, and apiKeys. If you use external server, make sure https is set to True."
     finally:
-        print("-" * 50)
-        print("Query: " + text.strip())
-        print("Translation Get: " + result)
+        logger.info("-" * 50)
+        logger.info("Query: " + text.strip())
+        logger.info("Translation Get: " + result)
         return is_Success, result

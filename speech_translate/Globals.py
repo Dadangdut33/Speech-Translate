@@ -10,6 +10,7 @@ from utils.Json import SettingJsonHandler
 dir_project: str = os.path.dirname(os.path.realpath(__file__))
 dir_setting: str = os.path.join(dir_project, "../setting")
 dir_temp: str = os.path.join(dir_project, "../temp")
+dir_log: str = os.path.join(dir_project, "../log")
 app_icon: str = os.path.join(dir_project, "../assets/icon.ico")
 if not os.path.exists(app_icon):  # verify app_icon exist or not
     app_icon_missing = True
@@ -18,7 +19,7 @@ else:
 # ------------------ #
 version: str = "1.0.0"
 app_name: str = "Speech Translate"
-fJson: SettingJsonHandler = SettingJsonHandler(os.path.join(dir_setting, "setting.json"), dir_setting, dir_temp)
+fJson: SettingJsonHandler = SettingJsonHandler(os.path.join(dir_setting, "setting.json"), dir_setting, dir_temp, dir_log)
 # ------------------ #
 class Globals:
     """

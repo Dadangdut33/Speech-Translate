@@ -1,10 +1,13 @@
 __all__ = ["default_setting", "SettingJsonHandler"]
 import json
 import os
+import sys
 
 from components.MBox import Mbox  # uses message box for error because this is important
 from notifypy import Notify
 
+sys.path.append("..")
+from Logging import logger
 
 default_setting = {
     "mode": "Transcribe",
@@ -45,13 +48,14 @@ class SettingJsonHandler:
     Class to handle setting.json
     """
 
-    def __init__(self, settingPath: str, settingDir: str, tempDir: str):
+    def __init__(self, settingPath: str, settingDir: str, tempDir: str, logDir: str):
         self.settingCache = {}
         self.settingPath = settingPath
         self.settingDir = settingDir
         self.createDirectoryIfNotExist(self.settingDir)  # setting dir
         self.createDefaultSettingIfNotExist(self.settingPath, default_setting)  # setting file
         self.createDirectoryIfNotExist(tempDir)  # temp dir
+        self.createDirectoryIfNotExist(logDir)  # log dir
 
         # Load setting
         success, msg, data = self.loadSetting()
@@ -65,8 +69,10 @@ class SettingJsonHandler:
                 notification.title = "Error: Verifying setting file"
                 notification.message = "Setting reverted to default. Details: " + msg
                 notification.send()
+                logger.warning("Error verifying setting file: " + msg)
         else:
             self.settingCache = default_setting
+            logger.error("Error loading setting file: " + msg)
             Mbox("Error", "Error: Loading setting file. " + self.settingPath + "\nReason: " + msg, 2)
 
     def createDirectoryIfNotExist(self, path: str):
@@ -88,6 +94,7 @@ class SettingJsonHandler:
                 with open(path, "w", encoding="utf-8") as f:
                     json.dump(default, f, ensure_ascii=False, indent=4)
         except Exception as e:
+            logger.exception("Error creating default setting file: " + str(e))
             Mbox("Error", "Error: Creating default setting file. " + path + "\nReason: " + str(e), 2)
 
     def saveSetting(self, data: dict):
@@ -119,6 +126,7 @@ class SettingJsonHandler:
             notification.title = "Error: Saving setting file"
             notification.message = "Reason: " + msg
             notification.send()
+            logger.error("Error saving setting file: " + msg)
 
     def loadSetting(self):
         """
