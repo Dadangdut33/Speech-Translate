@@ -21,6 +21,8 @@ default_setting = {
     "libre_host": "libretranslate.de",
     "libre_port": "",
     "libre_https": True,
+    "mic": "",
+    "speaker": "",
     "textbox": {
         "mw_tc": {
             "max": 1000,
@@ -47,15 +49,24 @@ class SettingJsonHandler:
         self.settingCache = {}
         self.settingPath = settingPath
         self.settingDir = settingDir
-        self.createDirectoryIfNotExist(self.settingDir)
-        self.createDefaultSettingIfNotExist(self.settingPath, default_setting)
-        self.createDirectoryIfNotExist(tempDir)
+        self.createDirectoryIfNotExist(self.settingDir)  # setting dir
+        self.createDefaultSettingIfNotExist(self.settingPath, default_setting)  # setting file
+        self.createDirectoryIfNotExist(tempDir)  # temp dir
 
         # Load setting
         success, msg, data = self.loadSetting()
         if success:
             self.settingCache = data
+            success, msg, data = self.verifyLoadedSetting(data)
+            if not success:
+                self.settingCache = default_setting
+                notification = Notify()
+                notification.application_name = "Speech Translate"
+                notification.title = "Error: Verifying setting file"
+                notification.message = "Setting reverted to default. Details: " + msg
+                notification.send()
         else:
+            self.settingCache = default_setting
             Mbox("Error", "Error: Loading setting file. " + self.settingPath + "\nReason: " + msg, 2)
 
     def createDirectoryIfNotExist(self, path: str):
@@ -119,6 +130,23 @@ class SettingJsonHandler:
         try:
             with open(self.settingPath, "r", encoding="utf-8") as f:
                 data = json.load(f)
+            success = True
+        except Exception as e:
+            msg = str(e)
+        finally:
+            return success, msg, data
+
+    def verifyLoadedSetting(self, data: dict):
+        """
+        Verify loaded setting
+        """
+        success: bool = False
+        msg: str = ""
+        try:
+            for key in default_setting:
+                if key not in data:
+                    data[key] = default_setting[key]
+
             success = True
         except Exception as e:
             msg = str(e)

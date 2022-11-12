@@ -19,12 +19,18 @@ from .Helper import modelSelectDict
 from .Translate import google_tl, libre_tl, memory_tl
 
 
-def getInputDevice():
-    return sd.query_devices(kind="input")
+def getInputDevices():
+    devices = sd.query_devices()
+    devices = [device for device in devices if device["max_input_channels"] > 0]  # type: ignore # Filter out devices that are not input devices
+    devices = [f"{device['name']}, {sd.query_hostapis(device['hostapi'])['name']}" for device in devices]  # type: ignore # Map the name
+    return devices
 
 
-def getOutputDevice():
-    return sd.query_devices(kind="output")
+def getOutputDevices():
+    devices = sd.query_devices()
+    devices = [device for device in devices if device["max_output_channels"] > 0]  # type: ignore # Filter out devices that are not output devices
+    devices = [f"{device['name']}, {sd.query_hostapis(device['hostapi'])['name']}" for device in devices]  # type: ignore # Map the name
+    return devices
 
 
 def notifyError(title: str, message: str) -> None:
@@ -219,7 +225,7 @@ def whisper_translate(
         gClass.insertTbTranslated(result_Tl.strip() + fJson.settingCache["separate_with"])  # type: ignore
 
 
-def record_from_mic(audio_name: str, seconds=5) -> None:
+def record_from_mic(audio_name: str, device: str, seconds=5) -> None:
     """Record Audio From Microphone
 
     Args:
@@ -234,7 +240,7 @@ def record_from_mic(audio_name: str, seconds=5) -> None:
 
     # Record
     fs = 44100
-    myrecording = sd.rec(int(seconds * fs), samplerate=fs, channels=2)
+    myrecording = sd.rec(int(seconds * fs), samplerate=fs, channels=2, device=device)
     print("-" * 50)
     print(f"> Task: Recording Audio. (For {seconds} seconds)")
     sd.wait()  # Wait (blocking operation) until recording is finished
@@ -242,10 +248,11 @@ def record_from_mic(audio_name: str, seconds=5) -> None:
     write(audio_name, fs, myrecording)  # Save as WAV file
 
 
-def rec_mic(modelInput: str, langSource: str, langTarget: str, transcibe: bool, translate: bool, engine: str) -> None:
+def rec_mic(device: str, modelInput: str, langSource: str, langTarget: str, transcibe: bool, translate: bool, engine: str) -> None:
     """Function to record audio from default microphone. It will then transcribe/translate the audio depending on the input.
 
     Args:
+        device (str): Device to use for recording
         modelInput (str): The model to use for the input.
         langSource (str): The language of the input.
         langTarget (str): The language to translate to.
@@ -279,7 +286,7 @@ def rec_mic(modelInput: str, langSource: str, langTarget: str, transcibe: bool, 
         tempList.append(audio_name)
 
         # Start recording
-        record_from_mic(audio_name, fJson.settingCache["cutOff"])
+        record_from_mic(audio_name, device, fJson.settingCache["cutOff"])
 
         # Do Task in thread so it doesn't block the recording
         if transcibe:  # if transcribe will automatically check translate on or not
@@ -322,7 +329,7 @@ def rec_mic(modelInput: str, langSource: str, langTarget: str, transcibe: bool, 
     print(f"> End [{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}]")
 
 
-def rec_pc(modelInput: str, langSource: str, langTarget: str, transcibe: bool, translate: bool, engine: str) -> None:
+def rec_pc(device: str, modelInput: str, langSource: str, langTarget: str, transcibe: bool, translate: bool, engine: str) -> None:
     """Function to record audio from default microphone. It will then transcribe/translate the audio depending on the input.
 
     Args:

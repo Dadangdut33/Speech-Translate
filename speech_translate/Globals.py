@@ -45,7 +45,7 @@ class Globals:
         self.tray = None
 
         # window
-        self.consoleWindow = None
+        self.cw = None
 
     def enableRecording(self):
         self.recording = True
