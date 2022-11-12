@@ -1,10 +1,12 @@
-from notifypy import Notify, exceptions
-import requests
 import sys
+
+import requests
+from notifypy import Notify, exceptions
 
 sys.path.append("..")
 
 from Globals import app_icon, app_name
+
 from .LangCode import google_lang, libre_lang, myMemory_lang
 
 

@@ -10,10 +10,10 @@ default_setting = {
     "mode": "Transcribe",
     "model": "tiny",
     "sourceLang": "English",
-    "targetLang": "Indonesia",
+    "targetLang": "Indonesian",
     "verbose": False,
     "keep_audio": False,
-    "max_temp": 10,
+    "max_temp": 100,
     "cutOff": 5,
     "separate_with": "\n",
     "tl_engine": "Google",
@@ -21,6 +21,20 @@ default_setting = {
     "libre_host": "libretranslate.de",
     "libre_port": "",
     "libre_https": True,
+    "textbox": {
+        "mw_tc": {
+            "max": 1000,
+        },
+        "mw_tl": {
+            "max": 1000,
+        },
+        "detached_tc": {
+            "max": 1000,
+        },
+        "detached_tl": {
+            "max": 1000,
+        },
+    },
 }
 
 

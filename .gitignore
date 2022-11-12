@@ -12,3 +12,5 @@ venv.bak/
 # Project specific
 setting/
 temp/
+ignore/
+build/

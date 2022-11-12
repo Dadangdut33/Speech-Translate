@@ -1,22 +1,22 @@
-import threading
-from typing import Literal
-import whisper
-import sounddevice as sd
-from scipy.io.wavfile import write
-
-from notifypy import Notify, exceptions
-from datetime import datetime
-from time import sleep, time
 import os
 import sys
+import threading
+from datetime import datetime
+from multiprocessing import Process, Queue
+from time import sleep, time
+from typing import Literal
+
+import sounddevice as sd
+import whisper
+from notifypy import Notify, exceptions
+from scipy.io.wavfile import write
 
 sys.path.append("..")
 
-from Globals import dir_temp, gClass, fJson, app_icon, app_name
+from Globals import app_icon, app_name, dir_temp, fJson, gClass
+
 from .Helper import modelSelectDict
 from .Translate import google_tl, libre_tl, memory_tl
-
-fs = 44100  # Sample rate
 
 
 def getInputDevice():
@@ -45,15 +45,33 @@ def notifyError(title: str, message: str) -> None:
     notification.send()
 
 
+def multiProc_Whisper(queue: Queue, audio: str, modelName: str, auto: bool, transcribing: bool, lang_source: str | None = None):
+    """Multi Processing for Whisper
+
+    Args:
+        queue (Queue): Queue
+        audio (str): Audio File
+        model (whisper.Whisper): Model
+        auto (bool): Auto Detect Language
+        transcribing (bool): Transcribing or not
+        lang_source (str | None, optional): Source Language. Defaults to None.
+    """
+    print("Source Language: Auto" if auto else f"Source Language: {lang_source}")
+    model = whisper.load_model(modelName)
+    result = model.transcribe(audio, task="transcribe" if transcribing else "translate", language=lang_source if not auto else None)
+    queue.put(result)
+
+
 def whisper_transcribe(
     audio_name: str,
-    model: whisper.Whisper,
+    modelName: str,
     lang_source: str,
     auto: bool,
     verbose: bool,
     translate: bool = False,
     engine: Literal["Whisper", "Google", "LibreTranslate", "MyMemoryTranslator"] | None = None,
     lang_target: str | None = None,
+    multiProc: bool = False,
 ) -> None:
     """Transcribe Audio using whisper
 
@@ -66,6 +84,7 @@ def whisper_transcribe(
         translate (bool, optional): Translate or not. Defaults to False.
         engine (Literal["Whisper", "Google", "LibreTranslate", "MyMemoryTranslator"], optional): Engine to use for translation. Defaults to None.
         lang_target (str | None, optional): Target Language. Defaults to None.
+        multiProc (bool, optional): Multi Processing or not. Defaults to False. (Use this to make the process killable)
     """
     gClass.enableTranscribing()
     result_Tc = ""
@@ -74,15 +93,22 @@ def whisper_transcribe(
     print("-" * 50)
     print("> Transcribing Audio:", audio_name)
     try:
-        if auto:
-            result_Tc = model.transcribe(audio_name)
+        if multiProc:
+            queue = Queue()
+            gClass.tc_proc = Process(target=multiProc_Whisper, args=(queue, audio_name, modelName, auto, True, lang_source), daemon=True)
+            gClass.tc_proc.start()
+            gClass.tc_proc.join()
+            result_Tc = queue.get()
         else:
-            result_Tc = model.transcribe(audio_name, language=lang_source)
+            print("Source Language: Auto" if auto else f"Source Language: {lang_source}")
+            model = whisper.load_model(modelName)
+            result_Tc = model.transcribe(audio_name, language=lang_source if not auto else None)
 
-        gClass.disableTranscribing()  # flag processing as done
+        gClass.disableTranscribing()
     except Exception as e:
         gClass.disableTranscribing()  # flag processing as done if error
         print(e)
+        notifyError("Error: Transcribing Audio", str(e))
         return
 
     print("-" * 50)
@@ -94,20 +120,22 @@ def whisper_transcribe(
 
     # insert to textbox
     gClass.insertTbTranscribed(result_Tc["text"].strip() + fJson.settingCache["separate_with"])  # type: ignore
+
     if translate:
-        translateThread = threading.Thread(target=whisper_translate, args=(audio_name, model, lang_source, lang_target, auto, verbose, engine, result_Tc["text"]))
-        translateThread.start()
+        translateThread = threading.Thread(target=whisper_translate, args=(audio_name, modelName, lang_source, lang_target, auto, verbose, engine, result_Tc["text"], multiProc), daemon=True)  # type: ignore
+        translateThread.start()  # Start translation in a new thread to prevent blocking
 
 
 def whisper_translate(
     audio_name: str,
-    model: whisper.Whisper,
+    modelName: str,
     lang_source: str,
     lang_target: str,
     auto: bool,
     verbose: bool,
     engine: Literal["Whisper", "Google", "LibreTranslate", "MyMemoryTranslator"],
     transcribed_text: str | None = None,
+    multiProc: bool = False,
 ) -> None:
     """Translate Audio
 
@@ -120,8 +148,9 @@ def whisper_translate(
         verbose (bool): Verbose
         engine (Literal["Whisper", "Google", "LibreTranslate", "MyMemory", "MyMemoryTranslator"]): Engine to use for translation
         transcribed_text (str | None, optional): Transcribed Text. Defaults to None. If provided will use this model for online translation instead of offline using whisper.
+        multiProc (bool, optional): Multi Processing or not. Defaults to False. (Use this to make the process killable)
     """
-    gClass.translating = True
+    gClass.enableTranslating()
     result_Tl = ""
 
     # Translate
@@ -133,12 +162,21 @@ def whisper_translate(
     try:
         if engine == "Whisper":
             try:
-                if auto:
-                    result_Tl = model.transcribe(audio_name, task="translate")
+                if multiProc:
+                    queue = Queue()
+                    gClass.tl_proc = Process(target=multiProc_Whisper, args=(queue, audio_name, modelName, auto, False, lang_source), daemon=True)
+                    gClass.tl_proc.start()
+                    gClass.tl_proc.join()
+                    result_Tl = queue.get()
                 else:
-                    result_Tl = model.transcribe(audio_name, task="translate", language=lang_source)
+                    print("Source Language: Auto" if auto else f"Source Language: {lang_source}")
+                    model = whisper.load_model(modelName)
+                    result_Tl = model.transcribe(audio_name, task="translate", language=lang_source if not auto else None)
+
             except Exception as e:
+                gClass.disableTranslating()  # flag processing as done if error
                 print(e)
+                notifyError("Error: translating with whisper failed", str(e))
                 return
 
         elif engine == "Google":
@@ -162,16 +200,21 @@ def whisper_translate(
             if not success:
                 notifyError("Error: translation with mymemory failed", str(result_Tl))
 
-        gClass.translating = False  # flag processing as done. No need to check for transcription because it is done before this
+        gClass.disableTranslating()  # flag processing as done. No need to check for transcription because it is done before this
     except Exception as e:
-        gClass.translating = False  # flag processing as done if error
+        gClass.disableTranslating()  # flag processing as done if error
         print(e)
+        notifyError("Error: translating failed", str(e))
         return
 
     if engine == "Whisper":
         gClass.insertTbTranslated(result_Tl["text"].strip() + fJson.settingCache["separate_with"])  # type: ignore
+        print("-" * 50)
+        print("Translated:")
         if verbose:
             print(result_Tl)  # type: ignore
+        else:
+            print(result_Tl["text"].strip())  # type: ignore
     else:
         gClass.insertTbTranslated(result_Tl.strip() + fJson.settingCache["separate_with"])  # type: ignore
 
@@ -190,15 +233,16 @@ def record_from_mic(audio_name: str, seconds=5) -> None:
         return  # stop if canceled
 
     # Record
+    fs = 44100
     myrecording = sd.rec(int(seconds * fs), samplerate=fs, channels=2)
     print("-" * 50)
-    print("> Task: Recording Audio")
-    sd.wait()  # Wait until recording is finished
+    print(f"> Task: Recording Audio. (For {seconds} seconds)")
+    sd.wait()  # Wait (blocking operation) until recording is finished
     print("Audio recording complete")
     write(audio_name, fs, myrecording)  # Save as WAV file
 
 
-def rec_mic(modelInput: str, langSource: str, langTarget: str, transcibe: bool, translate: bool, engine: str, verbose: bool = False, cutOff: int = 5) -> None:
+def rec_mic(modelInput: str, langSource: str, langTarget: str, transcibe: bool, translate: bool, engine: str) -> None:
     """Function to record audio from default microphone. It will then transcribe/translate the audio depending on the input.
 
     Args:
@@ -214,7 +258,7 @@ def rec_mic(modelInput: str, langSource: str, langTarget: str, transcibe: bool, 
     Returns:
         None
     """
-    print(f"> Start [{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}]")
+    print(f"> Start Record (Mic) [{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}]")
 
     tempList = []  # List of all the temp files
     src_english = langSource == "english"
@@ -224,9 +268,6 @@ def rec_mic(modelInput: str, langSource: str, langTarget: str, transcibe: bool, 
     model = modelSelectDict[modelInput]
     if model != "large" and src_english:
         model = model + ".en"
-
-    # Create a new whisper model
-    audio_model = whisper.load_model(model)
 
     # turn off loadbar
     assert gClass.mw is not None
@@ -238,14 +279,14 @@ def rec_mic(modelInput: str, langSource: str, langTarget: str, transcibe: bool, 
         tempList.append(audio_name)
 
         # Start recording
-        record_from_mic(audio_name, cutOff)
+        record_from_mic(audio_name, fJson.settingCache["cutOff"])
 
         # Do Task in thread so it doesn't block the recording
         if transcibe:  # if transcribe will automatically check translate on or not
-            tcThread = threading.Thread(target=whisper_transcribe, args=(audio_name, audio_model, langSource, auto, verbose, translate, engine, langTarget))
+            tcThread = threading.Thread(target=whisper_transcribe, args=(audio_name, model, langSource, auto, fJson.settingCache["verbose"], translate, engine, langTarget), daemon=True)
             tcThread.start()
         elif translate:  # Translate only
-            tlThread = threading.Thread(target=whisper_translate, args=(audio_name, audio_model, langSource, langTarget, auto, verbose, engine))
+            tlThread = threading.Thread(target=whisper_translate, args=(audio_name, model, langSource, langTarget, auto, fJson.settingCache["verbose"], engine), daemon=True)
             tlThread.start()
 
         # Max tempfile
@@ -260,16 +301,14 @@ def rec_mic(modelInput: str, langSource: str, langTarget: str, transcibe: bool, 
         startTime = time()
         while gClass.transcribing:
             timeNow = time() - startTime
-            print(f"> Waiting for transcription to finish ({timeNow:.2f}s)", end="\r", flush=True)
+            print(f"> TC Wait ({timeNow:.2f}s)", end="\r", flush=True)
             sleep(0.1)  # waiting for process to finish
-        print(end="\r\r", flush=True)
 
         startTime = time()
         while gClass.translating:
             timeNow = time() - startTime
-            print(f"> Waiting for translation to finish ({timeNow:.2f}s)", end="\r", flush=True)
+            print(f"> TL Wait ({timeNow:.2f}s)", end="\r", flush=True)
             sleep(0.1)  # waiting for process to finish
-        print(end="\r\r", flush=True)
 
         print("-" * 50)
         print("Task: Cleaning up")
@@ -283,7 +322,7 @@ def rec_mic(modelInput: str, langSource: str, langTarget: str, transcibe: bool, 
     print(f"> End [{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}]")
 
 
-def rec_pc(modelInput: str, langSource: str, langTarget: str, transcibe: bool, translate: bool, engine: str, verbose: bool = False) -> None:
+def rec_pc(modelInput: str, langSource: str, langTarget: str, transcibe: bool, translate: bool, engine: str) -> None:
     """Function to record audio from default microphone. It will then transcribe/translate the audio depending on the input.
 
     Args:
@@ -298,5 +337,73 @@ def rec_pc(modelInput: str, langSource: str, langTarget: str, transcibe: bool, t
     Returns:
         None
     """
+    print(f"> Start Record (System sound) [{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}]")
+
+    src_english = langSource == "english"
+    auto = langSource == "auto detect"
+
+    # there are no english models for large
+    model = modelSelectDict[modelInput]
+    if model != "large" and src_english:
+        model = model + ".en"
+
+    # turn off loadbar
+    assert gClass.mw is not None
+    gClass.mw.stop_loadBar("pc")
+
+
+def from_file(filePath: str, modelInput: str, langSource: str, langTarget: str, transcibe: bool, translate: bool, engine: str) -> None:
+    """Function to record audio from default microphone. It will then transcribe/translate the audio depending on the input.
+
+    Args:
+        filePath (str): The path to the audio/video file.
+        modelInput (str): The model to use for the input.
+        langSource (str): The language of the input.
+        langTarget (str): The language to translate to.
+        transcibe (bool): Whether to transcribe the audio.
+        translate (bool): Whether to translate the audio.
+        engine (str): The engine to use for the translation.
+        verbose (bool, optional): Whether to print the verbose output. Defaults to False.
+
+    Returns:
+        None
+    """
     print(f"> Start [{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}]")
-    pass
+
+    src_english = langSource == "english"
+    auto = langSource == "auto detect"
+
+    # there are no english models for large
+    modelName = modelSelectDict[modelInput]
+    if modelName != "large" and src_english:
+        modelName = modelName + ".en"
+
+    # update button text
+    gClass.mw.btn_record_file.config(text="Cancel")  # type: ignore
+
+    # Proccess it
+    startTime = time()
+    if transcibe:  # if transcribe will automatically check translate on or not
+        tcThread = threading.Thread(target=whisper_transcribe, args=(filePath, modelName, langSource, auto, fJson.settingCache["verbose"], translate, engine, langTarget, True), daemon=True)
+        tcThread.start()
+
+    elif translate:  # Translate only
+        tlThread = threading.Thread(target=whisper_translate, args=(filePath, modelName, langSource, langTarget, auto, fJson.settingCache["verbose"], engine, True), daemon=True)
+        tlThread.start()
+
+    # wait for process to finish
+    while gClass.transcribing:
+        timeNow = time() - startTime
+        print(f"> TC Wait ({timeNow:.2f}s)", end="\r", flush=True)
+        sleep(0.1)  # waiting for process to finish
+
+    while gClass.translating:
+        timeNow = time() - startTime
+        print(f"> TL Wait ({timeNow:.2f}s)", end="\r", flush=True)
+        sleep(0.1)  # waiting for process to finish
+
+    # turn off loadbar
+    assert gClass.mw is not None
+    gClass.mw.stop_loadBar("file")
+
+    print(f"> End [{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}]")

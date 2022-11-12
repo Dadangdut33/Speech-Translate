@@ -6,4 +6,5 @@ pystray==0.19.4
 requests==2.28.1
 scipy==1.9.3
 sounddevice==0.4.5
+pywin32==305
 git+https://github.com/openai/whisper.git 

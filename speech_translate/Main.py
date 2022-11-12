@@ -3,6 +3,7 @@ import threading
 import tkinter as tk
 import tkinter.ttk as ttk
 from sys import exit
+from tkinter import filedialog
 from typing import Literal
 
 import win32.lib.win32con as win32con
@@ -17,7 +18,7 @@ from pystray import Menu as menu
 from pystray import MenuItem as item
 from utils.Helper import modelKeys, modelSelectDict, upFirstCase
 from utils.LangCode import engine_select_source_dict, engine_select_target_dict, whisper_compatible
-from utils.Record import getInputDevice, getOutputDevice, rec_mic
+from utils.Record import from_file, getInputDevice, getOutputDevice, rec_mic, rec_pc
 
 
 def hideConsole(win):
@@ -208,7 +209,7 @@ class MainWindow:
         # self.f3_center_btn = ttk.Frame(self.f3_toolbar) # f3_toolbar
         # self.f3_center_btn.pack(side="bottom")
 
-        self.btn_record_mic = ttk.Button(self.f3_frameRight, text="Record Mic", command=self.rec_from_mic)
+        self.btn_record_mic = ttk.Button(self.f3_frameRight, text="Record From Mic", command=self.rec_from_mic)
         self.btn_record_mic.pack(side="right", padx=5, pady=5)
         CreateToolTip(self.btn_record_mic, "Record using your default microphone")
 
@@ -216,9 +217,9 @@ class MainWindow:
         self.btn_record_pc.pack(side="right", padx=5, pady=5)
         CreateToolTip(self.btn_record_pc, "Record sound from your PC ")
 
-        self.btn_record_file = ttk.Button(self.f3_frameRight, text="Record from file")
+        self.btn_record_file = ttk.Button(self.f3_frameRight, text="Import file (Audio/Video)", command=self.rec_from_file)
         self.btn_record_file.pack(side="right", padx=5, pady=5)
-        CreateToolTip(self.btn_record_file, "Record from a file (video or audio)")
+        CreateToolTip(self.btn_record_file, "Transcribe/Translate from a file (video or audio)")
 
         # -- f4_statusbar
         # load bar
@@ -357,7 +358,6 @@ class MainWindow:
     def cb_engine_change(self, _event=None):
         # save
         fJson.savePartialSetting("tl_engine", self.cb_engine.get())
-
         self.cb_lang_update()
 
     def cb_lang_update(self):
@@ -376,6 +376,10 @@ class MainWindow:
         # check if the source lang is not in the new list
         if self.cb_sourceLang.get() not in self.cb_sourceLang["values"]:
             self.cb_sourceLang.current(0)
+
+        # save
+        fJson.savePartialSetting("sourceLang", self.cb_sourceLang.get())
+        fJson.savePartialSetting("targetLang", self.cb_targetLang.get())
 
     # clear textboxes
     def tb_clear(self):
@@ -477,34 +481,31 @@ class MainWindow:
         self.loadBar.stop()
         self.loadBar.config(mode="determinate")
 
-        # check first if it's recording or not
-        if not gClass.recording:
-            return
-
+        # **change text only**, the function is already set before in the rec function
         if rec_type == "mic":
+            if not gClass.recording:
+                return
             self.btn_record_mic.config(text="Stop")
         elif rec_type == "pc":
+            if not gClass.recording:
+                return
             self.btn_record_pc.config(text="Stop")
         elif rec_type == "file":
-            self.btn_record_file.config(text="Stop")
+            self.btn_record_file.config(text="Import From File (Video/Audio)", command=self.rec_from_file)
+            self.enable_interactions()
+
+    def get_args(self):
+        return self.cb_mode.get(), self.cb_model.get(), self.cb_engine.get(), self.cb_sourceLang.get().lower(), self.cb_targetLang.get().lower()
 
     # ------------------ Rec ------------------
     # From mic
     def rec_from_mic(self):
-        self.tb_clear()
-
-        # get value of cb mode
-        mode = self.cb_mode.get()
-        model = self.cb_model.get()
-        sourceLang = self.cb_sourceLang.get().lower()
-        targetLang = self.cb_targetLang.get().lower()
-        engine = self.cb_engine.get()
-        verbose = fJson.settingCache["verbose"]
-        cutOff = fJson.settingCache["cutOff"]
-
+        # Checking args
+        mode, model, engine, sourceLang, targetLang = self.get_args()
         if sourceLang == targetLang:
             Mbox("Invalid options!", "Source and target language cannot be the same", 2)
             return
+        self.tb_clear()
 
         # ui changes
         self.start_loadBar()
@@ -512,19 +513,21 @@ class MainWindow:
         self.btn_record_mic.config(text="Loading", command=self.rec_from_mic_stop, state="normal")
 
         # Record
-        gClass.recording = True
+        gClass.enableRecording()
         if mode == "Transcribe":
-            transcribeThread = threading.Thread(target=rec_mic, args=(model, sourceLang, targetLang, True, False, engine, verbose, cutOff))
+            transcribeThread = threading.Thread(target=rec_mic, args=(model, sourceLang, targetLang, True, False, engine), daemon=True)
             transcribeThread.start()
         elif mode == "Translate":
-            translateThread = threading.Thread(target=rec_mic, args=(model, sourceLang, targetLang, False, True, engine, verbose, cutOff))
+            translateThread = threading.Thread(target=rec_mic, args=(model, sourceLang, targetLang, False, True, engine), daemon=True)
             translateThread.start()
         elif mode == "Transcribe & Translate":
-            transcribeTranslateThread = threading.Thread(target=rec_mic, args=(model, sourceLang, targetLang, True, True, engine, verbose, cutOff))
+            transcribeTranslateThread = threading.Thread(target=rec_mic, args=(model, sourceLang, targetLang, True, True, engine), daemon=True)
             transcribeTranslateThread.start()
 
     def rec_from_mic_stop(self):
-        gClass.recording = False
+        print("> Recording Mic Stopped")
+        gClass.disableRecording()
+
         self.loadBar.stop()
         self.loadBar.config(mode="determinate")
         self.btn_record_mic.config(text="Record From Mic", command=self.rec_from_mic)
@@ -543,25 +546,67 @@ class MainWindow:
             )
             return
 
-        # get value of cb mode
-        mode = self.cb_mode.get()
-        model = self.cb_model.get()
-        sourceLang = self.cb_sourceLang.get().lower()
-        targetLang = self.cb_targetLang.get().lower()
-        engine = self.cb_engine.get()
-        verbose = fJson.settingCache["verbose"]
-        cutOff = fJson.settingCache["cutOff"]
-
+        # Checking args
+        mode, model, engine, sourceLang, targetLang = self.get_args()
         if sourceLang == targetLang:
             Mbox("Invalid options!", "Source and target language cannot be the same", 2)
             return
 
+    def rec_from_file(self):
+        # Checking args
+        mode, model, engine, sourceLang, targetLang = self.get_args()
+        if sourceLang == targetLang:
+            Mbox("Invalid options!", "Source and target language cannot be the same", 2)
+            return
+        self.tb_clear()
+
+        # get file
+        file = filedialog.askopenfilename(
+            title="Select a file",
+            filetypes=(("Audio files", "*.wav *.mp3 *.ogg *.flac"), ("Video files", "*.mp4 *.mkv *.avi *.mov"), ("All files", "*.*")),
+        )
+
+        if file == "":
+            return
+
+        # ui changes
+        self.start_loadBar()
+        self.disable_interactions()
+        self.btn_record_file.config(text="Loading", command=self.rec_from_file_stop, state="normal")
+
+        # Process file
+        if mode == "Transcribe":
+            transcribeThread = threading.Thread(target=from_file, args=(file, model, sourceLang, targetLang, True, False, engine), daemon=True)
+            transcribeThread.start()
+        elif mode == "Translate":
+            translateThread = threading.Thread(target=from_file, args=(file, model, sourceLang, targetLang, False, True, engine), daemon=True)
+            translateThread.start()
+        elif mode == "Transcribe & Translate":
+            transcribeTranslateThread = threading.Thread(target=from_file, args=(file, model, sourceLang, targetLang, True, True, engine), daemon=True)
+            transcribeTranslateThread.start()
+
+    def rec_from_file_stop(self):
+        print("> Processing file cancelled")
+        if gClass.tc_proc is not None:
+            gClass.tc_proc.terminate()
+            gClass.tc_proc = None
+            gClass.disableTranscribing()
+
+        if gClass.tl_proc is not None:
+            gClass.tl_proc.terminate()
+            gClass.tl_proc = None
+            gClass.disableTranslating()
+
+        self.loadBar.stop()
+        self.loadBar.config(mode="determinate")
+        self.btn_record_file.config(text="Import From File (Video/Audio)", command=self.rec_from_file)
+        self.enable_interactions()
+
 
 if __name__ == "__main__":
-    if platform.system() == "Windows":
-        consoleWindow = win32gui.GetForegroundWindow()
-        hideConsole(consoleWindow)
-        gClass.consoleWindow = consoleWindow
+    # if platform.system() == "Windows":
+    #     gClass.consoleWindow = win32gui.GetForegroundWindow()
+    #     hideConsole(gClass.consoleWindow)
 
     main = MainWindow()
     tray = AppTray()  # Start tray app in the background
