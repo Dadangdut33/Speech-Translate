@@ -1,11 +1,12 @@
+import os
+import time
 import platform
 import threading
 import tkinter as tk
-import tkinter.font as tkfont
 import tkinter.ttk as ttk
-from sys import exit
 from tkinter import filedialog
 from typing import Literal
+from sys import exit
 
 import sounddevice as sd
 import win32.lib.win32con as win32con
@@ -18,7 +19,7 @@ from PIL import Image, ImageDraw
 from pystray import Icon as icon
 from pystray import Menu as menu
 from pystray import MenuItem as item
-from utils.Helper import modelKeys, modelSelectDict, upFirstCase
+from utils.Helper import modelKeys, modelSelectDict, upFirstCase, startFile
 from utils.LangCode import engine_select_source_dict, engine_select_target_dict, whisper_compatible
 from utils.Record import from_file, getInputDevices, getOutputDevices, rec_mic, rec_pc
 
@@ -252,11 +253,11 @@ class MainWindow:
 
         self.btn_record_mic = ttk.Button(self.f3_frameRight, text="Record From Mic", command=self.rec_from_mic)
         self.btn_record_mic.pack(side="right", padx=5, pady=5)
-        CreateToolTip(self.btn_record_mic, "Record using your default microphone")
+        CreateToolTip(self.btn_record_mic, "Record sound from selected microphone device")
 
         self.btn_record_pc = ttk.Button(self.f3_frameRight, text="Record PC Sound", command=self.rec_from_pc)
         self.btn_record_pc.pack(side="right", padx=5, pady=5)
-        CreateToolTip(self.btn_record_pc, "Record sound from your PC ")
+        CreateToolTip(self.btn_record_pc, "Record sound from selected speaker device ")
 
         self.btn_record_file = ttk.Button(self.f3_frameRight, text="Import file (Audio/Video)", command=self.rec_from_file)
         self.btn_record_file.pack(side="right", padx=5, pady=5)
@@ -267,8 +268,9 @@ class MainWindow:
         self.sep_btns_f3.pack(side="right", fill="y", padx=5, pady=5)
 
         # export button
-        self.btn_export = ttk.Button(self.f3_frameRight, text="Export Results")
+        self.btn_export = ttk.Button(self.f3_frameRight, text="Export Results", command=self.export_result)
         self.btn_export.pack(side="right", padx=5, pady=5)
+        CreateToolTip(self.btn_export, "Export results to a file (txt, srt, ... etc)\nYou can also customize the export format", wrapLength=250)
 
         # -- f4_statusbar
         # load bar
@@ -598,7 +600,39 @@ class MainWindow:
             self.enable_interactions()
 
     def get_args(self):
-        return self.cb_mode.get(), self.cb_model.get(), self.cb_engine.get(), self.cb_sourceLang.get().lower(), self.cb_targetLang.get().lower(), self.cb_mic.get(), self.cb_speaker.get()
+        return self.cb_mode.current(), self.cb_model.get(), self.cb_engine.get(), self.cb_sourceLang.get().lower(), self.cb_targetLang.get().lower(), self.cb_mic.get(), self.cb_speaker.get()
+
+    # ------------------ Export ------------------
+    def export_tc(self):
+        fileName = f"Transcribed {time.strftime('%Y-%m-%d %H-%M-%S')}"
+        text = self.tb_transcribed.get(1.0, tk.END)
+        f = filedialog.asksaveasfile(mode="w", defaultextension=".txt", initialfile=fileName, filetypes=(("Text File", "*.txt"), ("Sub file", "*.srt"), ("All Files", "*.*")))
+        if f is None:
+            return
+        f.write(text)
+        f.close()
+
+    def export_tl(self):
+        fileName = f"Translated {time.strftime('%Y-%m-%d %H-%M-%S')}"
+        text = self.tb_translated.get(1.0, tk.END)
+        f = filedialog.asksaveasfile(mode="w", defaultextension=".txt", initialfile=fileName, filetypes=(("Text File", "*.txt"), ("Sub file", "*.srt"), ("All Files", "*.*")))
+        if f is None:
+            return
+        f.write(text)
+        f.close()
+
+        # open folder
+        startFile(os.path.dirname(f.name))
+
+    def export_result(self):
+        # check based on mode
+        if self.cb_mode.current() == 0:  # transcribe only
+            self.export_tc()
+        elif self.cb_mode.current() == 1:  # translate only
+            self.export_tl()
+        elif self.cb_mode.current() == 2:  # transcribe and translate
+            self.export_tc()
+            self.export_tl()
 
     # ------------------ Rec ------------------
     # From mic
@@ -618,13 +652,13 @@ class MainWindow:
         # Record
         gClass.enableRecording()
         try:
-            if mode == "Transcribe":
+            if mode == 0:
                 transcribeThread = threading.Thread(target=rec_mic, args=(mic, model, sourceLang, targetLang, True, False, engine), daemon=True)
                 transcribeThread.start()
-            elif mode == "Translate":
+            elif mode == 1:
                 translateThread = threading.Thread(target=rec_mic, args=(mic, model, sourceLang, targetLang, False, True, engine), daemon=True)
                 translateThread.start()
-            elif mode == "Transcribe & Translate":
+            elif mode == 2:
                 transcribeTranslateThread = threading.Thread(target=rec_mic, args=(mic, model, sourceLang, targetLang, True, True, engine), daemon=True)
                 transcribeTranslateThread.start()
         except Exception as e:
@@ -684,13 +718,13 @@ class MainWindow:
         self.btn_record_file.config(text="Loading", command=self.rec_from_file_stop, state="normal")
 
         # Process file
-        if mode == "Transcribe":
+        if mode == 0:
             transcribeThread = threading.Thread(target=from_file, args=(file, model, sourceLang, targetLang, True, False, engine), daemon=True)
             transcribeThread.start()
-        elif mode == "Translate":
+        elif mode == 1:
             translateThread = threading.Thread(target=from_file, args=(file, model, sourceLang, targetLang, False, True, engine), daemon=True)
             translateThread.start()
-        elif mode == "Transcribe & Translate":
+        elif mode == 2:
             transcribeTranslateThread = threading.Thread(target=from_file, args=(file, model, sourceLang, targetLang, True, True, engine), daemon=True)
             transcribeTranslateThread.start()
 
@@ -715,7 +749,7 @@ class MainWindow:
 if __name__ == "__main__":
     if platform.system() == "Windows":
         gClass.cw = win32gui.GetForegroundWindow()
-        hideConsole(gClass.cw)
+        # hideConsole(gClass.cw)
 
     main = MainWindow()
     tray = AppTray()  # Start tray app in the background
