@@ -36,6 +36,7 @@ class Globals:
         self.translating: bool = False
 
         # process
+        self.dl_proc: None | Process = None
         self.tc_proc: None | Process = None
         self.tl_proc: None | Process = None
 

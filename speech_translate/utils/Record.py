@@ -20,6 +20,7 @@ from Logging import logger
 
 from .Helper import modelSelectDict
 from .Translate import google_tl, libre_tl, memory_tl
+from .DownloadModel import check_model, download_model, verify_model
 
 
 def getInputDevices():
@@ -58,7 +59,7 @@ def getDefaultOutputDevice():
         return sucess, default_device
 
 
-def notifyError(title: str, message: str) -> None:
+def notifyStuff(title: str, message: str) -> None:
     """Notify Error
 
     Args:
@@ -147,7 +148,7 @@ def whisper_transcribe(
     except Exception as e:
         gClass.disableTranscribing()  # flag processing as done if error
         logger.exception(e)
-        notifyError("Error: Transcribing Audio", str(e))
+        notifyStuff("Error: Transcribing Audio", str(e))
         return
 
     logger.info("-" * 50)
@@ -223,7 +224,7 @@ def whisper_translate(
             except Exception as e:
                 gClass.disableTranslating()  # flag processing as done if error
                 logger.exception(e)
-                notifyError("Error: translating with whisper failed", str(e))
+                notifyStuff("Error: translating with whisper failed", str(e))
                 return
 
         elif engine == "Google":
@@ -231,7 +232,7 @@ def whisper_translate(
             oldMethod = "alt" in lang_target
             success, result_Tl = google_tl(transcribed_text, lang_source, lang_target, oldMethod)
             if not success:
-                notifyError("Error: translation with google failed", result_Tl)
+                notifyStuff("Error: translation with google failed", result_Tl)
 
         elif engine == "LibreTranslate":
             assert transcribed_text is not None
@@ -239,19 +240,19 @@ def whisper_translate(
                 transcribed_text, lang_source, lang_target, fJson.settingCache["libre_https"], fJson.settingCache["libre_host"], fJson.settingCache["libre_port"], fJson.settingCache["libre_api_key"]
             )
             if not success:
-                notifyError("Error: translation with libre failed", result_Tl)
+                notifyStuff("Error: translation with libre failed", result_Tl)
 
         elif engine == "MyMemoryTranslator":
             assert transcribed_text is not None
             success, result_Tl = memory_tl(transcribed_text, lang_source, lang_target)
             if not success:
-                notifyError("Error: translation with mymemory failed", str(result_Tl))
+                notifyStuff("Error: translation with mymemory failed", str(result_Tl))
 
         gClass.disableTranslating()  # flag processing as done. No need to check for transcription because it is done before this
     except Exception as e:
         gClass.disableTranslating()  # flag processing as done if error
         logger.exception(e)
-        notifyError("Error: translating failed", str(e))
+        notifyStuff("Error: translating failed", str(e))
         return
 
     if engine == "Whisper":
@@ -403,6 +404,25 @@ def rec_mic(device: str, modelInput: str, langSource: str, langTarget: str, tran
     if modelName != "large" and src_english:
         modelName = modelName + ".en"
 
+    # first check if model is downloaded
+    if check_model(modelName) is False:
+        gClass.mw.btn_record_mic.config(text="Cancel")  # type: ignore
+        logger.info("Model is not yet downloaded")
+        gClass.dl_proc = Process(target=download_model, args=(modelName,), daemon=True)
+        gClass.dl_proc.start()
+        notifyStuff("Downloading Model", "Downloading model for the first time. This may take a while. (Check the console/log for progress)")
+        gClass.dl_proc.join()
+
+    # verify downloaded model
+    if verify_model(modelName) is False:
+        gClass.mw.btn_record_mic.config(text="Cancel")  # type: ignore
+        logger.info("Model is downloaded but checksum does not match")
+        logger.info("Redownloading the model")
+        gClass.dl_proc = Process(target=download_model, args=(modelName,), daemon=True)
+        gClass.dl_proc.start()
+        notifyStuff("Downloading Model", "Model is downloaded but checksum does not match. Redownloading the model. This may take a while. (Check the console/log for progress)")
+        gClass.dl_proc.join()
+
     # turn off loadbar
     assert gClass.mw is not None
     gClass.mw.stop_loadBar("mic")
@@ -434,7 +454,7 @@ def rec_mic(device: str, modelInput: str, langSource: str, langTarget: str, tran
                     pass
         except Exception as e:
             logger.exception(e)
-            notifyError("Error", str(e))
+            notifyStuff("Error", str(e))
             gClass.disableRecording()
 
     # clean up
@@ -491,6 +511,25 @@ def rec_pc(device: str, modelInput: str, langSource: str, langTarget: str, trans
     if modelName != "large" and src_english:
         modelName = modelName + ".en"
 
+    # first check if model is downloaded
+    if check_model(modelName) is False:
+        gClass.mw.btn_record_pc.config(text="Cancel")  # type: ignore
+        logger.info("Model is not yet downloaded")
+        gClass.dl_proc = Process(target=download_model, args=(modelName,), daemon=True)
+        gClass.dl_proc.start()
+        notifyStuff("Downloading Model", "Downloading model for the first time. This may take a while. (Check the console/log for progress)")
+        gClass.dl_proc.join()
+
+    # verify downloaded model
+    if verify_model(modelName) is False:
+        gClass.mw.btn_record_pc.config(text="Cancel")  # type: ignore
+        logger.info("Model is downloaded but checksum does not match")
+        logger.info("Redownloading the model")
+        gClass.dl_proc = Process(target=download_model, args=(modelName,), daemon=True)
+        gClass.dl_proc.start()
+        notifyStuff("Downloading Model", "Model is downloaded but checksum does not match. Redownloading the model. This may take a while. (Check the console/log for progress)")
+        gClass.dl_proc.join()
+
     # turn off loadbar
     assert gClass.mw is not None
     gClass.mw.stop_loadBar("pc")
@@ -522,7 +561,7 @@ def rec_pc(device: str, modelInput: str, langSource: str, langTarget: str, trans
                     pass
         except Exception as e:
             logger.exception(e)
-            notifyError("Error", str(e))
+            notifyStuff("Error", str(e))
             gClass.disableRecording()
 
     # clean up
@@ -580,6 +619,23 @@ def from_file(filePath: str, modelInput: str, langSource: str, langTarget: str, 
 
     # update button text
     gClass.mw.btn_record_file.config(text="Cancel")  # type: ignore
+
+    # first check if model is downloaded
+    if check_model(modelName) is False:
+        logger.info("Model is not yet downloaded")
+        gClass.dl_proc = Process(target=download_model, args=(modelName,), daemon=True)
+        gClass.dl_proc.start()
+        notifyStuff("Downloading Model", "Downloading model for the first time. This may take a while. (Check the console/log for progress)")
+        gClass.dl_proc.join()
+
+    # verify downloaded model
+    if verify_model(modelName) is False:
+        logger.info("Model is downloaded but checksum does not match")
+        logger.info("Redownloading the model")
+        gClass.dl_proc = Process(target=download_model, args=(modelName,), daemon=True)
+        gClass.dl_proc.start()
+        notifyStuff("Downloading Model", "Model is downloaded but checksum does not match. Redownloading the model. This may take a while. (Check the console/log for progress)")
+        gClass.dl_proc.join()
 
     # Proccess it
     if translate and not transcribe and whisperEngine:  # if only translating and using the whisper engine

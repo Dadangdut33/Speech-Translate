@@ -421,7 +421,7 @@ class MainWindow:
         # update on start
         self.cb_engine_change()
         self.cb_mode_change()
-        # self.tb_clear()
+        self.tb_clear()
         self.cb_mic_init()
 
     # mic
@@ -708,6 +708,10 @@ class MainWindow:
         gClass.disableRecording()
         sd.stop()  # stop the sounddevice recording
 
+        if gClass.dl_proc is not None:
+            gClass.dl_proc.terminate()
+            gClass.dl_proc = None
+
         self.loadBar.stop()
         self.loadBar.config(mode="determinate")
         self.btn_record_mic.config(text="Record From Mic", command=self.rec_from_mic)
@@ -756,6 +760,10 @@ class MainWindow:
         logger.info("Recording PC Stopped")
         gClass.disableRecording()
 
+        if gClass.dl_proc is not None:
+            gClass.dl_proc.terminate()
+            gClass.dl_proc = None
+
         self.loadBar.stop()
         self.loadBar.config(mode="determinate")
         self.btn_record_pc.config(text="Record PC Sound", command=self.rec_from_pc)
@@ -798,6 +806,10 @@ class MainWindow:
 
     def rec_from_file_stop(self):
         logger.info("Processing file cancelled")
+        if gClass.dl_proc is not None:
+            gClass.dl_proc.terminate()
+            gClass.dl_proc = None
+            
         if gClass.tc_proc is not None:
             gClass.tc_proc.terminate()
             gClass.tc_proc = None

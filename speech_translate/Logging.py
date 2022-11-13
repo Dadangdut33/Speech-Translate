@@ -18,7 +18,7 @@ class c_formatter(logging.Formatter):
     reset = "\x1b[0m"
     textFormat = "%(levelname)-7s - %(message)s"
     timeFormat = blue + "%(asctime)s " + reset
-    fileLineFormat = green + " (%(filename)s:%(lineno)d)" + reset
+    fileLineFormat = green + " (%(filename)s:%(lineno)d) [%(threadName)s]" + reset
 
     FORMATS = {
         logging.DEBUG: timeFormat + grey + textFormat + reset + fileLineFormat,
