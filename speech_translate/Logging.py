@@ -10,19 +10,19 @@ class c_formatter(logging.Formatter):
     bold = "\033[1m"
     green = "\u001b[32;1m"
     white = "\u001b[37m"
-    grey = "\x1b[38;20m"
+    grey = "\x1b[1;30m"
     yellow = "\x1b[33;20m"
     red = "\x1b[31;20m"
     bold_red = "\x1b[31;1m"
     blue = "\x1b[34;20m"
     reset = "\x1b[0m"
-    textFormat = "%(levelname)s - %(message)s"
+    textFormat = "%(levelname)-7s - %(message)s"
     timeFormat = blue + "%(asctime)s " + reset
     fileLineFormat = green + " (%(filename)s:%(lineno)d)" + reset
 
     FORMATS = {
         logging.DEBUG: timeFormat + grey + textFormat + reset + fileLineFormat,
-        logging.INFO: timeFormat + bold + grey + textFormat + reset + fileLineFormat,
+        logging.INFO: timeFormat + white + textFormat + reset + fileLineFormat,
         logging.WARNING: timeFormat + yellow + textFormat + reset + fileLineFormat,
         logging.ERROR: timeFormat + red + textFormat + reset + fileLineFormat,
         logging.CRITICAL: timeFormat + bold_red + textFormat + reset + fileLineFormat,
@@ -73,14 +73,17 @@ logger.addHandler(f_handler)
 # ------------------ #
 # to debug/test the logger
 if __name__ == "__main__":
+    print("This is a normal print text")
+    print("This is a looooooooooooooong print text")
+
     logger.info("This is an info")
     logger.info("This is a looooooooooooooooooong info")
+    logger.debug("This is a debug")
+    logger.debug("This is a looooooooooooooooooooong debug")
     logger.warning("This is a warning")
     logger.warning("This is a looooooooooooooooooong  warning")
     logger.error("This is an error")
     logger.error("This is a looooooooooooooooooooong error")
-    logger.debug("This is a debug")
-    logger.debug("This is a looooooooooooooooooooong debug")
     try:
         x = 1 / 0
     except Exception as e:

@@ -98,8 +98,8 @@ def google_tl(text: str, from_lang: str, to_lang: str, oldMethod: bool = False):
         result = str(e)
     finally:
         logger.info("-" * 50)
-        logger.info("Query: " + text.strip())
-        logger.info("Translation Get: " + result)
+        logger.debug("Query: " + text.strip())
+        logger.debug("Translation Get: " + result)
         return is_Success, result
 
 
@@ -139,8 +139,8 @@ def memory_tl(text: str, from_lang: str, to_lang: str):
         result = str(e)
     finally:
         logger.info("-" * 50)
-        logger.info("Query: " + text.strip())
-        logger.info("Translation Get: " + result)  # type: ignore
+        logger.debug("Query: " + text.strip())
+        logger.debug("Translation Get: " + result)  # type: ignore
         return is_Success, result
 
 
@@ -192,6 +192,6 @@ def libre_tl(text: str, from_lang: str, to_lang: str, https: bool = False, host:
             result = "Error: Invalid parameter value. Check for https, host, port, and apiKeys. If you use external server, make sure https is set to True."
     finally:
         logger.info("-" * 50)
-        logger.info("Query: " + text.strip())
-        logger.info("Translation Get: " + result)
+        logger.debug("Query: " + text.strip())
+        logger.debug("Translation Get: " + result)
         return is_Success, result

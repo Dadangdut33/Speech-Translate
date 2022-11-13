@@ -2,21 +2,26 @@ import os
 import platform
 import time
 
+pip = "pip"
+# check if not windows
+if platform.system() != "Windows":
+    pip = "pip3"
+
 
 def install_requirements():
-    os.system("pip install -r requirements.txt")
+    os.system(f"{pip} install -r requirements.txt")
 
 
 def uninstall_torch():
-    os.system("pip uninstall torch")
+    os.system(f"{pip} uninstall torch")
 
 
 def install_torch():
     # if mac
     if platform.system() == "Darwin":
-        os.system("pip install pytorch torchvision torchaudio -c pytorch")
+        os.system(f"{pip} install pytorch torchvision torchaudio -c pytorch")
     else:  # windows and linux
-        os.system("pip install pytorch torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia")
+        os.system(f"{pip} install pytorch torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia")
 
 
 if __name__ == "__main__":

@@ -649,9 +649,9 @@ class MainWindow:
         if sourceLang == targetLang and mode != "Transcribe":
             Mbox("Invalid options!", "Source and target language cannot be the same", 2)
             return
-        self.tb_clear()
 
         # ui changes
+        self.tb_clear()
         self.start_loadBar()
         self.disable_interactions()
         self.btn_record_mic.config(text="Loading", command=self.rec_from_mic_stop, state="normal")
@@ -708,7 +708,6 @@ class MainWindow:
         if sourceLang == targetLang and mode != "Transcribe":
             Mbox("Invalid options!", "Source and target language cannot be the same", 2)
             return
-        self.tb_clear()
 
         # get file
         file = filedialog.askopenfilename(
@@ -720,6 +719,7 @@ class MainWindow:
             return
 
         # ui changes
+        self.tb_clear()
         self.start_loadBar()
         self.disable_interactions()
         self.btn_record_file.config(text="Loading", command=self.rec_from_file_stop, state="normal")
