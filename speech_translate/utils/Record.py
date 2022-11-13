@@ -160,8 +160,10 @@ def whisper_transcribe(
 
     # insert to textbox
     if transcribe:
-        gClass.insertTbTranscribed(result_Tc["text"].strip() + fJson.settingCache["separate_with"])  # type: ignore
-
+        if len(result_Tc["text"].strip()) > 0:  # type: ignore
+            gClass.insertTbTranscribed(result_Tc["text"].strip() + fJson.settingCache["separate_with"])  # type: ignore
+        else:
+            logger.warning("Transcribed Text is empty")
     if translate:
         translateThread = threading.Thread(target=whisper_translate, args=(audio_name, modelName, lang_source, lang_target, auto, verbose, engine, result_Tc["text"], multiProc), daemon=True)  # type: ignore
         translateThread.start()  # Start translation in a new thread to prevent blocking
@@ -256,7 +258,10 @@ def whisper_translate(
         return
 
     if engine == "Whisper":
-        gClass.insertTbTranslated(result_Tl["text"].strip() + fJson.settingCache["separate_with"])  # type: ignore
+        if len(result_Tl["text"].strip()) > 0:  # type: ignore
+            gClass.insertTbTranslated(result_Tl["text"].strip() + fJson.settingCache["separate_with"])  # type: ignore
+        else:
+            logger.warning("Translated Text is empty")
         logger.info("-" * 50)
         logger.info(f"Translated: {audio_name.split(os.sep)[-1]}")
         if verbose:
@@ -264,7 +269,10 @@ def whisper_translate(
         else:
             logger.debug(result_Tl["text"].strip())  # type: ignore
     else:
-        gClass.insertTbTranslated(result_Tl.strip() + fJson.settingCache["separate_with"])  # type: ignore
+        if len(result_Tl.strip()) > 0: # type: ignore
+            gClass.insertTbTranslated(result_Tl.strip() + fJson.settingCache["separate_with"])  # type: ignore
+        else:
+            logger.warning("Translated Text is empty")
 
 
 def record_from_mic(audio_name: str, device: str, seconds=5) -> None:

@@ -809,7 +809,7 @@ class MainWindow:
         if gClass.dl_proc is not None:
             gClass.dl_proc.terminate()
             gClass.dl_proc = None
-            
+
         if gClass.tc_proc is not None:
             gClass.tc_proc.terminate()
             gClass.tc_proc = None

@@ -11,7 +11,10 @@ from Logging import logger
 from .LangCode import google_lang, libre_lang, myMemory_lang
 
 
-def no_connection_notify(customTitle: str = "No Internet Connection", customMessage: str = "Translation for engine other than Whisper or your local LibreTranslate Deployment (If you have one) will not work until you reconnect to the internet."):
+def no_connection_notify(
+    customTitle: str = "No Internet Connection",
+    customMessage: str = "Translation for engine other than Whisper or your local LibreTranslate Deployment (If you have one) will not work until you reconnect to the internet.",
+):
     notification = Notify()
     notification.title = customTitle
     notification.message = customMessage
