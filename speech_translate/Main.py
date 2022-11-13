@@ -18,13 +18,14 @@ from pystray import Menu as menu
 from pystray import MenuItem as item
 
 # User defined
-from Globals import app_icon, app_icon_missing, app_name, fJson, gClass, version
+from _version import __version__
+from Globals import app_icon, app_icon_missing, app_name, fJson, gClass
 from Logging import logger
 from components.MBox import Mbox
 from components.Tooltip import CreateToolTip
 from utils.Helper import modelKeys, modelSelectDict, upFirstCase, startFile
 from utils.LangCode import engine_select_source_dict, engine_select_target_dict, whisper_compatible
-from utils.Record import from_file, getInputDevices, getOutputDevices, rec_mic, rec_pc
+from utils.Record import from_file, getInputDevices, getOutputDevices, getDefaultOutputDevice, rec_mic, rec_pc
 
 
 def hideConsole(win):
@@ -64,7 +65,7 @@ class AppTray:
         trayIco = Image.open(app_icon) if not app_icon_missing else self.create_image(64, 64, "black", "white")
         self.menu_items = (item("Show", self.open_app), item("Exit", self.exit_app))
         self.menu = menu(*self.menu_items)
-        self.icon = icon("Speech Translate", trayIco, f"Speech Translate V{version}", self.menu)
+        self.icon = icon("Speech Translate", trayIco, f"Speech Translate V{__version__}", self.menu)
         self.icon.run_detached()
 
     # -- Open app
@@ -232,7 +233,7 @@ class MainWindow:
             self.label_speaker,
             """Speaker to record system audio. Action available:
         \r[-] Left click to refresh\n[-] Right click to set to default device
-        \r**NOTES**:\nFormat of the device is {device name, hostAPI}
+        \r**NOTES**:\nFormat of the device is {device name, hostAPI  [ID: x]}
         \rThere are many hostAPI for your device and it is recommended to follow the default value, other than that it might not work or crash the app.""",
             wrapLength=400,
         )
@@ -390,9 +391,9 @@ class MainWindow:
         # Allow
         if key.lower() in ["left", "right"]:  # Arrow left right
             return
-        if 12 == event.state and key == "a":  # Ctrl + a
+        if 4 == event.state and key == "a":  # Ctrl + a
             return
-        if 12 == event.state and key == "c":  # Ctrl + c
+        if 4 == event.state and key == "c":  # Ctrl + c
             return
 
         # If not allowed
@@ -402,7 +403,7 @@ class MainWindow:
     # error
     def errorNotif(self, err: str):
         notification = Notify()
-        notification.title = "Error"
+        notification.title = "Unexpected Error!"
         notification.message = err
         notification.application_name = app_name
         if not app_icon_missing:
@@ -420,7 +421,7 @@ class MainWindow:
         # update on start
         self.cb_engine_change()
         self.cb_mode_change()
-        self.tb_clear()
+        # self.tb_clear()
         self.cb_mic_init()
 
     # mic
@@ -447,6 +448,9 @@ class MainWindow:
         if defaultMic:
             self.cb_mic.set(defaultMic["name"] + ", " + sd.query_hostapis(defaultMic["hostapi"])["name"])  # type: ignore
             fJson.savePartialSetting("mic", self.cb_mic.get())
+            # verify if the current mic is still available
+            if self.cb_mic.get() not in self.cb_mic["values"]:
+                self.cb_mic.current(0)
         else:
             self.errorNotif("No default speaker found")
 
@@ -459,10 +463,17 @@ class MainWindow:
 
     def label_speaker_Rclick(self, _event=None):
         # set default speaker
-        defaultSpeaker = sd.query_devices(kind="output")
+        success, defaultSpeaker = getDefaultOutputDevice()
+        if not success:
+            self.errorNotif(str(defaultSpeaker))
+            return
+
         if defaultSpeaker:
-            self.cb_speaker.set(defaultSpeaker["name"] + ", " + sd.query_hostapis(defaultSpeaker["hostapi"])["name"])  # type: ignore
+            self.cb_speaker.set(f"{defaultSpeaker['name']}, {sd.query_hostapis(defaultSpeaker['hostApi'])['name']} [ID: {defaultSpeaker['index']}]")  # type: ignore
             fJson.savePartialSetting("speaker", self.cb_speaker.get())
+            # verify if the current speaker is still available
+            if self.cb_speaker.get() not in self.cb_speaker["values"]:
+                self.cb_speaker.current(0)
         else:
             self.errorNotif("No default speaker found")
 
@@ -550,6 +561,12 @@ class MainWindow:
             self.cb_lang_update()
 
         elif index == 2:  # transcribe and translate
+            self.tb_translated_bg.pack_forget()
+            self.tb_translated.pack_forget()
+
+            self.tb_transcribed_bg.pack_forget()
+            self.tb_transcribed.pack_forget()
+
             self.tb_transcribed_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
             self.tb_transcribed.pack(fill="both", expand=True, padx=1, pady=1)
 
@@ -569,6 +586,8 @@ class MainWindow:
         self.cb_engine.config(state="disabled")
         self.cb_sourceLang.config(state="disabled")
         self.cb_targetLang.config(state="disabled")
+        self.cb_mic.config(state="disabled")
+        self.cb_speaker.config(state="disabled")
         self.btn_swap.config(state="disabled")
         self.btn_record_mic.config(state="disabled")
         self.btn_record_pc.config(state="disabled")
@@ -580,6 +599,8 @@ class MainWindow:
         self.cb_engine.config(state="readonly")
         self.cb_sourceLang.config(state="readonly")
         self.cb_targetLang.config(state="readonly")
+        self.cb_mic.config(state="readonly")
+        self.cb_speaker.config(state="readonly")
         self.btn_swap.config(state="normal")
         self.btn_record_mic.config(state="normal")
         self.btn_record_pc.config(state="normal")
@@ -612,21 +633,34 @@ class MainWindow:
     # ------------------ Export ------------------
     def export_tc(self):
         fileName = f"Transcribed {time.strftime('%Y-%m-%d %H-%M-%S')}"
-        text = self.tb_transcribed.get(1.0, tk.END)
+        text = str(self.tb_transcribed.get(1.0, tk.END))
+        print(text)
         f = filedialog.asksaveasfile(mode="w", defaultextension=".txt", initialfile=fileName, filetypes=(("Text File", "*.txt"), ("Sub file", "*.srt"), ("All Files", "*.*")))
         if f is None:
             return
-        f.write(text)
+        f.write("")
         f.close()
+
+        # open file write it
+        with open(f.name, "w", encoding="utf-8") as f:
+            f.write(text)
+
+        # open folder
+        startFile(f.name)
 
     def export_tl(self):
         fileName = f"Translated {time.strftime('%Y-%m-%d %H-%M-%S')}"
-        text = self.tb_translated.get(1.0, tk.END)
+        text = str(self.tb_translated.get(1.0, tk.END))
+        print(text)
         f = filedialog.asksaveasfile(mode="w", defaultextension=".txt", initialfile=fileName, filetypes=(("Text File", "*.txt"), ("Sub file", "*.srt"), ("All Files", "*.*")))
         if f is None:
             return
-        f.write(text)
+        f.write("")
         f.close()
+
+        # open file write it
+        with open(f.name, "w", encoding="utf-8") as f:
+            f.write(text)
 
         # open folder
         startFile(os.path.dirname(f.name))
@@ -646,7 +680,7 @@ class MainWindow:
     def rec_from_mic(self):
         # Checking args
         mode, model, engine, sourceLang, targetLang, mic, speaker = self.get_args()
-        if sourceLang == targetLang and mode != "Transcribe":
+        if sourceLang == targetLang and mode == 2:
             Mbox("Invalid options!", "Source and target language cannot be the same", 2)
             return
 
@@ -656,18 +690,14 @@ class MainWindow:
         self.disable_interactions()
         self.btn_record_mic.config(text="Loading", command=self.rec_from_mic_stop, state="normal")
 
-        # Record
-        gClass.enableRecording()
+        gClass.enableRecording()  # Flag update
+        transcribe = mode == 0 or mode == 2
+        translate = mode == 1 or mode == 2
+
+        # Start thread
         try:
-            if mode == 0:
-                transcribeThread = threading.Thread(target=rec_mic, args=(mic, model, sourceLang, targetLang, True, False, engine), daemon=True)
-                transcribeThread.start()
-            elif mode == 1:
-                translateThread = threading.Thread(target=rec_mic, args=(mic, model, sourceLang, targetLang, False, True, engine), daemon=True)
-                translateThread.start()
-            elif mode == 2:
-                transcribeTranslateThread = threading.Thread(target=rec_mic, args=(mic, model, sourceLang, targetLang, True, True, engine), daemon=True)
-                transcribeTranslateThread.start()
+            recMicThread = threading.Thread(target=rec_mic, args=(mic, model, sourceLang, targetLang, transcribe, translate, engine), daemon=True)
+            recMicThread.start()
         except Exception as e:
             logger.exception(e)
             self.errorNotif(str(e))
@@ -683,6 +713,7 @@ class MainWindow:
         self.btn_record_mic.config(text="Record From Mic", command=self.rec_from_mic)
         self.enable_interactions()
 
+    # From pc
     def rec_from_pc(self):
         # check if on windows or not
         if platform.system() != "Windows":
@@ -698,14 +729,43 @@ class MainWindow:
 
         # Checking args
         mode, model, engine, sourceLang, targetLang, mic, speaker = self.get_args()
-        if sourceLang == targetLang and mode != "Transcribe":
+        if sourceLang == targetLang and mode == 2:
             Mbox("Invalid options!", "Source and target language cannot be the same", 2)
             return
 
+        # ui changes
+        self.tb_clear()
+        self.start_loadBar()
+        self.disable_interactions()
+        self.btn_record_pc.config(text="Loading", command=self.rec_from_pc_stop, state="normal")
+
+        gClass.enableRecording()  # Flag update
+        transcribe = mode == 0 or mode == 2
+        translate = mode == 1 or mode == 2
+
+        # Start thread
+        try:
+            recPcThread = threading.Thread(target=rec_pc, args=(speaker, model, sourceLang, targetLang, transcribe, translate, engine), daemon=True)
+            recPcThread.start()
+        except Exception as e:
+            logger.exception(e)
+            self.errorNotif(str(e))
+            self.rec_from_pc_stop()
+
+    def rec_from_pc_stop(self):
+        logger.info("Recording PC Stopped")
+        gClass.disableRecording()
+
+        self.loadBar.stop()
+        self.loadBar.config(mode="determinate")
+        self.btn_record_pc.config(text="Record PC Sound", command=self.rec_from_pc)
+        self.enable_interactions()
+
+    # From file
     def rec_from_file(self):
         # Checking args
         mode, model, engine, sourceLang, targetLang, mic, speaker = self.get_args()
-        if sourceLang == targetLang and mode != "Transcribe":
+        if sourceLang == targetLang and mode == 2:
             Mbox("Invalid options!", "Source and target language cannot be the same", 2)
             return
 
@@ -724,16 +784,17 @@ class MainWindow:
         self.disable_interactions()
         self.btn_record_file.config(text="Loading", command=self.rec_from_file_stop, state="normal")
 
-        # Process file
-        if mode == 0:
-            transcribeThread = threading.Thread(target=from_file, args=(file, model, sourceLang, targetLang, True, False, engine), daemon=True)
-            transcribeThread.start()
-        elif mode == 1:
-            translateThread = threading.Thread(target=from_file, args=(file, model, sourceLang, targetLang, False, True, engine), daemon=True)
-            translateThread.start()
-        elif mode == 2:
-            transcribeTranslateThread = threading.Thread(target=from_file, args=(file, model, sourceLang, targetLang, True, True, engine), daemon=True)
-            transcribeTranslateThread.start()
+        transcribe = mode == 0 or mode == 2
+        translate = mode == 1 or mode == 2
+
+        # Start thread
+        try:
+            recFileThread = threading.Thread(target=from_file, args=(file, model, sourceLang, targetLang, transcribe, translate, engine), daemon=True)
+            recFileThread.start()
+        except Exception as e:
+            logger.exception(e)
+            self.errorNotif(str(e))
+            self.rec_from_file_stop()
 
     def rec_from_file_stop(self):
         logger.info("Processing file cancelled")

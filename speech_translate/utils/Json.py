@@ -8,8 +8,10 @@ from notifypy import Notify
 
 sys.path.append("..")
 from Logging import logger
+from _version import __setting_version__
 
 default_setting = {
+    "version": __setting_version__,
     "mode": "Transcribe",
     "model": "tiny",
     "sourceLang": "English",
@@ -17,7 +19,7 @@ default_setting = {
     "verbose": False,
     "keep_audio": False,
     "max_temp": 100,
-    "cutOff": 5,
+    "cutOff": {"mic": 5, "speaker": 5},
     "separate_with": "\n",
     "tl_engine": "Google",
     "libre_api_key": "",
@@ -61,6 +63,7 @@ class SettingJsonHandler:
         success, msg, data = self.loadSetting()
         if success:
             self.settingCache = data
+            # verify loaded setting
             success, msg, data = self.verifyLoadedSetting(data)
             if not success:
                 self.settingCache = default_setting
@@ -70,6 +73,18 @@ class SettingJsonHandler:
                 notification.message = "Setting reverted to default. Details: " + msg
                 notification.send()
                 logger.warning("Error verifying setting file: " + msg)
+                
+            # verify setting version
+            if self.settingCache["version"] != __setting_version__:
+                self.settingCache = default_setting  # load default
+                self.saveSetting(self.settingCache)  # save
+                # notify
+                notification = Notify()
+                notification.application_name = "Speech Translate"
+                notification.title = "Setting file is outdated"
+                notification.message = "Setting file is outdated. Setting has been reverted to default setting."
+                notification.send()
+                logger.warning("Setting file is outdated. Setting has been reverted to default setting.")
         else:
             self.settingCache = default_setting
             logger.error("Error loading setting file: " + msg)
@@ -151,6 +166,7 @@ class SettingJsonHandler:
         success: bool = False
         msg: str = ""
         try:
+            # check each key
             for key in default_setting:
                 if key not in data:
                     data[key] = default_setting[key]

@@ -1,7 +1,8 @@
-__all__ = ["dir_project", "dir_setting", "dir_temp", "version", "gClass", "fJson"]
+__all__ = ["dir_project", "dir_setting", "dir_temp", "gClass", "fJson"]
 
 import os
 from multiprocessing import Process
+import pyaudiowpatch as pyaudio
 
 from utils.Json import SettingJsonHandler
 
@@ -17,7 +18,6 @@ if not os.path.exists(app_icon):  # verify app_icon exist or not
 else:
     app_icon_missing = False
 # ------------------ #
-version: str = "1.0.0"
 app_name: str = "Speech Translate"
 fJson: SettingJsonHandler = SettingJsonHandler(os.path.join(dir_setting, "setting.json"), dir_setting, dir_temp, dir_log)
 # ------------------ #
@@ -34,8 +34,6 @@ class Globals:
         self.recording: bool = False
         self.transcribing: bool = False
         self.translating: bool = False
-        self.stop_tc: bool = False
-        self.stop_tl: bool = False
 
         # process
         self.tc_proc: None | Process = None
@@ -65,18 +63,6 @@ class Globals:
 
     def disableTranslating(self):
         self.translating = False
-
-    def enableStopTc(self):
-        self.stop_tc = True
-
-    def disableStopTc(self):
-        self.stop_tc = False
-
-    def enableStopTl(self):
-        self.stop_tl = True
-
-    def disableStopTl(self):
-        self.stop_tl = False
 
     def insertTbTranscribed(self, textToAppend: str):
         """_summary_: Insert text to transcribed textbox. Will also check if the text is too long and will truncate it if it is.

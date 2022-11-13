@@ -6,10 +6,12 @@ from multiprocessing import Process, Queue
 from time import sleep, time
 from typing import Literal
 
-import sounddevice as sd
-import whisper
 from notifypy import Notify, exceptions
+import whisper
+import sounddevice as sd
 from scipy.io.wavfile import write
+import pyaudiowpatch as pyaudio
+import wave
 
 sys.path.append("..")
 
@@ -28,10 +30,32 @@ def getInputDevices():
 
 
 def getOutputDevices():
-    devices = sd.query_devices()
-    devices = [device for device in devices if device["max_output_channels"] > 0]  # type: ignore # Filter out devices that are not output devices
-    devices = [f"{device['name']}, {sd.query_hostapis(device['hostapi'])['name']}" for device in devices]  # type: ignore # Map the name
+    p = pyaudio.PyAudio()
+
+    devices = p.get_device_count()
+    devices = [p.get_device_info_by_index(i) for i in range(devices)]
+    devices = [device for device in devices if device["maxOutputChannels"] > 0]  # Filter out devices that are not output devices
+    devices = [f"{device['name']}, {sd.query_hostapis(device['hostApi'])['name']} [ID: {device['index']}]" for device in devices]  # type: ignore  # Map the name
+
+    p.terminate()
     return devices
+
+
+def getDefaultOutputDevice():
+    p = pyaudio.PyAudio()
+    sucess = False
+    default_device = None
+    try:
+        # Get default WASAPI info
+        wasapi_info = p.get_host_api_info_by_type(pyaudio.paWASAPI)
+        default_device = p.get_device_info_by_index(wasapi_info["defaultOutputDevice"])
+        sucess = True
+    except OSError:
+        print("Looks like WASAPI is not available on the system.")
+        sucess = False
+    finally:
+        p.terminate()
+        return sucess, default_device
 
 
 def notifyError(title: str, message: str) -> None:
@@ -176,15 +200,15 @@ def whisper_translate(
     else:
         logger.debug("Task: Translating Text")
 
-    # verify audio file exists
-    if not os.path.isfile(audio_name):
-        logger.warning("Audio file does not exist (It might have not been created/already cancelled)")
-        gClass.disableTranslating()
-        return
-
     try:
         if engine == "Whisper":
             try:
+                # verify audio file exists
+                if not os.path.isfile(audio_name):
+                    logger.warning("Audio file does not exist (It might have not been created/already cancelled)")
+                    gClass.disableTranslating()
+                    return
+
                 if multiProc:
                     queue = Queue()
                     gClass.tl_proc = Process(target=multiProc_Whisper, args=(queue, audio_name, modelName, auto, False, lang_source), daemon=True)
@@ -247,6 +271,7 @@ def record_from_mic(audio_name: str, device: str, seconds=5) -> None:
 
     Args:
         audio_name (str): Name of the audio file
+        device (str): Device to use
         seconds (int, optional): Seconds to record. Defaults to 5.
 
     Returns:
@@ -273,6 +298,83 @@ def record_from_mic(audio_name: str, device: str, seconds=5) -> None:
     write(audio_name, fs, myrecording)  # Save as WAV file
 
 
+def record_from_pc(audio_name: str, device: str, seconds=5) -> None:
+    """Record Audio From PC
+
+    Args:
+        audio_name (str): Name of the audio file
+        device (str): Device to use
+        seconds (int, optional): Seconds to record. Defaults to 5.
+
+    Returns:
+        None
+    """
+    if not gClass.recording:
+        return  # stop if canceled
+
+    # Record
+    logger.info("-" * 50)
+    logger.info(f"Task: Recording Audio. (For {seconds} seconds)")
+
+    # get the device id in [ID: x]
+    device_id = device.split("[ID: ")[1]  # first get the id bracket
+    device_id = device_id.split("]")[0]  # then get the id
+
+    p = pyaudio.PyAudio()
+
+    # Get default WASAPI speakers
+    device_detail = p.get_device_info_by_index(int(device_id))  # type: ignore
+
+    if not device_detail["isLoopbackDevice"]:
+        for loopback in p.get_loopback_device_info_generator():
+            """
+            Try to find loopback device with same name(and [Loopback suffix]).
+            Unfortunately, this is the most adequate way at the moment.
+            """
+            if device_detail["name"] in loopback["name"]:
+                device_detail = loopback
+                break
+        else:
+            # raise exception
+            raise Exception("Loopback device not found")
+
+    logger.debug(f"Recording from: ({device_detail['index']}){device_detail['name']}")
+
+    wave_file = wave.open(audio_name, "wb")
+    wave_file.setnchannels(device_detail["maxInputChannels"])
+    wave_file.setsampwidth(pyaudio.get_sample_size(pyaudio.paInt16))
+    wave_file.setframerate(int(device_detail["defaultSampleRate"]))
+
+    def callback(in_data, frame_count, time_info, status):
+        """Write frames and return PA flag"""
+        wave_file.writeframes(in_data)
+        return (in_data, pyaudio.paContinue)
+
+    logger.info("Start record")
+
+    with p.open(
+        format=pyaudio.paInt16,
+        channels=device_detail["maxInputChannels"],
+        rate=int(device_detail["defaultSampleRate"]),
+        frames_per_buffer=pyaudio.get_sample_size(pyaudio.paInt16),
+        input=True,
+        input_device_index=device_detail["index"],
+        stream_callback=callback,
+    ) as stream:
+        """
+        Opena PA stream via context manager.
+        After leaving the context, everything will
+        be correctly closed(Stream, PyAudio manager)
+        """
+        logger.debug(f"The next {seconds} seconds will written to {audio_name.split(os.sep)[-1]}")
+        sleep(seconds)  # Blocking execution while playing
+
+    wave_file.close()
+    p.terminate()
+
+    logger.info("Audio recording complete")
+
+
 def rec_mic(device: str, modelInput: str, langSource: str, langTarget: str, transcribe: bool, translate: bool, engine: str) -> None:
     """Function to record audio from default microphone. It will then transcribe/translate the audio depending on the input.
 
@@ -284,8 +386,6 @@ def rec_mic(device: str, modelInput: str, langSource: str, langTarget: str, tran
         transcibe (bool): Whether to transcribe the audio.
         translate (bool): Whether to translate the audio.
         engine (str): The engine to use for the translation.
-        verbose (bool, optional): Whether to print the verbose output. Defaults to False.
-        cutOff (int, optional): The cutoff time for the recording. Defaults to 5.
 
     Returns:
         None
@@ -309,28 +409,33 @@ def rec_mic(device: str, modelInput: str, langSource: str, langTarget: str, tran
 
     # Record
     while gClass.recording:
-        audio_name = os.path.join(dir_temp, datetime.now().strftime("%Y-%m-%d %H_%M_%S_%f")) + ".wav"  # temp audio file
-        tempList.append(audio_name)
+        try:
+            audio_name = os.path.join(dir_temp, datetime.now().strftime("%Y-%m-%d %H_%M_%S_%f")) + ".wav"  # temp audio file
+            tempList.append(audio_name)
 
-        # Start recording
-        record_from_mic(audio_name, device, fJson.settingCache["cutOff"])
+            # Start recording
+            record_from_mic(audio_name, device, fJson.settingCache["cutOff"]["mic"])
 
-        # Do Task in thread so it doesn't block the recording
-        if translate and not transcribe and whisperEngine:  # if only translating and using the whisper engine
-            tcThread = threading.Thread(target=whisper_translate, args=(audio_name, modelName, langSource, langTarget, auto, fJson.settingCache["verbose"], engine), daemon=True)
-            tcThread.start()
-        else:
-            # will automatically check translate on or not depend on input
-            # translate is called from here because other engine need to get transcribed text first if translating
-            tcThread = threading.Thread(target=whisper_transcribe, args=(audio_name, modelName, langSource, auto, fJson.settingCache["verbose"], transcribe, translate, engine, langTarget), daemon=True)
-            tcThread.start()
+            # Do Task in thread so it doesn't block the recording
+            if translate and not transcribe and whisperEngine:  # if only translating and using the whisper engine
+                tcThread = threading.Thread(target=whisper_translate, args=(audio_name, modelName, langSource, langTarget, auto, fJson.settingCache["verbose"], engine), daemon=True)
+                tcThread.start()
+            else:
+                # will automatically check translate on or not depend on input
+                # translate is called from here because other engine need to get transcribed text first if translating
+                tcThread = threading.Thread(target=whisper_transcribe, args=(audio_name, modelName, langSource, auto, fJson.settingCache["verbose"], transcribe, translate, engine, langTarget), daemon=True)
+                tcThread.start()
 
-        # Max tempfile
-        if len(tempList) > fJson.settingCache["max_temp"]:
-            try:
-                os.remove(tempList.pop(0))  # pop from the first element
-            except FileNotFoundError:
-                pass
+            # Max tempfile
+            if len(tempList) > fJson.settingCache["max_temp"]:
+                try:
+                    os.remove(tempList.pop(0))  # pop from the first element
+                except FileNotFoundError:
+                    pass
+        except Exception as e:
+            logger.exception(e)
+            notifyError("Error", str(e))
+            gClass.disableRecording()
 
     # clean up
     if not fJson.settingCache["keep_audio"]:
@@ -362,30 +467,88 @@ def rec_pc(device: str, modelInput: str, langSource: str, langTarget: str, trans
     """Function to record audio from default microphone. It will then transcribe/translate the audio depending on the input.
 
     Args:
+        device (str): Device to use for recording
         modelInput (str): The model to use for the input.
         langSource (str): The language of the input.
         langTarget (str): The language to translate to.
         transcibe (bool): Whether to transcribe the audio.
         translate (bool): Whether to translate the audio.
         engine (str): The engine to use for the translation.
-        verbose (bool, optional): Whether to print the verbose output. Defaults to False.
 
     Returns:
         None
     """
+    startProc = time()
     logger.info(f"Start Record (System sound)")
 
+    tempList = []  # List of all the temp files
     src_english = langSource == "english"
     auto = langSource == "auto detect"
+    whisperEngine = engine == "Whisper"
 
     # there are no english models for large
-    model = modelSelectDict[modelInput]
-    if model != "large" and src_english:
-        model = model + ".en"
+    modelName = modelSelectDict[modelInput]
+    if modelName != "large" and src_english:
+        modelName = modelName + ".en"
 
     # turn off loadbar
     assert gClass.mw is not None
     gClass.mw.stop_loadBar("pc")
+
+    # Record
+    while gClass.recording:
+        try:
+            audio_name = os.path.join(dir_temp, datetime.now().strftime("%Y-%m-%d %H_%M_%S_%f")) + ".wav"  # temp audio file
+            tempList.append(audio_name)
+
+            # Start recording
+            record_from_pc(audio_name, device, fJson.settingCache["cutOff"]["speaker"])
+
+            # Do Task in thread so it doesn't block the recording
+            if translate and not transcribe and whisperEngine:  # if only translating and using the whisper engine
+                tcThread = threading.Thread(target=whisper_translate, args=(audio_name, modelName, langSource, langTarget, auto, fJson.settingCache["verbose"], engine), daemon=True)
+                tcThread.start()
+            else:
+                # will automatically check translate on or not depend on input
+                # translate is called from here because other engine need to get transcribed text first if translating
+                tcThread = threading.Thread(target=whisper_transcribe, args=(audio_name, modelName, langSource, auto, fJson.settingCache["verbose"], transcribe, translate, engine, langTarget), daemon=True)
+                tcThread.start()
+
+            # Max tempfile
+            if len(tempList) > fJson.settingCache["max_temp"]:
+                try:
+                    os.remove(tempList.pop(0))  # pop from the first element
+                except FileNotFoundError:
+                    pass
+        except Exception as e:
+            logger.exception(e)
+            notifyError("Error", str(e))
+            gClass.disableRecording()
+
+    # clean up
+    if not fJson.settingCache["keep_audio"]:
+        startTime = time()
+        while gClass.transcribing:
+            timeNow = time() - startTime
+            print(f"TC Wait ({timeNow:.2f}s)", end="\r", flush=True)
+            sleep(0.1)  # waiting for process to finish
+
+        startTime = time()
+        while gClass.translating:
+            timeNow = time() - startTime
+            print(f"TL Wait ({timeNow:.2f}s)", end="\r", flush=True)
+            sleep(0.1)  # waiting for process to finish
+
+        logger.info("-" * 50)
+        logger.info("Task: Cleaning up")
+        for audio in tempList:
+            try:
+                os.remove(audio)
+            except FileNotFoundError:
+                pass
+        logger.info("Done!")
+
+    logger.info(f"End Record (System Sound) [Total time: {time() - startProc:.2f}s]")
 
 
 def from_file(filePath: str, modelInput: str, langSource: str, langTarget: str, transcribe: bool, translate: bool, engine: str) -> None:
@@ -399,7 +562,6 @@ def from_file(filePath: str, modelInput: str, langSource: str, langTarget: str, 
         transcibe (bool): Whether to transcribe the audio.
         translate (bool): Whether to translate the audio.
         engine (str): The engine to use for the translation.
-        verbose (bool, optional): Whether to print the verbose output. Defaults to False.
 
     Returns:
         None
