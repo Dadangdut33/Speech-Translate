@@ -17,6 +17,7 @@ sys.path.append("..")
 
 from Globals import app_icon, app_name, dir_temp, fJson, gClass
 from Logging import logger
+from components.MBox import Mbox
 
 from .Helper import modelSelectDict
 from .Translate import google_tl, libre_tl, memory_tl
@@ -59,7 +60,7 @@ def getDefaultOutputDevice():
         return sucess, default_device
 
 
-def notifyStuff(title: str, message: str) -> None:
+def notifyStuff(title: str, message: str, useMbox: bool = False) -> None:
     """Notify Error
 
     Args:
@@ -75,6 +76,9 @@ def notifyStuff(title: str, message: str) -> None:
     except exceptions.InvalidIconPath:
         pass
     notification.send()
+
+    if useMbox:
+        Mbox(title, message, 0)
 
 
 def multiProc_Whisper(queue: Queue, audio: str, modelName: str, auto: bool, transcribing: bool, lang_source: str | None = None):
@@ -269,7 +273,7 @@ def whisper_translate(
         else:
             logger.debug(result_Tl["text"].strip())  # type: ignore
     else:
-        if len(result_Tl.strip()) > 0: # type: ignore
+        if len(result_Tl.strip()) > 0:  # type: ignore
             gClass.insertTbTranslated(result_Tl.strip() + fJson.settingCache["separate_with"])  # type: ignore
         else:
             logger.warning("Translated Text is empty")
@@ -375,7 +379,7 @@ def record_from_pc(audio_name: str, device: str, seconds=5) -> None:
         After leaving the context, everything will
         be correctly closed(Stream, PyAudio manager)
         """
-        logger.debug(f"The next {seconds} seconds will written to {audio_name.split(os.sep)[-1]}")
+        logger.debug(f"The next {seconds} seconds will be written to {audio_name.split(os.sep)[-1]}")
         sleep(seconds)  # Blocking execution while playing
 
     wave_file.close()
@@ -418,7 +422,7 @@ def rec_mic(device: str, modelInput: str, langSource: str, langTarget: str, tran
         logger.info("Model is not yet downloaded")
         gClass.dl_proc = Process(target=download_model, args=(modelName,), daemon=True)
         gClass.dl_proc.start()
-        notifyStuff("Downloading Model", "Downloading model for the first time. This may take a while. (Check the console/log for progress)")
+        notifyStuff("Downloading Model", "Downloading model for the first time. This may take a while. (Check the console/log for progress)", True)
         gClass.dl_proc.join()
 
     # verify downloaded model
@@ -428,7 +432,7 @@ def rec_mic(device: str, modelInput: str, langSource: str, langTarget: str, tran
         logger.info("Redownloading the model")
         gClass.dl_proc = Process(target=download_model, args=(modelName,), daemon=True)
         gClass.dl_proc.start()
-        notifyStuff("Downloading Model", "Model is downloaded but checksum does not match. Redownloading the model. This may take a while. (Check the console/log for progress)")
+        notifyStuff("Downloading Model", "Model is downloaded but checksum does not match. Redownloading the model. This may take a while. (Check the console/log for progress)", True)
         gClass.dl_proc.join()
 
     # turn off loadbar
@@ -525,7 +529,7 @@ def rec_pc(device: str, modelInput: str, langSource: str, langTarget: str, trans
         logger.info("Model is not yet downloaded")
         gClass.dl_proc = Process(target=download_model, args=(modelName,), daemon=True)
         gClass.dl_proc.start()
-        notifyStuff("Downloading Model", "Downloading model for the first time. This may take a while. (Check the console/log for progress)")
+        notifyStuff("Downloading Model", "Downloading model for the first time. This may take a while. (Check the console/log for progress)", True)
         gClass.dl_proc.join()
 
     # verify downloaded model
@@ -535,7 +539,7 @@ def rec_pc(device: str, modelInput: str, langSource: str, langTarget: str, trans
         logger.info("Redownloading the model")
         gClass.dl_proc = Process(target=download_model, args=(modelName,), daemon=True)
         gClass.dl_proc.start()
-        notifyStuff("Downloading Model", "Model is downloaded but checksum does not match. Redownloading the model. This may take a while. (Check the console/log for progress)")
+        notifyStuff("Downloading Model", "Model is downloaded but checksum does not match. Redownloading the model. This may take a while. (Check the console/log for progress)", True)
         gClass.dl_proc.join()
 
     # turn off loadbar
@@ -633,7 +637,7 @@ def from_file(filePath: str, modelInput: str, langSource: str, langTarget: str, 
         logger.info("Model is not yet downloaded")
         gClass.dl_proc = Process(target=download_model, args=(modelName,), daemon=True)
         gClass.dl_proc.start()
-        notifyStuff("Downloading Model", "Downloading model for the first time. This may take a while. (Check the console/log for progress)")
+        notifyStuff("Downloading Model", "Downloading model for the first time. This may take a while. (Check the console/log for progress)", True)
         gClass.dl_proc.join()
 
     # verify downloaded model
@@ -642,7 +646,7 @@ def from_file(filePath: str, modelInput: str, langSource: str, langTarget: str, 
         logger.info("Redownloading the model")
         gClass.dl_proc = Process(target=download_model, args=(modelName,), daemon=True)
         gClass.dl_proc.start()
-        notifyStuff("Downloading Model", "Model is downloaded but checksum does not match. Redownloading the model. This may take a while. (Check the console/log for progress)")
+        notifyStuff("Downloading Model", "Model is downloaded but checksum does not match. Redownloading the model. This may take a while. (Check the console/log for progress)", True)
         gClass.dl_proc.join()
 
     # Proccess it

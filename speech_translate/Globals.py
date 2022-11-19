@@ -41,8 +41,9 @@ class Globals:
         self.tl_proc: None | Process = None
 
         # References to class
-        self.mw = None
-        self.tray = None
+        self.tray = None  # tray
+        self.mw = None  # main window
+        self.sw = None  # setting window
 
         # window
         self.cw = None

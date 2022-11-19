@@ -18,6 +18,7 @@ default_setting = {
     "targetLang": "Indonesian",
     "verbose": False,
     "keep_audio": False,
+    "keep_log": False,
     "max_temp": 100,
     "cutOff": {"mic": 5, "speaker": 5},
     "separate_with": "\n",
@@ -31,15 +32,33 @@ default_setting = {
     "textbox": {
         "mw_tc": {
             "max": 1000,
+            "font": "TKDefaultFont",
+            "font_size": 10,
+            "font_color": "#000000",
+            "bg_color": "#FFFFFF",
         },
         "mw_tl": {
             "max": 1000,
+            "font": "TKDefaultFont",
+            "font_size": 10,
+            "font_color": "#000000",
+            "bg_color": "#FFFFFF",
         },
         "detached_tc": {
             "max": 1000,
+            "font": "TKDefaultFont",
+            "font_size": 10,
+            "font_color": "#000000",
+            "bg_color": "#FFFFFF",
+            "opacity": 0.8,
         },
         "detached_tl": {
             "max": 1000,
+            "font": "TKDefaultFont",
+            "font_size": 10,
+            "font_color": "#000000",
+            "bg_color": "#FFFFFF",
+            "opacity": 0.8,
         },
     },
 }
@@ -73,7 +92,7 @@ class SettingJsonHandler:
                 notification.message = "Setting reverted to default. Details: " + msg
                 notification.send()
                 logger.warning("Error verifying setting file: " + msg)
-                
+
             # verify setting version
             if self.settingCache["version"] != __setting_version__:
                 self.settingCache = default_setting  # load default

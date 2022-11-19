@@ -26,6 +26,7 @@ from components.Tooltip import CreateToolTip
 from utils.Helper import modelKeys, modelSelectDict, upFirstCase, startFile
 from utils.LangCode import engine_select_source_dict, engine_select_target_dict, whisper_compatible
 from utils.Record import from_file, getInputDevices, getOutputDevices, getDefaultOutputDevice, rec_mic, rec_pc
+from components.Setting import SettingWindow
 
 
 def hideConsole(win):
@@ -88,40 +89,40 @@ class MainWindow:
         # UI
         self.root = tk.Tk()
 
-        self.root.title(f"Speech Translate")
+        self.root.title(app_name)
         self.root.geometry("1200x400")
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.root.wm_attributes("-topmost", False)  # Default False
 
         # ------------------ Frames ------------------
         self.f1_toolbar = ttk.Frame(self.root)
-        self.f1_toolbar.pack(side="top", fill="x", expand=False)
+        self.f1_toolbar.pack(side=tk.TOP, fill="x", expand=False)
 
         self.f2_textBox = ttk.Frame(self.root)
-        self.f2_textBox.pack(side="top", fill="both", expand=True)
+        self.f2_textBox.pack(side=tk.TOP, fill="both", expand=True)
 
         self.f3_toolbar = ttk.Frame(self.root)
-        self.f3_toolbar.pack(side="top", fill="x", expand=False)
+        self.f3_toolbar.pack(side=tk.TOP, fill="x", expand=False)
 
         self.f4_statusbar = ttk.Frame(self.root)
-        self.f4_statusbar.pack(side="bottom", fill="x", expand=False)
+        self.f4_statusbar.pack(side=tk.BOTTOM, fill="x", expand=False)
 
         # ------------------ Elements ------------------
         # -- f1_toolbar
         # mode
         self.lbl_mode = ttk.Label(self.f1_toolbar, text="Mode:")
-        self.lbl_mode.pack(side="left", fill="x", padx=5, pady=5, expand=False)
+        self.lbl_mode.pack(side=tk.LEFT, fill="x", padx=5, pady=5, expand=False)
 
         self.cb_mode = ttk.Combobox(self.f1_toolbar, values=["Transcribe", "Translate", "Transcribe & Translate"], state="readonly")
-        self.cb_mode.pack(side="left", fill="x", padx=5, pady=5, expand=False)
+        self.cb_mode.pack(side=tk.LEFT, fill="x", padx=5, pady=5, expand=False)
         self.cb_mode.bind("<<ComboboxSelected>>", self.cb_mode_change)
 
         # model
         self.lbl_model = ttk.Label(self.f1_toolbar, text="Model:")
-        self.lbl_model.pack(side="left", fill="x", padx=5, pady=5, expand=False)
+        self.lbl_model.pack(side=tk.LEFT, fill="x", padx=5, pady=5, expand=False)
 
         self.cb_model = ttk.Combobox(self.f1_toolbar, values=modelKeys, state="readonly")
-        self.cb_model.pack(side="left", fill="x", padx=5, pady=5, expand=False)
+        self.cb_model.pack(side=tk.LEFT, fill="x", padx=5, pady=5, expand=False)
         CreateToolTip(
             self.cb_model,
             """Model size, larger models are more accurate but slower and require more VRAM/CPU power. 
@@ -133,54 +134,54 @@ class MainWindow:
 
         # engine
         self.lbl_engine = ttk.Label(self.f1_toolbar, text="TL Engine:")
-        self.lbl_engine.pack(side="left", fill="x", padx=5, pady=5, expand=False)
+        self.lbl_engine.pack(side=tk.LEFT, fill="x", padx=5, pady=5, expand=False)
 
         self.cb_engine = ttk.Combobox(self.f1_toolbar, values=["Whisper", "Google", "LibreTranslate", "MyMemoryTranslator"], state="readonly")
-        self.cb_engine.pack(side="left", fill="x", padx=5, pady=5, expand=False)
+        self.cb_engine.pack(side=tk.LEFT, fill="x", padx=5, pady=5, expand=False)
         self.cb_engine.bind("<<ComboboxSelected>>", self.cb_engine_change)
 
         # from
         self.lbl_source = ttk.Label(self.f1_toolbar, text="From:")
-        self.lbl_source.pack(side="left", padx=5, pady=5)
+        self.lbl_source.pack(side=tk.LEFT, padx=5, pady=5)
 
         self.cb_sourceLang = ttk.Combobox(self.f1_toolbar, values=engine_select_source_dict["Whisper"], state="readonly")  # initial value
-        self.cb_sourceLang.pack(side="left", padx=5, pady=5)
+        self.cb_sourceLang.pack(side=tk.LEFT, padx=5, pady=5)
         self.cb_sourceLang.bind("<<ComboboxSelected>>", lambda _: fJson.savePartialSetting("sourceLang", self.cb_sourceLang.get()))
 
         # to
         self.lbl_to = ttk.Label(self.f1_toolbar, text="To:")
-        self.lbl_to.pack(side="left", padx=5, pady=5)
+        self.lbl_to.pack(side=tk.LEFT, padx=5, pady=5)
 
         self.cb_targetLang = ttk.Combobox(self.f1_toolbar, values=[upFirstCase(x) for x in whisper_compatible], state="readonly")  # initial value
-        self.cb_targetLang.pack(side="left", padx=5, pady=5)
+        self.cb_targetLang.pack(side=tk.LEFT, padx=5, pady=5)
         self.cb_targetLang.bind("<<ComboboxSelected>>", lambda _: fJson.savePartialSetting("targetLang", self.cb_targetLang.get()))
 
         # swap
         self.btn_swap = ttk.Button(self.f1_toolbar, text="Swap", command=self.cb_swap_lang)
-        self.btn_swap.pack(side="left", padx=5, pady=5)
+        self.btn_swap.pack(side=tk.LEFT, padx=5, pady=5)
 
         # clear
         self.btn_clear = ttk.Button(self.f1_toolbar, text="Clear", command=self.tb_clear)
-        self.btn_clear.pack(side="left", padx=5, pady=5)
+        self.btn_clear.pack(side=tk.LEFT, padx=5, pady=5)
 
         # -- f2_textBox
         self.tb_transcribed_bg = tk.Frame(self.f2_textBox, bg="#7E7E7E")
-        self.tb_transcribed_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+        self.tb_transcribed_bg.pack(side=tk.LEFT, fill="both", expand=True, padx=5, pady=5)
 
         self.sb_transcribed = tk.Scrollbar(self.tb_transcribed_bg)
-        self.sb_transcribed.pack(side="right", fill="y")
+        self.sb_transcribed.pack(side=tk.RIGHT, fill="y")
 
         self.tb_transcribed = tk.Text(self.tb_transcribed_bg, height=5, width=25, relief="flat")  # font=("Segoe UI", 10), yscrollcommand=True, relief="flat"
         self.tb_transcribed.bind("<Key>", self.tb_allowed_key)
-        self.tb_transcribed.pack(side="left", fill="both", expand=True, padx=1, pady=1)
+        self.tb_transcribed.pack(side=tk.LEFT, fill="both", expand=True, padx=1, pady=1)
         self.tb_transcribed.config(yscrollcommand=self.sb_transcribed.set)
         self.sb_transcribed.config(command=self.tb_transcribed.yview)
 
         self.tb_translated_bg = tk.Frame(self.f2_textBox, bg="#7E7E7E")
-        self.tb_translated_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+        self.tb_translated_bg.pack(side=tk.LEFT, fill="both", expand=True, padx=5, pady=5)
 
         self.sb_translated = tk.Scrollbar(self.tb_translated_bg)
-        self.sb_translated.pack(side="right", fill="y")
+        self.sb_translated.pack(side=tk.RIGHT, fill="y")
 
         self.tb_translated = tk.Text(self.tb_translated_bg, height=5, width=25, relief="flat")
         self.tb_translated.bind("<Key>", self.tb_allowed_key)
@@ -190,19 +191,19 @@ class MainWindow:
 
         # -- f3_toolbar
         self.f3_frameLeft = ttk.Frame(self.f3_toolbar)
-        self.f3_frameLeft.pack(side="left", fill="x", expand=True)
+        self.f3_frameLeft.pack(side=tk.LEFT, fill="x", expand=True)
 
         self.f3_leftRow1 = ttk.Frame(self.f3_frameLeft)
-        self.f3_leftRow1.pack(side="top", fill="x", expand=True)
+        self.f3_leftRow1.pack(side=tk.TOP, fill="x", expand=True)
 
         self.f3_leftRow2 = ttk.Frame(self.f3_frameLeft)
-        self.f3_leftRow2.pack(side="top", fill="x", expand=True)
+        self.f3_leftRow2.pack(side=tk.TOP, fill="x", expand=True)
 
         self.f3_frameRight = ttk.Frame(self.f3_toolbar)
-        self.f3_frameRight.pack(side="right", fill="x", expand=True)
+        self.f3_frameRight.pack(side=tk.RIGHT, fill="x", expand=True)
 
         self.label_mic = ttk.Label(self.f3_leftRow1, text="Microphone:", font="TkDefaultFont 9 bold", width=10, cursor="hand2")
-        self.label_mic.pack(side="left", padx=5, pady=0, ipady=0)
+        self.label_mic.pack(side=tk.LEFT, padx=5, pady=0, ipady=0)
         self.label_mic.bind("<Button-1>", self.label_microphone_Lclick)
         self.label_mic.bind("<Button-3>", self.label_microphone_Rclick)
         CreateToolTip(
@@ -216,7 +217,7 @@ class MainWindow:
 
         self.cb_mic = ttk.Combobox(self.f3_leftRow1, values=getInputDevices(), state="readonly", width=70)
         self.cb_mic.bind("<<ComboboxSelected>>", lambda _: fJson.savePartialSetting("mic", self.cb_mic.get()))
-        self.cb_mic.pack(side="left", padx=5, pady=0, ipady=0)
+        self.cb_mic.pack(side=tk.LEFT, padx=5, pady=0, ipady=0)
         CreateToolTip(
             self.cb_mic,
             """**NOTES**:\nFormat of the device is {device name, hostAPI}
@@ -226,7 +227,7 @@ class MainWindow:
         )
 
         self.label_speaker = ttk.Label(self.f3_leftRow2, text="Speaker:", font="TkDefaultFont 9 bold", width=10, cursor="hand2")
-        self.label_speaker.pack(side="left", padx=5, pady=0, ipady=0)
+        self.label_speaker.pack(side=tk.LEFT, padx=5, pady=0, ipady=0)
         self.label_speaker.bind("<Button-1>", self.label_speaker_Lclick)
         self.label_speaker.bind("<Button-3>", self.label_speaker_Rclick)
         CreateToolTip(
@@ -240,7 +241,7 @@ class MainWindow:
 
         self.cb_speaker = ttk.Combobox(self.f3_leftRow2, values=getOutputDevices(), state="readonly", width=70)
         self.cb_speaker.bind("<<ComboboxSelected>>", lambda _: fJson.savePartialSetting("speaker", self.cb_speaker.get()))
-        self.cb_speaker.pack(side="left", padx=5, pady=0, ipady=0)
+        self.cb_speaker.pack(side=tk.LEFT, padx=5, pady=0, ipady=0)
         CreateToolTip(
             self.cb_speaker,
             """**NOTES**:\nFormat of the device is {device name, hostAPI}
@@ -250,36 +251,36 @@ class MainWindow:
         )
 
         self.sep_btn_f3 = ttk.Separator(self.f3_leftRow1, orient="vertical")
-        self.sep_btn_f3.pack(side="left", fill="y", pady=0, ipady=0)
+        self.sep_btn_f3.pack(side=tk.LEFT, fill="y", pady=0, ipady=0)
 
         self.sep_btn_f3 = ttk.Separator(self.f3_leftRow2, orient="vertical")
-        self.sep_btn_f3.pack(side="left", fill="y", pady=0, ipady=0)
+        self.sep_btn_f3.pack(side=tk.LEFT, fill="y", pady=0, ipady=0)
 
         self.btn_record_mic = ttk.Button(self.f3_frameRight, text="Record From Mic", command=self.rec_from_mic)
-        self.btn_record_mic.pack(side="right", padx=5, pady=5)
+        self.btn_record_mic.pack(side=tk.RIGHT, padx=5, pady=5)
         CreateToolTip(self.btn_record_mic, "Record sound from selected microphone device")
 
         self.btn_record_pc = ttk.Button(self.f3_frameRight, text="Record PC Sound", command=self.rec_from_pc)
-        self.btn_record_pc.pack(side="right", padx=5, pady=5)
+        self.btn_record_pc.pack(side=tk.RIGHT, padx=5, pady=5)
         CreateToolTip(self.btn_record_pc, "Record sound from selected speaker device ")
 
         self.btn_record_file = ttk.Button(self.f3_frameRight, text="Import file (Audio/Video)", command=self.rec_from_file)
-        self.btn_record_file.pack(side="right", padx=5, pady=5)
+        self.btn_record_file.pack(side=tk.RIGHT, padx=5, pady=5)
         CreateToolTip(self.btn_record_file, "Transcribe/Translate from a file (video or audio)")
 
         # separator
         self.sep_btns_f3 = ttk.Separator(self.f3_frameRight, orient="vertical")
-        self.sep_btns_f3.pack(side="right", fill="y", padx=5, pady=5)
+        self.sep_btns_f3.pack(side=tk.RIGHT, fill="y", padx=5, pady=5)
 
         # export button
         self.btn_export = ttk.Button(self.f3_frameRight, text="Export Results", command=self.export_result)
-        self.btn_export.pack(side="right", padx=5, pady=5)
+        self.btn_export.pack(side=tk.RIGHT, padx=5, pady=5)
         CreateToolTip(self.btn_export, "Export results to a file (txt, srt, ... etc)\nYou can also customize the export format", wrapLength=250)
 
         # -- f4_statusbar
         # load bar
         self.loadBar = ttk.Progressbar(self.f4_statusbar, orient="horizontal", length=100, mode="determinate")
-        self.loadBar.pack(side="left", padx=5, pady=5, fill="x", expand=True)
+        self.loadBar.pack(side=tk.LEFT, padx=5, pady=5, fill="x", expand=True)
 
         # ------------------ Menubar ------------------
         self.menubar = tk.Menu(self.root)
@@ -291,7 +292,7 @@ class MainWindow:
         self.menubar.add_cascade(label="File", menu=self.fm_file)
 
         self.fm_view = tk.Menu(self.menubar, tearoff=0)
-        # self.fm_view.add_command(label="Settings", command=self.open_settings)
+        self.fm_view.add_command(label="Settings", command=self.open_setting)
         if platform.system() == "Windows":
             self.fm_view.add_checkbutton(label="Log", command=self.toggle_log)
         self.menubar.add_cascade(label="View", menu=self.fm_view)
@@ -331,6 +332,8 @@ class MainWindow:
 
         if gClass.tray:
             gClass.tray.icon.stop()
+
+        gClass.sw.root.destroy()  # type: ignore
         self.root.destroy()
 
         try:
@@ -383,13 +386,17 @@ class MainWindow:
     def open_about(self, _event=None):
         Mbox("About", "Speech Translate", 0)  # !placeholder for now
 
+    def open_setting(self, _event=None):
+        assert gClass.sw is not None
+        gClass.sw.on_open()
+
     # ------------------ Handler ------------------
     # Disable writing, allow copy
-    def tb_allowed_key(self, event):
+    def tb_allowed_key(self, event: tk.Event):
         key = event.keysym
 
         # Allow
-        if key.lower() in ["left", "right"]:  # Arrow left right
+        if key.lower() in [tk.LEFT, tk.RIGHT]:  # Arrow left right
             return
         if 4 == event.state and key == "a":  # Ctrl + a
             return
@@ -538,7 +545,7 @@ class MainWindow:
         index = self.cb_mode.current()
 
         if index == 0:  # transcribe only
-            self.tb_transcribed_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+            self.tb_transcribed_bg.pack(side=tk.LEFT, fill="both", expand=True, padx=5, pady=5)
             self.tb_transcribed.pack(fill="both", expand=True, padx=1, pady=1)
 
             self.tb_translated_bg.pack_forget()
@@ -553,7 +560,7 @@ class MainWindow:
             self.tb_transcribed_bg.pack_forget()
             self.tb_transcribed.pack_forget()
 
-            self.tb_translated_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+            self.tb_translated_bg.pack(side=tk.LEFT, fill="both", expand=True, padx=5, pady=5)
             self.tb_translated.pack(fill="both", expand=True, padx=1, pady=1)
 
             self.cb_sourceLang.config(state="readonly")
@@ -567,10 +574,10 @@ class MainWindow:
             self.tb_transcribed_bg.pack_forget()
             self.tb_transcribed.pack_forget()
 
-            self.tb_transcribed_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+            self.tb_transcribed_bg.pack(side=tk.LEFT, fill="both", expand=True, padx=5, pady=5)
             self.tb_transcribed.pack(fill="both", expand=True, padx=1, pady=1)
 
-            self.tb_translated_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+            self.tb_translated_bg.pack(side=tk.LEFT, fill="both", expand=True, padx=5, pady=5)
             self.tb_translated.pack(fill="both", expand=True, padx=1, pady=1)
 
             self.cb_sourceLang.config(state="readonly")
@@ -831,6 +838,7 @@ if __name__ == "__main__":
         gClass.cw = win32gui.GetForegroundWindow()
         # hideConsole(gClass.cw)
 
-    main = MainWindow()
     tray = AppTray()  # Start tray app in the background
+    main = MainWindow()
+    setting = SettingWindow()
     main.root.mainloop()  # Start main app
