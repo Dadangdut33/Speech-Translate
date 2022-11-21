@@ -5,6 +5,7 @@ import os
 # ------------------ #
 dir_project: str = os.path.dirname(os.path.realpath(__file__))
 dir_log: str = os.path.join(dir_project, "../log")
+current_log: str = f"{time.strftime('%Y-%m-%d %H-%M-%S')}.log"
 # ------------------ #
 class c_formatter(logging.Formatter):
     bold = "\033[1m"
@@ -58,7 +59,7 @@ logger.setLevel(logging.DEBUG)
 
 # Create handlers
 c_handler = logging.StreamHandler()
-f_handler = logging.FileHandler(f"{dir_log}/{time.strftime('%Y-%m-%d %H-%M-%S')}.log")
+f_handler = logging.FileHandler(dir_log + "/" + current_log, encoding="utf-8")
 c_handler.setLevel(logging.DEBUG)
 f_handler.setLevel(logging.WARNING)
 

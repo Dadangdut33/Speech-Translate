@@ -79,8 +79,20 @@ def verify_model(model_name, download_root=None):
     model_file = os.path.join(download_root, model_name + ".pt")
     if not os.path.exists(model_file):
         return False
-    
+
     expected_sha256 = whisper._MODELS[model_name].split("/")[-2]
 
     model_bytes = open(model_file, "rb").read()
     return hashlib.sha256(model_bytes).hexdigest() == expected_sha256
+
+
+# get default download root
+def get_default_download_root():
+    """Get the default download root
+
+    Returns
+    -------
+    str
+        the default download root
+    """
+    return os.getenv("XDG_CACHE_HOME", os.path.join(os.path.expanduser("~"), ".cache", "whisper"))

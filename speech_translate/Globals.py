@@ -2,7 +2,6 @@ __all__ = ["dir_project", "dir_setting", "dir_temp", "gClass", "fJson"]
 
 import os
 from multiprocessing import Process
-import pyaudiowpatch as pyaudio
 
 from utils.Json import SettingJsonHandler
 
@@ -46,7 +45,7 @@ class Globals:
         self.sw = None  # setting window
 
         # window
-        self.cw = None
+        self.cw = None # console window
 
     def enableRecording(self):
         self.recording = True

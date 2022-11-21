@@ -292,13 +292,13 @@ class MainWindow:
         self.menubar.add_cascade(label="File", menu=self.fm_file)
 
         self.fm_view = tk.Menu(self.menubar, tearoff=0)
-        self.fm_view.add_command(label="Settings", command=self.open_setting)
+        self.fm_view.add_command(label="Settings", command=self.open_setting, accelerator="F2")
         if platform.system() == "Windows":
             self.fm_view.add_checkbutton(label="Log", command=self.toggle_log)
         self.menubar.add_cascade(label="View", menu=self.fm_view)
 
         self.fm_help = tk.Menu(self.menubar, tearoff=0)
-        self.fm_help.add_command(label="About", command=self.open_about)  # placeholder for now
+        self.fm_help.add_command(label="About", command=self.open_about, accelerator="F1")
         self.menubar.add_cascade(label="Help", menu=self.fm_help)
 
         self.root.config(menu=self.menubar)
@@ -312,6 +312,7 @@ class MainWindow:
 
         # ------------------ Bind keys ------------------
         self.root.bind("<F1>", self.open_about)
+        self.root.bind("<F2>", self.open_setting)
 
         # ------------------ on Start ------------------
         # Start polling
@@ -430,6 +431,10 @@ class MainWindow:
         self.cb_mode_change()
         self.tb_clear()
         self.cb_mic_init()
+
+        # check console window setting
+        if fJson.settingCache["hide_console_window_on_start"]:
+            hideConsole(gClass.cw)
 
     # mic
     def cb_mic_init(self):
@@ -836,7 +841,6 @@ class MainWindow:
 if __name__ == "__main__":
     if platform.system() == "Windows":
         gClass.cw = win32gui.GetForegroundWindow()
-        # hideConsole(gClass.cw)
 
     tray = AppTray()  # Start tray app in the background
     main = MainWindow()

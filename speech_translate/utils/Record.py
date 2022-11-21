@@ -1,6 +1,8 @@
 import os
 import sys
 import threading
+import ast
+import shlex
 from datetime import datetime
 from multiprocessing import Process, Queue
 from time import sleep, time
@@ -128,7 +130,7 @@ def whisper_transcribe(
 
     # Transcribe
     logger.info("-" * 50)
-    logger.debug(f"Transcribing Audio: {audio_name.split(os.sep)[-1]}")
+    logger.info(f"Transcribing Audio: {audio_name.split(os.sep)[-1]}")
 
     # verify audio file exists
     if not os.path.isfile(audio_name):
@@ -165,7 +167,7 @@ def whisper_transcribe(
     # insert to textbox
     if transcribe:
         if len(result_Tc["text"].strip()) > 0:  # type: ignore
-            gClass.insertTbTranscribed(result_Tc["text"].strip() + fJson.settingCache["separate_with"])  # type: ignore
+            gClass.insertTbTranscribed(result_Tc["text"].strip() + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))  # type: ignore
         else:
             logger.warning("Transcribed Text is empty")
     if translate:
@@ -203,9 +205,9 @@ def whisper_translate(
     # Translate
     logger.info("-" * 50)
     if transcribed_text is None:
-        logger.debug(f"Task: Translating Audio {audio_name.split(os.sep)[-1]}")
+        logger.info(f"Task: Translating Audio {audio_name.split(os.sep)[-1]}")
     else:
-        logger.debug("Task: Translating Text")
+        logger.info("Task: Translating Text")
 
     try:
         if engine == "Whisper":
@@ -263,7 +265,7 @@ def whisper_translate(
 
     if engine == "Whisper":
         if len(result_Tl["text"].strip()) > 0:  # type: ignore
-            gClass.insertTbTranslated(result_Tl["text"].strip() + fJson.settingCache["separate_with"])  # type: ignore
+            gClass.insertTbTranslated(result_Tl["text"].strip() + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))) # type: ignore  
         else:
             logger.warning("Translated Text is empty")
         logger.info("-" * 50)
@@ -274,7 +276,7 @@ def whisper_translate(
             logger.debug(result_Tl["text"].strip())  # type: ignore
     else:
         if len(result_Tl.strip()) > 0:  # type: ignore
-            gClass.insertTbTranslated(result_Tl.strip() + fJson.settingCache["separate_with"])  # type: ignore
+            gClass.insertTbTranslated(result_Tl.strip() + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))  # type: ignore
         else:
             logger.warning("Translated Text is empty")
 
