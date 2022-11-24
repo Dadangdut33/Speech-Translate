@@ -10,7 +10,7 @@ from PIL import Image, ImageTk
 sys.path.append("..")
 from _version import __version__
 from Logging import logger
-from Globals import app_icon, app_name, gClass
+from Globals import app_icon, app_name, gClass, fJson
 from utils.Helper import OpenUrl, nativeNotify
 from .Tooltip import CreateToolTip
 
@@ -76,7 +76,7 @@ class AboutWindow:
         self.checkUpdateLabelText = "Click to check for update"
         self.checkUpdateLabelFg = "blue"
         self.checkUpdateLabelFunc = self.check_for_update
-        self.checkUpdateLabel = tk.Label(self.botLeftBottom, text=self.checkUpdateLabelText, font=("Segoe UI", 8), fg=self.checkUpdateLabelFg)
+        self.checkUpdateLabel = tk.Label(self.botLeftBottom, text=self.checkUpdateLabelText, font=("Segoe UI", 8), fg=self.checkUpdateLabelFg, cursor="hand2")
         self.checkUpdateLabel.pack(padx=5, pady=0, side=tk.LEFT)
         self.checkUpdateLabel.bind("<Button-1>", self.checkUpdateLabelFunc)
         self.tooltipCheckUpdate = CreateToolTip(self.checkUpdateLabel, "Click to check for update")
@@ -91,7 +91,19 @@ class AboutWindow:
         # ------------------------------
         gClass.about = self  # type: ignore
         self.checking = False
+        self.checkingOnStart = False
         self.checkedGet = None
+
+        # ------------------------------
+        # on init
+        self.onInit()
+
+    # check update on start
+    def onInit(self):
+        if fJson.settingCache["checkUpdateOnStart"]:
+            logger.info("Checking for update on start")
+            self.checkingOnStart = True
+            self.check_for_update()
 
     # Show/Hide
     def show(self):
@@ -104,7 +116,7 @@ class AboutWindow:
     def open_dl_link(self, _event=None):
         OpenUrl("https://github.com/Dadangdut33/Speech-Translate/releases/tag/latest")
 
-    def check_for_update(self, _event=None):
+    def check_for_update(self, _event=None, onStart=False):
         if self.checking:
             return
 
@@ -137,14 +149,19 @@ class AboutWindow:
                     self.checkUpdateLabelFg = "blue"
                     self.checkUpdateLabelFunc = self.open_dl_link
                     self.tooltipCheckUpdate.text = "Click to go to the latest release page"
-                    nativeNotify("New version available", "Click to go to the latest release page", app_icon, app_name)
+                    nativeNotify("New version available", "Visit the repository to download the latest update", app_icon, app_name)
             else:
                 logger.error("Failed to check for update")
                 self.checkUpdateLabelText = "Fail to check for update!"
                 self.checkUpdateLabelFg = "red"
                 self.checkUpdateLabelFunc = self.check_for_update
                 self.tooltipCheckUpdate.text = "Click to try again"
-                nativeNotify("Fail to check for update!", "Click to try again", app_icon, app_name)
+                if not self.checkingOnStart:  # suppress error if checking on start
+                    nativeNotify("Fail to check for update!", "Click to try again", app_icon, app_name)
+
+            # turn off flag
+            if self.checkingOnStart:
+                self.checkingOnStart = False
 
             # update after checking done
             self.checkUpdateLabel.config(text=self.checkUpdateLabelText, fg=self.checkUpdateLabelFg)

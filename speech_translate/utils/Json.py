@@ -12,6 +12,7 @@ from _version import __setting_version__
 
 default_setting = {
     "version": __setting_version__,
+    "checkUpdateOnStart": True,
     "mode": "Transcribe",
     "model": "tiny",
     "sourceLang": "English",

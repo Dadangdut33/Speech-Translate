@@ -52,6 +52,9 @@ class SettingWindow:
         self.frame_tab3 = ttk.Frame(self.tabControl)
         self.tabControl.add(self.frame_tab3, text="Textbox")
 
+        self.frame_tab4 = ttk.Frame(self.tabControl)
+        self.tabControl.add(self.frame_tab4, text="Other")
+
         # ------------------ Widgets - General ------------------
         self.lf_t1r1 = ttk.LabelFrame(self.frame_tab1, text="• Audio Capture")
         self.lf_t1r1.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
@@ -132,13 +135,13 @@ class SettingWindow:
         CreateToolTip(self.checkbutton_keep_audio, "Keep audio files after transcription/translation")
 
         # log
-        self.lf_t1r2 = ttk.LabelFrame(self.frame_tab1, text="• Log")
+        self.lf_t1r2 = ttk.LabelFrame(self.frame_tab1, text="• Logging")
         self.lf_t1r2.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 
         self.t1_r2_1 = ttk.Frame(self.lf_t1r2)
         self.t1_r2_1.pack(side=tk.TOP, fill=tk.X, pady=5)
 
-        self.label_log_location = ttk.Label(self.t1_r2_1, text="Log Location: ")
+        self.label_log_location = ttk.Label(self.t1_r2_1, text="Log Files Location: ")
         self.label_log_location.pack(side=tk.LEFT, padx=5)
 
         self.label_log_location_value = ttk.Label(self.t1_r2_1, text=dir_log, cursor="hand2")
@@ -478,6 +481,17 @@ class SettingWindow:
         self.btn_preview_changes.pack(side=tk.LEFT, padx=5, pady=5)
         CreateToolTip(self.btn_preview_changes, "Preview changes made to the textbox settings. If not saved will revert to previous setting on next launch")
 
+        # ------------------ Tab 5 - Other ------------------
+        self.t5r1 = ttk.Frame(self.frame_tab4)
+        self.t5r1.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+
+        self.label_other = ttk.LabelFrame(self.t5r1, text="• Application")
+        self.label_other.pack(side=tk.LEFT, padx=5, pady=5)
+
+        # check for update on start
+        self.check_update_on_start = ttk.Checkbutton(self.label_other, text="Check for update on start", command=lambda: fJson.savePartialSetting("checkUpdateOnStart", self.check_update_on_start.instate(["selected"])))
+        self.check_update_on_start.pack(side=tk.LEFT, padx=5, pady=5)
+
         # ------------------ Variables ------------------
         # Flags
         gClass.sw = self  # type: ignore Add self to global class
@@ -522,6 +536,12 @@ class SettingWindow:
         else:
             self.checkbutton_verbose.invoke()
             self.checkbutton_verbose.invoke()
+
+        if fJson.settingCache["checkUpdateOnStart"]:
+            self.check_update_on_start.invoke()
+        else:
+            self.check_update_on_start.invoke()
+            self.check_update_on_start.invoke()
 
         if platform.system() == "Windows":
             if fJson.settingCache["hide_console_window_on_start"]:
