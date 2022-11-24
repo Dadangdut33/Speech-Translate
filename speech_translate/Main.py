@@ -21,12 +21,13 @@ from pystray import MenuItem as item
 from _version import __version__
 from Globals import app_icon, app_icon_missing, app_name, fJson, gClass
 from Logging import logger
+from components.About import AboutWindow
+from components.Setting import SettingWindow
 from components.MBox import Mbox
 from components.Tooltip import CreateToolTip
-from utils.Helper import modelKeys, modelSelectDict, upFirstCase, startFile
+from utils.Helper import modelKeys, modelSelectDict, upFirstCase, startFile, nativeNotify
 from utils.LangCode import engine_select_source_dict, engine_select_target_dict, whisper_compatible
 from utils.Record import from_file, getInputDevices, getOutputDevices, getDefaultOutputDevice, rec_mic, rec_pc
-from components.Setting import SettingWindow
 
 
 def hideConsole(win):
@@ -305,9 +306,9 @@ class MainWindow:
 
         # ------------------ Variables ------------------
         # Flags
-        self.logOpened = False
-        self.always_on_top = False
-        self.notified_hidden = False
+        self.logOpened: bool = False
+        self.always_on_top: bool = False
+        self.notified_hidden: bool = False
         gClass.mw = self  # type: ignore
 
         # ------------------ Bind keys ------------------
@@ -335,6 +336,7 @@ class MainWindow:
             gClass.tray.icon.stop()
 
         gClass.sw.root.destroy()  # type: ignore
+        gClass.about.root.destroy()  # type: ignore
         self.root.destroy()
 
         try:
@@ -385,7 +387,8 @@ class MainWindow:
 
     # ------------------ Open External Window ------------------
     def open_about(self, _event=None):
-        Mbox("About", "Speech Translate", 0)  # !placeholder for now
+        assert gClass.about is not None
+        gClass.about.show()
 
     def open_setting(self, _event=None):
         assert gClass.sw is not None
@@ -845,4 +848,5 @@ if __name__ == "__main__":
     tray = AppTray()  # Start tray app in the background
     main = MainWindow()
     setting = SettingWindow()
+    about = AboutWindow()
     main.root.mainloop()  # Start main app

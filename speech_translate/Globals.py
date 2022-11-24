@@ -43,9 +43,10 @@ class Globals:
         self.tray = None  # tray
         self.mw = None  # main window
         self.sw = None  # setting window
+        self.about = None  # about window
 
         # window
-        self.cw = None # console window
+        self.cw = None  # console window
 
     def enableRecording(self):
         self.recording = True
