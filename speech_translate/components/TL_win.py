@@ -5,6 +5,7 @@ import tkinter.ttk as ttk
 sys.path.append("..")
 from Globals import fJson, gClass, app_icon
 from .Tooltip import CreateToolTip
+from utils.Beep import beep
 
 
 # Classes
@@ -59,19 +60,24 @@ class TlsWindow:
 
     # disable tooltip
     def disable_tooltip(self):
+        beep()
         self.tooltip_disabled = not self.tooltip_disabled
         if self.tooltip_disabled:
+            self.fTooltip.hidetip()
             self.fTooltip.opacity = 0
         else:
+            self.fTooltip.showTip()
             self.fTooltip.opacity = self.currentOpacity
 
     # show/hide top
     def toggle_hidden_top(self):
+        beep()
         self.hidden_top = not self.hidden_top
         self.root.overrideredirect(self.hidden_top)
 
     # Stay on top
     def toggle_always_on_top(self):
+        beep()
         self.always_on_top = not self.always_on_top
         self.root.wm_attributes("-topmost", self.always_on_top)
 

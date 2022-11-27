@@ -879,10 +879,9 @@ class MainWindow:
 if __name__ == "__main__":
     logger.info("Booting up...")
     if platform.system() == "Windows":
-        gClass.cw = win32gui.GetForegroundWindow()
         logger.debug("Got console window")
+        gClass.cw = win32gui.GetForegroundWindow()
 
-    logger.debug("Creating GUI")
     # --- GUI ---
     tray = AppTray()  # Start tray app in the background
     main = MainWindow()
