@@ -12,7 +12,8 @@ dir_assets: str = os.path.join(dir_project, "../assets")
 dir_setting: str = os.path.join(dir_project, "../setting")
 dir_temp: str = os.path.join(dir_project, "../temp")
 dir_log: str = os.path.join(dir_project, "../log")
-app_icon: str = os.path.join(dir_assets, "../icon.ico")
+app_icon: str = os.path.join(dir_assets, "./icon.ico")
+print(app_icon)
 if not os.path.exists(app_icon):  # verify app_icon exist or not
     app_icon_missing = True
 else:
