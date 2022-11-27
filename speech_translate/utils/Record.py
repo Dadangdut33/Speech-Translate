@@ -168,6 +168,7 @@ def whisper_transcribe(
     if transcribe:
         if len(result_Tc["text"].strip()) > 0:  # type: ignore
             gClass.insertTbTranscribed(result_Tc["text"].strip() + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))  # type: ignore
+            gClass.insertDetachedTbTranscribed(result_Tc["text"].strip() + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))  # type: ignore
         else:
             logger.warning("Transcribed Text is empty")
     if translate:
@@ -265,7 +266,8 @@ def whisper_translate(
 
     if engine == "Whisper":
         if len(result_Tl["text"].strip()) > 0:  # type: ignore
-            gClass.insertTbTranslated(result_Tl["text"].strip() + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))) # type: ignore  
+            gClass.insertTbTranslated(result_Tl["text"].strip() + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))  # type: ignore
+            gClass.insertDetachedTbTranslated(result_Tl["text"].strip() + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))  # type: ignore
         else:
             logger.warning("Translated Text is empty")
         logger.info("-" * 50)
@@ -277,6 +279,7 @@ def whisper_translate(
     else:
         if len(result_Tl.strip()) > 0:  # type: ignore
             gClass.insertTbTranslated(result_Tl.strip() + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))  # type: ignore
+            gClass.insertDetachedTbTranslated(result_Tl.strip() + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))  # type: ignore
         else:
             logger.warning("Translated Text is empty")
 

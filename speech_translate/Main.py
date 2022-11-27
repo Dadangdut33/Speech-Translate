@@ -23,6 +23,8 @@ from Globals import app_icon, app_icon_missing, app_name, fJson, gClass
 from Logging import logger
 from components.About import AboutWindow
 from components.Setting import SettingWindow
+from components.TC_win import TcsWindow
+from components.TL_win import TlsWindow
 from components.MBox import Mbox
 from components.Tooltip import CreateToolTip
 from utils.Helper import modelKeys, modelSelectDict, upFirstCase, startFile, nativeNotify
@@ -172,7 +174,15 @@ class MainWindow:
         self.sb_transcribed = tk.Scrollbar(self.tb_transcribed_bg)
         self.sb_transcribed.pack(side=tk.RIGHT, fill="y")
 
-        self.tb_transcribed = tk.Text(self.tb_transcribed_bg, height=5, width=25, relief="flat")  # font=("Segoe UI", 10), yscrollcommand=True, relief="flat"
+        self.tb_transcribed = tk.Text(
+            self.tb_transcribed_bg,
+            height=5,
+            width=25,
+            relief="flat",
+            font=(fJson.settingCache["textbox"]["mw_tc"]["font"], fJson.settingCache["textbox"]["mw_tc"]["font_size"]),
+            fg=fJson.settingCache["textbox"]["mw_tc"]["font_color"],
+            bg=fJson.settingCache["textbox"]["mw_tc"]["bg_color"],
+        )
         self.tb_transcribed.bind("<Key>", self.tb_allowed_key)
         self.tb_transcribed.pack(side=tk.LEFT, fill="both", expand=True, padx=1, pady=1)
         self.tb_transcribed.config(yscrollcommand=self.sb_transcribed.set)
@@ -184,7 +194,15 @@ class MainWindow:
         self.sb_translated = tk.Scrollbar(self.tb_translated_bg)
         self.sb_translated.pack(side=tk.RIGHT, fill="y")
 
-        self.tb_translated = tk.Text(self.tb_translated_bg, height=5, width=25, relief="flat")
+        self.tb_translated = tk.Text(
+            self.tb_translated_bg,
+            height=5,
+            width=25,
+            relief="flat",
+            font=(fJson.settingCache["textbox"]["mw_tl"]["font"], fJson.settingCache["textbox"]["mw_tl"]["font_size"]),
+            fg=fJson.settingCache["textbox"]["mw_tl"]["font_color"],
+            bg=fJson.settingCache["textbox"]["mw_tl"]["bg_color"],
+        )
         self.tb_translated.bind("<Key>", self.tb_allowed_key)
         self.tb_translated.pack(fill="both", expand=True, padx=1, pady=1)
         self.tb_translated.config(yscrollcommand=self.sb_translated.set)
@@ -298,6 +316,11 @@ class MainWindow:
             self.fm_view.add_checkbutton(label="Log", command=self.toggle_log)
         self.menubar.add_cascade(label="View", menu=self.fm_view)
 
+        self.fm_generate = tk.Menu(self.menubar, tearoff=0)
+        self.fm_generate.add_command(label="Detached Transcribed Speech Window", command=self.open_detached_tcw, accelerator="F3")
+        self.fm_generate.add_command(label="Detached Translated Speech Window", command=self.open_detached_tlw, accelerator="F4")
+        self.menubar.add_cascade(label="Generate", menu=self.fm_generate)
+
         self.fm_help = tk.Menu(self.menubar, tearoff=0)
         self.fm_help.add_command(label="About", command=self.open_about, accelerator="F1")
         self.menubar.add_cascade(label="Help", menu=self.fm_help)
@@ -314,6 +337,8 @@ class MainWindow:
         # ------------------ Bind keys ------------------
         self.root.bind("<F1>", self.open_about)
         self.root.bind("<F2>", self.open_setting)
+        self.root.bind("<F3>", self.open_detached_tcw)
+        self.root.bind("<F4>", self.open_detached_tlw)
 
         # ------------------ on Start ------------------
         # Start polling
@@ -337,6 +362,8 @@ class MainWindow:
 
         gClass.sw.root.destroy()  # type: ignore
         gClass.about.root.destroy()  # type: ignore
+        gClass.detached_tcw.root.destroy()  # type: ignore
+        gClass.detached_tlw.root.destroy()  # type: ignore
         self.root.destroy()
 
         try:
@@ -393,6 +420,14 @@ class MainWindow:
     def open_setting(self, _event=None):
         assert gClass.sw is not None
         gClass.sw.on_open()
+
+    def open_detached_tcw(self, _event=None):
+        assert gClass.detached_tcw is not None
+        gClass.detached_tcw.show()
+
+    def open_detached_tlw(self, _event=None):
+        assert gClass.detached_tlw is not None
+        gClass.detached_tlw.show()
 
     # ------------------ Handler ------------------
     # Disable writing, allow copy
@@ -842,11 +877,17 @@ class MainWindow:
 
 
 if __name__ == "__main__":
+    logger.info("Booting up...")
     if platform.system() == "Windows":
         gClass.cw = win32gui.GetForegroundWindow()
+        logger.debug("Got console window")
 
+    logger.debug("Creating GUI")
+    # --- GUI ---
     tray = AppTray()  # Start tray app in the background
     main = MainWindow()
+    tcWin = TcsWindow()
+    tlWin = TlsWindow()
     setting = SettingWindow()
     about = AboutWindow()
     main.root.mainloop()  # Start main app

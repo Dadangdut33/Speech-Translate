@@ -44,6 +44,8 @@ class Globals:
         self.mw = None  # main window
         self.sw = None  # setting window
         self.about = None  # about window
+        self.detached_tcw = None  # detached transcribed window
+        self.detached_tlw = None  # detached translated window
 
         # window
         self.cw = None  # console window
@@ -86,9 +88,65 @@ class Globals:
         else:
             self.mw.tb_transcribed.insert("end", textToAppend)
 
-    def insertTbTranslated(self, text: str):
+    def insertTbTranslated(self, textToAppend: str):
+        """_summary_: Insert text to translated textbox. Will also check if the text is too long and will truncate it if it is.
+
+        Args:
+            textToAppend (str): Text to append
+        """
         assert self.mw is not None
-        self.mw.tb_translated.insert("end", text)
+        currentText = self.getMwTextTl()
+        # Main window textbox
+        if len(currentText) > fJson.settingCache["textbox"]["mw_tl"]["max"]:
+            # remove words from the start with length of the new text
+            currentText = currentText[len(textToAppend) :]
+            # add new text to the end
+            currentText += textToAppend
+            # update textbox
+            self.mw.tb_translated.delete("1.0", "end")
+            self.mw.tb_translated.insert("end", currentText)
+        else:
+            self.mw.tb_translated.insert("end", textToAppend)
+
+    def insertDetachedTbTranscribed(self, textToAppend: str):
+        """_summary_: Insert text to detached transcribed textbox. Will also check if the text is too long and will truncate it if it is.
+
+        Args:
+            textToAppend (str): Text to append
+        """
+        assert self.detached_tcw is not None
+        currentText = self.getDetachedTextTc()
+        # Main window textbox
+        if len(currentText) > fJson.settingCache["textbox"]["detached_tc"]["max"]:
+            # remove words from the start with length of the new text
+            currentText = currentText[len(textToAppend) :]
+            # add new text to the end
+            currentText += textToAppend
+            # update textbox
+            self.detached_tcw.textbox.delete("1.0", "end")
+            self.detached_tcw.textbox.insert("end", currentText)
+        else:
+            self.detached_tcw.textbox.insert("end", textToAppend)
+
+    def insertDetachedTbTranslated(self, textToAppend: str):
+        """_summary_: Insert text to detached translated textbox. Will also check if the text is too long and will truncate it if it is.
+
+        Args:
+            textToAppend (str): Text to append
+        """
+        assert self.detached_tlw is not None
+        currentText = self.getDetachedTextTl()
+        # Main window textbox
+        if len(currentText) > fJson.settingCache["textbox"]["detached_tl"]["max"]:
+            # remove words from the start with length of the new text
+            currentText = currentText[len(textToAppend) :]
+            # add new text to the end
+            currentText += textToAppend
+            # update textbox
+            self.detached_tlw.textbox.delete("1.0", "end")
+            self.detached_tlw.textbox.insert("end", currentText)
+        else:
+            self.detached_tlw.textbox.insert("end", textToAppend)
 
     def getMwTextTc(self) -> str:
         assert self.mw is not None
@@ -97,6 +155,14 @@ class Globals:
     def getMwTextTl(self) -> str:
         assert self.mw is not None
         return self.mw.tb_translated.get("1.0", "end")
+
+    def getDetachedTextTc(self) -> str:
+        assert self.detached_tcw is not None
+        return self.detached_tcw.textbox.get("1.0", "end")
+
+    def getDetachedTextTl(self) -> str:
+        assert self.detached_tlw is not None
+        return self.detached_tlw.textbox.get("1.0", "end")
 
 
 # ------------------ #

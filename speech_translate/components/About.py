@@ -151,7 +151,7 @@ class AboutWindow:
                     self.tooltipCheckUpdate.text = "Click to go to the latest release page"
                     nativeNotify("New version available", "Visit the repository to download the latest update", app_icon, app_name)
             else:
-                logger.error("Failed to check for update")
+                logger.warning("Failed to check for update")
                 self.checkUpdateLabelText = "Fail to check for update!"
                 self.checkUpdateLabelFg = "red"
                 self.checkUpdateLabelFunc = self.check_for_update

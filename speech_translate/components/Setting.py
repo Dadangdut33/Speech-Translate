@@ -3,8 +3,8 @@ import platform
 import sys
 import tkinter as tk
 import tkinter.ttk as ttk
+from tkinter import font, colorchooser
 from multiprocessing import Process
-
 
 # User defined
 sys.path.append("..")
@@ -16,6 +16,13 @@ from utils.Json import default_setting
 from utils.Helper import startFile
 from .MBox import Mbox
 from .Tooltip import CreateToolTip
+
+
+def chooseColor(theWidget, initialColor, parent):
+    color = colorchooser.askcolor(initialcolor=initialColor, title="Choose a color", parent=parent)
+    if color[1] is not None:
+        theWidget.delete(0, tk.END)
+        theWidget.insert(0, color[1])
 
 
 class SettingWindow:
@@ -30,6 +37,10 @@ class SettingWindow:
         self.root.geometry("1080x370")
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.root.wm_attributes("-topmost", False)  # Default False
+
+        self.fonts = list(font.families())
+        self.fonts.append("TKDefaultFont")
+        self.fonts.sort()
 
         # ------------------ Frames ------------------
         self.frame_top = tk.Frame(self.root)
@@ -338,26 +349,30 @@ class SettingWindow:
         self.label_mw_tc_font = ttk.Label(self.label_mw_tc, text="Font")
         self.label_mw_tc_font.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.entry_mw_tc_font = ttk.Entry(self.label_mw_tc)
-        self.entry_mw_tc_font.pack(side=tk.LEFT, padx=5, pady=5)
+        self.select_mw_tc_font = ttk.Combobox(self.label_mw_tc, values=self.fonts, state="readonly")
+        self.select_mw_tc_font.pack(side=tk.LEFT, padx=5, pady=5)
 
         self.label_mw_tc_font_size = ttk.Label(self.label_mw_tc, text="Font Size")
         self.label_mw_tc_font_size.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.entry_mw_tc_font_size = ttk.Entry(self.label_mw_tc)
-        self.entry_mw_tc_font_size.pack(side=tk.LEFT, padx=5, pady=5)
+        self.spinbox_mw_tc_font_size = ttk.Spinbox(self.label_mw_tc, from_=3, to=120, validate="key", validatecommand=(self.root.register(self.number_only), "%P"))
+        self.spinbox_mw_tc_font_size.pack(side=tk.LEFT, padx=5, pady=5)
 
         self.label_mw_tc_font_color = ttk.Label(self.label_mw_tc, text="Font Color")
         self.label_mw_tc_font_color.pack(side=tk.LEFT, padx=5, pady=5)
 
         self.entry_mw_tc_font_color = ttk.Entry(self.label_mw_tc)
         self.entry_mw_tc_font_color.pack(side=tk.LEFT, padx=5, pady=5)
+        self.entry_mw_tc_font_color.bind("<Button-1>", lambda e: chooseColor(self.entry_mw_tc_font_color, self.entry_mw_tc_font_color.get(), self.root))
+        self.entry_mw_tc_font_color.bind("<Key>", lambda e: "break")
 
         self.label_mw_tc_bg_color = ttk.Label(self.label_mw_tc, text="Background Color")
         self.label_mw_tc_bg_color.pack(side=tk.LEFT, padx=5, pady=5)
 
         self.entry_mw_tc_bg_color = ttk.Entry(self.label_mw_tc)
         self.entry_mw_tc_bg_color.pack(side=tk.LEFT, padx=5, pady=5)
+        self.entry_mw_tc_bg_color.bind("<Button-1>", lambda e: chooseColor(self.entry_mw_tc_bg_color, self.entry_mw_tc_bg_color.get(), self.root))
+        self.entry_mw_tc_bg_color.bind("<Key>", lambda e: "break")
 
         # mw tl
         self.label_mw_tl = ttk.LabelFrame(self.t4r2, text="• Main Window Translated Textbox")
@@ -373,26 +388,30 @@ class SettingWindow:
         self.label_mw_tl_font = ttk.Label(self.label_mw_tl, text="Font")
         self.label_mw_tl_font.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.entry_mw_tl_font = ttk.Entry(self.label_mw_tl)
-        self.entry_mw_tl_font.pack(side=tk.LEFT, padx=5, pady=5)
+        self.select_mw_tl_font = ttk.Combobox(self.label_mw_tl, values=self.fonts, state="readonly")
+        self.select_mw_tl_font.pack(side=tk.LEFT, padx=5, pady=5)
 
         self.label_mw_tl_font_size = ttk.Label(self.label_mw_tl, text="Font Size")
         self.label_mw_tl_font_size.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.entry_mw_tl_font_size = ttk.Entry(self.label_mw_tl)
-        self.entry_mw_tl_font_size.pack(side=tk.LEFT, padx=5, pady=5)
+        self.spinbox_mw_tl_font_size = ttk.Spinbox(self.label_mw_tl, from_=3, to=120, validate="key", validatecommand=(self.root.register(self.number_only), "%P"))
+        self.spinbox_mw_tl_font_size.pack(side=tk.LEFT, padx=5, pady=5)
 
         self.label_mw_tl_font_color = ttk.Label(self.label_mw_tl, text="Font Color")
         self.label_mw_tl_font_color.pack(side=tk.LEFT, padx=5, pady=5)
 
         self.entry_mw_tl_font_color = ttk.Entry(self.label_mw_tl)
         self.entry_mw_tl_font_color.pack(side=tk.LEFT, padx=5, pady=5)
+        self.entry_mw_tl_font_color.bind("<Button-1>", lambda e: chooseColor(self.entry_mw_tl_font_color, self.entry_mw_tl_font_color.get(), self.root))
+        self.entry_mw_tl_font_color.bind("<Key>", lambda e: "break")
 
         self.label_mw_tl_bg_color = ttk.Label(self.label_mw_tl, text="Background Color")
         self.label_mw_tl_bg_color.pack(side=tk.LEFT, padx=5, pady=5)
 
         self.entry_mw_tl_bg_color = ttk.Entry(self.label_mw_tl)
         self.entry_mw_tl_bg_color.pack(side=tk.LEFT, padx=5, pady=5)
+        self.entry_mw_tl_bg_color.bind("<Button-1>", lambda e: chooseColor(self.entry_mw_tl_bg_color, self.entry_mw_tl_bg_color.get(), self.root))
+        self.entry_mw_tl_bg_color.bind("<Key>", lambda e: "break")
 
         # detached tc
         self.label_detached_tc = ttk.LabelFrame(self.t4r3, text="• Detached Transcribed Window Textbox")
@@ -408,26 +427,30 @@ class SettingWindow:
         self.label_detached_tc_font = ttk.Label(self.label_detached_tc, text="Font")
         self.label_detached_tc_font.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.entry_detached_tc_font = ttk.Entry(self.label_detached_tc)
-        self.entry_detached_tc_font.pack(side=tk.LEFT, padx=5, pady=5)
+        self.select_detached_tc_font = ttk.Combobox(self.label_detached_tc, values=self.fonts, state="readonly")
+        self.select_detached_tc_font.pack(side=tk.LEFT, padx=5, pady=5)
 
         self.label_detached_tc_font_size = ttk.Label(self.label_detached_tc, text="Font Size")
         self.label_detached_tc_font_size.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.entry_detached_tc_font_size = ttk.Entry(self.label_detached_tc)
-        self.entry_detached_tc_font_size.pack(side=tk.LEFT, padx=5, pady=5)
+        self.spinbox_detached_tc_font_size = ttk.Spinbox(self.label_detached_tc, from_=3, to=120, validate="key", validatecommand=(self.root.register(self.number_only), "%P"))
+        self.spinbox_detached_tc_font_size.pack(side=tk.LEFT, padx=5, pady=5)
 
         self.label_detached_tc_font_color = ttk.Label(self.label_detached_tc, text="Font Color")
         self.label_detached_tc_font_color.pack(side=tk.LEFT, padx=5, pady=5)
 
         self.entry_detached_tc_font_color = ttk.Entry(self.label_detached_tc)
         self.entry_detached_tc_font_color.pack(side=tk.LEFT, padx=5, pady=5)
+        self.entry_detached_tc_font_color.bind("<Button-1>", lambda e: chooseColor(self.entry_detached_tc_font_color, self.entry_detached_tc_font_color.get(), self.root))
+        self.entry_detached_tc_font_color.bind("<Key>", lambda e: "break")
 
         self.label_detached_tc_bg_color = ttk.Label(self.label_detached_tc, text="Background Color")
         self.label_detached_tc_bg_color.pack(side=tk.LEFT, padx=5, pady=5)
 
         self.entry_detached_tc_bg_color = ttk.Entry(self.label_detached_tc)
         self.entry_detached_tc_bg_color.pack(side=tk.LEFT, padx=5, pady=5)
+        self.entry_detached_tc_bg_color.bind("<Button-1>", lambda e: chooseColor(self.entry_detached_tc_bg_color, self.entry_detached_tc_bg_color.get(), self.root))
+        self.entry_detached_tc_bg_color.bind("<Key>", lambda e: "break")
 
         # detached tl
         self.label_detached_tl = ttk.LabelFrame(self.t4r4, text="• Detached Translated Window Textbox")
@@ -443,29 +466,33 @@ class SettingWindow:
         self.label_detached_tl_font = ttk.Label(self.label_detached_tl, text="Font")
         self.label_detached_tl_font.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.entry_detached_tl_font = ttk.Entry(self.label_detached_tl)
-        self.entry_detached_tl_font.pack(side=tk.LEFT, padx=5, pady=5)
+        self.select_detached_tl_font = ttk.Combobox(self.label_detached_tl, values=self.fonts, state="readonly")
+        self.select_detached_tl_font.pack(side=tk.LEFT, padx=5, pady=5)
 
         self.label_detached_tl_font_size = ttk.Label(self.label_detached_tl, text="Font Size")
         self.label_detached_tl_font_size.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.entry_detached_tl_font_size = ttk.Entry(self.label_detached_tl)
-        self.entry_detached_tl_font_size.pack(side=tk.LEFT, padx=5, pady=5)
+        self.spinbox_detached_tl_font_size = ttk.Spinbox(self.label_detached_tl, from_=3, to=120, validate="key", validatecommand=(self.root.register(self.number_only), "%P"))
+        self.spinbox_detached_tl_font_size.pack(side=tk.LEFT, padx=5, pady=5)
 
         self.label_detached_tl_font_color = ttk.Label(self.label_detached_tl, text="Font Color")
         self.label_detached_tl_font_color.pack(side=tk.LEFT, padx=5, pady=5)
 
         self.entry_detached_tl_font_color = ttk.Entry(self.label_detached_tl)
         self.entry_detached_tl_font_color.pack(side=tk.LEFT, padx=5, pady=5)
+        self.entry_detached_tl_font_color.bind("<Button-1>", lambda e: chooseColor(self.entry_detached_tl_font_color, self.entry_detached_tl_font_color.get(), self.root))
+        self.entry_detached_tl_font_color.bind("<Key>", lambda e: "break")
 
         self.label_detached_tl_bg_color = ttk.Label(self.label_detached_tl, text="Background Color")
         self.label_detached_tl_bg_color.pack(side=tk.LEFT, padx=5, pady=5)
 
         self.entry_detached_tl_bg_color = ttk.Entry(self.label_detached_tl)
         self.entry_detached_tl_bg_color.pack(side=tk.LEFT, padx=5, pady=5)
+        self.entry_detached_tl_bg_color.bind("<Button-1>", lambda e: chooseColor(self.entry_detached_tl_bg_color, self.entry_detached_tl_bg_color.get(), self.root))
+        self.entry_detached_tl_bg_color.bind("<Key>", lambda e: "break")
 
         # button
-        self.btn_reset_default = ttk.Button(self.t4r5, text="Reset to Default", command=self.reset_textbox_default)
+        self.btn_reset_default = ttk.Button(self.t4r5, text="Reset to Default", command=self.reset_textbox_setting)
         self.btn_reset_default.pack(side=tk.LEFT, padx=5, pady=5)
         CreateToolTip(self.btn_reset_default, "Reset all textbox setting to default value")
 
@@ -566,84 +593,60 @@ class SettingWindow:
             self.checkbutton_libre_https.invoke()
             self.checkbutton_libre_https.invoke()
 
-        self.cancel_tb()
+        self.reset_tb_helper(fJson.settingCache)
 
     def cancel_tb(self, withConfirmation=False):
         if withConfirmation:
             if not Mbox("Cancel Changes", "Are you sure you want to cancel any changes made?", 3, self.root):
                 return
 
-        self.tb_delete()
-        self.spinner_mw_tc_max.set(fJson.settingCache["textbox"]["mw_tc"]["max"])
-        self.entry_mw_tc_font.insert(0, fJson.settingCache["textbox"]["mw_tc"]["font"])
-        self.entry_mw_tc_font_size.insert(0, fJson.settingCache["textbox"]["mw_tc"]["font_size"])
-        self.entry_mw_tc_font_color.insert(0, fJson.settingCache["textbox"]["mw_tc"]["font_color"])
-        self.entry_mw_tc_bg_color.insert(0, fJson.settingCache["textbox"]["mw_tc"]["bg_color"])
+        self.reset_tb_helper(fJson.settingCache)
+        self.preview_changes_tb()
 
-        self.spinner_mw_tl_max.set(fJson.settingCache["textbox"]["mw_tl"]["max"])
-        self.entry_mw_tl_font.insert(0, fJson.settingCache["textbox"]["mw_tl"]["font"])
-        self.entry_mw_tl_font_size.insert(0, fJson.settingCache["textbox"]["mw_tl"]["font_size"])
-        self.entry_mw_tl_font_color.insert(0, fJson.settingCache["textbox"]["mw_tl"]["font_color"])
-        self.entry_mw_tl_bg_color.insert(0, fJson.settingCache["textbox"]["mw_tl"]["bg_color"])
-
-        self.spinner_detached_tc_max.set(fJson.settingCache["textbox"]["detached_tc"]["max"])
-        self.entry_detached_tc_font.insert(0, fJson.settingCache["textbox"]["detached_tc"]["font"])
-        self.entry_detached_tc_font_size.insert(0, fJson.settingCache["textbox"]["detached_tc"]["font_size"])
-        self.entry_detached_tc_font_color.insert(0, fJson.settingCache["textbox"]["detached_tc"]["font_color"])
-        self.entry_detached_tc_bg_color.insert(0, fJson.settingCache["textbox"]["detached_tc"]["bg_color"])
-
-        self.spinner_detached_tl_max.set(fJson.settingCache["textbox"]["detached_tl"]["max"])
-        self.entry_detached_tl_font.insert(0, fJson.settingCache["textbox"]["detached_tl"]["font"])
-        self.entry_detached_tl_font_size.insert(0, fJson.settingCache["textbox"]["detached_tl"]["font_size"])
-        self.entry_detached_tl_font_color.insert(0, fJson.settingCache["textbox"]["detached_tl"]["font_color"])
-        self.entry_detached_tl_bg_color.insert(0, fJson.settingCache["textbox"]["detached_tl"]["bg_color"])
-
-    def tb_delete(self):
-        self.entry_mw_tc_font.delete(0, tk.END)
-        self.entry_mw_tc_font_size.delete(0, tk.END)
-        self.entry_mw_tc_font_color.delete(0, tk.END)
-        self.entry_mw_tc_bg_color.delete(0, tk.END)
-        self.entry_mw_tl_font.delete(0, tk.END)
-        self.entry_mw_tl_font_size.delete(0, tk.END)
-        self.entry_mw_tl_font_color.delete(0, tk.END)
-        self.entry_mw_tl_bg_color.delete(0, tk.END)
-        self.entry_detached_tc_font.delete(0, tk.END)
-        self.entry_detached_tc_font_size.delete(0, tk.END)
-        self.entry_detached_tc_font_color.delete(0, tk.END)
-        self.entry_detached_tc_bg_color.delete(0, tk.END)
-        self.entry_detached_tl_font.delete(0, tk.END)
-        self.entry_detached_tl_font_size.delete(0, tk.END)
-        self.entry_detached_tl_font_color.delete(0, tk.END)
-        self.entry_detached_tl_bg_color.delete(0, tk.END)
-
-    def reset_textbox_default(self):
+    def reset_textbox_setting(self):
         if not Mbox("Reset Default Textbox Settings", "Are you sure you want to reset the textbox settings to default?", 3, self.root):
             return
 
+        self.reset_tb_helper(default_setting)
+
+    def tb_delete(self):
+        self.entry_mw_tc_font_color.delete(0, tk.END)
+        self.entry_mw_tc_bg_color.delete(0, tk.END)
+
+        self.entry_mw_tl_font_color.delete(0, tk.END)
+        self.entry_mw_tl_bg_color.delete(0, tk.END)
+
+        self.entry_detached_tc_font_color.delete(0, tk.END)
+        self.entry_detached_tc_bg_color.delete(0, tk.END)
+
+        self.entry_detached_tl_font_color.delete(0, tk.END)
+        self.entry_detached_tl_bg_color.delete(0, tk.END)
+
+    def reset_tb_helper(self, theSetting):
         self.tb_delete()
-        self.spinner_mw_tc_max.insert(0, default_setting["textbox"]["mw_tc"]["max"])
-        self.entry_mw_tc_font.insert(0, default_setting["textbox"]["mw_tc"]["font"])
-        self.entry_mw_tc_font_size.insert(0, default_setting["textbox"]["mw_tc"]["font_size"])
-        self.entry_mw_tc_font_color.insert(0, default_setting["textbox"]["mw_tc"]["font_color"])
-        self.entry_mw_tc_bg_color.insert(0, default_setting["textbox"]["mw_tc"]["bg_color"])
+        self.spinner_mw_tc_max.set(theSetting["textbox"]["mw_tc"]["max"])
+        self.select_mw_tc_font.set(theSetting["textbox"]["mw_tc"]["font"])
+        self.spinbox_mw_tc_font_size.set(theSetting["textbox"]["mw_tc"]["font_size"])
+        self.entry_mw_tc_font_color.insert(0, theSetting["textbox"]["mw_tc"]["font_color"])
+        self.entry_mw_tc_bg_color.insert(0, theSetting["textbox"]["mw_tc"]["bg_color"])
 
-        self.spinner_mw_tl_max.insert(0, default_setting["textbox"]["mw_tl"]["max"])
-        self.entry_mw_tl_font.insert(0, default_setting["textbox"]["mw_tl"]["font"])
-        self.entry_mw_tl_font_size.insert(0, default_setting["textbox"]["mw_tl"]["font_size"])
-        self.entry_mw_tl_font_color.insert(0, default_setting["textbox"]["mw_tl"]["font_color"])
-        self.entry_mw_tl_bg_color.insert(0, default_setting["textbox"]["mw_tl"]["bg_color"])
+        self.spinner_mw_tl_max.set(theSetting["textbox"]["mw_tl"]["max"])
+        self.select_mw_tl_font.set(theSetting["textbox"]["mw_tl"]["font"])
+        self.spinbox_mw_tl_font_size.set(theSetting["textbox"]["mw_tl"]["font_size"])
+        self.entry_mw_tl_font_color.insert(0, theSetting["textbox"]["mw_tl"]["font_color"])
+        self.entry_mw_tl_bg_color.insert(0, theSetting["textbox"]["mw_tl"]["bg_color"])
 
-        self.spinner_detached_tc_max.insert(0, default_setting["textbox"]["detached_tc"]["max"])
-        self.entry_detached_tc_font.insert(0, default_setting["textbox"]["detached_tc"]["font"])
-        self.entry_detached_tc_font_size.insert(0, default_setting["textbox"]["detached_tc"]["font_size"])
-        self.entry_detached_tc_font_color.insert(0, default_setting["textbox"]["detached_tc"]["font_color"])
-        self.entry_detached_tc_bg_color.insert(0, default_setting["textbox"]["detached_tc"]["bg_color"])
+        self.spinner_detached_tc_max.set(theSetting["textbox"]["detached_tc"]["max"])
+        self.select_detached_tc_font.set(theSetting["textbox"]["detached_tc"]["font"])
+        self.spinbox_detached_tc_font_size.set(theSetting["textbox"]["detached_tc"]["font_size"])
+        self.entry_detached_tc_font_color.insert(0, theSetting["textbox"]["detached_tc"]["font_color"])
+        self.entry_detached_tc_bg_color.insert(0, theSetting["textbox"]["detached_tc"]["bg_color"])
 
-        self.spinner_detached_tl_max.insert(0, default_setting["textbox"]["detached_tl"]["max"])
-        self.entry_detached_tl_font.insert(0, default_setting["textbox"]["detached_tl"]["font"])
-        self.entry_detached_tl_font_size.insert(0, default_setting["textbox"]["detached_tl"]["font_size"])
-        self.entry_detached_tl_font_color.insert(0, default_setting["textbox"]["detached_tl"]["font_color"])
-        self.entry_detached_tl_bg_color.insert(0, default_setting["textbox"]["detached_tl"]["bg_color"])
+        self.spinner_detached_tl_max.set(theSetting["textbox"]["detached_tl"]["max"])
+        self.select_detached_tl_font.set(theSetting["textbox"]["detached_tl"]["font"])
+        self.spinbox_detached_tl_font_size.set(theSetting["textbox"]["detached_tl"]["font_size"])
+        self.entry_detached_tl_font_color.insert(0, theSetting["textbox"]["detached_tl"]["font_color"])
+        self.entry_detached_tl_bg_color.insert(0, theSetting["textbox"]["detached_tl"]["bg_color"])
 
     def save_tb(self):
         # confirmation
@@ -653,29 +656,29 @@ class SettingWindow:
         saveVal = {
             "mw_tc": {
                 "max": int(self.spinner_mw_tc_max.get()),
-                "font": self.entry_mw_tc_font.get(),
-                "font_size": int(self.entry_mw_tc_font_size.get()),
+                "font": self.select_mw_tc_font.get(),
+                "font_size": int(self.spinbox_mw_tc_font_size.get()),
                 "font_color": self.entry_mw_tc_font_color.get(),
                 "bg_color": self.entry_mw_tc_bg_color.get(),
             },
             "mw_tl": {
                 "max": int(self.spinner_mw_tl_max.get()),
-                "font": self.entry_mw_tl_font.get(),
-                "font_size": int(self.entry_mw_tl_font_size.get()),
+                "font": self.select_mw_tl_font.get(),
+                "font_size": int(self.spinbox_mw_tl_font_size.get()),
                 "font_color": self.entry_mw_tl_font_color.get(),
                 "bg_color": self.entry_mw_tl_bg_color.get(),
             },
             "detached_tc": {
                 "max": int(self.spinner_detached_tc_max.get()),
-                "font": self.entry_detached_tc_font.get(),
-                "font_size": int(self.entry_detached_tc_font_size.get()),
+                "font": self.select_detached_tc_font.get(),
+                "font_size": int(self.spinbox_detached_tc_font_size.get()),
                 "font_color": self.entry_detached_tc_font_color.get(),
                 "bg_color": self.entry_detached_tc_bg_color.get(),
             },
             "detached_tl": {
                 "max": int(self.spinner_detached_tl_max.get()),
-                "font": self.entry_detached_tl_font.get(),
-                "font_size": int(self.entry_detached_tl_font_size.get()),
+                "font": self.select_detached_tl_font.get(),
+                "font_size": int(self.spinbox_detached_tl_font_size.get()),
                 "font_color": self.entry_detached_tl_font_color.get(),
                 "bg_color": self.entry_detached_tl_bg_color.get(),
             },
@@ -687,8 +690,32 @@ class SettingWindow:
         Mbox("Textbox setting saved", "The textbox setting has been saved successfully.", 0, self.root)
 
     def preview_changes_tb(self):
-        # gclass ...
-        pass
+        assert gClass.detached_tcw is not None
+        gClass.detached_tcw.textbox.config(
+            font=(self.select_detached_tc_font.get(), int(self.spinbox_detached_tc_font_size.get())),
+            fg=self.entry_detached_tc_font_color.get(),
+            bg=self.entry_detached_tc_bg_color.get(),
+        )
+
+        assert gClass.detached_tlw is not None
+        gClass.detached_tlw.textbox.config(
+            font=(self.select_detached_tl_font.get(), int(self.spinbox_detached_tl_font_size.get())),
+            fg=self.entry_detached_tl_font_color.get(),
+            bg=self.entry_detached_tl_bg_color.get(),
+        )
+
+        assert gClass.mw is not None
+        gClass.mw.tb_transcribed.config(
+            font=(self.select_mw_tc_font.get(), int(self.spinbox_mw_tc_font_size.get())),
+            fg=self.entry_mw_tc_font_color.get(),
+            bg=self.entry_mw_tc_bg_color.get(),
+        )
+
+        gClass.mw.tb_translated.config(
+            font=(self.select_mw_tl_font.get(), int(self.spinbox_mw_tl_font_size.get())),
+            fg=self.entry_mw_tl_font_color.get(),
+            bg=self.entry_mw_tl_bg_color.get(),
+        )
 
     def number_only(self, P):
         return P.isdigit()
