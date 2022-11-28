@@ -93,6 +93,8 @@ class Globals:
         else:
             self.mw.tb_transcribed.insert("end", textToAppend)
 
+        self.mw.tb_transcribed.see("end")
+
     def insertTbTranslated(self, textToAppend: str):
         """_summary_: Insert text to translated textbox. Will also check if the text is too long and will truncate it if it is.
         Separator should be added in the arguments (already in textToAppend)
@@ -114,6 +116,8 @@ class Globals:
         else:
             self.mw.tb_translated.insert("end", textToAppend)
 
+        self.mw.tb_transcribed.see("end")
+
     def insertDetachedTbTranscribed(self, textToAppend: str):
         """_summary_: Insert text to detached transcribed textbox. Will also check if the text is too long and will truncate it if it is.
         Separator is added here.
@@ -127,7 +131,7 @@ class Globals:
         # Main window textbox
         if len(currentText) > fJson.settingCache["textbox"]["detached_tc"]["max"]:
             currentText = currentText[len(textToAppend) :]  # remove words from the start with length of the new text
-            currentText += ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))  # add new text to the end
+            currentText += ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))  # add separator
             currentText += textToAppend  # add new text to the end
             self.detached_tcw.curText = currentText  # update textbox
         else:
@@ -149,7 +153,7 @@ class Globals:
         # Main window textbox
         if len(currentText) > fJson.settingCache["textbox"]["detached_tl"]["max"]:
             currentText = currentText[len(textToAppend) :]  # remove words from the start with length of the new text
-            currentText += ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))  # add new text to the end
+            currentText += ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))  # add separator
             currentText += textToAppend  # add new text to the end
             self.detached_tlw.curText = currentText  # update textbox
         else:

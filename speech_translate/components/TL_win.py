@@ -76,6 +76,7 @@ class TlsWindow:
         if self.updateTb:
             self.textbox.delete(1.0, tk.END)
             self.textbox.insert(tk.END, self.curText)
+            self.textbox.see("end")
             self.updateTb = False
 
         self.root.after(100, self.pollingStuff)
@@ -144,12 +145,11 @@ class TlsWindow:
         key = event.keysym
 
         # Allow
-        allowedEventState = [4, 8, 12]
+        allowedEventState = [4, 8, 12, 131080]
+        allowedKey = ["a", "c", "t", "o", "x"]
         if key.lower() in [tk.LEFT, tk.RIGHT]:  # Arrow left right
             return
-        if event.state in allowedEventState and key.lower() == "a":  # Ctrl + a
-            return
-        if event.state in allowedEventState and key.lower() == "c":  # Ctrl + c
+        if event.state in allowedEventState and key.lower() in allowedKey:  # Ctrl + a
             return
 
         # If not allowed
