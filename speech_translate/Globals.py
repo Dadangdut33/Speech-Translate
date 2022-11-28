@@ -1,4 +1,4 @@
-__all__ = ["dir_project", "dir_setting", "dir_temp", "gClass", "fJson"]
+__all__ = ["dir_project", "dir_setting", "dir_temp", "dir_log", "dir_assets", "gClass", "fJson", "app_icon", "app_name"]
 
 import os
 import ast

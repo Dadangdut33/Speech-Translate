@@ -6,7 +6,7 @@ from tkinter import font, colorchooser
 from multiprocessing import Process
 
 # User defined
-from speech_translate.Globals import app_icon, app_name, fJson, gClass, dir_log
+from speech_translate.Globals import app_icon, app_name, fJson, gClass, dir_log, dir_temp
 from speech_translate.Logging import logger, current_log
 from speech_translate.utils.DownloadModel import verify_model, download_model, get_default_download_root
 from speech_translate.utils.Json import default_setting
@@ -524,6 +524,7 @@ class SettingWindow:
         self.on_close()  # hide window on start
         self.checkModelOnStart()
         self.deleteLogOnStart()
+        self.deleteTempOnStart()
         self.init_setting_once()
 
         # ------------------ Set Icon ------------------
@@ -741,9 +742,24 @@ class SettingWindow:
                         logger.warning("Reason " + str(e))
                     pass
 
+    def deleteTemp(self):
+        # delete all temp wav files
+        for file in os.listdir(dir_temp):
+            if file.endswith(".wav"):
+                try:
+                    os.remove(os.path.join(dir_temp, file))
+                except Exception as e:
+                    logger.warning("Failed to delete temp file: " + file)
+                    logger.warning("Reason " + str(e))
+                    pass
+
     def deleteLogOnStart(self):
         if not fJson.settingCache["keep_log"]:
             self.deleteTheLog()
+
+    def deleteTempOnStart(self):
+        if not fJson.settingCache["keep_audio"]:
+            self.deleteTemp()
 
     def promptDeleteLog(self):
         # confirmation using mbox
