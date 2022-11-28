@@ -20,7 +20,7 @@ default_setting = {
     "keep_log": False,
     "hide_console_window_on_start": True,
     "max_temp": 100,
-    "cutOff": {"mic": 5, "speaker": 7},
+    "cutOff": {"mic": 5, "speaker": 5},
     "separate_with": "\\n",
     "tl_engine": "Google",
     "libre_api_key": "",

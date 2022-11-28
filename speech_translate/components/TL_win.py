@@ -144,11 +144,12 @@ class TlsWindow:
         key = event.keysym
 
         # Allow
+        allowedEventState = [4, 8, 12]
         if key.lower() in [tk.LEFT, tk.RIGHT]:  # Arrow left right
             return
-        if 4 == event.state and key == "a":  # Ctrl + a
+        if event.state in allowedEventState and key.lower() == "a":  # Ctrl + a
             return
-        if 4 == event.state and key == "c":  # Ctrl + c
+        if event.state in allowedEventState and key.lower() == "c":  # Ctrl + c
             return
 
         # If not allowed
