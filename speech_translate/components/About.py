@@ -1,4 +1,3 @@
-import sys
 from threading import Thread
 from time import sleep
 import tkinter.ttk as ttk
@@ -7,11 +6,10 @@ import requests
 from PIL import Image, ImageTk
 
 
-sys.path.append("..")
-from _version import __version__
-from Logging import logger
-from Globals import app_icon, app_name, gClass, fJson
-from utils.Helper import OpenUrl, nativeNotify
+from speech_translate._version import __version__
+from speech_translate.Logging import logger
+from speech_translate.Globals import app_icon, app_name, gClass, fJson
+from speech_translate.utils.Helper import OpenUrl, nativeNotify
 from .Tooltip import CreateToolTip
 
 # Classes

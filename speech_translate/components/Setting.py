@@ -1,19 +1,16 @@
 import os
 import platform
-import sys
 import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter import font, colorchooser
 from multiprocessing import Process
 
 # User defined
-sys.path.append("..")
-from _version import __version__
-from Globals import app_icon, app_name, fJson, gClass, dir_log
-from Logging import logger, current_log
-from utils.DownloadModel import verify_model, download_model, get_default_download_root
-from utils.Json import default_setting
-from utils.Helper import startFile
+from speech_translate.Globals import app_icon, app_name, fJson, gClass, dir_log
+from speech_translate.Logging import logger, current_log
+from speech_translate.utils.DownloadModel import verify_model, download_model, get_default_download_root
+from speech_translate.utils.Json import default_setting
+from speech_translate.utils.Helper import startFile
 from .MBox import Mbox
 from .Tooltip import CreateToolTip
 
@@ -527,6 +524,7 @@ class SettingWindow:
         self.on_close()  # hide window on start
         self.checkModelOnStart()
         self.deleteLogOnStart()
+        self.init_setting_once()
 
         # ------------------ Set Icon ------------------
         try:
@@ -539,12 +537,30 @@ class SettingWindow:
 
     def on_open(self):
         self.root.deiconify()
-        self.init_setting()
 
-    def init_setting(self):
+    def init_setting_once(self):
         self.spinner_cutOff_mic.set(fJson.settingCache["cutOff"]["mic"])
         self.spinner_cutOff_speaker.set(fJson.settingCache["cutOff"]["speaker"])
         self.spinner_max_temp.set(fJson.settingCache["max_temp"])
+
+        self.entry_separate_text_with.delete(0, tk.END)
+        self.entry_separate_text_with.insert(0, fJson.settingCache["separate_with"])
+
+        self.entry_libre_key.delete(0, tk.END)
+        self.entry_libre_key.insert(0, fJson.settingCache["libre_api_key"])
+        self.entry_libre_host.delete(0, tk.END)
+        self.entry_libre_host.insert(0, fJson.settingCache["libre_host"])
+        self.entry_libre_port.delete(0, tk.END)
+        self.entry_libre_port.insert(0, fJson.settingCache["libre_port"])
+
+        self.reset_tb_helper(fJson.settingCache)
+
+        if platform.system() == "Windows":
+            if fJson.settingCache["hide_console_window_on_start"]:
+                self.checkbutton_hide_console_window_on_start.invoke()
+            else:
+                self.checkbutton_hide_console_window_on_start.invoke()
+                self.checkbutton_hide_console_window_on_start.invoke()
 
         if fJson.settingCache["keep_audio"]:
             self.checkbutton_keep_audio.invoke()
@@ -570,30 +586,11 @@ class SettingWindow:
             self.check_update_on_start.invoke()
             self.check_update_on_start.invoke()
 
-        if platform.system() == "Windows":
-            if fJson.settingCache["hide_console_window_on_start"]:
-                self.checkbutton_hide_console_window_on_start.invoke()
-            else:
-                self.checkbutton_hide_console_window_on_start.invoke()
-                self.checkbutton_hide_console_window_on_start.invoke()
-
-        self.entry_separate_text_with.delete(0, tk.END)
-        self.entry_separate_text_with.insert(0, fJson.settingCache["separate_with"])
-
-        self.entry_libre_key.delete(0, tk.END)
-        self.entry_libre_key.insert(0, fJson.settingCache["libre_api_key"])
-        self.entry_libre_host.delete(0, tk.END)
-        self.entry_libre_host.insert(0, fJson.settingCache["libre_host"])
-        self.entry_libre_port.delete(0, tk.END)
-        self.entry_libre_port.insert(0, fJson.settingCache["libre_port"])
-
         if fJson.settingCache["libre_https"]:
             self.checkbutton_libre_https.invoke()
         else:
             self.checkbutton_libre_https.invoke()
             self.checkbutton_libre_https.invoke()
-
-        self.reset_tb_helper(fJson.settingCache)
 
     def cancel_tb(self, withConfirmation=False):
         if withConfirmation:
@@ -737,7 +734,7 @@ class SettingWindow:
         for file in os.listdir(dir_log):
             if file.endswith(".log"):
                 try:
-                    os.remove(os.path.join("log", file))
+                    os.remove(os.path.join(dir_log, file))
                 except Exception as e:
                     if file != current_log:  # show warning only if the fail to delete is not the current log
                         logger.warning("Failed to delete log file: " + file)

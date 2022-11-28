@@ -1,12 +1,8 @@
-import sys
-
 import requests
 from notifypy import Notify, exceptions
 
-sys.path.append("..")
-
-from Globals import app_icon, app_name
-from Logging import logger
+from speech_translate.Globals import app_icon, app_name
+from speech_translate.Logging import logger
 
 from .LangCode import google_lang, libre_lang, myMemory_lang
 

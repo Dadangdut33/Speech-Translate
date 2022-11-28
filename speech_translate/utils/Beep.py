@@ -1,11 +1,9 @@
 import os
 import sounddevice as sd
 import soundfile as sf
-import sys
 
-sys.path.append("..")
-from Globals import dir_assets
-from Logging import logger
+from speech_translate.Globals import dir_assets
+from speech_translate.Logging import logger
 
 
 def beep():

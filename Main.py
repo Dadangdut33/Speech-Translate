@@ -9,8 +9,12 @@ from typing import Literal
 from sys import exit
 
 import sounddevice as sd
-import win32.lib.win32con as win32con
-import win32gui
+if platform.system() == "Windows":
+    try:
+        import win32.lib.win32con as win32con
+        import win32gui
+    except Exception as e:
+        print(e)
 from notifypy import Notify, exceptions
 from PIL import Image, ImageDraw
 from pystray import Icon as icon
@@ -18,18 +22,18 @@ from pystray import Menu as menu
 from pystray import MenuItem as item
 
 # User defined
-from _version import __version__
-from Globals import app_icon, app_icon_missing, app_name, fJson, gClass
-from Logging import logger
-from components.About import AboutWindow
-from components.Setting import SettingWindow
-from components.TC_win import TcsWindow
-from components.TL_win import TlsWindow
-from components.MBox import Mbox
-from components.Tooltip import CreateToolTip
-from utils.Helper import modelKeys, modelSelectDict, upFirstCase, startFile, nativeNotify
-from utils.LangCode import engine_select_source_dict, engine_select_target_dict, whisper_compatible
-from utils.Record import from_file, getInputDevices, getOutputDevices, getDefaultOutputDevice, rec_mic, rec_pc
+from speech_translate._version import __version__
+from speech_translate.Globals import app_icon, app_icon_missing, app_name, fJson, gClass
+from speech_translate.Logging import logger
+from speech_translate.components.About import AboutWindow
+from speech_translate.components.Setting import SettingWindow
+from speech_translate.components.TC_win import TcsWindow
+from speech_translate.components.TL_win import TlsWindow
+from speech_translate.components.MBox import Mbox
+from speech_translate.components.Tooltip import CreateToolTip
+from speech_translate.utils.Helper import modelKeys, modelSelectDict, upFirstCase, startFile
+from speech_translate.utils.LangCode import engine_select_source_dict, engine_select_target_dict, whisper_compatible
+from speech_translate.utils.Record import from_file, getInputDevices, getOutputDevices, getDefaultOutputDevice, rec_mic, rec_pc
 
 
 def hideConsole(win):
@@ -66,7 +70,11 @@ class AppTray:
 
     # -- Create tray
     def create_tray(self):
-        trayIco = Image.open(app_icon) if not app_icon_missing else self.create_image(64, 64, "black", "white")
+        try:
+            trayIco = Image.open(app_icon)
+        except Exception:
+            trayIco = self.create_image(64, 64, "black", "white")
+
         self.menu_items = (item("Show", self.open_app), item("Exit", self.exit_app))
         self.menu = menu(*self.menu_items)
         self.icon = icon("Speech Translate", trayIco, f"Speech Translate V{__version__}", self.menu)
@@ -558,6 +566,8 @@ class MainWindow:
     def tb_clear(self):
         self.tb_transcribed.delete(1.0, tk.END)
         self.tb_translated.delete(1.0, tk.END)
+        gClass.clearDetachedTc()
+        gClass.clearDetachedTl()
 
     # Swap textboxes
     def tb_swap_content(self):
@@ -684,7 +694,6 @@ class MainWindow:
     def export_tc(self):
         fileName = f"Transcribed {time.strftime('%Y-%m-%d %H-%M-%S')}"
         text = str(self.tb_transcribed.get(1.0, tk.END))
-        print(text)
         f = filedialog.asksaveasfile(mode="w", defaultextension=".txt", initialfile=fileName, filetypes=(("Text File", "*.txt"), ("Sub file", "*.srt"), ("All Files", "*.*")))
         if f is None:
             return
@@ -701,7 +710,6 @@ class MainWindow:
     def export_tl(self):
         fileName = f"Translated {time.strftime('%Y-%m-%d %H-%M-%S')}"
         text = str(self.tb_translated.get(1.0, tk.END))
-        print(text)
         f = filedialog.asksaveasfile(mode="w", defaultextension=".txt", initialfile=fileName, filetypes=(("Text File", "*.txt"), ("Sub file", "*.srt"), ("All Files", "*.*")))
         if f is None:
             return
@@ -878,15 +886,18 @@ class MainWindow:
 
 if __name__ == "__main__":
     logger.info("Booting up...")
-    if platform.system() == "Windows":
-        logger.debug("Got console window")
-        gClass.cw = win32gui.GetForegroundWindow()
+    try:
+        if platform.system() == "Windows":
+            logger.debug("Got console window")
+            gClass.cw = win32gui.GetForegroundWindow()
+    except Exception as e:
+        logger.exception(e)
 
     # --- GUI ---
     tray = AppTray()  # Start tray app in the background
-    main = MainWindow()
     tcWin = TcsWindow()
     tlWin = TlsWindow()
     setting = SettingWindow()
     about = AboutWindow()
+    main = MainWindow()
     main.root.mainloop()  # Start main app

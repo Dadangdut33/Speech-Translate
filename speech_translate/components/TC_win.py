@@ -1,11 +1,9 @@
-import sys
 import tkinter as tk
 import tkinter.ttk as ttk
 
-sys.path.append("..")
-from Globals import fJson, gClass, app_icon
+from speech_translate.Globals import fJson, gClass, app_icon
+from speech_translate.utils.Beep import beep
 from .Tooltip import CreateToolTip
-from utils.Beep import beep
 
 
 # Classes
@@ -22,6 +20,9 @@ class TcsWindow:
         self.always_on_top = False
         self.tooltip_disabled = False
         self.hidden_top = False
+        self.curText = ""
+        self.updateTb = False
+        self.getTbVal = False
         gClass.detached_tcw = self  # type: ignore
 
         # Top frame
@@ -43,6 +44,7 @@ class TcsWindow:
         self.textbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.textbox.config(yscrollcommand=self.scrollbar.set)
         self.scrollbar.config(command=self.textbox.yview)
+        self.textbox.bind("<Key>", self.tb_allowed_key)
 
         # On Close
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -57,6 +59,40 @@ class TcsWindow:
             self.root.iconbitmap(app_icon)
         except:
             pass
+
+        # ------------------ Polling ------------------
+        self.root.after(100, self.pollingStuff)
+
+    # curText polling
+    def pollingStuff(self):
+        """
+        Method to update the textbox value in a thread without runtimeerror.
+        Updating is done by setting flag to true and then checking it here.
+        """
+        if self.getTbVal:
+            self.curText = self.textbox.get("1.0", tk.END)
+            self.getTbVal = False
+
+        if self.updateTb:
+            self.textbox.delete(1.0, tk.END)
+            self.textbox.insert(tk.END, self.curText)
+            self.updateTb = False
+
+        self.root.after(100, self.pollingStuff)
+
+    def update_text(self):
+        """
+        Method to update the textbox value in a thread without runtimeerror.
+        Setting flag to true will update the textbox value in the pollingStuff method.
+        """
+        self.updateTb = True
+
+    def get_cur_text(self, update=False):
+        """
+        Method to update self.curText value with the textbox value in a thread without runtimeerror.
+        Setting flag to true will update the self.curText value in the pollingStuff method.
+        """
+        self.getTbVal = True
 
     # disable tooltip
     def disable_tooltip(self):
@@ -102,3 +138,17 @@ class TcsWindow:
             self.currentOpacity = 0.1
         self.root.attributes("-alpha", self.currentOpacity)
         self.fTooltip.opacity = self.currentOpacity
+
+    def tb_allowed_key(self, event: tk.Event):
+        key = event.keysym
+
+        # Allow
+        if key.lower() in [tk.LEFT, tk.RIGHT]:  # Arrow left right
+            return
+        if 4 == event.state and key == "a":  # Ctrl + a
+            return
+        if 4 == event.state and key == "c":  # Ctrl + c
+            return
+
+        # If not allowed
+        return "break"

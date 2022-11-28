@@ -15,3 +15,5 @@ temp/
 ignore/
 build/
 log/
+dist/
+output/

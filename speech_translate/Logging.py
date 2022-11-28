@@ -6,6 +6,9 @@ import os
 dir_project: str = os.path.dirname(os.path.realpath(__file__))
 dir_log: str = os.path.join(dir_project, "../log")
 current_log: str = f"{time.strftime('%Y-%m-%d %H-%M-%S')}.log"
+# make sure log folder exist
+if not os.path.exists(dir_log):
+    os.makedirs(dir_log)
 # ------------------ #
 class c_formatter(logging.Formatter):
     bold = "\033[1m"

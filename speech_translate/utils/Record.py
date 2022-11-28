@@ -1,5 +1,4 @@
 import os
-import sys
 import threading
 import ast
 import shlex
@@ -15,11 +14,9 @@ from scipy.io.wavfile import write
 import pyaudiowpatch as pyaudio
 import wave
 
-sys.path.append("..")
-
-from Globals import app_icon, app_name, dir_temp, fJson, gClass
-from Logging import logger
-from components.MBox import Mbox
+from speech_translate.Globals import app_icon, app_name, dir_temp, fJson, gClass
+from speech_translate.Logging import logger
+from speech_translate.components.MBox import Mbox
 
 from .Helper import modelSelectDict
 from .Translate import google_tl, libre_tl, memory_tl
@@ -168,7 +165,7 @@ def whisper_transcribe(
     if transcribe:
         if len(result_Tc["text"].strip()) > 0:  # type: ignore
             gClass.insertTbTranscribed(result_Tc["text"].strip() + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))  # type: ignore
-            gClass.insertDetachedTbTranscribed(result_Tc["text"].strip() + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))  # type: ignore
+            gClass.insertDetachedTbTranscribed(result_Tc["text"].strip())  # type: ignore
         else:
             logger.warning("Transcribed Text is empty")
     if translate:
@@ -267,7 +264,7 @@ def whisper_translate(
     if engine == "Whisper":
         if len(result_Tl["text"].strip()) > 0:  # type: ignore
             gClass.insertTbTranslated(result_Tl["text"].strip() + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))  # type: ignore
-            gClass.insertDetachedTbTranslated(result_Tl["text"].strip() + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))  # type: ignore
+            gClass.insertDetachedTbTranslated(result_Tl["text"].strip())  # type: ignore
         else:
             logger.warning("Translated Text is empty")
         logger.info("-" * 50)
@@ -384,7 +381,7 @@ def record_from_pc(audio_name: str, device: str, seconds=5) -> None:
         After leaving the context, everything will
         be correctly closed(Stream, PyAudio manager)
         """
-        logger.debug(f"The next {seconds} seconds will be written to {audio_name.split(os.sep)[-1]}")
+        logger.info(f"The next {seconds} seconds will be written to {audio_name.split(os.sep)[-1]}")
         sleep(seconds)  # Blocking execution while playing
 
     wave_file.close()

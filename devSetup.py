@@ -13,15 +13,18 @@ def install_requirements():
 
 
 def uninstall_torch():
-    os.system(f"{pip} uninstall torch")
+    os.system(f"{pip} uninstall -y torch")
 
 
 def install_torch():
-    # if mac
-    if platform.system() == "Darwin":
-        os.system(f"{pip} install pytorch torchvision torchaudio -c pytorch")
-    else:  # windows and linux
-        os.system(f"{pip} install pytorch torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia")
+    if platform.system() == "Darwin": # if mac
+        os.system(f"{pip} install torch torchvision torchaudio")
+    elif platform.system() == "Linux":
+        os.system(f"{pip} install torch torchvision torchaudio")
+    elif platform.system() == "Windows":
+        os.system(f"{pip} install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu117")
+    else:
+        print("Unknown OS, please install torch manually by visting https://pytorch.org/")
 
 
 if __name__ == "__main__":

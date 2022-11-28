@@ -1,21 +1,19 @@
 __all__ = ["default_setting", "SettingJsonHandler"]
 import json
 import os
-import sys
 
-from components.MBox import Mbox  # uses message box for error because this is important
 from notifypy import Notify
 
-sys.path.append("..")
-from Logging import logger
-from _version import __setting_version__
+from speech_translate.components.MBox import Mbox
+from speech_translate.Logging import logger
+from speech_translate._version import __setting_version__
 
 default_setting = {
     "version": __setting_version__,
     "checkUpdateOnStart": True,
     "mode": "Transcribe",
     "model": "tiny",
-    "sourceLang": "English",
+    "sourceLang": "Auto Detect",
     "targetLang": "Indonesian",
     "verbose": False,
     "keep_audio": False,
@@ -23,7 +21,7 @@ default_setting = {
     "hide_console_window_on_start": True,
     "max_temp": 100,
     "cutOff": {"mic": 5, "speaker": 7},
-    "separate_with": "\n",
+    "separate_with": "\\n",
     "tl_engine": "Google",
     "libre_api_key": "",
     "libre_host": "libretranslate.de",
@@ -47,7 +45,7 @@ default_setting = {
             "bg_color": "#FFFFFF",
         },
         "detached_tc": {
-            "max": 1000,
+            "max": 500,
             "font": "TKDefaultFont",
             "font_size": 10,
             "font_color": "#000000",
@@ -55,7 +53,7 @@ default_setting = {
             "opacity": 0.8,
         },
         "detached_tl": {
-            "max": 1000,
+            "max": 500,
             "font": "TKDefaultFont",
             "font_size": 10,
             "font_color": "#000000",
@@ -76,9 +74,9 @@ class SettingJsonHandler:
         self.settingPath = settingPath
         self.settingDir = settingDir
         self.createDirectoryIfNotExist(self.settingDir)  # setting dir
-        self.createDefaultSettingIfNotExist(self.settingPath, default_setting)  # setting file
         self.createDirectoryIfNotExist(tempDir)  # temp dir
         self.createDirectoryIfNotExist(logDir)  # log dir
+        self.createDefaultSettingIfNotExist(self.settingPath, default_setting)  # setting file
 
         # Load setting
         success, msg, data = self.loadSetting()

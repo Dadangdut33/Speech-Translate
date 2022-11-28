@@ -1,19 +1,21 @@
 __all__ = ["dir_project", "dir_setting", "dir_temp", "gClass", "fJson"]
 
 import os
+import ast
+import shlex
 from multiprocessing import Process
+from time import sleep
 
-from utils.Json import SettingJsonHandler
+from .utils.Json import SettingJsonHandler
 
 # ------------------ #
 # Paths
 dir_project: str = os.path.dirname(os.path.realpath(__file__))
-dir_assets: str = os.path.join(dir_project, "../assets")
 dir_setting: str = os.path.join(dir_project, "../setting")
 dir_temp: str = os.path.join(dir_project, "../temp")
 dir_log: str = os.path.join(dir_project, "../log")
-app_icon: str = os.path.join(dir_assets, "./icon.ico")
-print(app_icon)
+dir_assets: str = os.path.join(dir_project, "../assets")
+app_icon: str = os.path.join(dir_assets, "icon.ico")
 if not os.path.exists(app_icon):  # verify app_icon exist or not
     app_icon_missing = True
 else:
@@ -72,6 +74,7 @@ class Globals:
 
     def insertTbTranscribed(self, textToAppend: str):
         """_summary_: Insert text to transcribed textbox. Will also check if the text is too long and will truncate it if it is.
+        Separator should be added in the arguments (already in textToAppend)
 
         Args:
             textToAppend (str): Text to append
@@ -92,6 +95,7 @@ class Globals:
 
     def insertTbTranslated(self, textToAppend: str):
         """_summary_: Insert text to translated textbox. Will also check if the text is too long and will truncate it if it is.
+        Separator should be added in the arguments (already in textToAppend)
 
         Args:
             textToAppend (str): Text to append
@@ -112,43 +116,47 @@ class Globals:
 
     def insertDetachedTbTranscribed(self, textToAppend: str):
         """_summary_: Insert text to detached transcribed textbox. Will also check if the text is too long and will truncate it if it is.
+        Separator is added here.
 
         Args:
             textToAppend (str): Text to append
         """
         assert self.detached_tcw is not None
-        currentText = self.getDetachedTextTc()
+        currentText = self.getDetachedTextTc().strip()
+        textToAppend = textToAppend.strip()
         # Main window textbox
         if len(currentText) > fJson.settingCache["textbox"]["detached_tc"]["max"]:
-            # remove words from the start with length of the new text
-            currentText = currentText[len(textToAppend) :]
-            # add new text to the end
-            currentText += textToAppend
-            # update textbox
-            self.detached_tcw.textbox.delete("1.0", "end")
-            self.detached_tcw.textbox.insert("end", currentText)
+            currentText = currentText[len(textToAppend) :]  # remove words from the start with length of the new text
+            currentText += ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))  # add new text to the end
+            currentText += textToAppend  # add new text to the end
+            self.detached_tcw.curText = currentText  # update textbox
         else:
-            self.detached_tcw.textbox.insert("end", textToAppend)
+            currentText += ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))  # add new text to the end
+            currentText += textToAppend  # add new text to the end
+            self.detached_tcw.curText = currentText
+        self.detached_tcw.update_text()
 
     def insertDetachedTbTranslated(self, textToAppend: str):
         """_summary_: Insert text to detached translated textbox. Will also check if the text is too long and will truncate it if it is.
+        Separator is added here.
 
         Args:
             textToAppend (str): Text to append
         """
         assert self.detached_tlw is not None
-        currentText = self.getDetachedTextTl()
+        currentText = self.getDetachedTextTl().strip()
+        textToAppend = textToAppend.strip()
         # Main window textbox
         if len(currentText) > fJson.settingCache["textbox"]["detached_tl"]["max"]:
-            # remove words from the start with length of the new text
-            currentText = currentText[len(textToAppend) :]
-            # add new text to the end
-            currentText += textToAppend
-            # update textbox
-            self.detached_tlw.textbox.delete("1.0", "end")
-            self.detached_tlw.textbox.insert("end", currentText)
+            currentText = currentText[len(textToAppend) :]  # remove words from the start with length of the new text
+            currentText += ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))  # add new text to the end
+            currentText += textToAppend  # add new text to the end
+            self.detached_tlw.curText = currentText  # update textbox
         else:
-            self.detached_tlw.textbox.insert("end", textToAppend)
+            currentText += ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))  # add new text to the end
+            currentText += textToAppend  # add new text to the end
+            self.detached_tlw.curText = currentText
+        self.detached_tlw.update_text()
 
     def getMwTextTc(self) -> str:
         assert self.mw is not None
@@ -160,12 +168,27 @@ class Globals:
 
     def getDetachedTextTc(self) -> str:
         assert self.detached_tcw is not None
-        return self.detached_tcw.textbox.get("1.0", "end")
+        self.detached_tcw.get_cur_text()
+        sleep(0.1)
+        return self.detached_tcw.curText
 
     def getDetachedTextTl(self) -> str:
         assert self.detached_tlw is not None
-        return self.detached_tlw.textbox.get("1.0", "end")
+        self.detached_tlw.get_cur_text()
+        sleep(0.1)
+        return self.detached_tlw.curText
+
+    def clearDetachedTc(self):
+        assert self.detached_tcw is not None
+        self.detached_tcw.curText = ""
+        self.detached_tcw.update_text()
+
+    def clearDetachedTl(self):
+        assert self.detached_tlw is not None
+        self.detached_tlw.curText = ""
+        self.detached_tlw.update_text()
 
 
 # ------------------ #
 gClass: Globals = Globals()
+print("Project Dir: ", dir_project)
