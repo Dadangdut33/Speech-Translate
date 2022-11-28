@@ -191,4 +191,3 @@ class Globals:
 
 # ------------------ #
 gClass: Globals = Globals()
-print("Project Dir: ", dir_project)

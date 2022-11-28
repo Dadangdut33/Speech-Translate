@@ -9,6 +9,7 @@ from typing import Literal
 from sys import exit
 
 import sounddevice as sd
+
 if platform.system() == "Windows":
     try:
         import win32.lib.win32con as win32con
@@ -671,7 +672,7 @@ class MainWindow:
         self.loadBar.config(mode="indeterminate")
         self.loadBar.start()
 
-    def stop_loadBar(self, rec_type: Literal["mic", "pc", "file"]):
+    def stop_loadBar(self, rec_type: Literal["mic", "pc", "file", None] = None):
         self.loadBar.stop()
         self.loadBar.config(mode="determinate")
 
@@ -770,6 +771,8 @@ class MainWindow:
         if gClass.dl_proc is not None:
             gClass.dl_proc.terminate()
             gClass.dl_proc = None
+            self.root.update()
+            Mbox("Model Download Cancelled", "Cancelled model downloading", 0, self.root)
 
         self.loadBar.stop()
         self.loadBar.config(mode="determinate")
@@ -822,6 +825,8 @@ class MainWindow:
         if gClass.dl_proc is not None:
             gClass.dl_proc.terminate()
             gClass.dl_proc = None
+            self.root.update()
+            Mbox("Model Download Cancelled", "Cancelled model downloading", 0, self.root)
 
         self.loadBar.stop()
         self.loadBar.config(mode="determinate")
@@ -868,6 +873,8 @@ class MainWindow:
         if gClass.dl_proc is not None:
             gClass.dl_proc.terminate()
             gClass.dl_proc = None
+            self.root.update()
+            Mbox("Model Download Cancelled", "Cancelled model downloading", 0, self.root)
 
         if gClass.tc_proc is not None:
             gClass.tc_proc.terminate()
@@ -890,7 +897,7 @@ if __name__ == "__main__":
     try:
         if platform.system() == "Windows":
             logger.debug("Got console window")
-            gClass.cw = win32gui.GetForegroundWindow()
+            gClass.cw = win32gui.GetForegroundWindow() # type: ignore 
     except Exception as e:
         logger.exception(e)
 
