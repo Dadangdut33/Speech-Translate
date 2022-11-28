@@ -16,17 +16,28 @@
 
 A speech transcription and translation application using whisper AI model.
 
-# Preview
+# Features
 
-...
+- Speech to text
+- Translation of transcribed text
+- Input from speaker, mic, and file
 
-# Download
-
-Latest release..
+<details open>
+  <summary>Preview</summary>
+  <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/assets/1.png" width="700" alt="Speech Translate Looks">
+  <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/assets/2.png" width="700" alt="Speech Translate Looks">
+  <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/assets/3.png" width="700" alt="Speech Translate Looks">
+</details>
 
 # User Requirements
 
 Whisper uses vram to process the audio, so it is recommended to have a CUDA compatible GPU. If there is no compatible GPU, the application will use the CPU to process the audio (This might make it slower). For each model requirement you can check directly at the [whisper repository](https://github.com/openai/whisper) or you can hover over the model selection in the app (there will be a tooltip about the model info).
+
+# Download & Installation
+
+1. Download the latest release [here](https://github.com/Dadangdut33/Speech-Translate/releases/latest)
+2. Install
+3. Run the program
 
 # Development
 
@@ -56,7 +67,7 @@ To use GPU you first need to uninstall `torch` then you can go to [pytorch offic
 
 You can use [pyinstaller](https://pyinstaller.org/) or [auto-py-to-exe](https://github.com/brentvollebregt/auto-py-to-exe) for a graphical interface.
 
-- If you use **pyinstaller** you can load the [spec file](./build.spec) by running `pyinstaller ./build.spec` to build the project. Alternatively, you can type the build command directly like this:
+- If you use **pyinstaller** you can load the [spec file](./build.spec) by running `pyinstaller ./build.spec` to build the project. Alternatively, you can type the build command when in `root directory` directly like this:
 
   ```bash
   pyinstaller --noconfirm --onedir --console --icon "./speech_translate/assets/icon.ico" --name "Speech Translate" --clean --add-data "./assets;assets/" --copy-metadata "tqdm" --copy-metadata "regex" --copy-metadata "requests" --copy-metadata "packaging" --copy-metadata "filelock" --copy-metadata "numpy" --copy-metadata "tokenizers" --add-data "./venv/Lib/site-packages/whisper/assets;whisper/assets/"  "./Main.py"
@@ -66,7 +77,7 @@ You can use [pyinstaller](https://pyinstaller.org/) or [auto-py-to-exe](https://
 
   **Note: Replace the venv with your venv name**
 
-- If you use **auto-py-to-exe** you can load the [build.json file](./build.json) located in root directory. This will produce an exceutable file in the `output` directory.
+- If you use **auto-py-to-exe** you can load the [build.json file](./build.json) located in root directory. **You will need to replace the dot (.) with the actual path of the project**. This will produce an exceutable file in the `output` directory.
 
 You should be able to compile it on other platform (mac/linux) but I only tested it on Windows.
 
