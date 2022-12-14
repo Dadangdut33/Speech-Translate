@@ -19,19 +19,20 @@ A speech transcription and translation application using whisper AI model.
 # Features
 
 - Speech to text
-- Translation of transcribed text
+- Translation of transcribed text (Speech to translated text)
 - Input from speaker, mic, and file
-
-<details open>
-  <summary>Preview</summary>
-  <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/assets/1.png" width="700" alt="Speech Translate Looks">
-  <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/assets/2.png" width="700" alt="Speech Translate Looks">
-  <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/assets/3.png" width="700" alt="Speech Translate Looks">
-</details>
+- <details open>
+    <summary>Preview</summary>
+    <p align="center">
+      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/assets/1.png" width="700" alt="Speech Translate Looks">
+      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/assets/2.png" width="700" alt="Speech Translate Looks">
+      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/assets/3.png" width="700" alt="Speech Translate Looks">
+    </p>
+  </details>
 
 # User Requirements
 
-Whisper uses vram to process the audio, so it is recommended to have a CUDA compatible GPU. If there is no compatible GPU, the application will use the CPU to process the audio (This might make it slower). For each model requirement you can check directly at the [whisper repository](https://github.com/openai/whisper) or you can hover over the model selection in the app (there will be a tooltip about the model info).
+Whisper uses vram/gpu to process the audio, so it is recommended to have a CUDA compatible GPU. If there is no compatible GPU, the application will use the CPU to process the audio (This might make it slower). For each model requirement you can check directly at the [whisper repository](https://github.com/openai/whisper) or you can hover over the model selection in the app (there will be a tooltip about the model info).
 
 # Download & Installation
 
@@ -39,7 +40,21 @@ Whisper uses vram to process the audio, so it is recommended to have a CUDA comp
 2. Install
 3. Run the program
 
-# Development
+# General Usage
+
+1. Select model
+2. Select mode and language
+3. Click the record button
+4. Stop record
+5. (Optionally) export the result to a file
+
+# User Settings
+
+You can change the settings by clicking the settings button on the menubar of the app. Alternatively, you can press F2 to open the menu window or you could also edit the settings file manually located at `./setting/setting.json`.
+
+---
+
+<h1 align="center">- Development -</h1>
 
 > **Warning** \
 > As of right now (4th of November 2022) I guess pytorch is not compatible with python 3.11 so you can't use python 3.11. I tried with 3.11 but it doesn't work so i rollback to python 3.10.8.
@@ -47,14 +62,12 @@ Whisper uses vram to process the audio, so it is recommended to have a CUDA comp
 ## Setup
 
 > **Note** \
-> It is recommended to create a virtual environment, but it is not required.
+> It is recommended to create a virtual environment, but it is not required. For OS other than windows, you can install the packages from [requirements_notwindows.txt](./requirements_notwindows.txt)
 
 1. Create your virtual environment by running `python -m venv venv`
 2. Activate your virtual environment by running `source venv/bin/activate`
 3. Install all the dependencies needed by running the [`devSetup.py`](./devSetup.py) located in **root directory** or install the packages yourself by installing from the requirements.txt yourself by running`pip install -r requirements.txt`
-4. Run the script by typing `python Main.py`
-
-**You must be at speech_translate directory when developing and compiling/building the project to avoid error**
+4. Get to root directory and Run the script by typing `python Main.py`
 
 ## Using GPU for Whisper
 
@@ -75,19 +88,21 @@ You can use [pyinstaller](https://pyinstaller.org/) or [auto-py-to-exe](https://
 
   This will produce an exceutable file in the `dist` directory.
 
-  **Note: Replace the venv with your venv name**
+  **Note: Replace the venv with your actual venv path**
 
-- If you use **auto-py-to-exe** you can load the [build.json file](./build.json) located in root directory. **You will need to replace the dot (.) with the actual path of the project**. This will produce an exceutable file in the `output` directory.
+- If you use **auto-py-to-exe** you can load the [build.json file](./build.json) located in root directory. **You will need to replace the dot (.) in the build.json file with the actual path of the project**. This will produce an exceutable file in the `output` directory.
 
 You should be able to compile it on other platform (mac/linux) but I only tested it on Windows.
 
 ## Compatibility
 
-This project should be compatible with Windows (preferrably windows 10 or later) and Linux but I haven't tested it on Mac.
+This project should be compatible with Windows (preferrably windows 10 or later) and other platforms. But I haven't tested it on platform other than windows.
+
+---
 
 # Contributing
 
-Feel free to contribute to this project by forking the repository, making your changes, and submitting a pull request. You can also contribute by creating an issue if you find a bug or have a feature request.
+Feel free to contribute to this project by forking the repository, making your changes, and submitting a pull request. You can also contribute by creating an issue if you find a bug or have a feature request. Also, feel free to give this project a star if you like it.
 
 # License
 

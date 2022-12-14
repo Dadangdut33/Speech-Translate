@@ -5,6 +5,7 @@ __pycache__/
 .venv
 env/
 venv/
+venvcpu/
 ENV/
 env.bak/
 venv.bak/

@@ -3,13 +3,15 @@ import platform
 import time
 
 pip = "pip"
+req = "requirements"
 # check if not windows
 if platform.system() != "Windows":
     pip = "pip3"
+    req = "requirements_notwindows"
 
 
 def install_requirements():
-    os.system(f"{pip} install -r requirements.txt")
+    os.system(f"{pip} install -r {req}.txt")
 
 
 def uninstall_torch():
@@ -36,7 +38,7 @@ if __name__ == "__main__":
     timeStart = time.time()
     # install requirements
     print("-" * 100)
-    print("Installing from requirements.txt")
+    print(f"Installing from {req}.txt")
     install_requirements()
 
     if use_gpu.lower() == "y":

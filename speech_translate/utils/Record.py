@@ -1,4 +1,5 @@
 import os
+import platform
 import threading
 import ast
 import shlex
@@ -10,7 +11,13 @@ from typing import Literal
 import whisper
 import sounddevice as sd
 from scipy.io.wavfile import write
-import pyaudiowpatch as pyaudio
+
+if platform.system() == "Windows":
+    import pyaudiowpatch as pyaudio
+else:
+    import pyaudio  # type: ignore
+
+
 import wave
 
 from speech_translate.Globals import app_icon, app_name, dir_temp, fJson, gClass
@@ -34,7 +41,7 @@ def getOutputDevices():
 
     devices = p.get_device_count()
     devices = [p.get_device_info_by_index(i) for i in range(devices)]
-    devices = [device for device in devices if device["maxOutputChannels"] > 0]  # Filter out devices that are not output devices
+    devices = [device for device in devices if device["maxOutputChannels"] > 0]  # type: ignore # Filter out devices that are not output devices
     devices = [f"{device['name']}, {sd.query_hostapis(device['hostApi'])['name']} [ID: {device['index']}]" for device in devices]  # type: ignore  # Map the name
 
     p.terminate()
@@ -48,7 +55,7 @@ def getDefaultOutputDevice():
     try:
         # Get default WASAPI info
         wasapi_info = p.get_host_api_info_by_type(pyaudio.paWASAPI)
-        default_device = p.get_device_info_by_index(wasapi_info["defaultOutputDevice"])
+        default_device = p.get_device_info_by_index(wasapi_info["defaultOutputDevice"])  # type: ignore
         sucess = True
     except OSError:
         print("Looks like WASAPI is not available on the system.")
@@ -352,7 +359,7 @@ def record_from_pc(audio_name: str, device: str, seconds=5) -> None:
     device_detail = p.get_device_info_by_index(int(device_id))  # type: ignore
 
     if not device_detail["isLoopbackDevice"]:
-        for loopback in p.get_loopback_device_info_generator():
+        for loopback in p.get_loopback_device_info_generator():  # type: ignore
             """
             Try to find loopback device with same name(and [Loopback suffix]).
             Unfortunately, this is the most adequate way at the moment.
@@ -367,7 +374,7 @@ def record_from_pc(audio_name: str, device: str, seconds=5) -> None:
     logger.debug(f"Recording from: ({device_detail['index']}){device_detail['name']}")
 
     wave_file = wave.open(audio_name, "wb")
-    wave_file.setnchannels(device_detail["maxInputChannels"])
+    wave_file.setnchannels(device_detail["maxInputChannels"])  # type: ignore
     wave_file.setsampwidth(pyaudio.get_sample_size(pyaudio.paInt16))
     wave_file.setframerate(int(device_detail["defaultSampleRate"]))
 
@@ -380,13 +387,13 @@ def record_from_pc(audio_name: str, device: str, seconds=5) -> None:
 
     with p.open(
         format=pyaudio.paInt16,
-        channels=device_detail["maxInputChannels"],
+        channels=device_detail["maxInputChannels"],  # type: ignore
         rate=int(device_detail["defaultSampleRate"]),
         frames_per_buffer=pyaudio.get_sample_size(pyaudio.paInt16),
         input=True,
-        input_device_index=device_detail["index"],
+        input_device_index=device_detail["index"],  # type: ignore
         stream_callback=callback,
-    ) as stream:
+    ) as stream:  # type: ignore
         """
         Opena PA stream via context manager.
         After leaving the context, everything will
