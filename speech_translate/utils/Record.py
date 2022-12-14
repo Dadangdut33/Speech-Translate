@@ -58,6 +58,30 @@ def getDefaultOutputDevice():
         return sucess, default_device
 
 
+def verboseWhisperLogging(result):
+    """
+    This will log the result of the whisper engine in a verbose way.
+
+    Args:
+        result: whisper result
+
+    """
+    logger.debug(f"Language: {result['language']}")
+    logger.debug(f"Text: {result['text']}")
+    logger.debug(f"Segments:")
+    for segment in result["segments"]:
+        logger.debug(f"ID: {segment['id']}")
+        logger.debug(f"Seek: {segment['seek']}")
+        logger.debug(f"Start: {segment['start']}")
+        logger.debug(f"End: {segment['end']}")
+        logger.debug(f"Text: {segment['text']}")
+        logger.debug(f"Tokens: {segment['tokens']}")
+        logger.debug(f"Temperature: {segment['temperature']}")
+        logger.debug(f"Avg Logprob: {segment['avg_logprob']}")
+        logger.debug(f"Compression Ratio: {segment['compression_ratio']}")
+        logger.debug(f"No Speech Prob: {segment['no_speech_prob']}")
+
+
 def multiProc_Whisper(queue: Queue, audio: str, modelName: str, auto: bool, transcribing: bool, lang_source: str | None = None):
     """Multi Processing for Whisper
 
@@ -141,7 +165,7 @@ def whisper_transcribe(
     if not verbose:
         logger.debug(result_Tc["text"].strip())  # type: ignore
     else:
-        logger.debug(result_Tc)
+        verboseWhisperLogging(result_Tc)
 
     # insert to textbox
     if transcribe:
@@ -257,7 +281,7 @@ def whisper_translate(
         logger.info("-" * 50)
         logger.info(f"Translated: {audio_name.split(os.sep)[-1]}")
         if verbose:
-            logger.debug(result_Tl)  # type: ignore
+            verboseWhisperLogging(result_Tl)
         else:
             logger.debug(result_Tl["text"].strip())  # type: ignore
     else:

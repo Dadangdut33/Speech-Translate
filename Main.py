@@ -503,6 +503,7 @@ class MainWindow:
             self.cb_mic.current(0)
 
     def label_microphone_Rclick(self, _event=None):
+        self.label_microphone_Lclick()  # update list
         # set default mic
         defaultMic = sd.query_devices(kind="input")
         if defaultMic:
@@ -522,6 +523,7 @@ class MainWindow:
             self.cb_speaker.current(0)
 
     def label_speaker_Rclick(self, _event=None):
+        self.label_speaker_Lclick()  # update list
         # set default speaker
         success, defaultSpeaker = getDefaultOutputDevice()
         if not success:
@@ -897,7 +899,7 @@ if __name__ == "__main__":
     try:
         if platform.system() == "Windows":
             logger.debug("Got console window")
-            gClass.cw = win32gui.GetForegroundWindow() # type: ignore 
+            gClass.cw = win32gui.GetForegroundWindow()  # type: ignore
     except Exception as e:
         logger.exception(e)
 

@@ -4,6 +4,7 @@ import os
 import ast
 import shlex
 from multiprocessing import Process
+from typing import Optional
 from time import sleep
 
 from .utils.Json import SettingJsonHandler
@@ -39,9 +40,9 @@ class Globals:
         self.translating: bool = False
 
         # process
-        self.dl_proc: None | Process = None
-        self.tc_proc: None | Process = None
-        self.tl_proc: None | Process = None
+        self.dl_proc: Optional[Process] = None
+        self.tc_proc: Optional[Process] = None
+        self.tl_proc: Optional[Process] = None
 
         # References to class
         self.tray = None  # tray
