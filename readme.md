@@ -69,6 +69,25 @@ You can change the settings by clicking the settings button on the menubar of th
 3. Install all the dependencies needed by running the [`devSetup.py`](./devSetup.py) located in **root directory** or install the packages yourself by installing from the requirements.txt yourself by running`pip install -r requirements.txt`
 4. Get to root directory and Run the script by typing `python Main.py`
 
+Whisper needs [ffmpeg](https://ffmpeg.org/) to work, you can install it and add it to your path manually or you can do it easily by running the following command:
+
+```
+# on Ubuntu or Debian
+sudo apt update && sudo apt install ffmpeg
+
+# on Arch Linux
+sudo pacman -S ffmpeg
+
+# on MacOS using Homebrew (https://brew.sh/)
+brew install ffmpeg
+
+# on Windows using Chocolatey (https://chocolatey.org/)
+choco install ffmpeg
+
+# on Windows using Scoop (https://scoop.sh/)
+scoop install ffmpeg
+```
+
 ## Using GPU for Whisper
 
 > **Note** \

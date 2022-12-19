@@ -1,11 +1,17 @@
 __all__ = ["dir_project", "dir_setting", "dir_temp", "dir_log", "dir_assets", "gClass", "fJson", "app_icon", "app_name"]
 
 import os
+import platform
 import ast
 import shlex
-from multiprocessing import Process
+from multiprocessing import Process, Queue
 from typing import Optional
 from time import sleep
+
+if platform.system() == "Windows":
+    import pyaudiowpatch as pyaudio
+else:
+    import pyaudio  # type: ignore
 
 from .utils.Json import SettingJsonHandler
 
@@ -54,6 +60,11 @@ class Globals:
 
         # window
         self.cw = None  # console window
+
+        # record stream
+        self.stream: Optional[pyaudio.Stream] = None
+        self.data_queue = Queue()
+        self.max_energy: int = 5000
 
     def enableRecording(self):
         self.recording = True
@@ -170,6 +181,14 @@ class Globals:
     def getMwTextTl(self) -> str:
         assert self.mw is not None
         return self.mw.tb_translated.get("1.0", "end")
+
+    def clearMwTc(self):
+        assert self.mw is not None
+        self.mw.tb_transcribed.delete("1.0", "end")
+
+    def clearMwTl(self):
+        assert self.mw is not None
+        self.mw.tb_translated.delete("1.0", "end")
 
     def getDetachedTextTc(self) -> str:
         assert self.detached_tcw is not None

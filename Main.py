@@ -34,7 +34,7 @@ from speech_translate.components.MBox import Mbox
 from speech_translate.components.Tooltip import CreateToolTip
 from speech_translate.utils.Helper import modelKeys, modelSelectDict, upFirstCase, startFile
 from speech_translate.utils.LangCode import engine_select_source_dict, engine_select_target_dict, whisper_compatible
-from speech_translate.utils.Record import from_file, getInputDevices, getOutputDevices, getDefaultOutputDevice, rec_mic, rec_pc
+from speech_translate.utils.Record import getInputDevices, getOutputDevices, getDefaultOutputDevice, from_file, rec_mic, rec_pc, rec_mic_realTime
 
 
 def hideConsole(win):
@@ -284,7 +284,7 @@ class MainWindow:
         self.sep_btn_f3 = ttk.Separator(self.f3_leftRow2, orient="vertical")
         self.sep_btn_f3.pack(side=tk.LEFT, fill="y", pady=0, ipady=0)
 
-        self.btn_record_mic = ttk.Button(self.f3_frameRight, text="Record From Mic", command=self.rec_from_mic)
+        self.btn_record_mic = ttk.Button(self.f3_frameRight, text="Record From Mic", command=self.realtime_rec_from_mic)
         self.btn_record_mic.pack(side=tk.RIGHT, padx=5, pady=5)
         CreateToolTip(self.btn_record_mic, "Record sound from selected microphone device")
 
@@ -378,6 +378,7 @@ class MainWindow:
         try:
             exit()
         except SystemExit:
+            os._exit(0)
             pass
 
     # Show window
@@ -779,6 +780,51 @@ class MainWindow:
         self.loadBar.stop()
         self.loadBar.config(mode="determinate")
         self.btn_record_mic.config(text="Record From Mic", command=self.rec_from_mic)
+        self.enable_interactions()
+
+    def realtime_rec_from_mic(self):
+        # Checking args
+        mode, model, engine, sourceLang, targetLang, mic, speaker = self.get_args()
+        if sourceLang == targetLang and mode == 2:
+            Mbox("Invalid options!", "Source and target language cannot be the same", 2)
+            return
+
+        # ui changes
+        self.tb_clear()
+        self.start_loadBar()
+        self.disable_interactions()
+        self.btn_record_mic.config(text="Loading", command=self.realtime_rec_from_mic_stop, state="normal")
+
+        gClass.enableRecording()  # Flag update    # Disable recording is by button input
+        transcribe = mode == 0 or mode == 2
+        translate = mode == 1 or mode == 2
+
+        # Start thread
+        try:
+            recMicThread = threading.Thread(target=rec_mic_realTime, args=(sourceLang, engine, model, mic), daemon=True)
+            recMicThread.start()
+        except Exception as e:
+            logger.exception(e)
+            self.errorNotif(str(e))
+            self.rec_from_mic_stop()
+
+    def realtime_rec_from_mic_stop(self):
+        logger.info("Recording Mic realtime Stopped")
+        gClass.disableRecording()
+        if gClass.stream is not None:
+            # gClass.stream_obj.stop_stream()
+            gClass.stream.close()
+            logger.info("Stream closed")
+
+        if gClass.dl_proc is not None:
+            gClass.dl_proc.terminate()
+            gClass.dl_proc = None
+            self.root.update()
+            Mbox("Model Download Cancelled", "Cancelled model downloading", 0, self.root)
+
+        self.loadBar.stop()
+        self.loadBar.config(mode="determinate")
+        self.btn_record_mic.config(text="Record From Mic", command=self.realtime_rec_from_mic)
         self.enable_interactions()
 
     # From pc
