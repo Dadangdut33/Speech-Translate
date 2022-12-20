@@ -62,11 +62,15 @@ You can change the settings by clicking the settings button on the menubar of th
 ## Setup
 
 > **Note** \
-> It is recommended to create a virtual environment, but it is not required. For OS other than windows, you can install the packages from [requirements_notwindows.txt](./requirements_notwindows.txt)
+> It is recommended to create a virtual environment, but it is not required.
+>
+> **For OS other than windows**, you can install the packages from [requirements_notwindows.txt](./requirements_notwindows.txt)
+>
+> The master branch might not always be stable so you can checkout to the latest release tag to get the latest stable version.
 
 1. Create your virtual environment by running `python -m venv venv`
 2. Activate your virtual environment by running `source venv/bin/activate`
-3. Install all the dependencies needed by running the [`devSetup.py`](./devSetup.py) located in **root directory** or install the packages yourself by installing from the requirements.txt yourself by running`pip install -r requirements.txt`
+3. Install all the dependencies needed by running the [`devSetup.py`](./devSetup.py) located in **root directory** or install the packages yourself by installing from the requirements.txt yourself by running `pip install -r requirements.txt`
 4. Get to root directory and Run the script by typing `python Main.py`
 
 Whisper needs [ffmpeg](https://ffmpeg.org/) to work, you can install it and add it to your path manually or you can do it easily by running the following command:

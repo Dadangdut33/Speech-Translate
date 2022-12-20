@@ -9,7 +9,7 @@ import audioop
 from datetime import datetime, timedelta
 from multiprocessing import Process, Queue
 from time import sleep, time
-from typing import Literal
+from typing import Literal, Optional
 
 import whisper
 import sounddevice as sd
@@ -353,7 +353,7 @@ def record_from_pc(audio_name: str, device: str, seconds=5) -> None:
     logger.info("Audio recording complete")
 
 
-def multiProc_Whisper(queue: Queue, audio: str, modelName: str, auto: bool, transcribing: bool, lang_source: str | None = None):
+def multiProc_Whisper(queue: Queue, audio: str, modelName: str, auto: bool, transcribing: bool, lang_source: Optional[str] = None):
     """Multi Processing for Whisper
 
     Args:
@@ -362,7 +362,7 @@ def multiProc_Whisper(queue: Queue, audio: str, modelName: str, auto: bool, tran
         model (whisper.Whisper): Model
         auto (bool): Auto Detect Language
         transcribing (bool): Transcribing or not
-        lang_source (str | None, optional): Source Language. Defaults to None.
+        lang_source (str, optional): Source Language. Defaults to None.
     """
     logger.debug("Source Language: Auto" if auto else f"Source Language: {lang_source}")
     model = whisper.load_model(modelName)
@@ -378,8 +378,8 @@ def whisper_transcribe(
     verbose: bool,
     transcribe: bool,
     translate: bool = False,
-    engine: Literal["Whisper", "Google", "LibreTranslate", "MyMemoryTranslator"] | None = None,
-    lang_target: str | None = None,
+    engine: Optional[Literal["Whisper", "Google", "LibreTranslate", "MyMemoryTranslator"]] = None,
+    lang_target: Optional[str] = None,
     multiProc: bool = False,
 ) -> None:
     """Transcribe Audio using whisper
@@ -392,7 +392,7 @@ def whisper_transcribe(
         verbose (bool): Verbose or not
         translate (bool, optional): Translate or not. Defaults to False.
         engine (Literal["Whisper", "Google", "LibreTranslate", "MyMemoryTranslator"], optional): Engine to use for translation. Defaults to None.
-        lang_target (str | None, optional): Target Language. Defaults to None.
+        lang_target (str, optional): Target Language. Defaults to None.
         multiProc (bool, optional): Multi Processing or not. Defaults to False. (Use this to make the process killable)
     """
     assert gClass.mw is not None
@@ -458,7 +458,7 @@ def whisper_translate(
     auto: bool,
     verbose: bool,
     engine: Literal["Whisper", "Google", "LibreTranslate", "MyMemoryTranslator"],
-    transcribed_text: str | None = None,
+    transcribed_text: Optional[str] = None,
     multiProc: bool = False,
 ) -> None:
     """Translate Audio
@@ -471,7 +471,7 @@ def whisper_translate(
         auto (bool): Auto Detect Language
         verbose (bool): Verbose
         engine (Literal["Whisper", "Google", "LibreTranslate", "MyMemory", "MyMemoryTranslator"]): Engine to use for translation
-        transcribed_text (str | None, optional): Transcribed Text. Defaults to None. If provided will use this model for online translation instead of offline using whisper.
+        transcribed_text (str, optional): Transcribed Text. Defaults to None. If provided will use this model for online translation instead of offline using whisper.
         multiProc (bool, optional): Multi Processing or not. Defaults to False. (Use this to make the process killable)
     """
     assert gClass.mw is not None
