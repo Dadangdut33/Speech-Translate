@@ -23,6 +23,9 @@ class AboutWindow:
         self.root.geometry("375x220")
         self.root.wm_withdraw()
 
+        # On Close
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+
         # Top frame
         self.topFrame = tk.Frame(self.root, bg="white")
         self.topFrame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
@@ -44,15 +47,15 @@ class AboutWindow:
 
         # Top frame
         try:  # Try catch the logo so if logo not found it can still run
-            self.canvasImg = tk.Canvas(self.topFrame, width=98, height=98, bg="white")
+            self.canvasImg = tk.Canvas(self.topFrame, width=100, height=100, bg="white")
             self.canvasImg.pack(side=tk.TOP, padx=5, pady=5)
-            self.imgObj = Image.open(app_icon)
+            self.imgObj = Image.open(app_icon.replace(".ico", ".png"))
             self.imgObj = self.imgObj.resize((100, 100), Image.ANTIALIAS)
 
             self.img = ImageTk.PhotoImage(self.imgObj, master=self.canvasImg)
             self.canvasImg.create_image(2, 50, anchor=tk.W, image=self.img)
         except Exception:
-            self.logoNotFoud = tk.Label(self.topFrame, text="Fail To Load Logo, Logo not found", bg="white", fg="red")
+            self.logoNotFoud = tk.Label(self.topFrame, text="Fail To Load Logo, icon.png not found", bg="white", fg="red")
             self.logoNotFoud.pack(side=tk.TOP, padx=5, pady=5)
             self.root.geometry("375x325")
 
@@ -83,14 +86,17 @@ class AboutWindow:
         self.okBtn = ttk.Button(self.bottomRight, text="Close", command=self.on_closing, width=10)
         self.okBtn.pack(padx=5, pady=5, side=tk.RIGHT)
 
-        # On Close
-        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
-
         # ------------------------------
         gClass.about = self  # type: ignore
         self.checking = False
         self.checkingOnStart = False
         self.checkedGet = None
+
+        # ------------------ Set Icon ------------------
+        try:
+            self.root.iconbitmap(app_icon)
+        except:
+            pass
 
         # ------------------------------
         # on init
@@ -167,7 +173,6 @@ class AboutWindow:
 
             return
 
-        # logger.debug("Checking...")
         self.root.after(250, self.checking_thread)
 
     def req_update_check(self):
