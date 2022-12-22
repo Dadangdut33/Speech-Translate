@@ -23,7 +23,7 @@ class TcsWindow:
         self.curText = ""
         self.updateTb = False
         self.getTbVal = False
-        gClass.detached_tcw = self  # type: ignore
+        gClass.ex_tcw = self  # type: ignore
 
         # Top frame
         self.frame_1 = ttk.Frame(self.root)
@@ -37,9 +37,9 @@ class TcsWindow:
         self.textbox = tk.Text(
             self.frame_1,
             wrap=tk.WORD,
-            font=(fJson.settingCache["textbox"]["detached_tc"]["font"], fJson.settingCache["textbox"]["detached_tc"]["font_size"]),
-            fg=fJson.settingCache["textbox"]["detached_tc"]["font_color"],
-            bg=fJson.settingCache["textbox"]["detached_tc"]["bg_color"],
+            font=(fJson.settingCache["tb_ex_tc_font"], fJson.settingCache["tb_ex_tc_font_size"]),
+            fg=fJson.settingCache["tb_ex_tc_font_color"],
+            bg=fJson.settingCache["tb_ex_tc_bg_color"],
         )
         self.textbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.textbox.config(yscrollcommand=self.scrollbar.set)
@@ -61,10 +61,10 @@ class TcsWindow:
             pass
 
         # ------------------ Polling ------------------
-        self.root.after(100, self.pollingStuff)
+        self.root.after(100, self.textUpdatePoll)
 
     # curText polling
-    def pollingStuff(self):
+    def textUpdatePoll(self):
         """
         Method to update the textbox value in a thread without runtimeerror.
         Updating is done by setting flag to true and then checking it here.
@@ -79,7 +79,7 @@ class TcsWindow:
             self.textbox.see("end")
             self.updateTb = False
 
-        self.root.after(100, self.pollingStuff)
+        self.root.after(100, self.textUpdatePoll)
 
     def update_text(self):
         """

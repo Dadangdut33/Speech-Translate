@@ -11,11 +11,11 @@ modelKeys = list(modelSelectDict.keys())
 modelValues = list(modelSelectDict.values())
 
 
-def upFirstCase(string):
+def upFirstCase(string: str):
     return string[0].upper() + string[1:]
 
 
-def startFile(filename):
+def startFile(filename: str):
     """
     Open a folder or file in the default application.
     """
@@ -23,16 +23,19 @@ def startFile(filename):
         os.startfile(filename)
     except FileNotFoundError:
         logger.exception("Cannot find the file specified.")
+        nativeNotify("Error", "Cannot find the file specified.", "", "Speech Translate")
     except Exception:
         try:
             subprocess.Popen(["xdg-open", filename])
         except FileNotFoundError:
             logger.exception("Cannot open the file specified.")
+            nativeNotify("Error", "Cannot find the file specified.", "", "Speech Translate")
         except Exception as e:
             logger.exception("Error: " + str(e))
+            nativeNotify("Error", f"Uncaught error {str(e)}", "", "Speech Translate")
 
 
-def OpenUrl(url):
+def OpenUrl(url: str):
     """
     To open a url in the default browser
     """
@@ -43,7 +46,7 @@ def OpenUrl(url):
         nativeNotify("Error", "Cannot open the url specified.", "", "Speech Translate")
 
 
-def nativeNotify(title, message, logo, app_name):
+def nativeNotify(title: str, message: str, logo: str, app_name: str):
     """
     Native notification
     """

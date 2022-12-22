@@ -11,56 +11,62 @@ from speech_translate._version import __setting_version__
 default_setting = {
     "version": __setting_version__,
     "checkUpdateOnStart": True,
+    # ------------------ #
+    # App settings
     "mode": "Transcribe",
     "model": "tiny",
-    "sourceLang": "Auto Detect",
-    "targetLang": "Indonesian",
     "verbose": False,
     "keep_audio": False,
     "keep_log": False,
     "hide_console_window_on_start": True,
-    "max_temp": 100,
-    "cutOff": {"mic": 5, "speaker": 5},
     "separate_with": "\\n",
+    "realtime_mode": True,
+    "mic": "",
+    "speaker": "",
+    # ------------------ #
+    # Tl Settings
+    "sourceLang": "Auto Detect",
+    "targetLang": "Indonesian",
     "tl_engine": "Google",
     "libre_api_key": "",
     "libre_host": "libretranslate.de",
     "libre_port": "",
     "libre_https": True,
-    "mic": "",
-    "speaker": "",
-    "textbox": {
-        "mw_tc": {
-            "max": 1000,
-            "font": "TKDefaultFont",
-            "font_size": 10,
-            "font_color": "#000000",
-            "bg_color": "#FFFFFF",
-        },
-        "mw_tl": {
-            "max": 1000,
-            "font": "TKDefaultFont",
-            "font_size": 10,
-            "font_color": "#000000",
-            "bg_color": "#FFFFFF",
-        },
-        "detached_tc": {
-            "max": 500,
-            "font": "TKDefaultFont",
-            "font_size": 10,
-            "font_color": "#000000",
-            "bg_color": "#FFFFFF",
-            "opacity": 0.8,
-        },
-        "detached_tl": {
-            "max": 500,
-            "font": "TKDefaultFont",
-            "font_size": 10,
-            "font_color": "#000000",
-            "bg_color": "#FFFFFF",
-            "opacity": 0.8,
-        },
-    },
+    # ------------------ #
+    # Cutoff (not realtime)
+    "cutOff_mic": 5,
+    "cutOff_speaker": 5,
+    "max_temp": 100,
+    # ------------------ #
+    # Realtime settings
+    "realtime_mic_maxBuffer": 30,
+    "realtime_speaker_maxBuffer": 60,
+    "realtime_transcribe_rate": 0.5,
+    "sample_rate": 16000,
+    "chunk_size": 1024,
+    "max_sentences": 10,
+    # ------------------ #
+    # Textboxes
+    "tb_mw_tc_max": 0,
+    "tb_mw_tc_font": "TKDefaultFont",
+    "tb_mw_tc_font_size": 10,
+    "tb_mw_tc_font_color": "#000000",
+    "tb_mw_tc_bg_color": "#FFFFFF",
+    "tb_mw_tl_max": 0,
+    "tb_mw_tl_font": "TKDefaultFont",
+    "tb_mw_tl_font_size": 10,
+    "tb_mw_tl_font_color": "#000000",
+    "tb_mw_tl_bg_color": "#FFFFFF",
+    "tb_ex_tc_max": 0,
+    "tb_ex_tc_font": "TKDefaultFont",
+    "tb_ex_tc_font_size": 10,
+    "tb_ex_tc_font_color": "#000000",
+    "tb_ex_tc_bg_color": "#FFFFFF",
+    "tb_ex_tl_max": 0,
+    "tb_ex_tl_font": "TKDefaultFont",
+    "tb_ex_tl_font_size": 10,
+    "tb_ex_tl_font_color": "#000000",
+    "tb_ex_tl_bg_color": "#FFFFFF",
 }
 
 

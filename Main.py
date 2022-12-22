@@ -188,9 +188,9 @@ class MainWindow:
             height=5,
             width=25,
             relief="flat",
-            font=(fJson.settingCache["textbox"]["mw_tc"]["font"], fJson.settingCache["textbox"]["mw_tc"]["font_size"]),
-            fg=fJson.settingCache["textbox"]["mw_tc"]["font_color"],
-            bg=fJson.settingCache["textbox"]["mw_tc"]["bg_color"],
+            font=(fJson.settingCache["tb_mw_tc_font"], fJson.settingCache["tb_mw_tc_font_size"]),
+            fg=fJson.settingCache["tb_mw_tc_font_color"],
+            bg=fJson.settingCache["tb_mw_tc_bg_color"],
         )
         self.tb_transcribed.bind("<Key>", self.tb_allowed_key)
         self.tb_transcribed.pack(side=tk.LEFT, fill="both", expand=True, padx=1, pady=1)
@@ -208,9 +208,9 @@ class MainWindow:
             height=5,
             width=25,
             relief="flat",
-            font=(fJson.settingCache["textbox"]["mw_tl"]["font"], fJson.settingCache["textbox"]["mw_tl"]["font_size"]),
-            fg=fJson.settingCache["textbox"]["mw_tl"]["font_color"],
-            bg=fJson.settingCache["textbox"]["mw_tl"]["bg_color"],
+            font=(fJson.settingCache["tb_mw_tl_font"], fJson.settingCache["tb_mw_tl_font_size"]),
+            fg=fJson.settingCache["tb_mw_tl_font_color"],
+            bg=fJson.settingCache["tb_mw_tl_bg_color"],
         )
         self.tb_translated.bind("<Key>", self.tb_allowed_key)
         self.tb_translated.pack(fill="both", expand=True, padx=1, pady=1)
@@ -371,8 +371,8 @@ class MainWindow:
 
         gClass.sw.root.destroy()  # type: ignore
         gClass.about.root.destroy()  # type: ignore
-        gClass.detached_tcw.root.destroy()  # type: ignore
-        gClass.detached_tlw.root.destroy()  # type: ignore
+        gClass.ex_tcw.root.destroy()  # type: ignore
+        gClass.ex_tlw.root.destroy()  # type: ignore
         self.root.destroy()
 
         try:
@@ -432,12 +432,12 @@ class MainWindow:
         gClass.sw.on_open()
 
     def open_detached_tcw(self, _event=None):
-        assert gClass.detached_tcw is not None
-        gClass.detached_tcw.show()
+        assert gClass.ex_tcw is not None
+        gClass.ex_tcw.show()
 
     def open_detached_tlw(self, _event=None):
-        assert gClass.detached_tlw is not None
-        gClass.detached_tlw.show()
+        assert gClass.ex_tlw is not None
+        gClass.ex_tlw.show()
 
     # ------------------ Handler ------------------
     # Disable writing, allow copy

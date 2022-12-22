@@ -31,7 +31,7 @@ class SettingWindow:
         self.root = tk.Tk()
 
         self.root.title(app_name)
-        self.root.geometry("1080x370")
+        self.root.geometry("950x370")
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.root.wm_attributes("-topmost", False)  # Default False
 
@@ -51,20 +51,20 @@ class SettingWindow:
         self.tabControl = ttk.Notebook(self.frame_top)
         self.tabControl.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        self.frame_tab1 = ttk.Frame(self.tabControl)
-        self.tabControl.add(self.frame_tab1, text="General")
+        self.ft1 = ttk.Frame(self.tabControl)
+        self.tabControl.add(self.ft1, text="General")
 
-        self.frame_tab2 = ttk.Frame(self.tabControl)
-        self.tabControl.add(self.frame_tab2, text="Translation")
+        self.ft2 = ttk.Frame(self.tabControl)
+        self.tabControl.add(self.ft2, text="Translation")
 
-        self.frame_tab3 = ttk.Frame(self.tabControl)
-        self.tabControl.add(self.frame_tab3, text="Textbox")
+        self.ft3 = ttk.Frame(self.tabControl)
+        self.tabControl.add(self.ft3, text="Textbox")
 
-        self.frame_tab4 = ttk.Frame(self.tabControl)
-        self.tabControl.add(self.frame_tab4, text="Other")
+        self.ft4 = ttk.Frame(self.tabControl)
+        self.tabControl.add(self.ft4, text="Other")
 
         # ------------------ Widgets - General ------------------
-        self.lf_t1r1 = ttk.LabelFrame(self.frame_tab1, text="• Audio Capture")
+        self.lf_t1r1 = tk.LabelFrame(self.ft1, text="• Audio Capture")
         self.lf_t1r1.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 
         # cutoff
@@ -72,51 +72,51 @@ class SettingWindow:
         self.t1r1_1 = ttk.Frame(self.lf_t1r1)
         self.t1r1_1.pack(side=tk.TOP, fill=tk.X, pady=5)
 
-        self.label_cutOff_mic = ttk.Label(self.t1r1_1, text="Mic Cutoff: ")
-        self.label_cutOff_mic.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.label_cutOff_mic, "Set the cut off length (in seconds) for microphone input.")
+        self.lbl_cutOff_mic = ttk.Label(self.t1r1_1, text="Mic Cutoff: ")
+        self.lbl_cutOff_mic.pack(side=tk.LEFT, padx=5)
+        CreateToolTip(self.lbl_cutOff_mic, "Set the cut off length (in seconds) for microphone input.")
 
-        self.spinner_cutOff_mic = ttk.Spinbox(
+        self.spn_cutOff_mic = ttk.Spinbox(
             self.t1r1_1,
             from_=3,
             to=30,
             validate="key",
             validatecommand=(self.root.register(self.number_only), "%P"),
-            command=lambda: fJson.savePartialSetting("cutOff", {"mic": int(self.spinner_cutOff_mic.get()), "speaker": int(self.spinner_cutOff_speaker.get())}),
+            command=lambda: fJson.savePartialSetting("cutOff_mic", int(self.spn_cutOff_mic.get())),
         )
-        self.spinner_cutOff_mic.bind(
+        self.spn_cutOff_mic.bind(
             "<KeyRelease>",
-            lambda e: self.verifyMaxNumber(self.spinner_cutOff_mic, 3, 30, lambda: fJson.savePartialSetting("cutOff", {"mic": int(self.spinner_cutOff_mic.get()), "speaker": int(self.spinner_cutOff_speaker.get())})),
+            lambda e: self.verifyMaxNumber(self.spn_cutOff_mic, 3, 30, lambda: fJson.savePartialSetting("cutOff_mic", int(self.spn_cutOff_mic.get()))),
         )
-        self.spinner_cutOff_mic.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.spinner_cutOff_mic, "Set the cut off length (in seconds) for microphone input.")
+        self.spn_cutOff_mic.pack(side=tk.LEFT, padx=5)
+        CreateToolTip(self.spn_cutOff_mic, "Set the cut off length (in seconds) for microphone input.")
 
-        self.label_cutOff_speaker = ttk.Label(self.t1r1_1, text="Speaker Cutoff: ")
-        self.label_cutOff_speaker.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.label_cutOff_speaker, "Set the cut off length (in seconds) for speaker input.")
+        self.lbl_cutOff_speaker = ttk.Label(self.t1r1_1, text="Speaker Cutoff: ")
+        self.lbl_cutOff_speaker.pack(side=tk.LEFT, padx=5)
+        CreateToolTip(self.lbl_cutOff_speaker, "Set the cut off length (in seconds) for speaker input.")
 
-        self.spinner_cutOff_speaker = ttk.Spinbox(
+        self.spn_cutOff_speaker = ttk.Spinbox(
             self.t1r1_1,
             from_=3,
             to=30,
             validate="key",
             validatecommand=(self.root.register(self.number_only), "%P"),
-            command=lambda: fJson.savePartialSetting("cutOff", {"mic": int(self.spinner_cutOff_mic.get()), "speaker": int(self.spinner_cutOff_speaker.get())}),
+            command=lambda: fJson.savePartialSetting("cutOff_speaker", int(self.spn_cutOff_speaker.get())),
         )
-        self.spinner_cutOff_speaker.bind(
+        self.spn_cutOff_speaker.bind(
             "<KeyRelease>",
-            lambda e: self.verifyMaxNumber(self.spinner_cutOff_speaker, 3, 30, lambda: fJson.savePartialSetting("cutOff", {"mic": int(self.spinner_cutOff_mic.get()), "speaker": int(self.spinner_cutOff_speaker.get())})),
+            lambda e: self.verifyMaxNumber(self.spn_cutOff_speaker, 3, 30, lambda: fJson.savePartialSetting("cutOff_speaker", int(self.spn_cutOff_speaker.get()))),
         )
-        self.spinner_cutOff_speaker.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.spinner_cutOff_speaker, "Set the cut off length (in seconds) for speaker input.")
+        self.spn_cutOff_speaker.pack(side=tk.LEFT, padx=5)
+        CreateToolTip(self.spn_cutOff_speaker, "Set the cut off length (in seconds) for speaker input.")
 
         # 2
         self.t1r1_2 = ttk.Frame(self.lf_t1r1)
         self.t1r1_2.pack(side=tk.TOP, fill=tk.X, pady=5)
 
-        self.label_separate_text_with = ttk.Label(self.t1r1_2, text="Text Separator: ")
-        self.label_separate_text_with.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.label_separate_text_with, "Set the separator for text that is transcribed/translated.\n\n. Default value \\n", wrapLength=400)
+        self.lbl_separate_text_with = ttk.Label(self.t1r1_2, text="Text Separator: ")
+        self.lbl_separate_text_with.pack(side=tk.LEFT, padx=5)
+        CreateToolTip(self.lbl_separate_text_with, "Set the separator for text that is transcribed/translated.\n\n. - Default value \\n", wrapLength=400)
 
         self.entry_separate_text_with = ttk.Entry(self.t1r1_2)
         self.entry_separate_text_with.pack(side=tk.LEFT, padx=5)
@@ -127,69 +127,73 @@ class SettingWindow:
         self.t1r1_3 = ttk.Frame(self.lf_t1r1)
         self.t1r1_3.pack(side=tk.TOP, fill=tk.X, pady=5)
 
-        self.label_max_temp = ttk.Label(self.t1r1_3, text="Max Temp File: ")
-        self.label_max_temp.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.label_max_temp, "Set max number of audio temp files before deletion in each recording session")
+        self.lbl_max_temp = ttk.Label(self.t1r1_3, text="Max Temp File: ")
+        self.lbl_max_temp.pack(side=tk.LEFT, padx=5)
+        CreateToolTip(self.lbl_max_temp, "Set max number of audio temp files before deletion in each recording session")
 
-        self.spinner_max_temp = ttk.Spinbox(
-            self.t1r1_3, from_=10, to=500, validate="key", validatecommand=(self.root.register(self.number_only), "%P"), command=lambda: fJson.savePartialSetting("max_temp", int(self.spinner_max_temp.get()))
+        self.spn_max_temp = ttk.Spinbox(
+            self.t1r1_3, from_=10, to=500, validate="key", validatecommand=(self.root.register(self.number_only), "%P"), command=lambda: fJson.savePartialSetting("max_temp", int(self.spn_max_temp.get()))
         )
-        self.spinner_max_temp.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spinner_max_temp, 10, 500, lambda: fJson.savePartialSetting("max_temp", int(self.spinner_max_temp.get()))))
-        self.spinner_max_temp.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.spinner_max_temp, "Set max number of audio temp files before deletion in each recording session")
+        self.spn_max_temp.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_max_temp, 10, 500, lambda: fJson.savePartialSetting("max_temp", int(self.spn_max_temp.get()))))
+        self.spn_max_temp.pack(side=tk.LEFT, padx=5)
+        CreateToolTip(self.spn_max_temp, "Set max number of audio temp files before deletion in each recording session")
 
-        self.checkbutton_keep_audio = ttk.Checkbutton(self.t1r1_3, text="Keep Audio", command=lambda: fJson.savePartialSetting("keep_audio", self.checkbutton_keep_audio.instate(["selected"])))
-        self.checkbutton_keep_audio.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.checkbutton_keep_audio, "Keep audio files after transcription/translation")
+        self.cbtn_keep_audio = ttk.Checkbutton(self.t1r1_3, text="Keep Audio", command=lambda: fJson.savePartialSetting("keep_audio", self.cbtn_keep_audio.instate(["selected"])))
+        self.cbtn_keep_audio.pack(side=tk.LEFT, padx=5)
+        CreateToolTip(self.cbtn_keep_audio, "Keep audio files after transcription/translation")
 
         # log
-        self.lf_t1r2 = ttk.LabelFrame(self.frame_tab1, text="• Logging")
+        self.lf_t1r2 = tk.LabelFrame(self.ft1, text="• Logging")
         self.lf_t1r2.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 
         self.t1_r2_1 = ttk.Frame(self.lf_t1r2)
         self.t1_r2_1.pack(side=tk.TOP, fill=tk.X, pady=5)
 
-        self.label_log_location = ttk.Label(self.t1_r2_1, text="Log Files Location: ")
-        self.label_log_location.pack(side=tk.LEFT, padx=5)
+        self.lbl_log_location = ttk.Label(self.t1_r2_1, text="Log Files Location ", width=16)
+        self.lbl_log_location.pack(side=tk.LEFT, padx=5)
 
-        self.label_log_location_value = ttk.Label(self.t1_r2_1, text=dir_log, cursor="hand2")
-        self.label_log_location_value.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.label_log_location_value, "Location of log file.\n- LClick to open the folder.\n-RClick to delete all log files.")
-        self.label_log_location_value.bind("<Button-1>", lambda e: startFile(dir_log))
-        self.label_log_location_value.bind("<Button-3>", lambda e: self.promptDeleteLog())
+        self.entry_log_location_value = ttk.Entry(self.t1_r2_1, cursor="hand2", width=100)
+        self.entry_log_location_value.insert(0, dir_log)
+        self.entry_log_location_value.config(state="readonly")
+        self.entry_log_location_value.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        self.entry_log_location_value.bind("<Button-1>", lambda e: startFile(dir_log))
+        self.entry_log_location_value.bind("<Button-3>", lambda e: self.promptDeleteLog())
+        CreateToolTip(self.entry_log_location_value, "Location of log file.\n- LClick to open the folder.\n- RClick to delete all log files.")
 
         self.t1_r2_2 = ttk.Frame(self.lf_t1r2)
         self.t1_r2_2.pack(side=tk.TOP, fill=tk.X, pady=5)
 
-        self.checkbutton_keep_log = ttk.Checkbutton(self.t1_r2_2, text="Keep Log Files", command=lambda: fJson.savePartialSetting("keep_log", self.checkbutton_keep_log.instate(["selected"])))
-        self.checkbutton_keep_log.pack(side=tk.LEFT, padx=5, pady=5)
+        self.cbtn_keep_log = ttk.Checkbutton(self.t1_r2_2, text="Keep Log Files", command=lambda: fJson.savePartialSetting("keep_log", self.cbtn_keep_log.instate(["selected"])))
+        self.cbtn_keep_log.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.checkbutton_verbose = ttk.Checkbutton(self.t1_r2_2, text="Verbose Logging for Whisper", command=lambda: fJson.savePartialSetting("verbose", self.checkbutton_verbose.instate(["selected"])))
-        self.checkbutton_verbose.pack(side=tk.LEFT, padx=5)
+        self.cbtn_verbose = ttk.Checkbutton(self.t1_r2_2, text="Verbose Logging for Whisper", command=lambda: fJson.savePartialSetting("verbose", self.cbtn_verbose.instate(["selected"])))
+        self.cbtn_verbose.pack(side=tk.LEFT, padx=5)
 
         # only on windows
         if platform.system() == "Windows":
-            self.checkbutton_hide_console_window_on_start = ttk.Checkbutton(
-                self.t1_r2_2, text="Hide Console Window on Start", command=lambda: fJson.savePartialSetting("hide_console_window_on_start", self.checkbutton_hide_console_window_on_start.instate(["selected"]))
+            self.cbtn_hide_console_window_on_start = ttk.Checkbutton(
+                self.t1_r2_2, text="Hide Console Window on Start", command=lambda: fJson.savePartialSetting("hide_console_window_on_start", self.cbtn_hide_console_window_on_start.instate(["selected"]))
             )
-            self.checkbutton_hide_console_window_on_start.pack(side=tk.LEFT, padx=5)
-            CreateToolTip(self.checkbutton_hide_console_window_on_start, "Will hide console (log) window every program start. Only on Windows.")
+            self.cbtn_hide_console_window_on_start.pack(side=tk.LEFT, padx=5)
+            CreateToolTip(self.cbtn_hide_console_window_on_start, "Will hide console (log) window every program start. Only on Windows.")
 
         # model
-        self.lf_t1r3 = ttk.LabelFrame(self.frame_tab1, text="• Model")
+        self.lf_t1r3 = tk.LabelFrame(self.ft1, text="• Model")
         self.lf_t1r3.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 
         # label model location
         self.t1_r3_1 = ttk.Frame(self.lf_t1r3)
         self.t1_r3_1.pack(side=tk.TOP, fill=tk.X, pady=5)
 
-        self.label_model_location = ttk.Label(self.t1_r3_1, text="Model Location: ")
-        self.label_model_location.pack(side=tk.LEFT, padx=5)
+        self.lbl_model_location = ttk.Label(self.t1_r3_1, text="Model Location ", width=16)
+        self.lbl_model_location.pack(side=tk.LEFT, padx=5)
 
-        self.label_model_location_value = ttk.Label(self.t1_r3_1, text="None", cursor="hand2")
-        self.label_model_location_value.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.label_model_location_value, "Location of the model file.\nLClick to open the folder")
-        self.label_model_location_value.bind("<Button-1>", lambda e: startFile(self.label_model_location_value.cget("text")))
+        self.entry_model_location_value = ttk.Entry(self.t1_r3_1, cursor="hand2", width=100)
+        self.entry_model_location_value.insert(0, get_default_download_root())
+        self.entry_model_location_value.config(state="readonly")
+        self.entry_model_location_value.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        self.entry_model_location_value.bind("<Button-1>", lambda e: startFile(self.entry_model_location_value.cget("text")))
+        CreateToolTip(self.entry_model_location_value, "Location of the model file.\nLClick to open the folder")
 
         # the models
         self.t1r3_2 = ttk.Frame(self.lf_t1r3)
@@ -286,234 +290,388 @@ class SettingWindow:
         self.btn_interact_large.pack(side=tk.LEFT, padx=5)
 
         # ------------------ Widgets - Translation ------------------
-        self.lf_t3r1 = ttk.LabelFrame(self.frame_tab2, text="• Libre Translate Setting")
+        self.lf_t3r1 = tk.LabelFrame(self.ft2, text="• Libre Translate Setting")
         self.lf_t3r1.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 
-        self.label_libre_key = ttk.Label(self.lf_t3r1, text="Libre Translate API Key")
-        self.label_libre_key.pack(side=tk.LEFT, padx=5, pady=5)
-        CreateToolTip(self.label_libre_key, "Libre Translate API Key. Leave empty if not needed or host locally.")
+        self.lbl_libre_key = ttk.Label(self.lf_t3r1, text="Libre Translate API Key")
+        self.lbl_libre_key.pack(side=tk.LEFT, padx=5, pady=5)
+        CreateToolTip(self.lbl_libre_key, "Libre Translate API Key. Leave empty if not needed or host locally.")
 
         self.entry_libre_key = ttk.Entry(self.lf_t3r1)
         self.entry_libre_key.pack(side=tk.LEFT, padx=5, pady=5)
         self.entry_libre_key.bind("<KeyRelease>", lambda e: fJson.savePartialSetting("libre_api_key", self.entry_libre_key.get()))
 
-        self.label_libre_host = ttk.Label(self.lf_t3r1, text="Libre Translate Host")
-        self.label_libre_host.pack(side=tk.LEFT, padx=5, pady=5)
+        self.lbl_libre_host = ttk.Label(self.lf_t3r1, text="Libre Translate Host")
+        self.lbl_libre_host.pack(side=tk.LEFT, padx=5, pady=5)
 
         self.entry_libre_host = ttk.Entry(self.lf_t3r1)
         self.entry_libre_host.pack(side=tk.LEFT, padx=5, pady=5)
         self.entry_libre_host.bind("<KeyRelease>", lambda e: fJson.savePartialSetting("libre_host", self.entry_libre_host.get()))
 
-        self.label_libre_port = ttk.Label(self.lf_t3r1, text="Libre Translate Port")
-        self.label_libre_port.pack(side=tk.LEFT, padx=5, pady=5)
-        self.label_libre_port.bind("<KeyRelease>", lambda e: fJson.savePartialSetting("libre_port", self.entry_libre_port.get()))
+        self.lbl_libre_port = ttk.Label(self.lf_t3r1, text="Libre Translate Port")
+        self.lbl_libre_port.pack(side=tk.LEFT, padx=5, pady=5)
+        self.lbl_libre_port.bind("<KeyRelease>", lambda e: fJson.savePartialSetting("libre_port", self.entry_libre_port.get()))
 
         self.entry_libre_port = ttk.Entry(self.lf_t3r1)
         self.entry_libre_port.pack(side=tk.LEFT, padx=5, pady=5)
         self.entry_libre_port.bind("<KeyRelease>", lambda e: fJson.savePartialSetting("libre_port", self.entry_libre_port.get()))
 
-        self.checkbutton_libre_https = ttk.Checkbutton(self.lf_t3r1, text="Use HTTPS", command=lambda: fJson.savePartialSetting("libre_https", self.checkbutton_libre_https.instate(["selected"])))
-        self.checkbutton_libre_https.pack(side=tk.LEFT, padx=5, pady=5)
-        CreateToolTip(self.checkbutton_libre_https, "Don't use this if you're hosting locally.")
+        self.cbtn_libre_https = ttk.Checkbutton(self.lf_t3r1, text="Use HTTPS", command=lambda: fJson.savePartialSetting("libre_https", self.cbtn_libre_https.instate(["selected"])))
+        self.cbtn_libre_https.pack(side=tk.LEFT, padx=5, pady=5)
+        CreateToolTip(self.cbtn_libre_https, "Don't use this if you're hosting locally.")
 
         # ------------------ Widgets - Textbox ------------------
-        self.t4r1 = ttk.Frame(self.frame_tab3)
-        self.t4r1.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+        self.t4r1 = ttk.Frame(self.ft3)
+        self.t4r1.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5, expand=True)
 
-        self.t4r2 = ttk.Frame(self.frame_tab3)
-        self.t4r2.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+        self.t4r2 = ttk.Frame(self.ft3)
+        self.t4r2.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5, expand=True)
 
-        self.t4r3 = ttk.Frame(self.frame_tab3)
-        self.t4r3.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+        self.t4r3 = ttk.Frame(self.ft3)
+        self.t4r3.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5, expand=True)
 
-        self.t4r4 = ttk.Frame(self.frame_tab3)
-        self.t4r4.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+        self.t4r4 = ttk.Frame(self.ft3)
+        self.t4r4.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5, expand=True)
 
-        self.t4r5 = ttk.Frame(self.frame_tab3)
-        self.t4r5.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+        self.t4r5 = ttk.Frame(self.ft3)
+        self.t4r5.pack(side=tk.TOP, fill=tk.BOTH, padx=5, pady=5, expand=True)
 
         # mw tc
-        self.label_mw_tc = ttk.LabelFrame(self.t4r1, text="• Main Window Transcribed Textbox")
-        self.label_mw_tc.pack(side=tk.LEFT, padx=5, pady=5)
+        self.lbl_mw_tc = tk.LabelFrame(self.t4r1, text="• Main Window Transcribed Textbox")
+        self.lbl_mw_tc.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.X, expand=True)
 
-        self.label_mw_tc_max = ttk.Label(self.label_mw_tc, text="Max Length")
-        self.label_mw_tc_max.pack(side=tk.LEFT, padx=5, pady=5)
+        self.lbl_mw_tc_max = ttk.Label(self.lbl_mw_tc, text="Max Length")
+        self.lbl_mw_tc_max.pack(side=tk.LEFT, padx=5, pady=5)
+        CreateToolTip(self.lbl_mw_tc_max, "Maximum length of the textbox. 0 = no limit.")
 
-        self.spinner_mw_tc_max = ttk.Spinbox(self.label_mw_tc, from_=50, to=10_000, validate="key", validatecommand=(self.root.register(self.number_only), "%P"))
-        self.spinner_mw_tc_max.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spinner_mw_tc_max, 50, 10_000))
-        self.spinner_mw_tc_max.pack(side=tk.LEFT, padx=5, pady=5)
+        self.spn_mw_tc_max = ttk.Spinbox(
+            self.lbl_mw_tc,
+            from_=0,
+            to=10_000,
+            validate="key",
+            validatecommand=(self.root.register(self.number_only), "%P"),
+            command=lambda: fJson.savePartialSetting("tb_mw_tc_max", int(self.spn_mw_tc_max.get())) or self.preview_changes_tb(),
+            width=10,
+        )
+        self.spn_mw_tc_max.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_mw_tc_max, 0, 10_000, lambda: fJson.savePartialSetting("tb_mw_tc_max", int(self.spn_mw_tc_max.get()))) or self.preview_changes_tb())
+        self.spn_mw_tc_max.pack(side=tk.LEFT, padx=5, pady=5)
+        CreateToolTip(self.spn_mw_tc_max, "Maximum length of the textbox. 0 = no limit.")
 
-        self.label_mw_tc_font = ttk.Label(self.label_mw_tc, text="Font")
-        self.label_mw_tc_font.pack(side=tk.LEFT, padx=5, pady=5)
+        self.lbl_mw_tc_font = ttk.Label(self.lbl_mw_tc, text="Font")
+        self.lbl_mw_tc_font.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.select_mw_tc_font = ttk.Combobox(self.label_mw_tc, values=self.fonts, state="readonly")
-        self.select_mw_tc_font.pack(side=tk.LEFT, padx=5, pady=5)
+        self.cb_mw_tc_font = ttk.Combobox(self.lbl_mw_tc, values=self.fonts, state="readonly", width=30)
+        self.cb_mw_tc_font.pack(side=tk.LEFT, padx=5, pady=5)
+        self.cb_mw_tc_font.bind("<<ComboboxSelected>>", lambda e: fJson.savePartialSetting("tb_mw_tc_font", self.cb_mw_tc_font.get()) or self.preview_changes_tb())
 
-        self.label_mw_tc_font_size = ttk.Label(self.label_mw_tc, text="Font Size")
-        self.label_mw_tc_font_size.pack(side=tk.LEFT, padx=5, pady=5)
+        self.lbl_mw_tc_font_size = ttk.Label(self.lbl_mw_tc, text="Font Size")
+        self.lbl_mw_tc_font_size.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.spinbox_mw_tc_font_size = ttk.Spinbox(self.label_mw_tc, from_=3, to=120, validate="key", validatecommand=(self.root.register(self.number_only), "%P"))
-        self.spinbox_mw_tc_font_size.pack(side=tk.LEFT, padx=5, pady=5)
+        self.spn_mw_tc_font_size = ttk.Spinbox(
+            self.lbl_mw_tc,
+            from_=3,
+            to=120,
+            validate="key",
+            validatecommand=(self.root.register(self.number_only), "%P"),
+            command=lambda: fJson.savePartialSetting("tb_mw_tc_font_size", int(self.spn_mw_tc_font_size.get())) or self.preview_changes_tb(),
+            width=10,
+        )
+        self.spn_mw_tc_font_size.bind(
+            "<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_mw_tc_font_size, 3, 120, lambda: fJson.savePartialSetting("tb_mw_tc_font_size", int(self.spn_mw_tc_font_size.get()))) or self.preview_changes_tb()
+        )
+        self.spn_mw_tc_font_size.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.label_mw_tc_font_color = ttk.Label(self.label_mw_tc, text="Font Color")
-        self.label_mw_tc_font_color.pack(side=tk.LEFT, padx=5, pady=5)
+        self.lbl_mw_tc_font_color = ttk.Label(self.lbl_mw_tc, text="Font Color")
+        self.lbl_mw_tc_font_color.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.entry_mw_tc_font_color = ttk.Entry(self.label_mw_tc)
+        self.entry_mw_tc_font_color = ttk.Entry(self.lbl_mw_tc, width=10)
         self.entry_mw_tc_font_color.pack(side=tk.LEFT, padx=5, pady=5)
-        self.entry_mw_tc_font_color.bind("<Button-1>", lambda e: chooseColor(self.entry_mw_tc_font_color, self.entry_mw_tc_font_color.get(), self.root))
+        self.entry_mw_tc_font_color.bind(
+            "<Button-1>",
+            lambda e: chooseColor(self.entry_mw_tc_font_color, self.entry_mw_tc_font_color.get(), self.root)
+            or fJson.savePartialSetting("tb_mw_tc_font_color", self.entry_mw_tc_font_color.get())
+            or self.preview_changes_tb(),
+        )
         self.entry_mw_tc_font_color.bind("<Key>", lambda e: "break")
 
-        self.label_mw_tc_bg_color = ttk.Label(self.label_mw_tc, text="Background Color")
-        self.label_mw_tc_bg_color.pack(side=tk.LEFT, padx=5, pady=5)
+        self.lbl_mw_tc_bg_color = ttk.Label(self.lbl_mw_tc, text="Background Color")
+        self.lbl_mw_tc_bg_color.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.entry_mw_tc_bg_color = ttk.Entry(self.label_mw_tc)
+        self.entry_mw_tc_bg_color = ttk.Entry(self.lbl_mw_tc, width=10)
         self.entry_mw_tc_bg_color.pack(side=tk.LEFT, padx=5, pady=5)
-        self.entry_mw_tc_bg_color.bind("<Button-1>", lambda e: chooseColor(self.entry_mw_tc_bg_color, self.entry_mw_tc_bg_color.get(), self.root))
+        self.entry_mw_tc_bg_color.bind(
+            "<Button-1>",
+            lambda e: chooseColor(self.entry_mw_tc_bg_color, self.entry_mw_tc_bg_color.get(), self.root) or fJson.savePartialSetting("tb_mw_tc_bg_color", self.entry_mw_tc_bg_color.get()) or self.preview_changes_tb(),
+        )
         self.entry_mw_tc_bg_color.bind("<Key>", lambda e: "break")
 
         # mw tl
-        self.label_mw_tl = ttk.LabelFrame(self.t4r2, text="• Main Window Translated Textbox")
-        self.label_mw_tl.pack(side=tk.LEFT, padx=5, pady=5)
+        self.lbl_mw_tl = tk.LabelFrame(self.t4r2, text="• Main Window Translated Textbox")
+        self.lbl_mw_tl.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.X, expand=True)
 
-        self.label_mw_tl_max = ttk.Label(self.label_mw_tl, text="Max Length")
-        self.label_mw_tl_max.pack(side=tk.LEFT, padx=5, pady=5)
+        self.lbl_mw_tl_max = ttk.Label(self.lbl_mw_tl, text="Max Length")
+        self.lbl_mw_tl_max.pack(side=tk.LEFT, padx=5, pady=5)
+        CreateToolTip(self.lbl_mw_tl_max, "Maximum length of the textbox. 0 = no limit.")
 
-        self.spinner_mw_tl_max = ttk.Spinbox(self.label_mw_tl, from_=50, to=10_000, validate="key", validatecommand=(self.root.register(self.number_only), "%P"))
-        self.spinner_mw_tl_max.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spinner_mw_tl_max, 50, 10_000))
-        self.spinner_mw_tl_max.pack(side=tk.LEFT, padx=5, pady=5)
+        self.spn_mw_tl_max = ttk.Spinbox(
+            self.lbl_mw_tl,
+            from_=0,
+            to=10_000,
+            validate="key",
+            validatecommand=(self.root.register(self.number_only), "%P"),
+            command=lambda: fJson.savePartialSetting("tb_mw_tl_max", int(self.spn_mw_tl_max.get()) or self.preview_changes_tb()),
+            width=10,
+        )
+        self.spn_mw_tl_max.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_mw_tl_max, 0, 10_000, lambda: fJson.savePartialSetting("tb_mw_tl_max", int(self.spn_mw_tl_max.get())) or self.preview_changes_tb()))
+        self.spn_mw_tl_max.pack(side=tk.LEFT, padx=5, pady=5)
+        CreateToolTip(self.spn_mw_tl_max, "Maximum length of the textbox. 0 = no limit.")
 
-        self.label_mw_tl_font = ttk.Label(self.label_mw_tl, text="Font")
-        self.label_mw_tl_font.pack(side=tk.LEFT, padx=5, pady=5)
+        self.lbl_mw_tl_font = ttk.Label(self.lbl_mw_tl, text="Font")
+        self.lbl_mw_tl_font.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.select_mw_tl_font = ttk.Combobox(self.label_mw_tl, values=self.fonts, state="readonly")
-        self.select_mw_tl_font.pack(side=tk.LEFT, padx=5, pady=5)
+        self.cb_mw_tl_font = ttk.Combobox(self.lbl_mw_tl, values=self.fonts, state="readonly", width=30)
+        self.cb_mw_tl_font.pack(side=tk.LEFT, padx=5, pady=5)
+        self.cb_mw_tl_font.bind("<<ComboboxSelected>>", lambda e: fJson.savePartialSetting("tb_mw_tl_font", self.cb_mw_tl_font.get()) or self.preview_changes_tb())
 
-        self.label_mw_tl_font_size = ttk.Label(self.label_mw_tl, text="Font Size")
-        self.label_mw_tl_font_size.pack(side=tk.LEFT, padx=5, pady=5)
+        self.lbl_mw_tl_font_size = ttk.Label(self.lbl_mw_tl, text="Font Size")
+        self.lbl_mw_tl_font_size.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.spinbox_mw_tl_font_size = ttk.Spinbox(self.label_mw_tl, from_=3, to=120, validate="key", validatecommand=(self.root.register(self.number_only), "%P"))
-        self.spinbox_mw_tl_font_size.pack(side=tk.LEFT, padx=5, pady=5)
+        self.spn_mw_tl_font_size = ttk.Spinbox(
+            self.lbl_mw_tl,
+            from_=3,
+            to=120,
+            validate="key",
+            validatecommand=(self.root.register(self.number_only), "%P"),
+            command=lambda: fJson.savePartialSetting("tb_mw_tl_font_size", int(self.spn_mw_tl_font_size.get()) or self.preview_changes_tb()),
+            width=10,
+        )
+        self.spn_mw_tl_font_size.bind(
+            "<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_mw_tl_font_size, 3, 120, lambda: fJson.savePartialSetting("tb_mw_tl_font_size", int(self.spn_mw_tl_font_size.get())) or self.preview_changes_tb())
+        )
+        self.spn_mw_tl_font_size.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.label_mw_tl_font_color = ttk.Label(self.label_mw_tl, text="Font Color")
-        self.label_mw_tl_font_color.pack(side=tk.LEFT, padx=5, pady=5)
+        self.lbl_mw_tl_font_color = ttk.Label(self.lbl_mw_tl, text="Font Color")
+        self.lbl_mw_tl_font_color.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.entry_mw_tl_font_color = ttk.Entry(self.label_mw_tl)
+        self.entry_mw_tl_font_color = ttk.Entry(self.lbl_mw_tl, width=10)
         self.entry_mw_tl_font_color.pack(side=tk.LEFT, padx=5, pady=5)
-        self.entry_mw_tl_font_color.bind("<Button-1>", lambda e: chooseColor(self.entry_mw_tl_font_color, self.entry_mw_tl_font_color.get(), self.root))
+        self.entry_mw_tl_font_color.bind(
+            "<Button-1>",
+            lambda e: chooseColor(self.entry_mw_tl_font_color, self.entry_mw_tl_font_color.get(), self.root)
+            or fJson.savePartialSetting("tb_mw_tl_font_color", self.entry_mw_tl_font_color.get())
+            or self.preview_changes_tb(),
+        )
         self.entry_mw_tl_font_color.bind("<Key>", lambda e: "break")
 
-        self.label_mw_tl_bg_color = ttk.Label(self.label_mw_tl, text="Background Color")
-        self.label_mw_tl_bg_color.pack(side=tk.LEFT, padx=5, pady=5)
+        self.lbl_mw_tl_bg_color = ttk.Label(self.lbl_mw_tl, text="Background Color")
+        self.lbl_mw_tl_bg_color.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.entry_mw_tl_bg_color = ttk.Entry(self.label_mw_tl)
+        self.entry_mw_tl_bg_color = ttk.Entry(self.lbl_mw_tl, width=10)
         self.entry_mw_tl_bg_color.pack(side=tk.LEFT, padx=5, pady=5)
-        self.entry_mw_tl_bg_color.bind("<Button-1>", lambda e: chooseColor(self.entry_mw_tl_bg_color, self.entry_mw_tl_bg_color.get(), self.root))
+        self.entry_mw_tl_bg_color.bind(
+            "<Button-1>",
+            lambda e: chooseColor(self.entry_mw_tl_bg_color, self.entry_mw_tl_bg_color.get(), self.root) or fJson.savePartialSetting("tb_mw_tl_bg_color", self.entry_mw_tl_bg_color.get()) or self.preview_changes_tb(),
+        )
         self.entry_mw_tl_bg_color.bind("<Key>", lambda e: "break")
 
         # detached tc
-        self.label_detached_tc = ttk.LabelFrame(self.t4r3, text="• Detached Transcribed Window Textbox")
-        self.label_detached_tc.pack(side=tk.LEFT, padx=5, pady=5)
+        self.lbl_ex_tc = tk.LabelFrame(self.t4r3, text="• Detached Transcribed Window Textbox")
+        self.lbl_ex_tc.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.X, expand=True)
 
-        self.label_detached_tc_max = ttk.Label(self.label_detached_tc, text="Max Length")
-        self.label_detached_tc_max.pack(side=tk.LEFT, padx=5, pady=5)
+        self.lbl_ex_tc_max = ttk.Label(self.lbl_ex_tc, text="Max Length")
+        self.lbl_ex_tc_max.pack(side=tk.LEFT, padx=5, pady=5)
+        CreateToolTip(self.lbl_ex_tc_max, "Maximum length of the textbox. 0 = no limit.")
 
-        self.spinner_detached_tc_max = ttk.Spinbox(self.label_detached_tc, from_=50, to=10_000, validate="key", validatecommand=(self.root.register(self.number_only), "%P"))
-        self.spinner_detached_tc_max.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spinner_detached_tc_max, 50, 10_000))
-        self.spinner_detached_tc_max.pack(side=tk.LEFT, padx=5, pady=5)
+        self.spn_ex_tc_max = ttk.Spinbox(
+            self.lbl_ex_tc,
+            from_=0,
+            to=10_000,
+            validate="key",
+            validatecommand=(self.root.register(self.number_only), "%P"),
+            command=lambda: fJson.savePartialSetting("tb_ex_tc_max", int(self.spn_ex_tc_max.get()) or self.preview_changes_tb()),
+            width=10,
+        )
+        self.spn_ex_tc_max.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_ex_tc_max, 0, 10_000, lambda: fJson.savePartialSetting("tb_ex_tc_max", int(self.spn_ex_tc_max.get())) or self.preview_changes_tb()))
+        self.spn_ex_tc_max.pack(side=tk.LEFT, padx=5, pady=5)
+        CreateToolTip(self.spn_ex_tc_max, "Maximum length of the textbox. 0 = no limit.")
 
-        self.label_detached_tc_font = ttk.Label(self.label_detached_tc, text="Font")
-        self.label_detached_tc_font.pack(side=tk.LEFT, padx=5, pady=5)
+        self.lbl_ex_tc_font = ttk.Label(self.lbl_ex_tc, text="Font")
+        self.lbl_ex_tc_font.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.select_detached_tc_font = ttk.Combobox(self.label_detached_tc, values=self.fonts, state="readonly")
-        self.select_detached_tc_font.pack(side=tk.LEFT, padx=5, pady=5)
+        self.cb_ex_tc_font = ttk.Combobox(self.lbl_ex_tc, values=self.fonts, state="readonly", width=30)
+        self.cb_ex_tc_font.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.label_detached_tc_font_size = ttk.Label(self.label_detached_tc, text="Font Size")
-        self.label_detached_tc_font_size.pack(side=tk.LEFT, padx=5, pady=5)
+        self.lbl_ex_tc_font_size = ttk.Label(self.lbl_ex_tc, text="Font Size")
+        self.lbl_ex_tc_font_size.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.spinbox_detached_tc_font_size = ttk.Spinbox(self.label_detached_tc, from_=3, to=120, validate="key", validatecommand=(self.root.register(self.number_only), "%P"))
-        self.spinbox_detached_tc_font_size.pack(side=tk.LEFT, padx=5, pady=5)
+        self.spn_ex_tc_font_size = ttk.Spinbox(
+            self.lbl_ex_tc,
+            from_=3,
+            to=120,
+            validate="key",
+            validatecommand=(self.root.register(self.number_only), "%P"),
+            command=lambda: fJson.savePartialSetting("tb_ex_tc_font_size", int(self.spn_ex_tc_font_size.get())) or self.preview_changes_tb(),
+            width=10,
+        )
+        self.spn_ex_tc_font_size.bind(
+            "<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_ex_tc_font_size, 3, 120, lambda: fJson.savePartialSetting("tb_ex_tc_font_size", int(self.spn_ex_tc_font_size.get())) or self.preview_changes_tb())
+        )
+        self.spn_ex_tc_font_size.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.label_detached_tc_font_color = ttk.Label(self.label_detached_tc, text="Font Color")
-        self.label_detached_tc_font_color.pack(side=tk.LEFT, padx=5, pady=5)
+        self.lbl_ex_tc_font_color = ttk.Label(self.lbl_ex_tc, text="Font Color")
+        self.lbl_ex_tc_font_color.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.entry_detached_tc_font_color = ttk.Entry(self.label_detached_tc)
-        self.entry_detached_tc_font_color.pack(side=tk.LEFT, padx=5, pady=5)
-        self.entry_detached_tc_font_color.bind("<Button-1>", lambda e: chooseColor(self.entry_detached_tc_font_color, self.entry_detached_tc_font_color.get(), self.root))
-        self.entry_detached_tc_font_color.bind("<Key>", lambda e: "break")
+        self.entry_ex_tc_font_color = ttk.Entry(self.lbl_ex_tc, width=10)
+        self.entry_ex_tc_font_color.pack(side=tk.LEFT, padx=5, pady=5)
+        self.entry_ex_tc_font_color.bind(
+            "<Button-1>",
+            lambda e: chooseColor(self.entry_ex_tc_font_color, self.entry_ex_tc_font_color.get(), self.root)
+            or fJson.savePartialSetting("tb_ex_tc_font_color", self.entry_ex_tc_font_color.get())
+            or self.preview_changes_tb(),
+        )
+        self.entry_ex_tc_font_color.bind("<Key>", lambda e: "break")
 
-        self.label_detached_tc_bg_color = ttk.Label(self.label_detached_tc, text="Background Color")
-        self.label_detached_tc_bg_color.pack(side=tk.LEFT, padx=5, pady=5)
+        self.lbl_ex_tc_bg_color = ttk.Label(self.lbl_ex_tc, text="Background Color")
+        self.lbl_ex_tc_bg_color.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.entry_detached_tc_bg_color = ttk.Entry(self.label_detached_tc)
-        self.entry_detached_tc_bg_color.pack(side=tk.LEFT, padx=5, pady=5)
-        self.entry_detached_tc_bg_color.bind("<Button-1>", lambda e: chooseColor(self.entry_detached_tc_bg_color, self.entry_detached_tc_bg_color.get(), self.root))
-        self.entry_detached_tc_bg_color.bind("<Key>", lambda e: "break")
+        self.entry_ex_tc_bg_color = ttk.Entry(self.lbl_ex_tc, width=10)
+        self.entry_ex_tc_bg_color.pack(side=tk.LEFT, padx=5, pady=5)
+        self.entry_ex_tc_bg_color.bind(
+            "<Button-1>",
+            lambda e: chooseColor(self.entry_ex_tc_bg_color, self.entry_ex_tc_bg_color.get(), self.root) or fJson.savePartialSetting("tb_ex_tc_bg_color", self.entry_ex_tc_bg_color.get()) or self.preview_changes_tb(),
+        )
+        self.entry_ex_tc_bg_color.bind("<Key>", lambda e: "break")
 
         # detached tl
-        self.label_detached_tl = ttk.LabelFrame(self.t4r4, text="• Detached Translated Window Textbox")
-        self.label_detached_tl.pack(side=tk.LEFT, padx=5, pady=5)
+        self.lbl_ex_tl = tk.LabelFrame(self.t4r4, text="• Detached Translated Window Textbox")
+        self.lbl_ex_tl.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.X, expand=True)
 
-        self.label_detached_tl_max = ttk.Label(self.label_detached_tl, text="Max Length")
-        self.label_detached_tl_max.pack(side=tk.LEFT, padx=5, pady=5)
+        self.lbl_ex_tl_max = ttk.Label(self.lbl_ex_tl, text="Max Length")
+        self.lbl_ex_tl_max.pack(side=tk.LEFT, padx=5, pady=5)
+        CreateToolTip(self.lbl_ex_tl_max, "Maximum length of the textbox. 0 = no limit.")
 
-        self.spinner_detached_tl_max = ttk.Spinbox(self.label_detached_tl, from_=50, to=10_000, validate="key", validatecommand=(self.root.register(self.number_only), "%P"))
-        self.spinner_detached_tl_max.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spinner_detached_tl_max, 50, 10_000))
-        self.spinner_detached_tl_max.pack(side=tk.LEFT, padx=5, pady=5)
+        self.spn_ex_tl_max = ttk.Spinbox(
+            self.lbl_ex_tl,
+            from_=0,
+            to=10_000,
+            validate="key",
+            validatecommand=(self.root.register(self.number_only), "%P"),
+            command=lambda: fJson.savePartialSetting("tb_ex_tl_max", int(self.spn_ex_tl_max.get())) or self.preview_changes_tb(),
+            width=10,
+        )
+        self.spn_ex_tl_max.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_ex_tl_max, 0, 10_000, lambda: fJson.savePartialSetting("tb_ex_tl_max", int(self.spn_ex_tl_max.get())) or self.preview_changes_tb()))
+        self.spn_ex_tl_max.pack(side=tk.LEFT, padx=5, pady=5)
+        CreateToolTip(self.spn_ex_tl_max, "Maximum length of the textbox. 0 = no limit.")
 
-        self.label_detached_tl_font = ttk.Label(self.label_detached_tl, text="Font")
-        self.label_detached_tl_font.pack(side=tk.LEFT, padx=5, pady=5)
+        self.lbl_ex_tl_font = ttk.Label(self.lbl_ex_tl, text="Font")
+        self.lbl_ex_tl_font.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.select_detached_tl_font = ttk.Combobox(self.label_detached_tl, values=self.fonts, state="readonly")
-        self.select_detached_tl_font.pack(side=tk.LEFT, padx=5, pady=5)
+        self.cb_ex_tl_font = ttk.Combobox(self.lbl_ex_tl, values=self.fonts, state="readonly", width=30)
+        self.cb_ex_tl_font.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.label_detached_tl_font_size = ttk.Label(self.label_detached_tl, text="Font Size")
-        self.label_detached_tl_font_size.pack(side=tk.LEFT, padx=5, pady=5)
+        self.lbl_ex_tl_font_size = ttk.Label(self.lbl_ex_tl, text="Font Size")
+        self.lbl_ex_tl_font_size.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.spinbox_detached_tl_font_size = ttk.Spinbox(self.label_detached_tl, from_=3, to=120, validate="key", validatecommand=(self.root.register(self.number_only), "%P"))
-        self.spinbox_detached_tl_font_size.pack(side=tk.LEFT, padx=5, pady=5)
+        self.spn_ex_tl_font_size = ttk.Spinbox(
+            self.lbl_ex_tl,
+            from_=3,
+            to=120,
+            validate="key",
+            validatecommand=(self.root.register(self.number_only), "%P"),
+            command=lambda: fJson.savePartialSetting("tb_ex_tl_font_size", int(self.spn_ex_tl_font_size.get())) or self.preview_changes_tb(),
+            width=10,
+        )
+        self.spn_ex_tl_font_size.bind(
+            "<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_ex_tl_font_size, 3, 120, lambda: fJson.savePartialSetting("tb_ex_tl_font_size", int(self.spn_ex_tl_font_size.get())) or self.preview_changes_tb())
+        )
+        self.spn_ex_tl_font_size.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.label_detached_tl_font_color = ttk.Label(self.label_detached_tl, text="Font Color")
-        self.label_detached_tl_font_color.pack(side=tk.LEFT, padx=5, pady=5)
+        self.lbl_ex_tl_font_color = ttk.Label(self.lbl_ex_tl, text="Font Color")
+        self.lbl_ex_tl_font_color.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.entry_detached_tl_font_color = ttk.Entry(self.label_detached_tl)
-        self.entry_detached_tl_font_color.pack(side=tk.LEFT, padx=5, pady=5)
-        self.entry_detached_tl_font_color.bind("<Button-1>", lambda e: chooseColor(self.entry_detached_tl_font_color, self.entry_detached_tl_font_color.get(), self.root))
-        self.entry_detached_tl_font_color.bind("<Key>", lambda e: "break")
+        self.entry_ex_tl_font_color = ttk.Entry(self.lbl_ex_tl, width=10)
+        self.entry_ex_tl_font_color.pack(side=tk.LEFT, padx=5, pady=5)
+        self.entry_ex_tl_font_color.bind(
+            "<Button-1>",
+            lambda e: chooseColor(self.entry_ex_tl_font_color, self.entry_ex_tl_font_color.get(), self.root)
+            or fJson.savePartialSetting("tb_ex_tl_font_color", self.entry_ex_tl_font_color.get())
+            or self.preview_changes_tb(),
+        )
+        self.entry_ex_tl_font_color.bind("<Key>", lambda e: "break")
 
-        self.label_detached_tl_bg_color = ttk.Label(self.label_detached_tl, text="Background Color")
-        self.label_detached_tl_bg_color.pack(side=tk.LEFT, padx=5, pady=5)
+        self.lbl_ex_tl_bg_color = ttk.Label(self.lbl_ex_tl, text="Background Color")
+        self.lbl_ex_tl_bg_color.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.entry_detached_tl_bg_color = ttk.Entry(self.label_detached_tl)
-        self.entry_detached_tl_bg_color.pack(side=tk.LEFT, padx=5, pady=5)
-        self.entry_detached_tl_bg_color.bind("<Button-1>", lambda e: chooseColor(self.entry_detached_tl_bg_color, self.entry_detached_tl_bg_color.get(), self.root))
-        self.entry_detached_tl_bg_color.bind("<Key>", lambda e: "break")
+        self.entry_ex_tl_bg_color = ttk.Entry(self.lbl_ex_tl, width=10)
+        self.entry_ex_tl_bg_color.pack(side=tk.LEFT, padx=5, pady=5)
+        self.entry_ex_tl_bg_color.bind(
+            "<Button-1>",
+            lambda e: chooseColor(self.entry_ex_tl_bg_color, self.entry_ex_tl_bg_color.get(), self.root) or fJson.savePartialSetting("tb_ex_tl_bg_color", self.entry_ex_tl_bg_color.get()) or self.preview_changes_tb(),
+        )
+        self.entry_ex_tl_bg_color.bind("<Key>", lambda e: "break")
 
         # button
-        self.btn_reset_default = ttk.Button(self.t4r5, text="Reset to Default", command=self.reset_textbox_setting)
-        self.btn_reset_default.pack(side=tk.LEFT, padx=5, pady=5)
-        CreateToolTip(self.btn_reset_default, "Reset all textbox setting to default value")
+        self.tb_preview_1 = tk.Text(
+            self.t4r5,
+            height=5,
+            width=27,
+            wrap=tk.WORD,
+            font=(fJson.settingCache["tb_mw_tc_font"], fJson.settingCache["tb_mw_tc_font_size"]),
+            fg=fJson.settingCache["tb_mw_tc_font_color"],
+            bg=fJson.settingCache["tb_mw_tc_bg_color"],
+        )
+        self.tb_preview_1.bind("<Key>", "break")
+        self.tb_preview_1.insert(tk.END, "1234567 Preview プレビュー 预习 предварительный просмотр")
+        self.tb_preview_1.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.BOTH, expand=True)
 
-        self.btn_cancel = ttk.Button(self.t4r5, text="Cancel", command=lambda: self.cancel_tb(True))
-        self.btn_cancel.pack(side=tk.LEFT, padx=5, pady=5)
-        CreateToolTip(self.btn_cancel, "Cancecl changes made to the textbox settings")
+        self.tb_preview_2 = tk.Text(
+            self.t4r5,
+            height=5,
+            width=27,
+            wrap=tk.WORD,
+            font=(fJson.settingCache["tb_mw_tl_font"], fJson.settingCache["tb_mw_tl_font_size"]),
+            fg=fJson.settingCache["tb_mw_tl_font_color"],
+            bg=fJson.settingCache["tb_mw_tl_bg_color"],
+        )
+        self.tb_preview_2.bind("<Key>", "break")
+        self.tb_preview_2.insert(tk.END, "1234567 Preview プレビュー 预习 предварительный просмотр")
+        self.tb_preview_2.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.BOTH, expand=True)
 
-        self.btn_save = ttk.Button(self.t4r5, text="Save", command=self.save_tb)
-        self.btn_save.pack(side=tk.LEFT, padx=5, pady=5)
-        CreateToolTip(self.btn_save, "Save changes made to the textbox settings for future use")
+        self.tb_preview_3 = tk.Text(
+            self.t4r5,
+            height=5,
+            width=27,
+            wrap=tk.WORD,
+            font=(fJson.settingCache["tb_ex_tc_font"], fJson.settingCache["tb_ex_tc_font_size"]),
+            fg=fJson.settingCache["tb_ex_tc_font_color"],
+            bg=fJson.settingCache["tb_ex_tc_bg_color"],
+        )
+        self.tb_preview_3.bind("<Key>", "break")
+        self.tb_preview_3.insert(tk.END, "1234567 Preview プレビュー 预习 предварительный просмотр")
+        self.tb_preview_3.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.BOTH, expand=True)
 
-        self.btn_preview_changes = ttk.Button(self.t4r5, text="Preview Changes", command=self.preview_changes_tb)
-        self.btn_preview_changes.pack(side=tk.LEFT, padx=5, pady=5)
-        CreateToolTip(self.btn_preview_changes, "Preview changes made to the textbox settings. If not saved will revert to previous setting on next launch")
+        self.tb_preview_4 = tk.Text(
+            self.t4r5,
+            height=5,
+            width=27,
+            wrap=tk.WORD,
+            font=(fJson.settingCache["tb_ex_tl_font"], fJson.settingCache["tb_ex_tl_font_size"]),
+            fg=fJson.settingCache["tb_ex_tl_font_color"],
+            bg=fJson.settingCache["tb_ex_tl_bg_color"],
+        )
+        self.tb_preview_4.bind("<Key>", "break")
+        self.tb_preview_4.insert(tk.END, "1234567 Preview プレビュー 预习 предварительный просмотр")
+        self.tb_preview_4.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.BOTH, expand=True)
 
         # ------------------ Tab 5 - Other ------------------
-        self.t5r1 = ttk.Frame(self.frame_tab4)
+        self.t5r1 = ttk.Frame(self.ft4)
         self.t5r1.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 
-        self.label_other = ttk.LabelFrame(self.t5r1, text="• Application")
-        self.label_other.pack(side=tk.LEFT, padx=5, pady=5)
+        self.lbl_other = tk.LabelFrame(self.t5r1, text="• Application")
+        self.lbl_other.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.X, expand=True)
 
         # check for update on start
-        self.check_update_on_start = ttk.Checkbutton(self.label_other, text="Check for update on start", command=lambda: fJson.savePartialSetting("checkUpdateOnStart", self.check_update_on_start.instate(["selected"])))
+        self.check_update_on_start = ttk.Checkbutton(self.lbl_other, text="Check for update on start", command=lambda: fJson.savePartialSetting("checkUpdateOnStart", self.check_update_on_start.instate(["selected"])))
         self.check_update_on_start.pack(side=tk.LEFT, padx=5, pady=5)
 
         # ------------------ Variables ------------------
@@ -537,12 +695,13 @@ class SettingWindow:
         self.root.withdraw()
 
     def on_open(self):
+        self.root.geometry(f"950x370")
         self.root.deiconify()
 
     def init_setting_once(self):
-        self.spinner_cutOff_mic.set(fJson.settingCache["cutOff"]["mic"])
-        self.spinner_cutOff_speaker.set(fJson.settingCache["cutOff"]["speaker"])
-        self.spinner_max_temp.set(fJson.settingCache["max_temp"])
+        self.spn_cutOff_mic.set(fJson.settingCache["cutOff_mic"])
+        self.spn_cutOff_speaker.set(fJson.settingCache["cutOff_speaker"])
+        self.spn_max_temp.set(fJson.settingCache["max_temp"])
 
         self.entry_separate_text_with.delete(0, tk.END)
         self.entry_separate_text_with.insert(0, fJson.settingCache["separate_with"])
@@ -554,32 +713,32 @@ class SettingWindow:
         self.entry_libre_port.delete(0, tk.END)
         self.entry_libre_port.insert(0, fJson.settingCache["libre_port"])
 
-        self.reset_tb_helper(fJson.settingCache)
+        self.init_tb_settings(fJson.settingCache)
 
         if platform.system() == "Windows":
             if fJson.settingCache["hide_console_window_on_start"]:
-                self.checkbutton_hide_console_window_on_start.invoke()
+                self.cbtn_hide_console_window_on_start.invoke()
             else:
-                self.checkbutton_hide_console_window_on_start.invoke()
-                self.checkbutton_hide_console_window_on_start.invoke()
+                self.cbtn_hide_console_window_on_start.invoke()
+                self.cbtn_hide_console_window_on_start.invoke()
 
         if fJson.settingCache["keep_audio"]:
-            self.checkbutton_keep_audio.invoke()
+            self.cbtn_keep_audio.invoke()
         else:
-            self.checkbutton_keep_audio.invoke()
-            self.checkbutton_keep_audio.invoke()
+            self.cbtn_keep_audio.invoke()
+            self.cbtn_keep_audio.invoke()
 
         if fJson.settingCache["keep_log"]:
-            self.checkbutton_keep_log.invoke()
+            self.cbtn_keep_log.invoke()
         else:
-            self.checkbutton_keep_log.invoke()
-            self.checkbutton_keep_log.invoke()
+            self.cbtn_keep_log.invoke()
+            self.cbtn_keep_log.invoke()
 
         if fJson.settingCache["verbose"]:
-            self.checkbutton_verbose.invoke()
+            self.cbtn_verbose.invoke()
         else:
-            self.checkbutton_verbose.invoke()
-            self.checkbutton_verbose.invoke()
+            self.cbtn_verbose.invoke()
+            self.cbtn_verbose.invoke()
 
         if fJson.settingCache["checkUpdateOnStart"]:
             self.check_update_on_start.invoke()
@@ -588,24 +747,10 @@ class SettingWindow:
             self.check_update_on_start.invoke()
 
         if fJson.settingCache["libre_https"]:
-            self.checkbutton_libre_https.invoke()
+            self.cbtn_libre_https.invoke()
         else:
-            self.checkbutton_libre_https.invoke()
-            self.checkbutton_libre_https.invoke()
-
-    def cancel_tb(self, withConfirmation=False):
-        if withConfirmation:
-            if not Mbox("Cancel Changes", "Are you sure you want to cancel any changes made?", 3, self.root):
-                return
-
-        self.reset_tb_helper(fJson.settingCache)
-        self.preview_changes_tb()
-
-    def reset_textbox_setting(self):
-        if not Mbox("Reset Default Textbox Settings", "Are you sure you want to reset the textbox settings to default?", 3, self.root):
-            return
-
-        self.reset_tb_helper(default_setting)
+            self.cbtn_libre_https.invoke()
+            self.cbtn_libre_https.invoke()
 
     def tb_delete(self):
         self.entry_mw_tc_font_color.delete(0, tk.END)
@@ -614,105 +759,84 @@ class SettingWindow:
         self.entry_mw_tl_font_color.delete(0, tk.END)
         self.entry_mw_tl_bg_color.delete(0, tk.END)
 
-        self.entry_detached_tc_font_color.delete(0, tk.END)
-        self.entry_detached_tc_bg_color.delete(0, tk.END)
+        self.entry_ex_tc_font_color.delete(0, tk.END)
+        self.entry_ex_tc_bg_color.delete(0, tk.END)
 
-        self.entry_detached_tl_font_color.delete(0, tk.END)
-        self.entry_detached_tl_bg_color.delete(0, tk.END)
+        self.entry_ex_tl_font_color.delete(0, tk.END)
+        self.entry_ex_tl_bg_color.delete(0, tk.END)
 
-    def reset_tb_helper(self, theSetting):
+    def init_tb_settings(self, theSetting):
         self.tb_delete()
-        self.spinner_mw_tc_max.set(theSetting["textbox"]["mw_tc"]["max"])
-        self.select_mw_tc_font.set(theSetting["textbox"]["mw_tc"]["font"])
-        self.spinbox_mw_tc_font_size.set(theSetting["textbox"]["mw_tc"]["font_size"])
-        self.entry_mw_tc_font_color.insert(0, theSetting["textbox"]["mw_tc"]["font_color"])
-        self.entry_mw_tc_bg_color.insert(0, theSetting["textbox"]["mw_tc"]["bg_color"])
+        self.spn_mw_tc_max.set(theSetting["tb_mw_tc_max"])
+        self.cb_mw_tc_font.set(theSetting["tb_mw_tc_font"])
+        self.spn_mw_tc_font_size.set(theSetting["tb_mw_tc_font_size"])
+        self.entry_mw_tc_font_color.insert(0, theSetting["tb_mw_tc_font_color"])
+        self.entry_mw_tc_bg_color.insert(0, theSetting["tb_mw_tc_bg_color"])
 
-        self.spinner_mw_tl_max.set(theSetting["textbox"]["mw_tl"]["max"])
-        self.select_mw_tl_font.set(theSetting["textbox"]["mw_tl"]["font"])
-        self.spinbox_mw_tl_font_size.set(theSetting["textbox"]["mw_tl"]["font_size"])
-        self.entry_mw_tl_font_color.insert(0, theSetting["textbox"]["mw_tl"]["font_color"])
-        self.entry_mw_tl_bg_color.insert(0, theSetting["textbox"]["mw_tl"]["bg_color"])
+        self.spn_mw_tl_max.set(theSetting["tb_mw_tl_max"])
+        self.cb_mw_tl_font.set(theSetting["tb_mw_tl_font"])
+        self.spn_mw_tl_font_size.set(theSetting["tb_mw_tl_font_size"])
+        self.entry_mw_tl_font_color.insert(0, theSetting["tb_mw_tl_font_color"])
+        self.entry_mw_tl_bg_color.insert(0, theSetting["tb_mw_tl_bg_color"])
 
-        self.spinner_detached_tc_max.set(theSetting["textbox"]["detached_tc"]["max"])
-        self.select_detached_tc_font.set(theSetting["textbox"]["detached_tc"]["font"])
-        self.spinbox_detached_tc_font_size.set(theSetting["textbox"]["detached_tc"]["font_size"])
-        self.entry_detached_tc_font_color.insert(0, theSetting["textbox"]["detached_tc"]["font_color"])
-        self.entry_detached_tc_bg_color.insert(0, theSetting["textbox"]["detached_tc"]["bg_color"])
+        self.spn_ex_tc_max.set(theSetting["tb_ex_tc_max"])
+        self.cb_ex_tc_font.set(theSetting["tb_ex_tc_font"])
+        self.spn_ex_tc_font_size.set(theSetting["tb_ex_tc_font_size"])
+        self.entry_ex_tc_font_color.insert(0, theSetting["tb_ex_tc_font_color"])
+        self.entry_ex_tc_bg_color.insert(0, theSetting["tb_ex_tc_bg_color"])
 
-        self.spinner_detached_tl_max.set(theSetting["textbox"]["detached_tl"]["max"])
-        self.select_detached_tl_font.set(theSetting["textbox"]["detached_tl"]["font"])
-        self.spinbox_detached_tl_font_size.set(theSetting["textbox"]["detached_tl"]["font_size"])
-        self.entry_detached_tl_font_color.insert(0, theSetting["textbox"]["detached_tl"]["font_color"])
-        self.entry_detached_tl_bg_color.insert(0, theSetting["textbox"]["detached_tl"]["bg_color"])
-
-    def save_tb(self):
-        # confirmation
-        if not Mbox("Save", "Are you sure you want to save the changes made for the textbox setting?", 3, self.root):
-            return
-
-        saveVal = {
-            "mw_tc": {
-                "max": int(self.spinner_mw_tc_max.get()),
-                "font": self.select_mw_tc_font.get(),
-                "font_size": int(self.spinbox_mw_tc_font_size.get()),
-                "font_color": self.entry_mw_tc_font_color.get(),
-                "bg_color": self.entry_mw_tc_bg_color.get(),
-            },
-            "mw_tl": {
-                "max": int(self.spinner_mw_tl_max.get()),
-                "font": self.select_mw_tl_font.get(),
-                "font_size": int(self.spinbox_mw_tl_font_size.get()),
-                "font_color": self.entry_mw_tl_font_color.get(),
-                "bg_color": self.entry_mw_tl_bg_color.get(),
-            },
-            "detached_tc": {
-                "max": int(self.spinner_detached_tc_max.get()),
-                "font": self.select_detached_tc_font.get(),
-                "font_size": int(self.spinbox_detached_tc_font_size.get()),
-                "font_color": self.entry_detached_tc_font_color.get(),
-                "bg_color": self.entry_detached_tc_bg_color.get(),
-            },
-            "detached_tl": {
-                "max": int(self.spinner_detached_tl_max.get()),
-                "font": self.select_detached_tl_font.get(),
-                "font_size": int(self.spinbox_detached_tl_font_size.get()),
-                "font_color": self.entry_detached_tl_font_color.get(),
-                "bg_color": self.entry_detached_tl_bg_color.get(),
-            },
-        }
-
-        fJson.savePartialSetting("textbox", saveVal)
-
-        # notify
-        Mbox("Textbox setting saved", "The textbox setting has been saved successfully.", 0, self.root)
+        self.spn_ex_tl_max.set(theSetting["tb_ex_tl_max"])
+        self.cb_ex_tl_font.set(theSetting["tb_ex_tl_font"])
+        self.spn_ex_tl_font_size.set(theSetting["tb_ex_tl_font_size"])
+        self.entry_ex_tl_font_color.insert(0, theSetting["tb_ex_tl_font_color"])
+        self.entry_ex_tl_bg_color.insert(0, theSetting["tb_ex_tl_bg_color"])
 
     def preview_changes_tb(self):
-        assert gClass.detached_tcw is not None
-        gClass.detached_tcw.textbox.config(
-            font=(self.select_detached_tc_font.get(), int(self.spinbox_detached_tc_font_size.get())),
-            fg=self.entry_detached_tc_font_color.get(),
-            bg=self.entry_detached_tc_bg_color.get(),
-        )
-
-        assert gClass.detached_tlw is not None
-        gClass.detached_tlw.textbox.config(
-            font=(self.select_detached_tl_font.get(), int(self.spinbox_detached_tl_font_size.get())),
-            fg=self.entry_detached_tl_font_color.get(),
-            bg=self.entry_detached_tl_bg_color.get(),
-        )
-
         assert gClass.mw is not None
         gClass.mw.tb_transcribed.config(
-            font=(self.select_mw_tc_font.get(), int(self.spinbox_mw_tc_font_size.get())),
+            font=(self.cb_mw_tc_font.get(), int(self.spn_mw_tc_font_size.get())),
+            fg=self.entry_mw_tc_font_color.get(),
+            bg=self.entry_mw_tc_bg_color.get(),
+        )
+        self.tb_preview_1.config(
+            font=(self.cb_mw_tc_font.get(), int(self.spn_mw_tc_font_size.get())),
             fg=self.entry_mw_tc_font_color.get(),
             bg=self.entry_mw_tc_bg_color.get(),
         )
 
         gClass.mw.tb_translated.config(
-            font=(self.select_mw_tl_font.get(), int(self.spinbox_mw_tl_font_size.get())),
+            font=(self.cb_mw_tl_font.get(), int(self.spn_mw_tl_font_size.get())),
             fg=self.entry_mw_tl_font_color.get(),
             bg=self.entry_mw_tl_bg_color.get(),
+        )
+        self.tb_preview_2.config(
+            font=(self.cb_mw_tl_font.get(), int(self.spn_mw_tl_font_size.get())),
+            fg=self.entry_mw_tl_font_color.get(),
+            bg=self.entry_mw_tl_bg_color.get(),
+        )
+
+        assert gClass.ex_tcw is not None
+        gClass.ex_tcw.textbox.config(
+            font=(self.cb_ex_tc_font.get(), int(self.spn_ex_tc_font_size.get())),
+            fg=self.entry_ex_tc_font_color.get(),
+            bg=self.entry_ex_tc_bg_color.get(),
+        )
+        self.tb_preview_3.config(
+            font=(self.cb_ex_tc_font.get(), int(self.spn_ex_tc_font_size.get())),
+            fg=self.entry_ex_tc_font_color.get(),
+            bg=self.entry_ex_tc_bg_color.get(),
+        )
+
+        assert gClass.ex_tlw is not None
+        gClass.ex_tlw.textbox.config(
+            font=(self.cb_ex_tl_font.get(), int(self.spn_ex_tl_font_size.get())),
+            fg=self.entry_ex_tl_font_color.get(),
+            bg=self.entry_ex_tl_bg_color.get(),
+        )
+        self.tb_preview_4.config(
+            font=(self.cb_ex_tl_font.get(), int(self.spn_ex_tl_font_size.get())),
+            fg=self.entry_ex_tl_font_color.get(),
+            bg=self.entry_ex_tl_bg_color.get(),
         )
 
     def number_only(self, P):
@@ -812,7 +936,6 @@ class SettingWindow:
         Check if model is downloaded on start.
         It need to be checked hardcodedly because for some reason if i try to use a map it keep referencing to the wrong button.
         """
-        self.label_model_location_value["text"] = get_default_download_root()
         checkTiny = verify_model("tiny")
         checkTinyEn = verify_model("tiny.en")
         checkBase = verify_model("base")

@@ -113,7 +113,7 @@ def checkModelFirst(modelName: str):
         gClass.dl_proc.join()
 
 
-def rec_mic_realTime(lang_source: str, engine: str, modelInput: str, device: str, transcribe_rate_seconds: float = 0.5, max_record_time: int = 30, silence_time: float = 0.5) -> None:
+def rec_mic_realTime(lang_source: str, engine: str, modelInput: str, device: str, transcribe_rate_seconds: float = 0.5, max_record_time: int = 30) -> None:
     src_english = lang_source == "english"
     auto = lang_source == "auto detect"
     whisperEngine = engine == "Whisper"
@@ -126,7 +126,6 @@ def rec_mic_realTime(lang_source: str, engine: str, modelInput: str, device: str
     model = whisper.load_model(modelName)
 
     # read from settings
-    silence_threshold = 2500
     sample_rate = 16000
     chunk_size = 1024
     max_int16 = 2**15
@@ -160,7 +159,7 @@ def rec_mic_realTime(lang_source: str, engine: str, modelInput: str, device: str
     logger.debug(f"Recording from: ({device_detail['index']}){device_detail['name']}")
 
     gClass.stream = p.open(format=pyaudio.paInt16, channels=1, rate=sample_rate, input=True, frames_per_buffer=chunk_size, input_device_index=int(device_id))
-    record_thread = threading.Thread(target=mic_realtime_recording_thread, args=[p, chunk_size], daemon=True)
+    record_thread = threading.Thread(target=mic_realtime_recording_thread, args=[chunk_size], daemon=True)
     record_thread.start()
 
     # transcribing thread
@@ -214,9 +213,9 @@ def rec_mic_realTime(lang_source: str, engine: str, modelInput: str, device: str
                     gClass.clearMwTc()
                     # insert previous sentences if there are any
                     for sentence in sentences:
-                        gClass.insertTbTranscribed(sentence + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))
+                        gClass.insertMwTbTc(sentence + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))
                     # insert the current sentence after previous sentences
-                    gClass.insertTbTranscribed(text + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))
+                    gClass.insertMwTbTc(text + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))
 
                 # break up the buffer If we've reached max recording time
                 audio_length_in_seconds = samples / float(sample_rate)
@@ -231,16 +230,11 @@ def rec_mic_realTime(lang_source: str, engine: str, modelInput: str, device: str
         sleep(0.1)
 
 
-def mic_realtime_recording_thread(p: pyaudio.PyAudio, chunk_size: int):
+def mic_realtime_recording_thread(chunk_size: int):
     """Record Audio From stream buffer and save it to a queue"""
     assert gClass.stream is not None
     while gClass.recording:  # Record in a thread at a fast rate.
         data = gClass.stream.read(chunk_size)
-        energy = audioop.rms(data, p.get_sample_size(pyaudio.paInt16))
-        if energy > gClass.max_energy:
-            logger.debug(f"New max energy: {energy}")
-            gClass.max_energy = energy
-
         gClass.data_queue.put(data)
 
 
@@ -441,8 +435,8 @@ def whisper_transcribe(
     # insert to textbox
     if transcribe:
         if len(result_Tc["text"].strip()) > 0:  # type: ignore
-            gClass.insertTbTranscribed(result_Tc["text"].strip() + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))  # type: ignore
-            gClass.insertDetachedTbTranscribed(result_Tc["text"].strip())  # type: ignore
+            gClass.insertMwTbTc(result_Tc["text"].strip() + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))  # type: ignore
+            gClass.insertExTbTc(result_Tc["text"].strip())  # type: ignore
         else:
             logger.warning("Transcribed Text is empty")
     if translate:
@@ -545,8 +539,8 @@ def whisper_translate(
 
     if engine == "Whisper":
         if len(result_Tl["text"].strip()) > 0:  # type: ignore
-            gClass.insertTbTranslated(result_Tl["text"].strip() + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))  # type: ignore
-            gClass.insertDetachedTbTranslated(result_Tl["text"].strip())  # type: ignore
+            gClass.insertMwTbTl(result_Tl["text"].strip() + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))  # type: ignore
+            gClass.insertExTbTl(result_Tl["text"].strip())  # type: ignore
         else:
             logger.warning("Translated Text is empty")
         logger.info("-" * 50)
@@ -557,8 +551,8 @@ def whisper_translate(
             logger.debug(result_Tl["text"].strip())  # type: ignore
     else:
         if len(result_Tl.strip()) > 0:  # type: ignore
-            gClass.insertTbTranslated(result_Tl.strip() + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))  # type: ignore
-            gClass.insertDetachedTbTranslated(result_Tl.strip() + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))  # type: ignore
+            gClass.insertMwTbTl(result_Tl.strip() + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))  # type: ignore
+            gClass.insertExTbTl(result_Tl.strip() + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))  # type: ignore
         else:
             logger.warning("Translated Text is empty")
 
@@ -606,7 +600,7 @@ def rec_mic(device: str, modelInput: str, langSource: str, langTarget: str, tran
             tempList.append(audio_name)
 
             # Start recording
-            record_from_mic(audio_name, device, fJson.settingCache["cutOff"]["mic"])
+            record_from_mic(audio_name, device, fJson.settingCache["cutOff_mic"])
 
             # Do Task in thread so it doesn't block the recording
             if translate and not transcribe and whisperEngine:  # if only translating and using the whisper engine
@@ -700,7 +694,7 @@ def rec_pc(device: str, modelInput: str, langSource: str, langTarget: str, trans
             tempList.append(audio_name)
 
             # Start recording
-            record_from_pc(audio_name, device, fJson.settingCache["cutOff"]["speaker"])
+            record_from_pc(audio_name, device, fJson.settingCache["cutOff_speaker"])
 
             # Do Task in thread so it doesn't block the recording
             if translate and not transcribe and whisperEngine:  # if only translating and using the whisper engine
