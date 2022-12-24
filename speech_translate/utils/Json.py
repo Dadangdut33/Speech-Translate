@@ -33,18 +33,13 @@ default_setting = {
     "libre_port": "",
     "libre_https": True,
     # ------------------ #
-    # Cutoff (not realtime)
-    "cutOff_mic": 5,
-    "cutOff_speaker": 5,
-    "max_temp": 100,
-    # ------------------ #
-    # Realtime settings
-    "realtime_mic_maxBuffer": 30,
-    "realtime_speaker_maxBuffer": 60,
-    "realtime_transcribe_rate": 0.5,
+    # Record settings
+    "mic_maxBuffer": 30,
+    "speaker_maxBuffer": 45,
+    "transcribe_rate": 500,
     "sample_rate": 16000,
     "chunk_size": 1024,
-    "max_sentences": 10,
+    "max_sentences": 5,
     # ------------------ #
     # Textboxes
     "tb_mw_tc_max": 0,
