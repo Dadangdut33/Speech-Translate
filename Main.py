@@ -805,7 +805,7 @@ class MainWindow:
         self.tb_clear()
         self.start_loadBar()
         self.disable_interactions()
-        self.btn_record_pc.config(text="Loading", command=self.rec_from_pc_stop, state="normal")
+        self.btn_record_pc.config(text="Loading", command=self.speaker_rec_stop, state="normal")
 
         gClass.enableRecording()  # Flag update
         transcribe = mode == 0 or mode == 2
@@ -818,9 +818,9 @@ class MainWindow:
         except Exception as e:
             logger.exception(e)
             self.errorNotif(str(e))
-            self.rec_from_pc_stop()
+            self.speaker_rec_stop()
 
-    def rec_from_pc_stop(self):
+    def speaker_rec_stop(self):
         logger.info("Recording PC Stopped")
         gClass.disableRecording()
 

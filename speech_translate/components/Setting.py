@@ -65,10 +65,10 @@ class SettingWindow:
         self.ft1lf_application = tk.LabelFrame(self.ft1, text="• Application")
         self.ft1lf_application.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 
-        self.check_update_on_start = ttk.Checkbutton(
-            self.ft1lf_application, text="Check for update on start", command=lambda: fJson.savePartialSetting("checkUpdateOnStart", self.check_update_on_start.instate(["selected"]))
+        self.cbtn_update_on_start = ttk.Checkbutton(
+            self.ft1lf_application, text="Check for update on start", command=lambda: fJson.savePartialSetting("checkUpdateOnStart", self.cbtn_update_on_start.instate(["selected"]))
         )
-        self.check_update_on_start.pack(side=tk.LEFT, padx=5, pady=5)
+        self.cbtn_update_on_start.pack(side=tk.LEFT, padx=5, pady=5)
 
         # log
         self.ft1lf_logging = tk.LabelFrame(self.ft1, text="• Logging")
@@ -239,7 +239,7 @@ class SettingWindow:
         # 1
         self.lbl_separate_text_with = ttk.Label(self.tc_1, text="Text Separator", width=18)
         self.lbl_separate_text_with.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.lbl_separate_text_with, "Set the separator for text that is transcribed or translated.\n\n. - Default value \\n", wrapLength=400)
+        CreateToolTip(self.lbl_separate_text_with, "Set the separator for text that is transcribed or translated.\n\nDefault value \\n", wrapLength=400)
 
         self.entry_separate_text_with = ttk.Entry(self.tc_1, width=22)
         self.entry_separate_text_with.pack(side=tk.LEFT, padx=5)
@@ -248,14 +248,25 @@ class SettingWindow:
 
         self.lbl_max_temp = ttk.Label(self.tc_1, text="Max sentences", width=18)
         self.lbl_max_temp.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.lbl_max_temp, "Set max number of sentences kept between each buffer reset. Default value is 5.")
+        CreateToolTip(self.lbl_max_temp, "Set max number of sentences kept between each buffer reset.\n\nOne sentence equals one max buffer. So if max buffer is 30 seconds, the words that are in those 30 seconds is the sentence.\n\nDefault value is 5.")
 
         self.spn_max_sentences = ttk.Spinbox(
             self.tc_1, from_=1, to=30, validate="key", validatecommand=(self.root.register(self.number_only), "%P"), command=lambda: fJson.savePartialSetting("max_sentences", int(self.spn_max_sentences.get()))
         )
         self.spn_max_sentences.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_max_sentences, 1, 30, lambda: fJson.savePartialSetting("max_sentences", int(self.spn_max_sentences.get()))))
         self.spn_max_sentences.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.spn_max_sentences, "Set max number of sentences kept between each buffer reset. Default value is 5.")
+        CreateToolTip(self.spn_max_sentences, "Set max number of sentences kept between each buffer reset.\n\nOne sentence equals one max buffer. So if max buffer is 30 seconds, the words that are in those 30 seconds is the sentence.\n\nDefault value is 5.")
+
+        self.lbl_max_temp = ttk.Label(self.tc_1, text="Max temp files", width=18)
+        self.lbl_max_temp.pack(side=tk.LEFT, padx=5)
+        CreateToolTip(self.lbl_max_temp, "Set max number of temporary files kept when recording from speaker or stereo sounds. Default value is 250.")
+
+        self.spn_max_temp = ttk.Spinbox(
+            self.tc_1, from_=50, to=1000, validate="key", validatecommand=(self.root.register(self.number_only), "%P"), command=lambda: fJson.savePartialSetting("max_temp", int(self.spn_max_temp.get()))
+        )
+        self.spn_max_temp.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_max_temp, 50, 1000, lambda: fJson.savePartialSetting("max_temp", int(self.spn_max_temp.get()))))
+        self.spn_max_temp.pack(side=tk.LEFT, padx=5)
+        CreateToolTip(self.spn_max_temp, "Set max number of temporary files kept when recording from speaker or stereo sounds. Default value is 250.")
 
         # 2
         self.lbl_sample_rate = ttk.Label(self.tc_2, text="Sample Rate", width=18)
@@ -271,27 +282,35 @@ class SettingWindow:
 
         self.lbl_chunk_size = ttk.Label(self.tc_2, text="Chunk size", width=18)
         self.lbl_chunk_size.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.lbl_chunk_size, "Set the chunk size for the audio recording. Default value is 1024.")
+        CreateToolTip(self.lbl_chunk_size, "Set the chunk size for the audio recording. Default value is 1024.\n\nThe higher the value the more resource it will use")
 
         self.spn_chunk_size = ttk.Spinbox(
-            self.tc_2, from_=1024, to=65536, validate="key", validatecommand=(self.root.register(self.number_only), "%P"), command=lambda: fJson.savePartialSetting("chunk", int(self.spn_chunk_size.get()))
+            self.tc_2, from_=8, to=65536, validate="key", validatecommand=(self.root.register(self.number_only), "%P"), command=lambda: fJson.savePartialSetting("chunk_size", int(self.spn_chunk_size.get()))
         )
-        self.spn_chunk_size.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_chunk_size, 1024, 65536, lambda: fJson.savePartialSetting("chunk", int(self.spn_chunk_size.get()))))
+        self.spn_chunk_size.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_chunk_size, 8, 65536, lambda: fJson.savePartialSetting("chunk_size", int(self.spn_chunk_size.get()))))
         self.spn_chunk_size.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.spn_chunk_size, "Set the chunk size for the audio recording. Default value is 1024.")
+        CreateToolTip(self.spn_chunk_size, "Set the chunk size for the audio recording. Default value is 1024.\n\nThe higher the value the more resource it will use")
 
-        # 3
-        self.lbl_tc_rate = ttk.Label(self.tc_3, text="Transcribe rate (ms)", width=18)
+        self.lbl_tc_rate = ttk.Label(self.tc_2, text="Transcribe rate (ms)", width=18)
         self.lbl_tc_rate.pack(side=tk.LEFT, padx=5)
         CreateToolTip(self.lbl_tc_rate, "Set the transcribe rate or the time between each transcribe check. Default value is 500ms.\n\nThe lower the value, the more resource it will use.")
 
         self.spn_tc_rate = ttk.Spinbox(
-            self.tc_3, from_=100, to=1000, validate="key", validatecommand=(self.root.register(self.number_only), "%P"), command=lambda: fJson.savePartialSetting("transcribe_rate", int(self.spn_tc_rate.get()))
+            self.tc_2, from_=100, to=1000, validate="key", validatecommand=(self.root.register(self.number_only), "%P"), command=lambda: fJson.savePartialSetting("transcribe_rate", int(self.spn_tc_rate.get()))
         )
 
         self.spn_tc_rate.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_tc_rate, 100, 1000, lambda: fJson.savePartialSetting("transcribe_rate", int(self.spn_tc_rate.get()))))
         self.spn_tc_rate.pack(side=tk.LEFT, padx=5)
         CreateToolTip(self.spn_tc_rate, "Set the transcribe rate or the time between each transcribe check. Default value is 500ms.\n\nThe lower the value, the more resource it will use.")
+
+        # 3
+        self.cbtn_auto_stream_params = ttk.Checkbutton(self.tc_3, text="Auto stream params", command=lambda: fJson.savePartialSetting("auto_stream_params", self.cbtn_auto_stream_params.instate(["selected"])))
+        self.cbtn_auto_stream_params.pack(side=tk.LEFT, padx=5)
+        CreateToolTip(
+            self.cbtn_auto_stream_params,
+            "If checked, the stream parameters (sample rate and channel) will be automatically set based on the sample rate and chunk size of the device. \n\nIf unchecked, the stream parameters (sample rate and channel) will be set manually (Mic channel is set to 1 by default and cannot be changed manually).\n\nCheck this option if you are having issues with the stream parameters.",
+            wrapLength=400,
+        )
 
         # 4
         self.lbl_buffer = ttk.Label(self.tc_4, text="Max Buffer (seconds)", font="TkDefaultFont 9 bold")
@@ -320,7 +339,7 @@ class SettingWindow:
 
         self.lbl_buffer_speaker = ttk.Label(self.tc_5, text="Speaker", width=18)
         self.lbl_buffer_speaker.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.lbl_buffer_speaker, "Set the max buffer (in seconds) for speaker input. Default value is 45 seconds.")
+        CreateToolTip(self.lbl_buffer_speaker, "Set the max buffer (in seconds) for speaker input. Default value is 30 seconds.")
 
         self.spn_buffer_speaker = ttk.Spinbox(
             self.tc_5,
@@ -335,7 +354,7 @@ class SettingWindow:
             lambda e: self.verifyMaxNumber(self.spn_buffer_speaker, 3, 300, lambda: fJson.savePartialSetting("speaker_maxBuffer", int(self.spn_buffer_speaker.get()))),
         )
         self.spn_buffer_speaker.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.spn_buffer_speaker, "Set the max buffer (in seconds) for speaker input. Default value is 45 seconds.")
+        CreateToolTip(self.spn_buffer_speaker, "Set the max buffer (in seconds) for speaker input. Default value is 30 seconds.")
 
         # translate
         self.ft2_tl = tk.LabelFrame(self.ft2, text="• Libre Translate Setting")
@@ -733,6 +752,7 @@ class SettingWindow:
         self.spn_buffer_mic.set(fJson.settingCache["mic_maxBuffer"])
         self.spn_buffer_speaker.set(fJson.settingCache["speaker_maxBuffer"])
         self.spn_max_sentences.set(fJson.settingCache["max_sentences"])
+        self.spn_max_temp.set(fJson.settingCache["max_temp"])
         self.spn_sample_rate.set(fJson.settingCache["sample_rate"])
         self.spn_chunk_size.set(fJson.settingCache["chunk_size"])
         self.spn_tc_rate.set(fJson.settingCache["transcribe_rate"])
@@ -769,16 +789,22 @@ class SettingWindow:
             self.cbtn_verbose.invoke()
 
         if fJson.settingCache["checkUpdateOnStart"]:
-            self.check_update_on_start.invoke()
+            self.cbtn_update_on_start.invoke()
         else:
-            self.check_update_on_start.invoke()
-            self.check_update_on_start.invoke()
+            self.cbtn_update_on_start.invoke()
+            self.cbtn_update_on_start.invoke()
 
         if fJson.settingCache["libre_https"]:
             self.cbtn_libre_https.invoke()
         else:
             self.cbtn_libre_https.invoke()
             self.cbtn_libre_https.invoke()
+
+        if fJson.settingCache["auto_stream_params"]:
+            self.cbtn_auto_stream_params.invoke()
+        else:
+            self.cbtn_auto_stream_params.invoke()
+            self.cbtn_auto_stream_params.invoke()
 
     def tb_delete(self):
         self.entry_mw_tc_font_color.delete(0, tk.END)

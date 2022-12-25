@@ -12,7 +12,6 @@ from typing import Literal, Optional
 
 import whisper
 import sounddevice as sd
-from scipy.io.wavfile import write
 
 if platform.system() == "Windows":
     import pyaudiowpatch as pyaudio
@@ -24,7 +23,6 @@ import wave
 
 from speech_translate.Globals import app_icon, app_name, dir_temp, fJson, gClass
 from speech_translate.Logging import logger
-from speech_translate.components.MBox import Mbox
 
 from .Helper import modelSelectDict, nativeNotify
 from .Translate import google_tl, libre_tl, memory_tl
@@ -75,9 +73,10 @@ def verboseWhisperLogging(result):
     """
     This will log the result of the whisper engine in a verbose way.
 
-    Args:
-        result: whisper result
-
+    Parameters
+    ----
+    result:
+        whisper result
     """
     logger.debug(f"Language: {result['language']}")
     logger.debug(f"Text: {result['text']}")
@@ -116,7 +115,43 @@ def checkModelFirst(modelName: str):
         gClass.dl_proc.join()
 
 
-def rec_realTime(lang_source: str, lang_target: str, engine: str, modelInput: str, device: str, transcribe: bool, translate: bool, speaker: bool = False) -> None:
+def rec_realTime(
+    lang_source: str,
+    lang_target: str,
+    engine: Literal["Whisper", "Google", "LibreTranslate", "MyMemoryTranslator"],
+    modelInput: str,
+    device: str,
+    transcribe: bool,
+    translate: bool,
+    speaker: bool = False,
+) -> None:
+    """
+    Function to record audio and translate it in real time. Speaker as input can only be used on Windows.
+    Other OS need to use mic, speaker can be used only by using Loopback software such as PulseAudio, blackhole, etc.
+
+    Parameters
+    ----
+    lang_source: str
+        Source language
+    lang_target: str
+        Target language
+    engine: Literal["Whisper", "Google", "LibreTranslate", "MyMemoryTranslator"]
+        Translation engine
+    modelInput: str
+        Model to use
+    device: str
+        Device to use
+    transcribe: bool
+        Whether to transcribe the audio
+    translate: bool
+        Whether to translate the audio
+    speaker: bool, optional
+        Whether to use speaker diarization
+
+    Returns
+    ----
+    None
+    """
     src_english = lang_source == "english"
     auto = lang_source == "auto detect"
     whisperEngine = engine == "Whisper"
@@ -137,6 +172,7 @@ def rec_realTime(lang_source: str, lang_target: str, engine: str, modelInput: st
 
     # recording session init
     global prev_tl_text, sentences_tl
+    tempList = []
     sentences_tc = []
     sentences_tl = []
     prev_tc_text = ""
@@ -158,16 +194,17 @@ def rec_realTime(lang_source: str, lang_target: str, engine: str, modelInput: st
     # ----------------- Start recording -----------------
     logger.info("-" * 50)
     logger.info(f"Task: {task}")
+    logger.info(f"Modelname: {modelName}")
+    logger.info(f"Engine: {engine}")
+    logger.info(f"Auto mode: {auto}")
+    logger.info(f"Source Lang: {lang_source}")
+    if translate:
+        logger.info(f"Target Lang: {lang_target}")
 
     # pyaudio
     p = pyaudio.PyAudio()
 
-    if not speaker:
-        # get the device id from sounddevice module
-        device_id = sd.query_devices(device, "input")["index"]  # type: ignore
-        device_detail = p.get_device_info_by_index(int(device_id))  # Get device detail
-        num_of_channels = 1
-    else:
+    if speaker:
         # get the device id in [ID: x]
         device_id = device.split("[ID: ")[1]  # first get the id bracket
         device_id = device_id.split("]")[0]  # then get the id
@@ -188,14 +225,23 @@ def rec_realTime(lang_source: str, lang_target: str, engine: str, modelInput: st
                 # raise exception
                 raise Exception("Loopback device not found")
 
-        sample_rate = int(device_detail["defaultSampleRate"])
+        # speaker will automatically use the max sample rate and channels, because it won't work if not set like this
         num_of_channels = int(device_detail["maxInputChannels"])
-        chunk_size = p.get_sample_size(pyaudio.paInt16)
-        print(chunk_size, sample_rate, num_of_channels)
+        sample_rate = int(device_detail["defaultSampleRate"])
+        logger.debug(f"Sample Rate {sample_rate} | channels {num_of_channels}")
+    else:
+        # get the device id from sounddevice module
+        device_id = sd.query_devices(device, "input")["index"]  # type: ignore
+        device_detail = p.get_device_info_by_index(int(device_id))  # Get device detail
+        num_of_channels = 1
+
+        # check if user set auto stream param
+        if fJson.settingCache["auto_stream_params"]:
+            sample_rate = int(device_detail["defaultSampleRate"])
+            num_of_channels = int(device_detail["maxInputChannels"])
 
     logger.debug(f"Device: ({device_detail['index']}) {device_detail['name']}")
     logger.debug(device_detail)
-    # logger.debug(pyaudio.get_sample_size(pyaudio.paInt16))
 
     gClass.stream = p.open(format=pyaudio.paInt16, channels=num_of_channels, rate=sample_rate, input=True, frames_per_buffer=chunk_size, input_device_index=int(device_detail["index"]))
     record_thread = threading.Thread(target=realtime_recording_thread, args=[chunk_size], daemon=True)
@@ -230,23 +276,38 @@ def rec_realTime(lang_source: str, lang_target: str, engine: str, modelInput: st
                 wav_writer.writeframes(last_sample)  # get the audio data from the buffer.
                 wav_writer.close()
 
-                # Read the audio data, now with wave headers.
+                # Read the audio data
                 wav_file.seek(0)
                 wav_reader: wave.Wave_read = wave.open(wav_file)
                 samples = wav_reader.getnframes()
                 audio = wav_reader.readframes(samples)
                 wav_reader.close()
 
-                # Convert the wave data straight to a numpy array for the model.
-                # https://stackoverflow.com/a/62298670
-                audio_as_np_int16 = numpy.frombuffer(audio, dtype=numpy.int16)
-                audio_as_np_float32 = audio_as_np_int16.astype(numpy.float32)
-                audio_normalised = audio_as_np_float32 / max_int16
+                logger.info(f"Processing Audio")
+                if speaker or num_of_channels > 1:
+                    # If stereo or speaker, the old fast method does not work so we have to resort to using the old, a little slower, but working method
+                    # which is to save the audio file and read it directly to the whisper model
+                    audio_target = os.path.join(dir_temp, datetime.now().strftime("%Y-%m-%d %H_%M_%S_%f")) + ".wav"
+                    tempList.append(audio_target)  # add to the temp list to delete later
+
+                    # block until the file is written
+                    with open(audio_target, "wb") as f:
+                        f.write(wav_file.getvalue())  # write it
+
+                    if len(tempList) > fJson.settingCache["max_temp"]:
+                        # delete the oldest file
+                        os.remove(tempList[0])
+                        tempList.pop(0)
+                else:
+                    # Convert the wave data straight to a numpy array for the model.
+                    # https://stackoverflow.com/a/62298670
+                    audio_as_np_int16 = numpy.frombuffer(audio, dtype=numpy.int16)
+                    audio_as_np_float32 = audio_as_np_int16.astype(numpy.float32)
+                    audio_target = audio_as_np_float32 / max_int16  # normalized as Numpy array
 
                 logger.info(f"Transcribing")
-                result = model.transcribe(audio_normalised, language=lang_source if not auto else None, task=task)
+                result = model.transcribe(audio_target, language=lang_source if not auto else None, task=task)
                 text = result["text"].strip()  # type: ignore
-                logger.debug(text)
 
                 if len(text) > 0 and text != prev_tc_text:
                     prev_tc_text = text
@@ -254,7 +315,11 @@ def rec_realTime(lang_source: str, lang_target: str, engine: str, modelInput: st
                         # this works like this:
                         # clear the textbox first, then insert the text. The text inserted is a continuation of the previous text.
                         # the longer it is the clearer the transcribed text will be, because of more context.
-                        logger.info(f"Transcribed")
+                        logger.info(f"New transcribed text")
+                        if fJson.settingCache["verbose"]:
+                            logger.info(verboseWhisperLogging(result))
+                        else:
+                            logger.debug(f"{text}")
                         gClass.clearMwTc()
 
                         # insert previous sentences if there are any
@@ -266,10 +331,10 @@ def rec_realTime(lang_source: str, lang_target: str, engine: str, modelInput: st
 
                     if translate:
                         if whisperEngine:
-                            tlThread = threading.Thread(target=whisper_realtime_tl, args=[audio_normalised, lang_source, auto, model], daemon=True)
+                            tlThread = threading.Thread(target=whisper_realtime_tl, args=[audio_target, lang_source, auto, model], daemon=True)
                             tlThread.start()
                         else:
-                            tlThread = threading.Thread(target=realtime_tl, args=[text, lang_source, lang_target, auto, engine], daemon=True)
+                            tlThread = threading.Thread(target=realtime_tl, args=[text, lang_source, lang_target, engine], daemon=True)
                             tlThread.start()
 
                 # break up the buffer If we've reached max recording time
@@ -277,21 +342,39 @@ def rec_realTime(lang_source: str, lang_target: str, engine: str, modelInput: st
                 logger.debug(f"Audio length: {audio_length_in_seconds}")
                 if audio_length_in_seconds > max_record_time:
                     last_sample = bytes()
-                    sentences_tc.append(prev_tc_text)
-                    sentences_tl.append(prev_tl_text)
 
-                    if len(sentences_tc) >= max_sentences:
-                        sentences_tc.pop(0)
+                    if transcribe:
+                        sentences_tc.append(prev_tc_text)
+                        if len(sentences_tc) >= max_sentences:
+                            sentences_tc.pop(0)
 
-                    if len(sentences_tl) >= max_sentences:
-                        sentences_tl.pop(0)
+                    if translate:
+                        sentences_tl.append(prev_tl_text)
+                        if len(sentences_tl) >= max_sentences:
+                            sentences_tl.pop(0)
 
-        logger.debug("Recording...")
         sleep(0.1)
     else:
+        logger.info("-" * 50)
+        logger.info("Stopping stream")
+        gClass.stream.stop_stream()
+        gClass.stream.close()
+        logger.info("Stream stopped and closed")
+
+        logger.info("-" * 50)
         logger.info("Terminating pyaudio")
         p.terminate()
         logger.info("Pyaudio terminated")
+
+        if speaker or num_of_channels > 1:
+            logger.info("-" * 50)
+            logger.info("Cleaning up audioFiles")
+            for audio in tempList:
+                try:
+                    os.remove(audio)
+                except FileNotFoundError:
+                    pass
+            logger.info("Done!")
 
 
 def realtime_recording_thread(chunk_size: int):
@@ -300,11 +383,6 @@ def realtime_recording_thread(chunk_size: int):
     while gClass.recording:  # Record in a thread at a fast rate.
         data = gClass.stream.read(chunk_size)
         gClass.data_queue.put(data)
-    else:
-        logger.info("Stopping stream")
-        gClass.stream.stop_stream()
-        gClass.stream.close()
-        logger.info("Stream stopped and closed")
 
 
 def whisper_realtime_tl(audio_normalised: numpy.ndarray, lang_source: str, auto: bool, model: whisper.Whisper):
@@ -331,7 +409,7 @@ def whisper_realtime_tl(audio_normalised: numpy.ndarray, lang_source: str, auto:
         gClass.insertMwTbTl(text + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))
 
 
-def realtime_tl(text: str, lang_source: str, lang_target: str, auto: bool, engine: Literal["Google", "LibreTranslate", "MyMemoryTranslator"]):
+def realtime_tl(text: str, lang_source: str, lang_target: str, engine: Literal["Google", "LibreTranslate", "MyMemoryTranslator"]):
     """Translate the result"""
     assert gClass.mw is not None
     gClass.enableTranslating()

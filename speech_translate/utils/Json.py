@@ -35,11 +35,13 @@ default_setting = {
     # ------------------ #
     # Record settings
     "mic_maxBuffer": 30,
-    "speaker_maxBuffer": 45,
+    "speaker_maxBuffer": 30,
     "transcribe_rate": 500,
     "sample_rate": 16000,
     "chunk_size": 1024,
     "max_sentences": 5,
+    "max_temp": 200,
+    "auto_stream_params": False,
     # ------------------ #
     # Textboxes
     "tb_mw_tc_max": 0,
