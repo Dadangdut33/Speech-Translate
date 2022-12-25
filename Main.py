@@ -34,7 +34,7 @@ from speech_translate.components.MBox import Mbox
 from speech_translate.components.Tooltip import CreateToolTip
 from speech_translate.utils.Helper import modelKeys, modelSelectDict, upFirstCase, startFile
 from speech_translate.utils.LangCode import engine_select_source_dict, engine_select_target_dict, whisper_compatible
-from speech_translate.utils.Record import getInputDevices, getOutputDevices, getDefaultOutputDevice, from_file, rec_mic, rec_pc, rec_mic_realTime
+from speech_translate.utils.Record import getInputDevices, getOutputDevices, getDefaultOutputDevice, getDefaultInputDevice, from_file, rec_realTime
 
 
 def hideConsole(win):
@@ -262,7 +262,7 @@ class MainWindow:
             self.label_speaker,
             """Speaker to record system audio. Action available:
         \r[-] Left click to refresh\n[-] Right click to set to default device
-        \r**NOTES**:\nFormat of the device is {device name, hostAPI  [ID: x]}
+        \r**NOTES**:\nFormat of the device is {device name, hostAPI [ID: x]}
         \rThere are many hostAPI for your device and it is recommended to follow the default value, other than that it might not work or crash the app.""",
             wrapLength=400,
         )
@@ -272,7 +272,7 @@ class MainWindow:
         self.cb_speaker.pack(side=tk.LEFT, padx=5, pady=0, ipady=0)
         CreateToolTip(
             self.cb_speaker,
-            """**NOTES**:\nFormat of the device is {device name, hostAPI}
+            """**NOTES**:\nFormat of the device is {device name, hostAPI [ID: x]}
         \rThere are many hostAPI for your device and it is recommended to follow the default value, other than that it might not work or crash the app.
         \rTo set default value you can right click on the label in the left.""",
             wrapLength=400,
@@ -284,11 +284,11 @@ class MainWindow:
         self.sep_btn_f3 = ttk.Separator(self.f3_leftRow2, orient="vertical")
         self.sep_btn_f3.pack(side=tk.LEFT, fill="y", pady=0, ipady=0)
 
-        self.btn_record_mic = ttk.Button(self.f3_frameRight, text="Record From Mic", command=self.realtime_rec_from_mic)
+        self.btn_record_mic = ttk.Button(self.f3_frameRight, text="Record From Mic", command=self.mic_rec)
         self.btn_record_mic.pack(side=tk.RIGHT, padx=5, pady=5)
         CreateToolTip(self.btn_record_mic, "Record sound from selected microphone device")
 
-        self.btn_record_pc = ttk.Button(self.f3_frameRight, text="Record PC Sound", command=self.rec_from_pc)
+        self.btn_record_pc = ttk.Button(self.f3_frameRight, text="Record PC Sound", command=self.pc_rec)
         self.btn_record_pc.pack(side=tk.RIGHT, padx=5, pady=5)
         CreateToolTip(self.btn_record_pc, "Record sound from selected speaker device ")
 
@@ -377,9 +377,9 @@ class MainWindow:
 
         try:
             exit()
-        except SystemExit:
+        except SystemExit as e:
+            logger.exception(e)
             os._exit(0)
-            pass
 
     # Show window
     def show_window(self):
@@ -506,7 +506,7 @@ class MainWindow:
     def label_microphone_Rclick(self, _event=None):
         self.label_microphone_Lclick()  # update list
         # set default mic
-        defaultMic = sd.query_devices(kind="input")
+        defaultMic = getDefaultInputDevice()
         if defaultMic:
             self.cb_mic.set(defaultMic["name"] + ", " + sd.query_hostapis(defaultMic["hostapi"])["name"])  # type: ignore
             fJson.savePartialSetting("mic", self.cb_mic.get())
@@ -740,7 +740,7 @@ class MainWindow:
 
     # ------------------ Rec ------------------
     # From mic
-    def rec_from_mic(self):
+    def mic_rec(self):
         # Checking args
         mode, model, engine, sourceLang, targetLang, mic, speaker = self.get_args()
         if sourceLang == targetLang and mode == 2:
@@ -751,49 +751,7 @@ class MainWindow:
         self.tb_clear()
         self.start_loadBar()
         self.disable_interactions()
-        self.btn_record_mic.config(text="Loading", command=self.rec_from_mic_stop, state="normal")
-
-        gClass.enableRecording()  # Flag update
-        transcribe = mode == 0 or mode == 2
-        translate = mode == 1 or mode == 2
-
-        # Start thread
-        try:
-            recMicThread = threading.Thread(target=rec_mic, args=(mic, model, sourceLang, targetLang, transcribe, translate, engine), daemon=True)
-            recMicThread.start()
-        except Exception as e:
-            logger.exception(e)
-            self.errorNotif(str(e))
-            self.rec_from_mic_stop()
-
-    def rec_from_mic_stop(self):
-        logger.info("Recording Mic Stopped")
-        gClass.disableRecording()
-        sd.stop()  # stop the sounddevice recording
-
-        if gClass.dl_proc is not None:
-            gClass.dl_proc.terminate()
-            gClass.dl_proc = None
-            self.root.update()
-            Mbox("Model Download Cancelled", "Cancelled model downloading", 0, self.root)
-
-        self.loadBar.stop()
-        self.loadBar.config(mode="determinate")
-        self.btn_record_mic.config(text="Record From Mic", command=self.rec_from_mic)
-        self.enable_interactions()
-
-    def realtime_rec_from_mic(self):
-        # Checking args
-        mode, model, engine, sourceLang, targetLang, mic, speaker = self.get_args()
-        if sourceLang == targetLang and mode == 2:
-            Mbox("Invalid options!", "Source and target language cannot be the same", 2)
-            return
-
-        # ui changes
-        self.tb_clear()
-        self.start_loadBar()
-        self.disable_interactions()
-        self.btn_record_mic.config(text="Loading", command=self.realtime_rec_from_mic_stop, state="normal")
+        self.btn_record_mic.config(text="Loading", command=self.mic_rec_stop, state="normal")
 
         gClass.enableRecording()  # Flag update    # Disable recording is by button input
         transcribe = mode == 0 or mode == 2
@@ -801,20 +759,16 @@ class MainWindow:
 
         # Start thread
         try:
-            recMicThread = threading.Thread(target=rec_mic_realTime, args=(sourceLang, engine, model, mic), daemon=True)
+            recMicThread = threading.Thread(target=rec_realTime, args=(sourceLang, targetLang, engine, model, mic, transcribe, translate), daemon=True)
             recMicThread.start()
         except Exception as e:
             logger.exception(e)
             self.errorNotif(str(e))
-            self.rec_from_mic_stop()
+            self.mic_rec_stop()
 
-    def realtime_rec_from_mic_stop(self):
-        logger.info("Recording Mic realtime Stopped")
+    def mic_rec_stop(self):
+        logger.info("Recording Mic Stopped")
         gClass.disableRecording()
-        if gClass.stream is not None:
-            # gClass.stream_obj.stop_stream()
-            gClass.stream.close()
-            logger.info("Stream closed")
 
         if gClass.dl_proc is not None:
             gClass.dl_proc.terminate()
@@ -824,17 +778,17 @@ class MainWindow:
 
         self.loadBar.stop()
         self.loadBar.config(mode="determinate")
-        self.btn_record_mic.config(text="Record From Mic", command=self.realtime_rec_from_mic)
+        self.btn_record_mic.config(text="Record From Mic", command=self.mic_rec)
         self.enable_interactions()
 
     # From pc
-    def rec_from_pc(self):
+    def pc_rec(self):
         # check if on windows or not
         if platform.system() != "Windows":
             Mbox(
                 "Not available",
                 """This feature is only available on Windows. 
-                \rIn order to record PC sound from OS other than Windows you will need to create a virtual audio loopback to pass the speaker output as an input. You can use software like PulseAudio to do this.
+                \rIn order to record PC sound from OS other than Windows you will need to create a virtual audio loopback to pass the speaker output as an input. You can use software like PulseAudio or Blackhole (on Mac) to do this.
                 \rAfter that you can change your default input device to the virtual audio loopback.""",
                 0,
                 self.root,
@@ -859,7 +813,7 @@ class MainWindow:
 
         # Start thread
         try:
-            recPcThread = threading.Thread(target=rec_pc, args=(speaker, model, sourceLang, targetLang, transcribe, translate, engine), daemon=True)
+            recPcThread = threading.Thread(target=rec_realTime, args=(sourceLang, targetLang, engine, model, speaker, transcribe, translate, True), daemon=True)
             recPcThread.start()
         except Exception as e:
             logger.exception(e)
@@ -878,7 +832,7 @@ class MainWindow:
 
         self.loadBar.stop()
         self.loadBar.config(mode="determinate")
-        self.btn_record_pc.config(text="Record PC Sound", command=self.rec_from_pc)
+        self.btn_record_pc.config(text="Record PC Sound", command=self.pc_rec)
         self.enable_interactions()
 
     # From file

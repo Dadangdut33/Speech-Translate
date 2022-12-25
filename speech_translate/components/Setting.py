@@ -10,7 +10,6 @@ from multiprocessing import Process
 from speech_translate.Globals import app_icon, app_name, fJson, gClass, dir_log, dir_temp
 from speech_translate.Logging import logger, current_log
 from speech_translate.utils.DownloadModel import verify_model, download_model, get_default_download_root
-from speech_translate.utils.Json import default_setting
 from speech_translate.utils.Helper import startFile
 from .MBox import Mbox
 from .Tooltip import CreateToolTip
@@ -61,15 +60,21 @@ class SettingWindow:
         self.ft3 = ttk.Frame(self.tabControl)
         self.tabControl.add(self.ft3, text="Textbox")
 
-        self.ft4 = ttk.Frame(self.tabControl)
-        self.tabControl.add(self.ft4, text="Other")
+        # ------------------ General ------------------
+        # app
+        self.ft1lf_application = tk.LabelFrame(self.ft1, text="• Application")
+        self.ft1lf_application.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 
-        # ------------------ Widgets - General ------------------
+        self.check_update_on_start = ttk.Checkbutton(
+            self.ft1lf_application, text="Check for update on start", command=lambda: fJson.savePartialSetting("checkUpdateOnStart", self.check_update_on_start.instate(["selected"]))
+        )
+        self.check_update_on_start.pack(side=tk.LEFT, padx=5, pady=5)
+
         # log
-        self.ft1_logging = tk.LabelFrame(self.ft1, text="• Logging")
-        self.ft1_logging.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+        self.ft1lf_logging = tk.LabelFrame(self.ft1, text="• Logging")
+        self.ft1lf_logging.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 
-        self.t1_logging_1 = ttk.Frame(self.ft1_logging)
+        self.t1_logging_1 = ttk.Frame(self.ft1lf_logging)
         self.t1_logging_1.pack(side=tk.TOP, fill=tk.X, pady=5)
 
         self.lbl_log_location = ttk.Label(self.t1_logging_1, text="Log Files Location ", width=16)
@@ -83,7 +88,7 @@ class SettingWindow:
         self.entry_log_location_value.bind("<Button-3>", lambda e: self.promptDeleteLog())
         CreateToolTip(self.entry_log_location_value, "Location of log file.\n- LClick to open the folder.\n- RClick to delete all log files.")
 
-        self.t1_logging_2 = ttk.Frame(self.ft1_logging)
+        self.t1_logging_2 = ttk.Frame(self.ft1lf_logging)
         self.t1_logging_2.pack(side=tk.TOP, fill=tk.X, pady=5)
 
         self.cbtn_keep_log = ttk.Checkbutton(self.t1_logging_2, text="Keep Log Files", command=lambda: fJson.savePartialSetting("keep_log", self.cbtn_keep_log.instate(["selected"])))
@@ -101,11 +106,11 @@ class SettingWindow:
             CreateToolTip(self.cbtn_hide_console_window_on_start, "Will hide console (log) window every program start. Only on Windows.")
 
         # model
-        self.ft1_model = tk.LabelFrame(self.ft1, text="• Model")
-        self.ft1_model.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+        self.ft1lf_model = tk.LabelFrame(self.ft1, text="• Model")
+        self.ft1lf_model.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 
         # label model location
-        self.t1_model_1 = ttk.Frame(self.ft1_model)
+        self.t1_model_1 = ttk.Frame(self.ft1lf_model)
         self.t1_model_1.pack(side=tk.TOP, fill=tk.X, pady=5)
 
         self.lbl_model_location = ttk.Label(self.t1_model_1, text="Model Location ", width=16)
@@ -119,7 +124,7 @@ class SettingWindow:
         CreateToolTip(self.entry_model_location_value, "Location of the model file.\nLClick to open the folder")
 
         # the models
-        self.t1_model_2 = ttk.Frame(self.ft1_model)
+        self.t1_model_2 = ttk.Frame(self.ft1lf_model)
         self.t1_model_2.pack(side=tk.TOP, fill=tk.X)
 
         # small
@@ -212,11 +217,10 @@ class SettingWindow:
         self.btn_interact_large = ttk.Button(self.lf_model_large, text="Verify", command=lambda: self.model_check("large", self.btn_interact_large))
         self.btn_interact_large.pack(side=tk.LEFT, padx=5)
 
-        # ------------------ Widgets - Translation ------------------
+        # ------------------ Transcribe & Translate ------------------
         self.ft2_tc = tk.LabelFrame(self.ft2, text="• Transcribe")
         self.ft2_tc.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 
-        #
         self.tc_1 = ttk.Frame(self.ft2_tc)
         self.tc_1.pack(side=tk.TOP, fill=tk.X, pady=5)
 
@@ -340,22 +344,23 @@ class SettingWindow:
         self.tl_1 = ttk.Frame(self.ft2_tl)
         self.tl_1.pack(side=tk.TOP, fill=tk.X, pady=5)
 
-        self.lbl_libre_key = ttk.Label(self.tl_1, text="Libre Translate API Key")
+        self.lbl_libre_key = ttk.Label(self.tl_1, text="API Key")
         self.lbl_libre_key.pack(side=tk.LEFT, padx=5, pady=5)
         CreateToolTip(self.lbl_libre_key, "Libre Translate API Key. Leave empty if not needed or host locally.")
 
         self.entry_libre_key = ttk.Entry(self.tl_1)
         self.entry_libre_key.pack(side=tk.LEFT, padx=5, pady=5)
         self.entry_libre_key.bind("<KeyRelease>", lambda e: fJson.savePartialSetting("libre_api_key", self.entry_libre_key.get()))
+        CreateToolTip(self.entry_libre_key, "Libre Translate API Key. Leave empty if not needed or host locally.")
 
-        self.lbl_libre_host = ttk.Label(self.tl_1, text="Libre Translate Host")
+        self.lbl_libre_host = ttk.Label(self.tl_1, text="Host")
         self.lbl_libre_host.pack(side=tk.LEFT, padx=5, pady=5)
 
         self.entry_libre_host = ttk.Entry(self.tl_1)
         self.entry_libre_host.pack(side=tk.LEFT, padx=5, pady=5)
         self.entry_libre_host.bind("<KeyRelease>", lambda e: fJson.savePartialSetting("libre_host", self.entry_libre_host.get()))
 
-        self.lbl_libre_port = ttk.Label(self.tl_1, text="Libre Translate Port")
+        self.lbl_libre_port = ttk.Label(self.tl_1, text="Port")
         self.lbl_libre_port.pack(side=tk.LEFT, padx=5, pady=5)
         self.lbl_libre_port.bind("<KeyRelease>", lambda e: fJson.savePartialSetting("libre_port", self.entry_libre_port.get()))
 
@@ -367,25 +372,10 @@ class SettingWindow:
         self.cbtn_libre_https.pack(side=tk.LEFT, padx=5, pady=5)
         CreateToolTip(self.cbtn_libre_https, "Don't use this if you're hosting locally.")
 
-        # ------------------ Widgets - Textbox ------------------
-        self.ft3_r1 = ttk.Frame(self.ft3)
-        self.ft3_r1.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5, expand=True)
-
-        self.ft3_r2 = ttk.Frame(self.ft3)
-        self.ft3_r2.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5, expand=True)
-
-        self.ft3_r3 = ttk.Frame(self.ft3)
-        self.ft3_r3.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5, expand=True)
-
-        self.ft3_r4 = ttk.Frame(self.ft3)
-        self.ft3_r4.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5, expand=True)
-
-        self.ft3_r5 = ttk.Frame(self.ft3)
-        self.ft3_r5.pack(side=tk.TOP, fill=tk.BOTH, padx=5, pady=5, expand=True)
-
+        # ------------------ Textbox ------------------
         # mw tc
-        self.lf_mw_tc = tk.LabelFrame(self.ft3_r1, text="• Main Window Transcribed Textbox")
-        self.lf_mw_tc.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.X, expand=True)
+        self.lf_mw_tc = tk.LabelFrame(self.ft3, text="• Main Window Transcribed Textbox")
+        self.lf_mw_tc.pack(side=tk.TOP, padx=5, pady=5, fill=tk.X)
 
         self.lbl_mw_tc_max = ttk.Label(self.lf_mw_tc, text="Max Length")
         self.lbl_mw_tc_max.pack(side=tk.LEFT, padx=5, pady=5)
@@ -453,8 +443,8 @@ class SettingWindow:
         self.entry_mw_tc_bg_color.bind("<Key>", lambda e: "break")
 
         # mw tl
-        self.lf_mw_tl = tk.LabelFrame(self.ft3_r2, text="• Main Window Translated Textbox")
-        self.lf_mw_tl.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.X, expand=True)
+        self.lf_mw_tl = tk.LabelFrame(self.ft3, text="• Main Window Translated Textbox")
+        self.lf_mw_tl.pack(side=tk.TOP, padx=5, pady=5, fill=tk.X)
 
         self.lbl_mw_tl_max = ttk.Label(self.lf_mw_tl, text="Max Length")
         self.lbl_mw_tl_max.pack(side=tk.LEFT, padx=5, pady=5)
@@ -522,8 +512,8 @@ class SettingWindow:
         self.entry_mw_tl_bg_color.bind("<Key>", lambda e: "break")
 
         # detached tc
-        self.lf_ex_tc = tk.LabelFrame(self.ft3_r3, text="• Detached Transcribed Window Textbox")
-        self.lf_ex_tc.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.X, expand=True)
+        self.lf_ex_tc = tk.LabelFrame(self.ft3, text="• Detached Transcribed Window Textbox")
+        self.lf_ex_tc.pack(side=tk.TOP, padx=5, pady=5, fill=tk.X, expand=True)
 
         self.lbl_ex_tc_max = ttk.Label(self.lf_ex_tc, text="Max Length")
         self.lbl_ex_tc_max.pack(side=tk.LEFT, padx=5, pady=5)
@@ -547,6 +537,7 @@ class SettingWindow:
 
         self.cb_ex_tc_font = ttk.Combobox(self.lf_ex_tc, values=self.fonts, state="readonly", width=30)
         self.cb_ex_tc_font.pack(side=tk.LEFT, padx=5, pady=5)
+        self.cb_ex_tc_font.bind("<<ComboboxSelected>>", lambda e: fJson.savePartialSetting("tb_ex_tc_font", self.cb_ex_tc_font.get()) or self.preview_changes_tb())
 
         self.lbl_ex_tc_font_size = ttk.Label(self.lf_ex_tc, text="Font Size")
         self.lbl_ex_tc_font_size.pack(side=tk.LEFT, padx=5, pady=5)
@@ -590,8 +581,8 @@ class SettingWindow:
         self.entry_ex_tc_bg_color.bind("<Key>", lambda e: "break")
 
         # detached tl
-        self.lf_ex_tl = tk.LabelFrame(self.ft3_r4, text="• Detached Translated Window Textbox")
-        self.lf_ex_tl.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.X, expand=True)
+        self.lf_ex_tl = tk.LabelFrame(self.ft3, text="• Detached Translated Window Textbox")
+        self.lf_ex_tl.pack(side=tk.TOP, padx=5, pady=5, fill=tk.X)
 
         self.lbl_ex_tl_max = ttk.Label(self.lf_ex_tl, text="Max Length")
         self.lbl_ex_tl_max.pack(side=tk.LEFT, padx=5, pady=5)
@@ -615,6 +606,7 @@ class SettingWindow:
 
         self.cb_ex_tl_font = ttk.Combobox(self.lf_ex_tl, values=self.fonts, state="readonly", width=30)
         self.cb_ex_tl_font.pack(side=tk.LEFT, padx=5, pady=5)
+        self.cb_ex_tl_font.bind("<<ComboboxSelected>>", lambda e: fJson.savePartialSetting("tb_ex_tl_font", self.cb_ex_tl_font.get()) or self.preview_changes_tb())
 
         self.lbl_ex_tl_font_size = ttk.Label(self.lf_ex_tl, text="Font Size")
         self.lbl_ex_tl_font_size.pack(side=tk.LEFT, padx=5, pady=5)
@@ -658,8 +650,11 @@ class SettingWindow:
         self.entry_ex_tl_bg_color.bind("<Key>", lambda e: "break")
 
         # button
+        self.ft3_tb_preview = ttk.Frame(self.ft3)
+        self.ft3_tb_preview.pack(side=tk.TOP, fill=tk.X, pady=5)
+
         self.tb_preview_1 = tk.Text(
-            self.ft3_r5,
+            self.ft3_tb_preview,
             height=5,
             width=27,
             wrap=tk.WORD,
@@ -672,7 +667,7 @@ class SettingWindow:
         self.tb_preview_1.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.BOTH, expand=True)
 
         self.tb_preview_2 = tk.Text(
-            self.ft3_r5,
+            self.ft3_tb_preview,
             height=5,
             width=27,
             wrap=tk.WORD,
@@ -685,7 +680,7 @@ class SettingWindow:
         self.tb_preview_2.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.BOTH, expand=True)
 
         self.tb_preview_3 = tk.Text(
-            self.ft3_r5,
+            self.ft3_tb_preview,
             height=5,
             width=27,
             wrap=tk.WORD,
@@ -698,7 +693,7 @@ class SettingWindow:
         self.tb_preview_3.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.BOTH, expand=True)
 
         self.tb_preview_4 = tk.Text(
-            self.ft3_r5,
+            self.ft3_tb_preview,
             height=5,
             width=27,
             wrap=tk.WORD,
@@ -709,19 +704,6 @@ class SettingWindow:
         self.tb_preview_4.bind("<Key>", "break")
         self.tb_preview_4.insert(tk.END, "1234567 Preview プレビュー 预习 предварительный просмотр")
         self.tb_preview_4.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.BOTH, expand=True)
-
-        # ------------------ Tab 5 - Other ------------------
-        self.ft4_r1 = ttk.Frame(self.ft4)
-        self.ft4_r1.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
-
-        self.lf_application = tk.LabelFrame(self.ft4_r1, text="• Application")
-        self.lf_application.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.X, expand=True)
-
-        # check for update on start
-        self.check_update_on_start = ttk.Checkbutton(
-            self.lf_application, text="Check for update on start", command=lambda: fJson.savePartialSetting("checkUpdateOnStart", self.check_update_on_start.instate(["selected"]))
-        )
-        self.check_update_on_start.pack(side=tk.LEFT, padx=5, pady=5)
 
         # ------------------ Variables ------------------
         # Flags
