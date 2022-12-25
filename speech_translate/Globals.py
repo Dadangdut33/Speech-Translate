@@ -85,11 +85,13 @@ class Globals:
         self.translating = False
 
     def insertMwTbTc(self, textToAppend: str):
-        """_summary_: Insert text to transcribed textbox. Will also check if the text is too long and will truncate it if it is.
+        """Insert text to transcribed textbox. Will also check if the text is too long and will truncate it if it is.
         Separator should be added in the arguments (already in textToAppend)
 
-        Args:
-            textToAppend (str): Text to append
+        Parameters
+        ---
+        textToAppend: str
+            Text to append
         """
         assert self.mw is not None
         currentText = self.getMwTextTc()
@@ -108,11 +110,13 @@ class Globals:
         self.mw.tb_transcribed.see("end")
 
     def insertMwTbTl(self, textToAppend: str):
-        """_summary_: Insert text to translated textbox. Will also check if the text is too long and will truncate it if it is.
+        """Insert text to translated textbox. Will also check if the text is too long and will truncate it if it is.
         Separator should be added in the arguments (already in textToAppend)
 
-        Args:
-            textToAppend (str): Text to append
+        Parameters
+        ---
+        textToAppend: str
+            Text to append
         """
         assert self.mw is not None
         currentText = self.getMwTextTl()
@@ -131,48 +135,47 @@ class Globals:
         self.mw.tb_transcribed.see("end")
 
     def insertExTbTc(self, textToAppend: str):
-        """_summary_: Insert text to detached transcribed textbox. Will also check if the text is too long and will truncate it if it is.
+        """Insert text to detached transcribed textbox. Will also check if the text is too long and will truncate it if it is.
         Separator is added here.
 
-        Args:
-            textToAppend (str): Text to append
+        Parameters
+        ---
+        textToAppend: str
+            Text to append
         """
         assert self.ex_tcw is not None
-        currentText = self.getDetachedTextTc().strip()
+        currentText = self.getExTextTc().strip()
         textToAppend = textToAppend.strip()
         # Main window textbox
         if fJson.settingCache["tb_ex_tc_max"] != 0 and len(currentText) > fJson.settingCache["tb_ex_tc_max"]:  # if not infinite and text is too long
             currentText = currentText[len(textToAppend) :]  # remove words from the start with length of the new text
-            currentText += ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))  # add separator
             currentText += textToAppend  # add new text to the end
             self.ex_tcw.curText = currentText  # update textbox
         else:
-            currentText += ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))  # add new text to the end
-            currentText += textToAppend  # add new text to the end
-            self.ex_tcw.curText = currentText
-
+            textToAppend += ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))  # set new text
+            self.ex_tcw.curText = textToAppend
         self.ex_tcw.update_text()
 
     def insertExTbTl(self, textToAppend: str):
-        """_summary_: Insert text to detached translated textbox. Will also check if the text is too long and will truncate it if it is.
+        """Insert text to detached translated textbox. Will also check if the text is too long and will truncate it if it is.
         Separator is added here.
 
-        Args:
-            textToAppend (str): Text to append
+        Parameters
+        ---
+        textToAppend: str
+            Text to append
         """
         assert self.ex_tlw is not None
-        currentText = self.getDetachedTextTl().strip()
+        currentText = self.getExTextTl().strip()
         textToAppend = textToAppend.strip()
         # Main window textbox
         if fJson.settingCache["tb_ex_tl_max"] != 0 and len(currentText) > fJson.settingCache["tb_ex_tl_max"]:  # if not infinite and text is too long
             currentText = currentText[len(textToAppend) :]  # remove words from the start with length of the new text
-            currentText += ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))  # add separator
             currentText += textToAppend  # add new text to the end
             self.ex_tlw.curText = currentText  # update textbox
         else:
-            currentText += ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))  # add new text to the end
-            currentText += textToAppend  # add new text to the end
-            self.ex_tlw.curText = currentText
+            textToAppend += ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))  # set new text
+            self.ex_tlw.curText = textToAppend
         self.ex_tlw.update_text()
 
     def getMwTextTc(self) -> str:
@@ -191,24 +194,24 @@ class Globals:
         assert self.mw is not None
         self.mw.tb_translated.delete("1.0", "end")
 
-    def getDetachedTextTc(self) -> str:
+    def getExTextTc(self) -> str:
         assert self.ex_tcw is not None
         self.ex_tcw.get_cur_text()
         sleep(0.1)
         return self.ex_tcw.curText
 
-    def getDetachedTextTl(self) -> str:
+    def getExTextTl(self) -> str:
         assert self.ex_tlw is not None
         self.ex_tlw.get_cur_text()
         sleep(0.1)
         return self.ex_tlw.curText
 
-    def clearDetachedTc(self):
+    def clearExTc(self):
         assert self.ex_tcw is not None
         self.ex_tcw.curText = ""
         self.ex_tcw.update_text()
 
-    def clearDetachedTl(self):
+    def clearExTl(self):
         assert self.ex_tlw is not None
         self.ex_tlw.curText = ""
         self.ex_tlw.update_text()

@@ -169,6 +169,7 @@ def rec_realTime(
     chunk_size = int(fJson.settingCache["chunk_size"])
     max_sentences = int(fJson.settingCache["max_sentences"])
     max_int16 = 2**15
+    separator = ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))
 
     # recording session init
     global prev_tl_text, sentences_tl
@@ -321,13 +322,18 @@ def rec_realTime(
                         else:
                             logger.debug(f"{text}")
                         gClass.clearMwTc()
+                        gClass.clearExTc()
+                        toExTc = ""
 
                         # insert previous sentences if there are any
                         for sentence in sentences_tc:
-                            gClass.insertMwTbTc(sentence + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))
+                            gClass.insertMwTbTc(sentence + separator)
+                            toExTc += sentence + separator
 
                         # insert the current sentence after previous sentences
-                        gClass.insertMwTbTc(text + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))
+                        gClass.insertMwTbTc(text + separator)
+                        toExTc += text + separator
+                        gClass.insertExTbTc(toExTc)
 
                     if translate:
                         if whisperEngine:
@@ -390,6 +396,7 @@ def whisper_realtime_tl(audio_normalised: numpy.ndarray, lang_source: str, auto:
     assert gClass.mw is not None
     gClass.enableTranslating()
     global prev_tl_text, sentences_tl
+    separator = ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))
 
     result = model.transcribe(audio_normalised, language=lang_source if not auto else None, task="translate")
     text = result["text"].strip()  # type: ignore
@@ -400,13 +407,18 @@ def whisper_realtime_tl(audio_normalised: numpy.ndarray, lang_source: str, auto:
         # clear the textbox first, then insert the text. The text inserted is a continuation of the previous text.
         # the longer it is the clearer the transcribed text will be, because of more context.
         gClass.clearMwTl()
+        gClass.clearExTl()
+        toExTb = ""
 
         # insert previous sentences if there are any
         for sentence in sentences_tl:
-            gClass.insertMwTbTl(sentence + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))
+            gClass.insertMwTbTl(sentence + separator)
+            toExTb += sentence + separator
 
         # insert the current sentence after previous sentences
-        gClass.insertMwTbTl(text + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))
+        gClass.insertMwTbTl(text + separator)
+        toExTb += text + separator
+        gClass.insertExTbTl(toExTb)
 
 
 def realtime_tl(text: str, lang_source: str, lang_target: str, engine: Literal["Google", "LibreTranslate", "MyMemoryTranslator"]):
@@ -415,6 +427,7 @@ def realtime_tl(text: str, lang_source: str, lang_target: str, engine: Literal["
     gClass.enableTranslating()
     global prev_tl_text, sentences_tl
     result_Tl = ""
+    separator = ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))
 
     try:
         if engine == "Google":
@@ -447,13 +460,18 @@ def realtime_tl(text: str, lang_source: str, lang_target: str, engine: Literal["
         # clear the textbox first, then insert the text. The text inserted is a continuation of the previous text.
         # the longer it is the clearer the transcribed text will be, because of more context.
         gClass.clearMwTl()
+        gClass.clearExTl()
+        toExTb = ""
 
         # insert previous sentences if there are any
         for sentence in sentences_tl:
-            gClass.insertMwTbTl(sentence + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))
+            gClass.insertMwTbTl(sentence + separator)
+            toExTb += sentence + separator
 
         # insert the current sentence after previous sentences
-        gClass.insertMwTbTl(result_Tl + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))
+        gClass.insertMwTbTl(result_Tl + separator)
+        toExTb += result_Tl + separator
+        gClass.insertExTbTl(toExTb)
 
 
 # --------------------------------------------------------------------------------------------------------------------------------------
@@ -491,6 +509,7 @@ def multiproc_tl(toTranslate: str, lang_source: str, lang_target: str, modelName
     gClass.enableTranslating()
     gClass.mw.start_loadBar()
     result_Tl = ""
+    separator = ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))
 
     logger.debug(f"Translating...")
 
@@ -543,8 +562,7 @@ def multiproc_tl(toTranslate: str, lang_source: str, lang_target: str, modelName
 
     if engine == "Whisper":
         if len(result_Tl["text"].strip()) > 0:  # type: ignore
-            gClass.insertMwTbTl(result_Tl["text"].strip() + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))  # type: ignore
-            gClass.insertExTbTl(result_Tl["text"].strip())  # type: ignore
+            gClass.insertMwTbTl(result_Tl["text"].strip() + separator)  # type: ignore
         else:
             logger.warning("Translated Text is empty")
 
@@ -557,8 +575,7 @@ def multiproc_tl(toTranslate: str, lang_source: str, lang_target: str, modelName
     else:
         resGet = result_Tl.strip()  # type: ignore
         if len(resGet) > 0:
-            gClass.insertMwTbTl(resGet + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))
-            # gClass.insertExTbTl(resGet + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))
+            gClass.insertMwTbTl(resGet + separator)
         else:
             logger.warning("Translated Text is empty")
 
@@ -589,6 +606,7 @@ def multiproc_tc(
     gClass.enableTranscribing()
     gClass.mw.start_loadBar()
     result_Tc = ""
+    separator = ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))
 
     # Transcribe
     logger.info("-" * 50)
@@ -619,8 +637,7 @@ def multiproc_tc(
     # insert to textbox
     if transcribe:
         if len(result_Tc["text"].strip()) > 0:  # type: ignore
-            gClass.insertMwTbTc(result_Tc["text"].strip() + ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"])))  # type: ignore
-            gClass.insertExTbTc(result_Tc["text"].strip())  # type: ignore
+            gClass.insertMwTbTc(result_Tc["text"].strip() + separator)  # type: ignore
         else:
             logger.warning("Transcribed Text is empty")
     if translate:

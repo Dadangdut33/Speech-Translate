@@ -571,8 +571,8 @@ class MainWindow:
     def tb_clear(self):
         self.tb_transcribed.delete(1.0, tk.END)
         self.tb_translated.delete(1.0, tk.END)
-        gClass.clearDetachedTc()
-        gClass.clearDetachedTl()
+        gClass.clearExTc()
+        gClass.clearExTl()
 
     # Swap textboxes
     def tb_swap_content(self):
