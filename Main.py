@@ -585,9 +585,10 @@ class MainWindow:
     # swap select language and textbox
     def cb_swap_lang(self):
         # swap lang
-        tmp = self.cb_targetLang.get()
-        self.cb_sourceLang.set(self.cb_targetLang.get())
-        self.cb_targetLang.set(tmp)
+        tmpTarget = self.cb_targetLang.get()
+        tmpSource = self.cb_sourceLang.get()
+        self.cb_sourceLang.set(tmpTarget)
+        self.cb_targetLang.set(tmpSource)
 
         # save
         fJson.savePartialSetting("sourceLang", self.cb_sourceLang.get())

@@ -248,52 +248,58 @@ class SettingWindow:
 
         self.lbl_max_temp = ttk.Label(self.tc_1, text="Max sentences", width=18)
         self.lbl_max_temp.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.lbl_max_temp, "Set max number of sentences kept between each buffer reset.\n\nOne sentence equals one max buffer. So if max buffer is 30 seconds, the words that are in those 30 seconds is the sentence.\n\nDefault value is 5.")
+        CreateToolTip(
+            self.lbl_max_temp,
+            "Set max number of sentences kept between each buffer reset.\n\nOne sentence equals one max buffer. So if max buffer is 30 seconds, the words that are in those 30 seconds is the sentence.\n\nDefault value is 5.",
+        )
 
         self.spn_max_sentences = ttk.Spinbox(
             self.tc_1, from_=1, to=30, validate="key", validatecommand=(self.root.register(self.number_only), "%P"), command=lambda: fJson.savePartialSetting("max_sentences", int(self.spn_max_sentences.get()))
         )
         self.spn_max_sentences.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_max_sentences, 1, 30, lambda: fJson.savePartialSetting("max_sentences", int(self.spn_max_sentences.get()))))
         self.spn_max_sentences.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.spn_max_sentences, "Set max number of sentences kept between each buffer reset.\n\nOne sentence equals one max buffer. So if max buffer is 30 seconds, the words that are in those 30 seconds is the sentence.\n\nDefault value is 5.")
+        CreateToolTip(
+            self.spn_max_sentences,
+            "Set max number of sentences kept between each buffer reset.\n\nOne sentence equals one max buffer. So if max buffer is 30 seconds, the words that are in those 30 seconds is the sentence.\n\nDefault value is 5.",
+        )
 
         self.lbl_max_temp = ttk.Label(self.tc_1, text="Max temp files", width=18)
         self.lbl_max_temp.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.lbl_max_temp, "Set max number of temporary files kept when recording from speaker or stereo sounds. Default value is 250.")
+        CreateToolTip(self.lbl_max_temp, "Set max number of temporary files kept when recording from speaker or stereo sounds.\n\nDefault value is 250.")
 
         self.spn_max_temp = ttk.Spinbox(
             self.tc_1, from_=50, to=1000, validate="key", validatecommand=(self.root.register(self.number_only), "%P"), command=lambda: fJson.savePartialSetting("max_temp", int(self.spn_max_temp.get()))
         )
         self.spn_max_temp.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_max_temp, 50, 1000, lambda: fJson.savePartialSetting("max_temp", int(self.spn_max_temp.get()))))
         self.spn_max_temp.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.spn_max_temp, "Set max number of temporary files kept when recording from speaker or stereo sounds. Default value is 250.")
+        CreateToolTip(self.spn_max_temp, "Set max number of temporary files kept when recording from speaker or stereo sounds.\n\nDefault value is 250.")
 
         # 2
         self.lbl_sample_rate = ttk.Label(self.tc_2, text="Sample Rate", width=18)
         self.lbl_sample_rate.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.lbl_sample_rate, "Set the sample rate for the audio recording. Default value is 16000.")
+        CreateToolTip(self.lbl_sample_rate, "Set the sample rate for the audio recording. \n\nDefault value is 16000.")
 
         self.spn_sample_rate = ttk.Spinbox(
             self.tc_2, from_=8000, to=48000, validate="key", validatecommand=(self.root.register(self.number_only), "%P"), command=lambda: fJson.savePartialSetting("sample_rate", int(self.spn_sample_rate.get()))
         )
         self.spn_sample_rate.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_sample_rate, 8000, 48000, lambda: fJson.savePartialSetting("sample_rate", int(self.spn_sample_rate.get()))))
         self.spn_sample_rate.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.spn_sample_rate, "Set the sample rate for the audio recording. Default value is 16000.")
+        CreateToolTip(self.spn_sample_rate, "Set the sample rate for the audio recording. \n\nDefault value is 16000.")
 
         self.lbl_chunk_size = ttk.Label(self.tc_2, text="Chunk size", width=18)
         self.lbl_chunk_size.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.lbl_chunk_size, "Set the chunk size for the audio recording. Default value is 1024.\n\nThe higher the value the more resource it will use")
+        CreateToolTip(self.lbl_chunk_size, "Set the chunk size for the audio recording. \n\nDefault value is 1024.")
 
         self.spn_chunk_size = ttk.Spinbox(
-            self.tc_2, from_=8, to=65536, validate="key", validatecommand=(self.root.register(self.number_only), "%P"), command=lambda: fJson.savePartialSetting("chunk_size", int(self.spn_chunk_size.get()))
+            self.tc_2, from_=512, to=65536, validate="key", validatecommand=(self.root.register(self.number_only), "%P"), command=lambda: fJson.savePartialSetting("chunk_size", int(self.spn_chunk_size.get()))
         )
-        self.spn_chunk_size.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_chunk_size, 8, 65536, lambda: fJson.savePartialSetting("chunk_size", int(self.spn_chunk_size.get()))))
+        self.spn_chunk_size.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_chunk_size, 512, 65536, lambda: fJson.savePartialSetting("chunk_size", int(self.spn_chunk_size.get()))))
         self.spn_chunk_size.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.spn_chunk_size, "Set the chunk size for the audio recording. Default value is 1024.\n\nThe higher the value the more resource it will use")
+        CreateToolTip(self.spn_chunk_size, "Set the chunk size for the audio recording. \n\nDefault value is 1024.")
 
         self.lbl_tc_rate = ttk.Label(self.tc_2, text="Transcribe rate (ms)", width=18)
         self.lbl_tc_rate.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.lbl_tc_rate, "Set the transcribe rate or the time between each transcribe check. Default value is 500ms.\n\nThe lower the value, the more resource it will use.")
+        CreateToolTip(self.lbl_tc_rate, "Set the transcribe rate or the time between each transcribe check. \n\nThe lower the value, the more resource it will use.\n\nDefault value is 500ms.")
 
         self.spn_tc_rate = ttk.Spinbox(
             self.tc_2, from_=100, to=1000, validate="key", validatecommand=(self.root.register(self.number_only), "%P"), command=lambda: fJson.savePartialSetting("transcribe_rate", int(self.spn_tc_rate.get()))
@@ -301,7 +307,7 @@ class SettingWindow:
 
         self.spn_tc_rate.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_tc_rate, 100, 1000, lambda: fJson.savePartialSetting("transcribe_rate", int(self.spn_tc_rate.get()))))
         self.spn_tc_rate.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.spn_tc_rate, "Set the transcribe rate or the time between each transcribe check. Default value is 500ms.\n\nThe lower the value, the more resource it will use.")
+        CreateToolTip(self.spn_tc_rate, "Set the transcribe rate or the time between each transcribe check. \n\nThe lower the value, the more resource it will use.\n\nDefault value is 500ms.")
 
         # 3
         self.cbtn_auto_stream_params = ttk.Checkbutton(self.tc_3, text="Auto stream params", command=lambda: fJson.savePartialSetting("auto_stream_params", self.cbtn_auto_stream_params.instate(["selected"])))
@@ -312,6 +318,10 @@ class SettingWindow:
             wrapLength=400,
         )
 
+        self.cbtn_keep_temp = ttk.Checkbutton(self.tc_3, text="Keep temp files", command=lambda: fJson.savePartialSetting("keep_temp_files", self.cbtn_keep_temp.instate(["selected"])))
+        self.cbtn_keep_temp.pack(side=tk.LEFT, padx=5)
+        CreateToolTip(self.cbtn_keep_temp, "If checked, will not delete temporary audio file that might be created by the program. \n\nDefault value is unchecked.")
+
         # 4
         self.lbl_buffer = ttk.Label(self.tc_4, text="Max Buffer (seconds)", font="TkDefaultFont 9 bold")
         self.lbl_buffer.pack(side=tk.LEFT, padx=5)
@@ -320,7 +330,7 @@ class SettingWindow:
         # 3
         self.lbl_buffer_mic = ttk.Label(self.tc_5, text="Mic", width=18)
         self.lbl_buffer_mic.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.lbl_buffer_mic, "Set the max buffer (in seconds) for microphone input. Default value is 30 seconds.")
+        CreateToolTip(self.lbl_buffer_mic, "Set the max buffer (in seconds) for microphone input.\n\nDefault value is 30 seconds.")
 
         self.spn_buffer_mic = ttk.Spinbox(
             self.tc_5,
@@ -335,11 +345,11 @@ class SettingWindow:
             lambda e: self.verifyMaxNumber(self.spn_buffer_mic, 3, 300, lambda: fJson.savePartialSetting("mic_maxBuffer", int(self.spn_buffer_mic.get()))),
         )
         self.spn_buffer_mic.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.spn_buffer_mic, "Set the max buffer (in seconds) for microphone input. Default value is 30 seconds.")
+        CreateToolTip(self.spn_buffer_mic, "Set the max buffer (in seconds) for microphone input.\n\nDefault value is 30 seconds.")
 
         self.lbl_buffer_speaker = ttk.Label(self.tc_5, text="Speaker", width=18)
         self.lbl_buffer_speaker.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.lbl_buffer_speaker, "Set the max buffer (in seconds) for speaker input. Default value is 30 seconds.")
+        CreateToolTip(self.lbl_buffer_speaker, "Set the max buffer (in seconds) for speaker input.\n\nDefault value is 30 seconds.")
 
         self.spn_buffer_speaker = ttk.Spinbox(
             self.tc_5,
@@ -354,7 +364,7 @@ class SettingWindow:
             lambda e: self.verifyMaxNumber(self.spn_buffer_speaker, 3, 300, lambda: fJson.savePartialSetting("speaker_maxBuffer", int(self.spn_buffer_speaker.get()))),
         )
         self.spn_buffer_speaker.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.spn_buffer_speaker, "Set the max buffer (in seconds) for speaker input. Default value is 30 seconds.")
+        CreateToolTip(self.spn_buffer_speaker, "Set the max buffer (in seconds) for speaker input.\n\nDefault value is 30 seconds.")
 
         # translate
         self.ft2_tl = tk.LabelFrame(self.ft2, text="• Libre Translate Setting")
@@ -398,7 +408,7 @@ class SettingWindow:
 
         self.lbl_mw_tc_max = ttk.Label(self.lf_mw_tc, text="Max Length")
         self.lbl_mw_tc_max.pack(side=tk.LEFT, padx=5, pady=5)
-        CreateToolTip(self.lbl_mw_tc_max, "Maximum length of the textbox. 0 = no limit.")
+        CreateToolTip(self.lbl_mw_tc_max, "Maximum length of the textbox. 0 = no limit.\n\nDefault value is 0.")
 
         self.spn_mw_tc_max = ttk.Spinbox(
             self.lf_mw_tc,
@@ -411,7 +421,7 @@ class SettingWindow:
         )
         self.spn_mw_tc_max.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_mw_tc_max, 0, 10_000, lambda: fJson.savePartialSetting("tb_mw_tc_max", int(self.spn_mw_tc_max.get()))) or self.preview_changes_tb())
         self.spn_mw_tc_max.pack(side=tk.LEFT, padx=5, pady=5)
-        CreateToolTip(self.spn_mw_tc_max, "Maximum length of the textbox. 0 = no limit.")
+        CreateToolTip(self.spn_mw_tc_max, "Maximum length of the textbox. 0 = no limit.\n\nDefault value is 0.")
 
         self.lbl_mw_tc_font = ttk.Label(self.lf_mw_tc, text="Font")
         self.lbl_mw_tc_font.pack(side=tk.LEFT, padx=5, pady=5)
@@ -467,7 +477,7 @@ class SettingWindow:
 
         self.lbl_mw_tl_max = ttk.Label(self.lf_mw_tl, text="Max Length")
         self.lbl_mw_tl_max.pack(side=tk.LEFT, padx=5, pady=5)
-        CreateToolTip(self.lbl_mw_tl_max, "Maximum length of the textbox. 0 = no limit.")
+        CreateToolTip(self.lbl_mw_tl_max, "Maximum length of the textbox. 0 = no limit.\n\nDefault value is 0.")
 
         self.spn_mw_tl_max = ttk.Spinbox(
             self.lf_mw_tl,
@@ -480,7 +490,7 @@ class SettingWindow:
         )
         self.spn_mw_tl_max.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_mw_tl_max, 0, 10_000, lambda: fJson.savePartialSetting("tb_mw_tl_max", int(self.spn_mw_tl_max.get())) or self.preview_changes_tb()))
         self.spn_mw_tl_max.pack(side=tk.LEFT, padx=5, pady=5)
-        CreateToolTip(self.spn_mw_tl_max, "Maximum length of the textbox. 0 = no limit.")
+        CreateToolTip(self.spn_mw_tl_max, "Maximum length of the textbox. 0 = no limit.\n\nDefault value is 0.")
 
         self.lbl_mw_tl_font = ttk.Label(self.lf_mw_tl, text="Font")
         self.lbl_mw_tl_font.pack(side=tk.LEFT, padx=5, pady=5)
@@ -536,7 +546,7 @@ class SettingWindow:
 
         self.lbl_ex_tc_max = ttk.Label(self.lf_ex_tc, text="Max Length")
         self.lbl_ex_tc_max.pack(side=tk.LEFT, padx=5, pady=5)
-        CreateToolTip(self.lbl_ex_tc_max, "Maximum length of the textbox. 0 = no limit.")
+        CreateToolTip(self.lbl_ex_tc_max, "Maximum length of the textbox. 0 = no limit.\n\nDefault value is 0.")
 
         self.spn_ex_tc_max = ttk.Spinbox(
             self.lf_ex_tc,
@@ -549,7 +559,7 @@ class SettingWindow:
         )
         self.spn_ex_tc_max.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_ex_tc_max, 0, 10_000, lambda: fJson.savePartialSetting("tb_ex_tc_max", int(self.spn_ex_tc_max.get())) or self.preview_changes_tb()))
         self.spn_ex_tc_max.pack(side=tk.LEFT, padx=5, pady=5)
-        CreateToolTip(self.spn_ex_tc_max, "Maximum length of the textbox. 0 = no limit.")
+        CreateToolTip(self.spn_ex_tc_max, "Maximum length of the textbox. 0 = no limit.\n\nDefault value is 0.")
 
         self.lbl_ex_tc_font = ttk.Label(self.lf_ex_tc, text="Font")
         self.lbl_ex_tc_font.pack(side=tk.LEFT, padx=5, pady=5)
@@ -605,7 +615,7 @@ class SettingWindow:
 
         self.lbl_ex_tl_max = ttk.Label(self.lf_ex_tl, text="Max Length")
         self.lbl_ex_tl_max.pack(side=tk.LEFT, padx=5, pady=5)
-        CreateToolTip(self.lbl_ex_tl_max, "Maximum length of the textbox. 0 = no limit.")
+        CreateToolTip(self.lbl_ex_tl_max, "Maximum length of the textbox. 0 = no limit.\n\nDefault value is 0.")
 
         self.spn_ex_tl_max = ttk.Spinbox(
             self.lf_ex_tl,
@@ -618,7 +628,7 @@ class SettingWindow:
         )
         self.spn_ex_tl_max.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_ex_tl_max, 0, 10_000, lambda: fJson.savePartialSetting("tb_ex_tl_max", int(self.spn_ex_tl_max.get())) or self.preview_changes_tb()))
         self.spn_ex_tl_max.pack(side=tk.LEFT, padx=5, pady=5)
-        CreateToolTip(self.spn_ex_tl_max, "Maximum length of the textbox. 0 = no limit.")
+        CreateToolTip(self.spn_ex_tl_max, "Maximum length of the textbox. 0 = no limit.\n\nDefault value is 0.")
 
         self.lbl_ex_tl_font = ttk.Label(self.lf_ex_tl, text="Font")
         self.lbl_ex_tl_font.pack(side=tk.LEFT, padx=5, pady=5)
@@ -806,6 +816,12 @@ class SettingWindow:
             self.cbtn_auto_stream_params.invoke()
             self.cbtn_auto_stream_params.invoke()
 
+        if fJson.settingCache["keep_temp"]:
+            self.cbtn_keep_temp.invoke()
+        else:
+            self.cbtn_keep_temp.invoke()
+            self.cbtn_keep_temp.invoke()
+
     def tb_delete(self):
         self.entry_mw_tc_font_color.delete(0, tk.END)
         self.entry_mw_tc_bg_color.delete(0, tk.END)
@@ -940,7 +956,7 @@ class SettingWindow:
             self.deleteTheLog()
 
     def deleteTempOnStart(self):
-        if not fJson.settingCache["keep_audio"]:
+        if not fJson.settingCache["keep_temp"]:
             self.deleteTemp()
 
     def promptDeleteLog(self):

@@ -16,7 +16,6 @@ default_setting = {
     "mode": "Transcribe",
     "model": "tiny",
     "verbose": False,
-    "keep_audio": False,
     "keep_log": False,
     "hide_console_window_on_start": True,
     "separate_with": "\\n",
@@ -42,6 +41,7 @@ default_setting = {
     "max_sentences": 5,
     "max_temp": 200,
     "auto_stream_params": False,
+    "keep_temp": False,
     # ------------------ #
     # Textboxes
     "tb_mw_tc_max": 0,

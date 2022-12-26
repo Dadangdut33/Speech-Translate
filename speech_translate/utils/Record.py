@@ -295,7 +295,7 @@ def rec_realTime(
                     with open(audio_target, "wb") as f:
                         f.write(wav_file.getvalue())  # write it
 
-                    if len(tempList) > fJson.settingCache["max_temp"]:
+                    if len(tempList) > fJson.settingCache["max_temp"] and not fJson.settingCache["keep_temp"]:
                         # delete the oldest file
                         os.remove(tempList[0])
                         tempList.pop(0)
@@ -372,7 +372,7 @@ def rec_realTime(
         p.terminate()
         logger.info("Pyaudio terminated")
 
-        if speaker or num_of_channels > 1:
+        if (speaker or num_of_channels > 1) and not fJson.settingCache["keep_temp"]:
             logger.info("-" * 50)
             logger.info("Cleaning up audioFiles")
             for audio in tempList:
