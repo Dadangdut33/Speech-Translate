@@ -32,7 +32,7 @@ from speech_translate.components.TC_win import TcsWindow
 from speech_translate.components.TL_win import TlsWindow
 from speech_translate.components.MBox import Mbox
 from speech_translate.components.Tooltip import CreateToolTip
-from speech_translate.utils.Helper import modelKeys, modelSelectDict, upFirstCase, startFile
+from speech_translate.utils.Helper import modelKeys, modelSelectDict, upFirstCase, startFile, nativeNotify
 from speech_translate.utils.LangCode import engine_select_source_dict, engine_select_target_dict, whisper_compatible
 from speech_translate.utils.Record import getInputDevices, getOutputDevices, getDefaultOutputDevice, getDefaultInputDevice, from_file, rec_realTime
 
@@ -288,7 +288,7 @@ class MainWindow:
         self.btn_record_mic.pack(side=tk.RIGHT, padx=5, pady=5)
         CreateToolTip(self.btn_record_mic, "Record sound from selected microphone device")
 
-        self.btn_record_pc = ttk.Button(self.f3_frameRight, text="Record PC Sound", command=self.pc_rec)
+        self.btn_record_pc = ttk.Button(self.f3_frameRight, text="Record PC Sound", command=self.speaker_rec)
         self.btn_record_pc.pack(side=tk.RIGHT, padx=5, pady=5)
         CreateToolTip(self.btn_record_pc, "Record sound from selected speaker device ")
 
@@ -700,6 +700,11 @@ class MainWindow:
     def export_tc(self):
         fileName = f"Transcribed {time.strftime('%Y-%m-%d %H-%M-%S')}"
         text = str(self.tb_transcribed.get(1.0, tk.END))
+
+        if len(text.strip()) == 0:
+            nativeNotify("Error", "No text to export", app_icon, app_name)
+            return
+
         f = filedialog.asksaveasfile(mode="w", defaultextension=".txt", initialfile=fileName, filetypes=(("Text File", "*.txt"), ("Sub file", "*.srt"), ("All Files", "*.*")))
         if f is None:
             return
@@ -716,6 +721,11 @@ class MainWindow:
     def export_tl(self):
         fileName = f"Translated {time.strftime('%Y-%m-%d %H-%M-%S')}"
         text = str(self.tb_translated.get(1.0, tk.END))
+
+        if len(text.strip()) == 0:
+            nativeNotify("Error", "No text to export", app_icon, app_name)
+            return
+
         f = filedialog.asksaveasfile(mode="w", defaultextension=".txt", initialfile=fileName, filetypes=(("Text File", "*.txt"), ("Sub file", "*.srt"), ("All Files", "*.*")))
         if f is None:
             return
@@ -777,13 +787,16 @@ class MainWindow:
             self.root.update()
             Mbox("Model Download Cancelled", "Cancelled model downloading", 0, self.root)
 
+        self.btn_record_mic.config(text="Stopping...", state="disabled")
+
+    def after_mic_rec_stop(self):
         self.loadBar.stop()
         self.loadBar.config(mode="determinate")
         self.btn_record_mic.config(text="Record From Mic", command=self.mic_rec)
         self.enable_interactions()
 
     # From pc
-    def pc_rec(self):
+    def speaker_rec(self):
         # check if on windows or not
         if platform.system() != "Windows":
             Mbox(
@@ -831,9 +844,12 @@ class MainWindow:
             self.root.update()
             Mbox("Model Download Cancelled", "Cancelled model downloading", 0, self.root)
 
+        self.btn_record_pc.config(text="Stopping...", state="disabled")
+
+    def after_speaker_rec_stop(self):
         self.loadBar.stop()
         self.loadBar.config(mode="determinate")
-        self.btn_record_pc.config(text="Record PC Sound", command=self.pc_rec)
+        self.btn_record_pc.config(text="Record PC Sound", command=self.speaker_rec)
         self.enable_interactions()
 
     # From file

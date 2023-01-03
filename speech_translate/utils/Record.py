@@ -18,7 +18,6 @@ if platform.system() == "Windows":
 else:
     import pyaudio  # type: ignore
 
-
 import wave
 
 from speech_translate.Globals import app_icon, app_name, dir_temp, fJson, gClass
@@ -236,9 +235,10 @@ def rec_realTime(
         device_detail = p.get_device_info_by_index(int(device_id))  # Get device detail
         num_of_channels = 1
 
-        # check if user set auto stream param
-        if fJson.settingCache["auto_stream_params"]:
+        # check if user set auto for sample rate and channels
+        if fJson.settingCache["auto_sample_rate"]:
             sample_rate = int(device_detail["defaultSampleRate"])
+        if fJson.settingCache["auto_channels_amount"]:
             num_of_channels = int(device_detail["maxInputChannels"])
 
     logger.debug(f"Device: ({device_detail['index']}) {device_detail['name']}")
@@ -285,18 +285,21 @@ def rec_realTime(
                 wav_reader.close()
 
                 logger.info(f"Processing Audio")
-                if speaker or num_of_channels > 1:
-                    # If stereo or speaker, the old fast method does not work so we have to resort to using the old, a little slower, but working method
+                if num_of_channels > 1:
+                    # If not mono, the fast method does not work so we have to resort to using the old, a little slower, but working method
                     # which is to save the audio file and read it directly to the whisper model
                     audio_target = os.path.join(dir_temp, datetime.now().strftime("%Y-%m-%d %H_%M_%S_%f")) + ".wav"
                     tempList.append(audio_target)  # add to the temp list to delete later
 
                     # block until the file is written
+                    timeNow = time()
                     with open(audio_target, "wb") as f:
                         f.write(wav_file.getvalue())  # write it
+                    timeTaken = time() - timeNow
+                    logger.debug(f"File Write Time: {timeTaken}")
 
+                    # delete the oldest file if the temp list is too long
                     if len(tempList) > fJson.settingCache["max_temp"] and not fJson.settingCache["keep_temp"]:
-                        # delete the oldest file
                         os.remove(tempList[0])
                         tempList.pop(0)
                 else:
@@ -372,7 +375,11 @@ def rec_realTime(
         p.terminate()
         logger.info("Pyaudio terminated")
 
-        if (speaker or num_of_channels > 1) and not fJson.settingCache["keep_temp"]:
+        # empty the queue
+        while not gClass.data_queue.empty():
+            gClass.data_queue.get()
+
+        if num_of_channels > 1 and not fJson.settingCache["keep_temp"]:
             logger.info("-" * 50)
             logger.info("Cleaning up audioFiles")
             for audio in tempList:
@@ -381,6 +388,11 @@ def rec_realTime(
                 except FileNotFoundError:
                     pass
             logger.info("Done!")
+
+        if speaker:
+            gClass.mw.after_speaker_rec_stop()
+        else:
+            gClass.mw.after_mic_rec_stop()
 
 
 def realtime_recording_thread(chunk_size: int):
@@ -391,7 +403,7 @@ def realtime_recording_thread(chunk_size: int):
         gClass.data_queue.put(data)
 
 
-def whisper_realtime_tl(audio_normalised: numpy.ndarray, lang_source: str, auto: bool, model: whisper.Whisper):
+def whisper_realtime_tl(audio_normalised, lang_source: str, auto: bool, model: whisper.Whisper):
     """Translate the result"""
     assert gClass.mw is not None
     gClass.enableTranslating()

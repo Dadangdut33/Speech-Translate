@@ -265,14 +265,14 @@ class SettingWindow:
 
         self.lbl_max_temp = ttk.Label(self.tc_1, text="Max temp files", width=18)
         self.lbl_max_temp.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.lbl_max_temp, "Set max number of temporary files kept when recording from speaker or stereo sounds.\n\nDefault value is 250.")
+        CreateToolTip(self.lbl_max_temp, "Set max number of temporary files kept when recording from device that is not mono.\n\nDefault value is 200.")
 
         self.spn_max_temp = ttk.Spinbox(
             self.tc_1, from_=50, to=1000, validate="key", validatecommand=(self.root.register(self.number_only), "%P"), command=lambda: fJson.savePartialSetting("max_temp", int(self.spn_max_temp.get()))
         )
         self.spn_max_temp.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_max_temp, 50, 1000, lambda: fJson.savePartialSetting("max_temp", int(self.spn_max_temp.get()))))
         self.spn_max_temp.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.spn_max_temp, "Set max number of temporary files kept when recording from speaker or stereo sounds.\n\nDefault value is 250.")
+        CreateToolTip(self.spn_max_temp, "Set max number of temporary files kept when recording from device that is not mono.\n\nDefault value is 200.")
 
         # 2
         self.lbl_sample_rate = ttk.Label(self.tc_2, text="Sample Rate", width=18)
@@ -310,11 +310,19 @@ class SettingWindow:
         CreateToolTip(self.spn_tc_rate, "Set the transcribe rate or the time between each transcribe check. \n\nThe lower the value, the more resource it will use.\n\nDefault value is 500ms.")
 
         # 3
-        self.cbtn_auto_stream_params = ttk.Checkbutton(self.tc_3, text="Auto stream params", command=lambda: fJson.savePartialSetting("auto_stream_params", self.cbtn_auto_stream_params.instate(["selected"])))
-        self.cbtn_auto_stream_params.pack(side=tk.LEFT, padx=5)
+        self.cbtn_auto_sample_rate = ttk.Checkbutton(self.tc_3, text="Auto sample rate", command=lambda: fJson.savePartialSetting("auto_sample_rate", self.cbtn_auto_sample_rate.instate(["selected"])))
+        self.cbtn_auto_sample_rate.pack(side=tk.LEFT, padx=5)
         CreateToolTip(
-            self.cbtn_auto_stream_params,
-            "If checked, the stream parameters (sample rate and channel) will be automatically set based on the sample rate and chunk size of the device. \n\nIf unchecked, the stream parameters (sample rate and channel) will be set manually (Mic channel is set to 1 by default and cannot be changed manually).\n\nCheck this option if you are having issues with the stream parameters.",
+            self.cbtn_auto_sample_rate,
+            "If checked, the sample rate will be automatically set based on the device default sample rate. \n\nCheck this option if you are having issues.\n\nDefault is turned off\n*Speaker input will always be true for this option.",
+            wrapLength=400,
+        )
+
+        self.cbtn_auto_channels_amount = ttk.Checkbutton(self.tc_3, text="Auto channels amount", command=lambda: fJson.savePartialSetting("auto_channels_amount", self.cbtn_auto_channels_amount.instate(["selected"])))
+        self.cbtn_auto_channels_amount.pack(side=tk.LEFT, padx=5)
+        CreateToolTip(
+            self.cbtn_auto_channels_amount,
+            "If checked, the channels amount will be automatically set based on the device default channels amount. \n\nCheck this option if you are having issues.\n\nDefault is turned off (defaulted to 1 if off)\n*Speaker input will always be true for this option.",
             wrapLength=400,
         )
 
@@ -330,7 +338,10 @@ class SettingWindow:
         # 3
         self.lbl_buffer_mic = ttk.Label(self.tc_5, text="Mic", width=18)
         self.lbl_buffer_mic.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.lbl_buffer_mic, "Set the max buffer (in seconds) for microphone input.\n\nDefault value is 30 seconds.")
+        CreateToolTip(
+            self.lbl_buffer_mic,
+            "Set the max buffer (in seconds) for microphone input.\n\nThe longer the buffer, the more time it will take to transcribe the audio. Not recommended to have very long buffer on low end PC.\n\nDefault value is 20 seconds.",
+        )
 
         self.spn_buffer_mic = ttk.Spinbox(
             self.tc_5,
@@ -345,11 +356,17 @@ class SettingWindow:
             lambda e: self.verifyMaxNumber(self.spn_buffer_mic, 3, 300, lambda: fJson.savePartialSetting("mic_maxBuffer", int(self.spn_buffer_mic.get()))),
         )
         self.spn_buffer_mic.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.spn_buffer_mic, "Set the max buffer (in seconds) for microphone input.\n\nDefault value is 30 seconds.")
+        CreateToolTip(
+            self.spn_buffer_mic,
+            "Set the max buffer (in seconds) for microphone input.\n\nThe longer the buffer, the more time it will take to transcribe the audio. Not recommended to have very long buffer on low end PC.\n\nDefault value is 20 seconds.",
+        )
 
         self.lbl_buffer_speaker = ttk.Label(self.tc_5, text="Speaker", width=18)
         self.lbl_buffer_speaker.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.lbl_buffer_speaker, "Set the max buffer (in seconds) for speaker input.\n\nDefault value is 30 seconds.")
+        CreateToolTip(
+            self.lbl_buffer_speaker,
+            "Set the max buffer (in seconds) for speaker input.\n\nThe longer the buffer, the more time it will take to transcribe the audio. Not recommended to have very long buffer on low end PC.\n\nDefault value is 10 seconds.\n\n*This Setting is only for Windows OS.",
+        )
 
         self.spn_buffer_speaker = ttk.Spinbox(
             self.tc_5,
@@ -364,7 +381,10 @@ class SettingWindow:
             lambda e: self.verifyMaxNumber(self.spn_buffer_speaker, 3, 300, lambda: fJson.savePartialSetting("speaker_maxBuffer", int(self.spn_buffer_speaker.get()))),
         )
         self.spn_buffer_speaker.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.spn_buffer_speaker, "Set the max buffer (in seconds) for speaker input.\n\nDefault value is 30 seconds.")
+        CreateToolTip(
+            self.spn_buffer_speaker,
+            "Set the max buffer (in seconds) for speaker input.\n\nThe longer the buffer, the more time it will take to transcribe the audio. Not recommended to have very long buffer on low end PC.\n\nDefault value is 10 seconds.\n\n*This Setting is only for Windows OS.",
+        )
 
         # translate
         self.ft2_tl = tk.LabelFrame(self.ft2, text="• Libre Translate Setting")
@@ -810,11 +830,17 @@ class SettingWindow:
             self.cbtn_libre_https.invoke()
             self.cbtn_libre_https.invoke()
 
-        if fJson.settingCache["auto_stream_params"]:
-            self.cbtn_auto_stream_params.invoke()
+        if fJson.settingCache["auto_sample_rate"]:
+            self.cbtn_auto_sample_rate.invoke()
         else:
-            self.cbtn_auto_stream_params.invoke()
-            self.cbtn_auto_stream_params.invoke()
+            self.cbtn_auto_sample_rate.invoke()
+            self.cbtn_auto_sample_rate.invoke()
+
+        if fJson.settingCache["auto_channels_amount"]:
+            self.cbtn_auto_channels_amount.invoke()
+        else:
+            self.cbtn_auto_channels_amount.invoke()
+            self.cbtn_auto_channels_amount.invoke()
 
         if fJson.settingCache["keep_temp"]:
             self.cbtn_keep_temp.invoke()
