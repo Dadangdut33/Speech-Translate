@@ -31,7 +31,7 @@ class SettingWindow:
         self.root = tk.Tk()
 
         self.root.title(app_name)
-        self.root.geometry("950x370")
+        self.root.geometry("980x370")
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.root.wm_attributes("-topmost", False)  # Default False
 
@@ -467,6 +467,11 @@ class SettingWindow:
         )
         self.spn_mw_tc_font_size.pack(side=tk.LEFT, padx=5, pady=5)
 
+        self.cbtn_mw_tc_font_bold = ttk.Checkbutton(
+            self.lf_mw_tc, text="Bold", command=lambda: fJson.savePartialSetting("tb_mw_tc_font_bold", self.cbtn_mw_tc_font_bold.instate(["selected"])) or self.preview_changes_tb()
+        )
+        self.cbtn_mw_tc_font_bold.pack(side=tk.LEFT, padx=5, pady=5)
+
         self.lbl_mw_tc_font_color = ttk.Label(self.lf_mw_tc, text="Font Color")
         self.lbl_mw_tc_font_color.pack(side=tk.LEFT, padx=5, pady=5)
 
@@ -535,6 +540,11 @@ class SettingWindow:
             "<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_mw_tl_font_size, 3, 120, lambda: fJson.savePartialSetting("tb_mw_tl_font_size", int(self.spn_mw_tl_font_size.get())) or self.preview_changes_tb())
         )
         self.spn_mw_tl_font_size.pack(side=tk.LEFT, padx=5, pady=5)
+
+        self.cbtn_mw_tl_font_bold = ttk.Checkbutton(
+            self.lf_mw_tl, text="Bold", command=lambda: fJson.savePartialSetting("tb_mw_tl_font_bold", self.cbtn_mw_tl_font_bold.instate(["selected"])) or self.preview_changes_tb()
+        )
+        self.cbtn_mw_tl_font_bold.pack(side=tk.LEFT, padx=5, pady=5)
 
         self.lbl_mw_tl_font_color = ttk.Label(self.lf_mw_tl, text="Font Color")
         self.lbl_mw_tl_font_color.pack(side=tk.LEFT, padx=5, pady=5)
@@ -605,6 +615,11 @@ class SettingWindow:
         )
         self.spn_ex_tc_font_size.pack(side=tk.LEFT, padx=5, pady=5)
 
+        self.cbtn_ex_tc_font_bold = ttk.Checkbutton(
+            self.lf_ex_tc, text="Bold", command=lambda: fJson.savePartialSetting("tb_ex_tc_font_bold", self.cbtn_ex_tc_font_bold.instate(["selected"])) or self.preview_changes_tb()
+        )
+        self.cbtn_ex_tc_font_bold.pack(side=tk.LEFT, padx=5, pady=5)
+
         self.lbl_ex_tc_font_color = ttk.Label(self.lf_ex_tc, text="Font Color")
         self.lbl_ex_tc_font_color.pack(side=tk.LEFT, padx=5, pady=5)
 
@@ -674,6 +689,11 @@ class SettingWindow:
         )
         self.spn_ex_tl_font_size.pack(side=tk.LEFT, padx=5, pady=5)
 
+        self.cbtn_ex_tl_font_bold = ttk.Checkbutton(
+            self.lf_ex_tl, text="Bold", command=lambda: fJson.savePartialSetting("tb_ex_tl_font_bold", self.cbtn_ex_tl_font_bold.instate(["selected"])) or self.preview_changes_tb()
+        )
+        self.cbtn_ex_tl_font_bold.pack(side=tk.LEFT, padx=5, pady=5)
+
         self.lbl_ex_tl_font_color = ttk.Label(self.lf_ex_tl, text="Font Color")
         self.lbl_ex_tl_font_color.pack(side=tk.LEFT, padx=5, pady=5)
 
@@ -707,7 +727,7 @@ class SettingWindow:
             height=5,
             width=27,
             wrap=tk.WORD,
-            font=(fJson.settingCache["tb_mw_tc_font"], fJson.settingCache["tb_mw_tc_font_size"]),
+            font=(fJson.settingCache["tb_mw_tc_font"], fJson.settingCache["tb_mw_tc_font_size"], "bold" if fJson.settingCache["tb_mw_tc_font_bold"] else "normal"),
             fg=fJson.settingCache["tb_mw_tc_font_color"],
             bg=fJson.settingCache["tb_mw_tc_bg_color"],
         )
@@ -720,7 +740,7 @@ class SettingWindow:
             height=5,
             width=27,
             wrap=tk.WORD,
-            font=(fJson.settingCache["tb_mw_tl_font"], fJson.settingCache["tb_mw_tl_font_size"]),
+            font=(fJson.settingCache["tb_mw_tl_font"], fJson.settingCache["tb_mw_tl_font_size"], "bold" if fJson.settingCache["tb_mw_tl_font_bold"] else "normal"),
             fg=fJson.settingCache["tb_mw_tl_font_color"],
             bg=fJson.settingCache["tb_mw_tl_bg_color"],
         )
@@ -733,7 +753,7 @@ class SettingWindow:
             height=5,
             width=27,
             wrap=tk.WORD,
-            font=(fJson.settingCache["tb_ex_tc_font"], fJson.settingCache["tb_ex_tc_font_size"]),
+            font=(fJson.settingCache["tb_ex_tc_font"], fJson.settingCache["tb_ex_tc_font_size"], "bold" if fJson.settingCache["tb_ex_tc_font_bold"] else "normal"),
             fg=fJson.settingCache["tb_ex_tc_font_color"],
             bg=fJson.settingCache["tb_ex_tc_bg_color"],
         )
@@ -746,7 +766,7 @@ class SettingWindow:
             height=5,
             width=27,
             wrap=tk.WORD,
-            font=(fJson.settingCache["tb_ex_tl_font"], fJson.settingCache["tb_ex_tl_font_size"]),
+            font=(fJson.settingCache["tb_ex_tl_font"], fJson.settingCache["tb_ex_tl_font_size"], "bold" if fJson.settingCache["tb_ex_tl_font_bold"] else "normal"),
             fg=fJson.settingCache["tb_ex_tl_font_color"],
             bg=fJson.settingCache["tb_ex_tl_bg_color"],
         )
@@ -778,7 +798,20 @@ class SettingWindow:
         self.root.geometry(f"950x370")
         self.root.deiconify()
 
+    def cbtnInvoker(self, settingVal: bool, widget: ttk.Checkbutton):
+        if settingVal:
+            widget.invoke()
+        else:
+            widget.invoke()
+            widget.invoke()
+
     def init_setting_once(self):
+        # app
+        self.cbtnInvoker(fJson.settingCache["keep_log"], self.cbtn_keep_log)
+        self.cbtnInvoker(fJson.settingCache["verbose"], self.cbtn_verbose)
+        self.cbtnInvoker(fJson.settingCache["checkUpdateOnStart"], self.cbtn_update_on_start)
+
+        # tc
         self.spn_buffer_mic.set(fJson.settingCache["mic_maxBuffer"])
         self.spn_buffer_speaker.set(fJson.settingCache["speaker_maxBuffer"])
         self.spn_max_sentences.set(fJson.settingCache["max_sentences"])
@@ -786,67 +819,30 @@ class SettingWindow:
         self.spn_sample_rate.set(fJson.settingCache["sample_rate"])
         self.spn_chunk_size.set(fJson.settingCache["chunk_size"])
         self.spn_tc_rate.set(fJson.settingCache["transcribe_rate"])
-
+        self.cbtnInvoker(fJson.settingCache["auto_sample_rate"], self.cbtn_auto_sample_rate)
+        self.cbtnInvoker(fJson.settingCache["auto_channels_amount"], self.cbtn_auto_channels_amount)
+        self.cbtnInvoker(fJson.settingCache["keep_temp"], self.cbtn_keep_temp)
         self.entry_separate_text_with.delete(0, tk.END)
         self.entry_separate_text_with.insert(0, fJson.settingCache["separate_with"])
 
+        # libre tl
         self.entry_libre_key.delete(0, tk.END)
         self.entry_libre_key.insert(0, fJson.settingCache["libre_api_key"])
         self.entry_libre_host.delete(0, tk.END)
         self.entry_libre_host.insert(0, fJson.settingCache["libre_host"])
         self.entry_libre_port.delete(0, tk.END)
         self.entry_libre_port.insert(0, fJson.settingCache["libre_port"])
+        self.cbtnInvoker(fJson.settingCache["libre_https"], self.cbtn_libre_https)
 
+        # tb
         self.init_tb_settings(fJson.settingCache)
+        self.cbtnInvoker(fJson.settingCache["tb_mw_tc_font_bold"], self.cbtn_mw_tc_font_bold)
+        self.cbtnInvoker(fJson.settingCache["tb_mw_tl_font_bold"], self.cbtn_mw_tl_font_bold)
+        self.cbtnInvoker(fJson.settingCache["tb_ex_tc_font_bold"], self.cbtn_ex_tc_font_bold)
+        self.cbtnInvoker(fJson.settingCache["tb_ex_tl_font_bold"], self.cbtn_ex_tl_font_bold)
 
         if platform.system() == "Windows":
-            if fJson.settingCache["hide_console_window_on_start"]:
-                self.cbtn_hide_console_window_on_start.invoke()
-            else:
-                self.cbtn_hide_console_window_on_start.invoke()
-                self.cbtn_hide_console_window_on_start.invoke()
-
-        if fJson.settingCache["keep_log"]:
-            self.cbtn_keep_log.invoke()
-        else:
-            self.cbtn_keep_log.invoke()
-            self.cbtn_keep_log.invoke()
-
-        if fJson.settingCache["verbose"]:
-            self.cbtn_verbose.invoke()
-        else:
-            self.cbtn_verbose.invoke()
-            self.cbtn_verbose.invoke()
-
-        if fJson.settingCache["checkUpdateOnStart"]:
-            self.cbtn_update_on_start.invoke()
-        else:
-            self.cbtn_update_on_start.invoke()
-            self.cbtn_update_on_start.invoke()
-
-        if fJson.settingCache["libre_https"]:
-            self.cbtn_libre_https.invoke()
-        else:
-            self.cbtn_libre_https.invoke()
-            self.cbtn_libre_https.invoke()
-
-        if fJson.settingCache["auto_sample_rate"]:
-            self.cbtn_auto_sample_rate.invoke()
-        else:
-            self.cbtn_auto_sample_rate.invoke()
-            self.cbtn_auto_sample_rate.invoke()
-
-        if fJson.settingCache["auto_channels_amount"]:
-            self.cbtn_auto_channels_amount.invoke()
-        else:
-            self.cbtn_auto_channels_amount.invoke()
-            self.cbtn_auto_channels_amount.invoke()
-
-        if fJson.settingCache["keep_temp"]:
-            self.cbtn_keep_temp.invoke()
-        else:
-            self.cbtn_keep_temp.invoke()
-            self.cbtn_keep_temp.invoke()
+            self.cbtnInvoker(fJson.settingCache["hide_console_window_on_start"], self.cbtn_hide_console_window_on_start)
 
     def tb_delete(self):
         self.entry_mw_tc_font_color.delete(0, tk.END)
@@ -888,49 +884,53 @@ class SettingWindow:
         self.entry_ex_tl_bg_color.insert(0, theSetting["tb_ex_tl_bg_color"])
 
     def preview_changes_tb(self):
-        assert gClass.mw is not None
+        if gClass.mw is None:
+            return
+
         gClass.mw.tb_transcribed.config(
-            font=(self.cb_mw_tc_font.get(), int(self.spn_mw_tc_font_size.get())),
+            font=(self.cb_mw_tc_font.get(), int(self.spn_mw_tc_font_size.get()), "bold" if self.cbtn_mw_tc_font_bold.instate(["selected"]) else "normal"),
             fg=self.entry_mw_tc_font_color.get(),
             bg=self.entry_mw_tc_bg_color.get(),
         )
         self.tb_preview_1.config(
-            font=(self.cb_mw_tc_font.get(), int(self.spn_mw_tc_font_size.get())),
+            font=(self.cb_mw_tc_font.get(), int(self.spn_mw_tc_font_size.get()), "bold" if self.cbtn_mw_tc_font_bold.instate(["selected"]) else "normal"),
             fg=self.entry_mw_tc_font_color.get(),
             bg=self.entry_mw_tc_bg_color.get(),
         )
 
         gClass.mw.tb_translated.config(
-            font=(self.cb_mw_tl_font.get(), int(self.spn_mw_tl_font_size.get())),
+            font=(self.cb_mw_tl_font.get(), int(self.spn_mw_tl_font_size.get()), "bold" if self.cbtn_mw_tl_font_bold.instate(["selected"]) else "normal"),
             fg=self.entry_mw_tl_font_color.get(),
             bg=self.entry_mw_tl_bg_color.get(),
         )
         self.tb_preview_2.config(
-            font=(self.cb_mw_tl_font.get(), int(self.spn_mw_tl_font_size.get())),
+            font=(self.cb_mw_tl_font.get(), int(self.spn_mw_tl_font_size.get()), "bold" if self.cbtn_mw_tl_font_bold.instate(["selected"]) else "normal"),
             fg=self.entry_mw_tl_font_color.get(),
             bg=self.entry_mw_tl_bg_color.get(),
         )
 
         assert gClass.ex_tcw is not None
-        gClass.ex_tcw.textbox.config(
-            font=(self.cb_ex_tc_font.get(), int(self.spn_ex_tc_font_size.get())),
+        # gClass.ex_tcw.root.config(bg=self.entry_ex_tc_bg_color.get())
+        gClass.ex_tcw.labelText.config(
+            font=(self.cb_ex_tc_font.get(), int(self.spn_ex_tc_font_size.get()), "bold" if self.cbtn_ex_tc_font_bold.instate(["selected"]) else "normal"),
             fg=self.entry_ex_tc_font_color.get(),
             bg=self.entry_ex_tc_bg_color.get(),
         )
         self.tb_preview_3.config(
-            font=(self.cb_ex_tc_font.get(), int(self.spn_ex_tc_font_size.get())),
+            font=(self.cb_ex_tc_font.get(), int(self.spn_ex_tc_font_size.get()), "bold" if self.cbtn_ex_tc_font_bold.instate(["selected"]) else "normal"),
             fg=self.entry_ex_tc_font_color.get(),
             bg=self.entry_ex_tc_bg_color.get(),
         )
 
         assert gClass.ex_tlw is not None
-        gClass.ex_tlw.textbox.config(
-            font=(self.cb_ex_tl_font.get(), int(self.spn_ex_tl_font_size.get())),
+        # gClass.ex_tlw.root.config(bg=self.entry_ex_tl_bg_color.get())
+        gClass.ex_tlw.labelText.config(
+            font=(self.cb_ex_tl_font.get(), int(self.spn_ex_tl_font_size.get()), "bold" if self.cbtn_ex_tl_font_bold.instate(["selected"]) else "normal"),
             fg=self.entry_ex_tl_font_color.get(),
             bg=self.entry_ex_tl_bg_color.get(),
         )
         self.tb_preview_4.config(
-            font=(self.cb_ex_tl_font.get(), int(self.spn_ex_tl_font_size.get())),
+            font=(self.cb_ex_tl_font.get(), int(self.spn_ex_tl_font_size.get()), "bold" if self.cbtn_ex_tl_font_bold.instate(["selected"]) else "normal"),
             fg=self.entry_ex_tl_font_color.get(),
             bg=self.entry_ex_tl_bg_color.get(),
         )

@@ -184,11 +184,15 @@ def rec_realTime(
     task = "translate" if whisperEngine and translate and not transcribe else "transcribe"  # if only translate to english using whisper engine
 
     checkModelFirst(modelName)
+    assert gClass.mw is not None
     if not gClass.recording:  # if cancel button is pressed while downloading
+        if speaker:
+            gClass.mw.after_speaker_rec_stop()
+        else:
+            gClass.mw.after_mic_rec_stop()
         return
 
     # stop loadbar
-    assert gClass.mw is not None
     gClass.mw.stop_loadBar("mic" if not speaker else "pc")
 
     # ----------------- Start recording -----------------
