@@ -288,13 +288,13 @@ class MainWindow:
         self.btn_record_mic.pack(side=tk.RIGHT, padx=5, pady=5)
         CreateToolTip(self.btn_record_mic, "Record sound from selected microphone device")
 
-        self.btn_record_pc = ttk.Button(self.f3_frameRight, text="Record PC Sound", command=self.speaker_rec)
-        self.btn_record_pc.pack(side=tk.RIGHT, padx=5, pady=5)
-        CreateToolTip(self.btn_record_pc, "Record sound from selected speaker device ")
+        self.btn_record_speaker = ttk.Button(self.f3_frameRight, text="Record PC Sound", command=self.speaker_rec)
+        self.btn_record_speaker.pack(side=tk.RIGHT, padx=5, pady=5)
+        CreateToolTip(self.btn_record_speaker, "Record sound from selected speaker device ")
 
-        self.btn_record_file = ttk.Button(self.f3_frameRight, text="Import file (Audio/Video)", command=self.rec_from_file)
-        self.btn_record_file.pack(side=tk.RIGHT, padx=5, pady=5)
-        CreateToolTip(self.btn_record_file, "Transcribe/Translate from a file (video or audio)")
+        self.btn_import_file = ttk.Button(self.f3_frameRight, text="Import file (Audio/Video)", command=self.from_file)
+        self.btn_import_file.pack(side=tk.RIGHT, padx=5, pady=5)
+        CreateToolTip(self.btn_import_file, "Transcribe/Translate from a file (video or audio)")
 
         # separator
         self.sep_btns_f3 = ttk.Separator(self.f3_frameRight, orient="vertical")
@@ -303,7 +303,7 @@ class MainWindow:
         # export button
         self.btn_export = ttk.Button(self.f3_frameRight, text="Export Results", command=self.export_result)
         self.btn_export.pack(side=tk.RIGHT, padx=5, pady=5)
-        CreateToolTip(self.btn_export, "Export results to a file (txt, srt, ... etc)\nYou can also customize the export format", wrapLength=250)
+        CreateToolTip(self.btn_export, "Export results to a file (txt)\nYou can also customize the export format\n\nFor srt export with timestamps please use import file.", wrapLength=250)
 
         # -- f4_statusbar
         # load bar
@@ -366,20 +366,23 @@ class MainWindow:
         if not self.logOpened:  # reopen console window on app exit
             showConsole(gClass.cw)
 
+        logger.info("Stopping tray...")
         if gClass.tray:
             gClass.tray.icon.stop()
 
+        # stop queue
+        logger.info("Closing queue...")
+        gClass.data_queue.close()
+
+        # destroy windows
+        logger.info("Destroying windows...")
         gClass.sw.root.destroy()  # type: ignore
         gClass.about.root.destroy()  # type: ignore
         gClass.ex_tcw.root.destroy()  # type: ignore
         gClass.ex_tlw.root.destroy()  # type: ignore
         self.root.destroy()
 
-        try:
-            exit()
-        except SystemExit as e:
-            logger.exception(e)
-            os._exit(0)
+        exit(0)
 
     # Show window
     def show_window(self):
@@ -656,8 +659,8 @@ class MainWindow:
         self.cb_speaker.config(state="disabled")
         self.btn_swap.config(state="disabled")
         self.btn_record_mic.config(state="disabled")
-        self.btn_record_pc.config(state="disabled")
-        self.btn_record_file.config(state="disabled")
+        self.btn_record_speaker.config(state="disabled")
+        self.btn_import_file.config(state="disabled")
 
     def enable_interactions(self):
         self.cb_mode.config(state="readonly")
@@ -669,8 +672,8 @@ class MainWindow:
         self.cb_speaker.config(state="readonly")
         self.btn_swap.config(state="normal")
         self.btn_record_mic.config(state="normal")
-        self.btn_record_pc.config(state="normal")
-        self.btn_record_file.config(state="normal")
+        self.btn_record_speaker.config(state="normal")
+        self.btn_import_file.config(state="normal")
 
     def start_loadBar(self):
         self.loadBar.config(mode="indeterminate")
@@ -688,9 +691,9 @@ class MainWindow:
         elif rec_type == "pc":
             if not gClass.recording:
                 return
-            self.btn_record_pc.config(text="Stop")
+            self.btn_record_speaker.config(text="Stop")
         elif rec_type == "file":
-            self.btn_record_file.config(text="Import From File (Video/Audio)", command=self.rec_from_file)
+            self.btn_import_file.config(text="Import From File (Video/Audio)", command=self.from_file)
             self.enable_interactions()
 
     def get_args(self):
@@ -701,13 +704,10 @@ class MainWindow:
         fileName = f"Transcribed {time.strftime('%Y-%m-%d %H-%M-%S')}"
         text = str(self.tb_transcribed.get(1.0, tk.END))
 
-        if len(text.strip()) == 0:
-            nativeNotify("Error", "No text to export", app_icon, app_name)
-            return
-
-        f = filedialog.asksaveasfile(mode="w", defaultextension=".txt", initialfile=fileName, filetypes=(("Text File", "*.txt"), ("Sub file", "*.srt"), ("All Files", "*.*")))
+        f = filedialog.asksaveasfile(mode="w", defaultextension=".txt", initialfile=fileName, filetypes=(("Text File", "*.txt"), ("All Files", "*.*")))
         if f is None:
             return
+
         f.write("")
         f.close()
 
@@ -722,11 +722,7 @@ class MainWindow:
         fileName = f"Translated {time.strftime('%Y-%m-%d %H-%M-%S')}"
         text = str(self.tb_translated.get(1.0, tk.END))
 
-        if len(text.strip()) == 0:
-            nativeNotify("Error", "No text to export", app_icon, app_name)
-            return
-
-        f = filedialog.asksaveasfile(mode="w", defaultextension=".txt", initialfile=fileName, filetypes=(("Text File", "*.txt"), ("Sub file", "*.srt"), ("All Files", "*.*")))
+        f = filedialog.asksaveasfile(mode="w", defaultextension=".txt", initialfile=fileName, filetypes=(("Text File", "*.txt"), ("All Files", "*.*")))
         if f is None:
             return
         f.write("")
@@ -742,10 +738,28 @@ class MainWindow:
     def export_result(self):
         # check based on mode
         if self.cb_mode.current() == 0:  # transcribe only
+            text = str(self.tb_transcribed.get(1.0, tk.END))
+
+            if len(text.strip()) == 0:
+                Mbox("Could not export!", "No text to export", 1)
+                return
+
             self.export_tc()
         elif self.cb_mode.current() == 1:  # translate only
+            text = str(self.tb_translated.get(1.0, tk.END))
+
+            if len(text.strip()) == 0:
+                Mbox("Could not export!", "No text to export", 1)
+                return
+
             self.export_tl()
         elif self.cb_mode.current() == 2:  # transcribe and translate
+            text = str(self.tb_transcribed.get(1.0, tk.END))
+
+            if len(text.strip()) == 0:
+                Mbox("Could not export!", "No text to export", 1)
+                return
+
             self.export_tc()
             self.export_tl()
 
@@ -784,7 +798,6 @@ class MainWindow:
         if gClass.dl_proc is not None:
             gClass.dl_proc.terminate()
             gClass.dl_proc = None
-            self.root.update()
             Mbox("Model Download Cancelled", "Cancelled model downloading", 0, self.root)
 
         self.btn_record_mic.config(text="Stopping...", state="disabled")
@@ -819,7 +832,7 @@ class MainWindow:
         self.tb_clear()
         self.start_loadBar()
         self.disable_interactions()
-        self.btn_record_pc.config(text="Loading", command=self.speaker_rec_stop, state="normal")
+        self.btn_record_speaker.config(text="Loading", command=self.speaker_rec_stop, state="normal")
 
         gClass.enableRecording()  # Flag update
         transcribe = mode == 0 or mode == 2
@@ -841,19 +854,18 @@ class MainWindow:
         if gClass.dl_proc is not None:
             gClass.dl_proc.terminate()
             gClass.dl_proc = None
-            self.root.update()
             Mbox("Model Download Cancelled", "Cancelled model downloading", 0, self.root)
 
-        self.btn_record_pc.config(text="Stopping...", state="disabled")
+        self.btn_record_speaker.config(text="Stopping...", state="disabled")
 
     def after_speaker_rec_stop(self):
         self.loadBar.stop()
         self.loadBar.config(mode="determinate")
-        self.btn_record_pc.config(text="Record PC Sound", command=self.speaker_rec)
+        self.btn_record_speaker.config(text="Record PC Sound", command=self.speaker_rec)
         self.enable_interactions()
 
     # From file
-    def rec_from_file(self):
+    def from_file(self):
         # Checking args
         mode, model, engine, sourceLang, targetLang, mic, speaker = self.get_args()
         if sourceLang == targetLang and mode == 2:
@@ -861,38 +873,40 @@ class MainWindow:
             return
 
         # get file
-        file = filedialog.askopenfilename(
+        files = filedialog.askopenfilenames(
             title="Select a file",
-            filetypes=(("Audio files", "*.wav *.mp3 *.ogg *.flac"), ("Video files", "*.mp4 *.mkv *.avi *.mov"), ("All files", "*.*")),
+            filetypes=(("Audio files", "*.wav *.mp3 *.ogg *.flac *.aac *.wma *.m4a"), ("Video files", "*.mp4 *.mkv *.avi *.mov"), ("All files", "*.*")),
         )
 
-        if file == "":
+        if len(files) == 0:
             return
 
         # ui changes
         self.tb_clear()
         self.start_loadBar()
         self.disable_interactions()
-        self.btn_record_file.config(text="Loading", command=self.rec_from_file_stop, state="normal")
+        self.btn_import_file.config(text="Loading", command=self.from_file_stop, state="normal")
 
+        gClass.enableRecording()  # Flag update
         transcribe = mode == 0 or mode == 2
         translate = mode == 1 or mode == 2
 
         # Start thread
         try:
-            recFileThread = threading.Thread(target=from_file, args=(file, model, sourceLang, targetLang, transcribe, translate, engine), daemon=True)
+            recFileThread = threading.Thread(target=from_file, args=(files, model, sourceLang, targetLang, transcribe, translate, engine), daemon=True)
             recFileThread.start()
         except Exception as e:
             logger.exception(e)
             self.errorNotif(str(e))
-            self.rec_from_file_stop()
+            self.from_file_stop()
 
-    def rec_from_file_stop(self):
+    def from_file_stop(self):
+        gClass.disableRecording()
+
         logger.info("Processing file cancelled")
         if gClass.dl_proc is not None:
             gClass.dl_proc.terminate()
             gClass.dl_proc = None
-            self.root.update()
             Mbox("Model Download Cancelled", "Cancelled model downloading", 0, self.root)
 
         if gClass.tc_proc is not None:
@@ -907,7 +921,7 @@ class MainWindow:
 
         self.loadBar.stop()
         self.loadBar.config(mode="determinate")
-        self.btn_record_file.config(text="Import From File (Video/Audio)", command=self.rec_from_file)
+        self.btn_import_file.config(text="Import From File (Video/Audio)", command=self.from_file)
         self.enable_interactions()
 
 

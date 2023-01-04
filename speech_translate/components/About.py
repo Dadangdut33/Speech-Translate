@@ -140,20 +140,20 @@ class AboutWindow:
             logger.info("Checking done")
             if self.checkedGet is not None and self.checkedGet.status_code == 200:
                 data = self.checkedGet.json()
-                latest_version = data["tag_name"]
-                if latest_version == __version__:
-                    logger.info("No update available")
-                    self.checkUpdateLabelText = "You are using the latest version"
-                    self.checkUpdateLabelFg = "green"
-                    self.checkUpdateLabelFunc = self.check_for_update
-                    self.tooltipCheckUpdate.text = "Up to date"
-                else:
+                latest_version = str(data["tag_name"])
+                if __version__ < latest_version:
                     logger.info(f"New version found: {latest_version}")
                     self.checkUpdateLabelText = "New version available"
                     self.checkUpdateLabelFg = "blue"
                     self.checkUpdateLabelFunc = self.open_dl_link
                     self.tooltipCheckUpdate.text = "Click to go to the latest release page"
                     nativeNotify("New version available", "Visit the repository to download the latest update", app_icon, app_name)
+                else:
+                    logger.info("No update available")
+                    self.checkUpdateLabelText = "You are using the latest version"
+                    self.checkUpdateLabelFg = "green"
+                    self.checkUpdateLabelFunc = self.check_for_update
+                    self.tooltipCheckUpdate.text = "Up to date"
             else:
                 logger.warning("Failed to check for update")
                 self.checkUpdateLabelText = "Fail to check for update!"

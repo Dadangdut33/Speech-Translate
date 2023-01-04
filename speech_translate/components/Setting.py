@@ -7,7 +7,7 @@ from tkinter import font, colorchooser
 from multiprocessing import Process
 
 # User defined
-from speech_translate.Globals import app_icon, app_name, fJson, gClass, dir_log, dir_temp
+from speech_translate.Globals import app_icon, app_name, fJson, gClass, dir_log, dir_temp, dir_export
 from speech_translate.Logging import logger, current_log
 from speech_translate.utils.DownloadModel import verify_model, download_model, get_default_download_root
 from speech_translate.utils.Helper import startFile
@@ -31,7 +31,7 @@ class SettingWindow:
         self.root = tk.Tk()
 
         self.root.title(app_name)
-        self.root.geometry("980x370")
+        self.root.geometry("1100x370")
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.root.wm_attributes("-topmost", False)  # Default False
 
@@ -69,6 +69,10 @@ class SettingWindow:
             self.ft1lf_application, text="Check for update on start", command=lambda: fJson.savePartialSetting("checkUpdateOnStart", self.cbtn_update_on_start.instate(["selected"]))
         )
         self.cbtn_update_on_start.pack(side=tk.LEFT, padx=5, pady=5)
+
+        self.btn_open_export_folder = ttk.Button(self.ft1lf_application, text="Open Export Folder", command=lambda: startFile(dir_export))
+        self.btn_open_export_folder.pack(side=tk.LEFT, padx=5, pady=5)
+        CreateToolTip(self.btn_open_export_folder, "Open the folder where exported text from import file are saved.")
 
         # log
         self.ft1lf_logging = tk.LabelFrame(self.ft1, text="• Logging")
@@ -120,7 +124,7 @@ class SettingWindow:
         self.entry_model_location_value.insert(0, get_default_download_root())
         self.entry_model_location_value.config(state="readonly")
         self.entry_model_location_value.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
-        self.entry_model_location_value.bind("<Button-1>", lambda e: startFile(self.entry_model_location_value.cget("text")))
+        self.entry_model_location_value.bind("<Button-1>", lambda e: startFile(get_default_download_root()))
         CreateToolTip(self.entry_model_location_value, "Location of the model file.\nLClick to open the folder")
 
         # the models
@@ -910,7 +914,6 @@ class SettingWindow:
         )
 
         assert gClass.ex_tcw is not None
-        # gClass.ex_tcw.root.config(bg=self.entry_ex_tc_bg_color.get())
         gClass.ex_tcw.labelText.config(
             font=(self.cb_ex_tc_font.get(), int(self.spn_ex_tc_font_size.get()), "bold" if self.cbtn_ex_tc_font_bold.instate(["selected"]) else "normal"),
             fg=self.entry_ex_tc_font_color.get(),
@@ -923,7 +926,6 @@ class SettingWindow:
         )
 
         assert gClass.ex_tlw is not None
-        # gClass.ex_tlw.root.config(bg=self.entry_ex_tl_bg_color.get())
         gClass.ex_tlw.labelText.config(
             font=(self.cb_ex_tl_font.get(), int(self.spn_ex_tl_font_size.get()), "bold" if self.cbtn_ex_tl_font_bold.instate(["selected"]) else "normal"),
             fg=self.entry_ex_tl_font_color.get(),

@@ -109,7 +109,7 @@ class AbstractDetachedWindow:
         """
         self.updateTb = True
 
-    def get_cur_text(self, update=False):
+    def get_cur_text(self):
         """
         Method to update self.curText value with the textbox value in a thread without runtimeerror.
         Setting flag to true will update the self.curText value in the pollingStuff method.

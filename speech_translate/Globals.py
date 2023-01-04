@@ -22,6 +22,7 @@ dir_setting: str = os.path.join(dir_project, "../setting")
 dir_temp: str = os.path.join(dir_project, "../temp")
 dir_log: str = os.path.join(dir_project, "../log")
 dir_assets: str = os.path.join(dir_project, "../assets")
+dir_export: str = os.path.join(dir_project, "../export")
 app_icon: str = os.path.join(dir_assets, "icon.ico")
 if not os.path.exists(app_icon):  # verify app_icon exist or not
     app_icon_missing = True
@@ -29,7 +30,7 @@ else:
     app_icon_missing = False
 # ------------------ #
 app_name: str = "Speech Translate"
-fJson: SettingJsonHandler = SettingJsonHandler(os.path.join(dir_setting, "setting.json"), dir_setting, dir_temp, dir_log)
+fJson: SettingJsonHandler = SettingJsonHandler(os.path.join(dir_setting, "setting.json"), dir_setting, [dir_temp, dir_log, dir_export])
 # ------------------ #
 class Globals:
     """

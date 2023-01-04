@@ -77,14 +77,14 @@ class SettingJsonHandler:
     Class to handle setting.json
     """
 
-    def __init__(self, settingPath: str, settingDir: str, tempDir: str, logDir: str):
+    def __init__(self, settingPath: str, settingDir: str, checkdirs: list[str]):
         self.settingCache = {}
         self.settingPath = settingPath
         self.settingDir = settingDir
         self.createDirectoryIfNotExist(self.settingDir)  # setting dir
-        self.createDirectoryIfNotExist(tempDir)  # temp dir
-        self.createDirectoryIfNotExist(logDir)  # log dir
-        self.createDefaultSettingIfNotExist(self.settingPath, default_setting)  # setting file
+        for checkdir in checkdirs:
+            self.createDirectoryIfNotExist(checkdir)
+        self.createDefaultSettingIfNotExist()  # setting file
 
         # Load setting
         success, msg, data = self.loadSetting()
@@ -127,14 +127,15 @@ class SettingJsonHandler:
         except Exception as e:
             Mbox("Error", "Error: Creating directory. " + path + "\nReason: " + str(e), 2)
 
-    def createDefaultSettingIfNotExist(self, path: str, default: dict):
+    def createDefaultSettingIfNotExist(self):
         """
         Create default json file if it doesn't exist
         """
+        path = self.settingPath
         try:
             if not os.path.exists(path):
                 with open(path, "w", encoding="utf-8") as f:
-                    json.dump(default, f, ensure_ascii=False, indent=4)
+                    json.dump(default_setting, f, ensure_ascii=False, indent=4)
         except Exception as e:
             logger.exception("Error creating default setting file: " + str(e))
             Mbox("Error", "Error: Creating default setting file. " + path + "\nReason: " + str(e), 2)
