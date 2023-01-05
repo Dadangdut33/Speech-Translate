@@ -11,6 +11,7 @@ from speech_translate.Globals import app_icon, app_name, fJson, gClass, dir_log,
 from speech_translate.Logging import logger, current_log
 from speech_translate.utils.DownloadModel import verify_model, download_model, get_default_download_root
 from speech_translate.utils.Helper import startFile
+from speech_translate.utils.Record import getDeviceAverageThreshold
 from .MBox import Mbox
 from .Tooltip import CreateToolTip
 
@@ -31,7 +32,7 @@ class SettingWindow:
         self.root = tk.Tk()
 
         self.root.title(app_name)
-        self.root.geometry("1100x370")
+        self.root.geometry("1000x420")
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.root.wm_attributes("-topmost", False)  # Default False
 
@@ -240,6 +241,18 @@ class SettingWindow:
         self.tc_5 = ttk.Frame(self.ft2_tc)
         self.tc_5.pack(side=tk.TOP, fill=tk.X, pady=5)
 
+        self.tc_6 = ttk.Frame(self.ft2_tc)
+        self.tc_6.pack(side=tk.TOP, fill=tk.X, pady=5)
+
+        self.tc_7 = ttk.Frame(self.ft2_tc)
+        self.tc_7.pack(side=tk.TOP, fill=tk.X, pady=5)
+
+        self.tc_8 = ttk.Frame(self.ft2_tc)
+        self.tc_8.pack(side=tk.TOP, fill=tk.X, pady=5)
+
+        self.tc_9 = ttk.Frame(self.ft2_tc)
+        self.tc_9.pack(side=tk.TOP, fill=tk.X, pady=5)
+
         # 1
         self.lbl_separate_text_with = ttk.Label(self.tc_1, text="Text Separator", width=18)
         self.lbl_separate_text_with.pack(side=tk.LEFT, padx=5)
@@ -334,12 +347,13 @@ class SettingWindow:
         self.cbtn_keep_temp.pack(side=tk.LEFT, padx=5)
         CreateToolTip(self.cbtn_keep_temp, "If checked, will not delete temporary audio file that might be created by the program. \n\nDefault value is unchecked.")
 
+        # ------------------ Buffer ------------------
         # 4
         self.lbl_buffer = ttk.Label(self.tc_4, text="Max Buffer (seconds)", font="TkDefaultFont 9 bold")
         self.lbl_buffer.pack(side=tk.LEFT, padx=5)
         CreateToolTip(self.lbl_buffer, "Max buffer is the maximum continous recording time. After it is reached buffer will be reset.")
 
-        # 3
+        # 5
         self.lbl_buffer_mic = ttk.Label(self.tc_5, text="Mic", width=18)
         self.lbl_buffer_mic.pack(side=tk.LEFT, padx=5)
         CreateToolTip(
@@ -365,31 +379,97 @@ class SettingWindow:
             "Set the max buffer (in seconds) for microphone input.\n\nThe longer the buffer, the more time it will take to transcribe the audio. Not recommended to have very long buffer on low end PC.\n\nDefault value is 20 seconds.",
         )
 
-        self.lbl_buffer_speaker = ttk.Label(self.tc_5, text="Speaker", width=18)
-        self.lbl_buffer_speaker.pack(side=tk.LEFT, padx=5)
+        if platform.system() == "Windows":
+            self.lbl_buffer_speaker = ttk.Label(self.tc_5, text="Speaker", width=18)
+            self.lbl_buffer_speaker.pack(side=tk.LEFT, padx=5)
+            CreateToolTip(
+                self.lbl_buffer_speaker,
+                "Set the max buffer (in seconds) for speaker input.\n\nThe longer the buffer, the more time it will take to transcribe the audio. Not recommended to have very long buffer on low end PC.\n\nDefault value is 10 seconds.\n\n*This Setting is only for Windows OS.",
+            )
+
+            self.spn_buffer_speaker = ttk.Spinbox(
+                self.tc_5,
+                from_=3,
+                to=300,
+                validate="key",
+                validatecommand=(self.root.register(self.number_only), "%P"),
+                command=lambda: fJson.savePartialSetting("speaker_maxBuffer", int(self.spn_buffer_speaker.get())),
+            )
+            self.spn_buffer_speaker.bind(
+                "<KeyRelease>",
+                lambda e: self.verifyMaxNumber(self.spn_buffer_speaker, 3, 300, lambda: fJson.savePartialSetting("speaker_maxBuffer", int(self.spn_buffer_speaker.get()))),
+            )
+            self.spn_buffer_speaker.pack(side=tk.LEFT, padx=5)
+            CreateToolTip(
+                self.spn_buffer_speaker,
+                "Set the max buffer (in seconds) for speaker input.\n\nThe longer the buffer, the more time it will take to transcribe the audio. Not recommended to have very long buffer on low end PC.\n\nDefault value is 10 seconds.\n\n*This Setting is only for Windows OS.",
+            )
+
+        # ------------------ Threshold ------------------
+        # 6
+        self.lbl_threshold = ttk.Label(self.tc_6, text="Minimum Threshold", font="TkDefaultFont 9 bold")
+        self.lbl_threshold.pack(side=tk.LEFT, padx=5)
+        CreateToolTip(self.lbl_threshold, "Minimum threshold is the minimum volume level that is needed for the audio to be recorded. If set correctly might help to reduce background noise.")
+
+        # 7
+        self.cbtn_enable_threshold = ttk.Checkbutton(self.tc_7, text="Enable", command=lambda: fJson.savePartialSetting("enable_threshold", self.cbtn_enable_threshold.instate(["selected"])))
+        self.cbtn_enable_threshold.pack(side=tk.LEFT, padx=5, pady=2)
+
+        self.cbtn_debug_energy = ttk.Checkbutton(self.tc_7, text="Log volume level get", command=lambda: fJson.savePartialSetting("debug_energy", self.cbtn_debug_energy.instate(["selected"])))
+        self.cbtn_debug_energy.pack(side=tk.LEFT, padx=5, pady=2)
         CreateToolTip(
-            self.lbl_buffer_speaker,
-            "Set the max buffer (in seconds) for speaker input.\n\nThe longer the buffer, the more time it will take to transcribe the audio. Not recommended to have very long buffer on low end PC.\n\nDefault value is 10 seconds.\n\n*This Setting is only for Windows OS.",
+            self.cbtn_debug_energy,
+            "Log the volume level get from recording device. This is useful for setting the threshold value. You can see the logging in terminal. You should turn this off after optimal value is set.\n\n*Might cause performance issue",
+            wrapLength=500,
         )
 
-        self.spn_buffer_speaker = ttk.Spinbox(
-            self.tc_5,
-            from_=3,
-            to=300,
+        # 8
+        self.lbl_threshold_mic = ttk.Label(self.tc_8, text="Mic", width=18)
+        self.lbl_threshold_mic.pack(side=tk.LEFT, padx=5)
+
+        self.spn_threshold_mic = ttk.Spinbox(
+            self.tc_8,
+            from_=0,
+            to=100000,
             validate="key",
             validatecommand=(self.root.register(self.number_only), "%P"),
-            command=lambda: fJson.savePartialSetting("speaker_maxBuffer", int(self.spn_buffer_speaker.get())),
+            command=lambda: fJson.savePartialSetting("mic_energy_threshold", int(self.spn_threshold_mic.get())),
         )
-        self.spn_buffer_speaker.bind(
+        self.spn_threshold_mic.bind(
             "<KeyRelease>",
-            lambda e: self.verifyMaxNumber(self.spn_buffer_speaker, 3, 300, lambda: fJson.savePartialSetting("speaker_maxBuffer", int(self.spn_buffer_speaker.get()))),
+            lambda e: self.verifyMaxNumber(self.spn_threshold_mic, 0, 100000, lambda: fJson.savePartialSetting("mic_energy_threshold", int(self.spn_threshold_mic.get()))),
         )
-        self.spn_buffer_speaker.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(
-            self.spn_buffer_speaker,
-            "Set the max buffer (in seconds) for speaker input.\n\nThe longer the buffer, the more time it will take to transcribe the audio. Not recommended to have very long buffer on low end PC.\n\nDefault value is 10 seconds.\n\n*This Setting is only for Windows OS.",
-        )
+        self.spn_threshold_mic.pack(side=tk.LEFT, padx=5)
 
+        if platform.system() == "Windows":
+            self.lbl_threshold_speaker = ttk.Label(self.tc_8, text="Speaker", width=18)
+            self.lbl_threshold_speaker.pack(side=tk.LEFT, padx=5)
+
+            self.spn_threshold_speaker = ttk.Spinbox(
+                self.tc_8,
+                from_=0,
+                to=100000,
+                validate="key",
+                validatecommand=(self.root.register(self.number_only), "%P"),
+                command=lambda: fJson.savePartialSetting("speaker_energy_threshold", int(self.spn_threshold_speaker.get())),
+            )
+            self.spn_threshold_speaker.bind(
+                "<KeyRelease>",
+                lambda e: self.verifyMaxNumber(self.spn_threshold_speaker, 0, 100000, lambda: fJson.savePartialSetting("speaker_energy_threshold", int(self.spn_threshold_speaker.get()))),
+            )
+            self.spn_threshold_speaker.pack(side=tk.LEFT, padx=5)
+
+        # 9
+        self.btn_auto_mic_threshold = ttk.Button(self.tc_9, text="Auto calculate mic threshold", command=lambda: self.micAutoThreshold(), width=42)
+        self.btn_auto_mic_threshold.pack(side=tk.LEFT, padx=5)
+        CreateToolTip(self.btn_auto_mic_threshold, "Try to auto calculate the mic threshold value. \n\n*Might not be accurate.")
+
+        if platform.system() == "Windows":
+            self.btn_auto_speaker_threshold = ttk.Button(self.tc_9, text="Auto calculate speaker threshold", command=lambda: self.speakerAutoThreshold(), width=42)
+            self.btn_auto_speaker_threshold.pack(side=tk.LEFT, padx=5)
+            CreateToolTip(self.btn_auto_speaker_threshold, "Try to auto calculate the speaker threshold value. \n\n*Might not be accurate.")
+
+        # ------------------ Translate ------------------
         # translate
         self.ft2_tl = tk.LabelFrame(self.ft2, text="• Libre Translate Setting")
         self.ft2_tl.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
@@ -795,11 +875,12 @@ class SettingWindow:
         except:
             pass
 
+    # ------------------ Functions ------------------
     def on_close(self):
         self.root.withdraw()
 
     def on_open(self):
-        self.root.geometry(f"950x370")
+        self.root.geometry("1000x420")
         self.root.deiconify()
 
     def cbtnInvoker(self, settingVal: bool, widget: ttk.Checkbutton):
@@ -816,8 +897,9 @@ class SettingWindow:
         self.cbtnInvoker(fJson.settingCache["checkUpdateOnStart"], self.cbtn_update_on_start)
 
         # tc
+        self.entry_separate_text_with.delete(0, tk.END)
+        self.entry_separate_text_with.insert(0, fJson.settingCache["separate_with"])
         self.spn_buffer_mic.set(fJson.settingCache["mic_maxBuffer"])
-        self.spn_buffer_speaker.set(fJson.settingCache["speaker_maxBuffer"])
         self.spn_max_sentences.set(fJson.settingCache["max_sentences"])
         self.spn_max_temp.set(fJson.settingCache["max_temp"])
         self.spn_sample_rate.set(fJson.settingCache["sample_rate"])
@@ -826,8 +908,9 @@ class SettingWindow:
         self.cbtnInvoker(fJson.settingCache["auto_sample_rate"], self.cbtn_auto_sample_rate)
         self.cbtnInvoker(fJson.settingCache["auto_channels_amount"], self.cbtn_auto_channels_amount)
         self.cbtnInvoker(fJson.settingCache["keep_temp"], self.cbtn_keep_temp)
-        self.entry_separate_text_with.delete(0, tk.END)
-        self.entry_separate_text_with.insert(0, fJson.settingCache["separate_with"])
+        self.cbtnInvoker(fJson.settingCache["enable_threshold"], self.cbtn_enable_threshold)
+        self.cbtnInvoker(fJson.settingCache["debug_energy"], self.cbtn_debug_energy)
+        self.spn_threshold_mic.set(fJson.settingCache["mic_energy_threshold"])
 
         # libre tl
         self.entry_libre_key.delete(0, tk.END)
@@ -847,6 +930,8 @@ class SettingWindow:
 
         if platform.system() == "Windows":
             self.cbtnInvoker(fJson.settingCache["hide_console_window_on_start"], self.cbtn_hide_console_window_on_start)
+            self.spn_buffer_speaker.set(fJson.settingCache["speaker_maxBuffer"])
+            self.spn_threshold_speaker.set(fJson.settingCache["speaker_energy_threshold"])
 
     def tb_delete(self):
         self.entry_mw_tc_font_color.delete(0, tk.END)
@@ -1092,3 +1177,37 @@ class SettingWindow:
             self.btn_interact_large.config(text="Download", command=lambda: self.modelDownload("large", self.btn_interact_large))
         else:
             self.btn_interact_large.config(text="Downloaded", state=tk.DISABLED)
+
+    def micAutoThreshold(self):
+        Mbox(
+            "Auto Threshold",
+            "AFTER YOU PRESS OK. The program will freeze for 5 seconds. The program will record for 5 seconds after you press OK and try to get the optimal threshold.\nTry not to the mic silent to avoid inaccuracy",
+            0,
+            self.root,
+        )
+
+        # get the threshold from the slider
+        threshold = getDeviceAverageThreshold("mic")
+
+        # set the threshold
+        self.spn_threshold_mic.set(str(int(threshold)))
+
+        # save
+        fJson.savePartialSetting("mic_energy_threshold", threshold)
+
+    def speakerAutoThreshold(self):
+        Mbox(
+            "Auto Threshold",
+            "AFTER YOU PRESS OK. The program will freeze for 5 seconds. The program will record for 5 seconds after you press OK and try to get the optimal threshold.\nTry to keep the device silent to avoid inaccuracy",
+            0,
+            self.root,
+        )
+
+        # get the threshold from the slider
+        threshold = getDeviceAverageThreshold("speaker")
+
+        # set the threshold
+        self.spn_threshold_speaker.set(str(int(threshold)))
+
+        # save
+        fJson.savePartialSetting("speaker_energy_threshold", threshold)

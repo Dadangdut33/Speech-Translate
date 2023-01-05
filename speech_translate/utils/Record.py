@@ -12,6 +12,7 @@ from typing import Literal
 
 import whisper
 import sounddevice as sd
+import audioop
 
 if platform.system() == "Windows":
     import pyaudiowpatch as pyaudio
@@ -114,6 +115,102 @@ def checkModelFirst(modelName: str, btn):
         gClass.dl_proc.start()
         nativeNotify("Downloading Model", "Model is downloaded but checksum does not match. Redownloading the model. This may take a while. (Check the console/log for progress)", app_icon, app_name)
         gClass.dl_proc.join()
+
+
+# --------------------------------------------------------------------------------------------------------------------------------------
+def getDeviceAverageThreshold(deviceType: Literal["mic", "speaker"], duration: int = 3) -> float:
+    """
+    Function to get the average threshold of the device.
+
+    Parameters
+    ----
+    deviceType: "mic" | "speaker"
+        Device type
+    duration: int
+        Duration of recording in seconds
+
+    Returns
+    ----
+    float
+        Average threshold of the device
+    """
+    p = pyaudio.PyAudio()
+
+    if deviceType == "speaker":
+        device = fJson.settingCache["speaker"]
+
+        # get the device id in [ID: x]
+        device_id = device.split("[ID: ")[1]  # first get the id bracket
+        device_id = device_id.split("]")[0]  # then get the id
+
+        # Get device detail
+        device_detail = p.get_device_info_by_index(int(device_id))
+
+        if not device_detail["isLoopbackDevice"]:
+            for loopback in p.get_loopback_device_info_generator():  # type: ignore
+                """
+                Try to find loopback device with same name(and [Loopback suffix]).
+                Unfortunately, this is the most adequate way at the moment.
+                """
+                if device_detail["name"] in loopback["name"]:
+                    device_detail = loopback
+                    break
+            else:
+                # raise exception
+                raise Exception("Loopback device not found")
+
+        # speaker will automatically use the max sample rate and channels, because it won't work if not set like this
+        num_of_channels = int(device_detail["maxInputChannels"])
+        sample_rate = int(device_detail["defaultSampleRate"])
+        logger.debug(f"Sample Rate {sample_rate} | channels {num_of_channels}")
+    else:
+        device = fJson.settingCache["mic"]
+
+        # get the device id from sounddevice module
+        device_id = sd.query_devices(device, "input")["index"]  # type: ignore
+        device_detail = p.get_device_info_by_index(int(device_id))  # Get device detail
+        num_of_channels = 1
+
+        sample_rate = fJson.settingCache["sample_rate"]
+        num_of_channels = 1
+
+        # check if user set auto for sample rate and channels
+        if fJson.settingCache["auto_sample_rate"]:
+            sample_rate = int(device_detail["defaultSampleRate"])
+        if fJson.settingCache["auto_channels_amount"]:
+            num_of_channels = int(device_detail["maxInputChannels"])
+
+    logger.debug(f"Device: ({device_detail['index']}) {device_detail['name']}")
+    logger.debug(device_detail)
+
+    # get data from device using pyaudio
+    data = b""
+
+    def callback(in_data, frame_count, time_info, status):
+        nonlocal data
+        data += in_data
+        return (in_data, pyaudio.paContinue)
+
+    chunk_size = fJson.settingCache["chunk_size"]
+    stream = p.open(format=pyaudio.paInt16, channels=num_of_channels, rate=sample_rate, input=True, frames_per_buffer=chunk_size, input_device_index=int(device_detail["index"]), stream_callback=callback)
+
+    stream.start_stream()
+
+    while stream.is_active():
+        sleep(0.1)
+        if len(data) > sample_rate * duration * 2:
+            break
+
+    stream.stop_stream()
+    stream.close()
+    p.terminate()
+
+    # get average threshold
+    avg_threshold = audioop.rms(data, 2)  # type: ignore
+
+    logger.debug(f"Average threshold: {avg_threshold}")
+
+    return avg_threshold
 
 
 # --------------------------------------------------------------------------------------------------------------------------------------
@@ -252,8 +349,9 @@ def rec_realTime(
     logger.debug(f"Device: ({device_detail['index']}) {device_detail['name']}")
     logger.debug(device_detail)
 
+    rec_type = "speaker" if speaker else "mic"
     gClass.stream = p.open(format=pyaudio.paInt16, channels=num_of_channels, rate=sample_rate, input=True, frames_per_buffer=chunk_size, input_device_index=int(device_detail["index"]))
-    record_thread = threading.Thread(target=realtime_recording_thread, args=[chunk_size], daemon=True)
+    record_thread = threading.Thread(target=realtime_recording_thread, args=[chunk_size, rec_type], daemon=True)
     record_thread.start()
 
     logger.debug(f"Record Session Started")
@@ -403,12 +501,20 @@ def rec_realTime(
             gClass.mw.after_mic_rec_stop()
 
 
-def realtime_recording_thread(chunk_size: int):
+def realtime_recording_thread(chunk_size: int, rec_type: Literal["mic", "speaker"]):
     """Record Audio From stream buffer and save it to a queue"""
     assert gClass.stream is not None
     while gClass.recording:  # Record in a thread at a fast rate.
         data = gClass.stream.read(chunk_size)
-        gClass.data_queue.put(data)
+        energy = audioop.rms(data, 2)
+
+        if fJson.settingCache["debug_energy"]:
+            logger.debug(f"Energy: {energy}")
+
+        if not fJson.settingCache["enable_threshold"]:  # record regardless of energy
+            gClass.data_queue.put(data)
+        elif energy > fJson.settingCache[f"{rec_type}_energy_threshold"] and fJson.settingCache["enable_threshold"]:  # only record if energy is above threshold
+            gClass.data_queue.put(data)
 
 
 def whisper_realtime_tl(audio_normalised, lang_source: str, auto: bool, model: whisper.Whisper):

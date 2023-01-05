@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import platform
 import threading
@@ -365,13 +366,13 @@ class MainWindow:
         if not self.logOpened:  # reopen console window on app exit
             showConsole(gClass.cw)
 
+        gClass.disableRecording()
+        gClass.disableTranscribing()
+        gClass.disableTranslating()
+
         logger.info("Stopping tray...")
         if gClass.tray:
             gClass.tray.icon.stop()
-
-        # stop queue
-        logger.info("Closing queue...")
-        gClass.data_queue.close()
 
         # destroy windows
         logger.info("Destroying windows...")
@@ -387,7 +388,13 @@ class MainWindow:
             gClass.dl_proc = None
 
         logger.info("Exiting...")
-        os._exit(0) # force kill everything
+        try:
+            sys.exit(0)
+        except SystemExit:
+            logger.info("Exit successful")
+        except:
+            logger.error("Exit failed, killing process")
+            os._exit(0)
 
     # Show window
     def show_window(self):
@@ -672,7 +679,10 @@ class MainWindow:
         self.cb_model.config(state="readonly")
         self.cb_engine.config(state="readonly")
         self.cb_sourceLang.config(state="readonly")
-        self.cb_targetLang.config(state="readonly")
+        if self.cb_mode.current() == 0:
+            self.cb_targetLang.config(state="disabled")
+        else:
+            self.cb_targetLang.config(state="readonly")
         self.cb_mic.config(state="readonly")
         self.cb_speaker.config(state="readonly")
         self.btn_swap.config(state="normal")
@@ -808,10 +818,13 @@ class MainWindow:
         self.btn_record_mic.config(text="Stopping...", state="disabled")
 
     def after_mic_rec_stop(self):
-        self.loadBar.stop()
-        self.loadBar.config(mode="determinate")
-        self.btn_record_mic.config(text="Record From Mic", command=self.mic_rec)
-        self.enable_interactions()
+        try:
+            self.loadBar.stop()
+            self.loadBar.config(mode="determinate")
+            self.btn_record_mic.config(text="Record From Mic", command=self.mic_rec)
+            self.enable_interactions()
+        except Exception as e:
+            logger.exception(e)
 
     # From pc
     def speaker_rec(self):
@@ -864,10 +877,13 @@ class MainWindow:
         self.btn_record_speaker.config(text="Stopping...", state="disabled")
 
     def after_speaker_rec_stop(self):
-        self.loadBar.stop()
-        self.loadBar.config(mode="determinate")
-        self.btn_record_speaker.config(text="Record PC Sound", command=self.speaker_rec)
-        self.enable_interactions()
+        try:
+            self.loadBar.stop()
+            self.loadBar.config(mode="determinate")
+            self.btn_record_speaker.config(text="Record PC Sound", command=self.speaker_rec)
+            self.enable_interactions()
+        except Exception as e:
+            logger.exception(e)
 
     # From file
     def from_file(self):

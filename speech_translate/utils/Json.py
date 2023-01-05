@@ -35,6 +35,10 @@ default_setting = {
     # Record settings
     "mic_maxBuffer": 15,
     "speaker_maxBuffer": 10,
+    "mic_energy_threshold": 5000,
+    "speaker_energy_threshold": 5000,
+    "enable_threshold": False,
+    "debug_energy": False,
     "transcribe_rate": 500,
     "sample_rate": 16000,
     "chunk_size": 1024,
