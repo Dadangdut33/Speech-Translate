@@ -528,13 +528,30 @@ def multiproc_tl(toTranslate: str, lang_source: str, lang_target: str, modelName
                 logger.debug("Translating with whisper")
                 logger.debug("Source Language: Auto" if auto else f"Source Language: {lang_source}")
                 model = whisper.load_model(modelName)
-                result_Tl = model.transcribe(toTranslate, task="translate", language=lang_source if not auto else None)
+
+                def run_threaded():
+                    result = model.transcribe(toTranslate, task="translate", language=lang_source if not auto else None)
+                    gClass.data_queue.put(result)
+
+                thread = threading.Thread(target=run_threaded, daemon=True)
+                thread.start()
+
+                while thread.is_alive():
+                    if not gClass.translating:
+                        logger.debug("Cancelling translation")
+                        raise Exception("Cancelled")
+                    sleep(0.1)
+
+                result_Tl = gClass.data_queue.get()
 
             except Exception as e:
                 gClass.disableTranslating()  # flag processing as done if error
                 gClass.mw.stop_loadBar()
-                logger.exception(e)
-                nativeNotify("Error: translating with whisper failed", str(e), app_icon, app_name)
+                if str(e) == "Cancelled":
+                    logger.info("Translation cancelled")
+                else:
+                    logger.exception(e)
+                    nativeNotify("Error: translating with whisper failed", str(e), app_icon, app_name)
                 return
 
         elif engine == "Google":
@@ -571,10 +588,10 @@ def multiproc_tl(toTranslate: str, lang_source: str, lang_target: str, modelName
         if len(resultSrt) > 0:
             resultSrt = whisper_result_to_srt(result_Tl)
 
-            with open(os.path.join(dir_export, f"tl_{saveName}.txt"), "w", encoding="utf-8") as f:
+            with open(os.path.join(dir_export, f"{saveName}_translated.txt"), "w", encoding="utf-8") as f:
                 f.write(resultSrt)
 
-            with open(os.path.join(dir_export, f"tl_{saveName}.srt"), "w", encoding="utf-8") as f:
+            with open(os.path.join(dir_export, f"{saveName}_translated.srt"), "w", encoding="utf-8") as f:
                 f.write(resultSrt)
 
             gClass.insertMwTbTl(f"translated {saveName} and saved to .txt and .srt" + separator)
@@ -588,15 +605,16 @@ def multiproc_tl(toTranslate: str, lang_source: str, lang_target: str, modelName
         resultTxt = srt_to_txt_format(resultSrt)  # type: ignore
 
         if len(resultSrt) > 0:
-            with open(os.path.join(dir_export, f"tl_{saveName}.txt"), "w", encoding="utf-8") as f:
+            with open(os.path.join(dir_export, f"{saveName}_translated.txt"), "w", encoding="utf-8") as f:
                 f.write(resultTxt)
 
-            with open(os.path.join(dir_export, f"tl_{saveName}.srt"), "w", encoding="utf-8") as f:
+            with open(os.path.join(dir_export, f"{saveName}_translated.srt"), "w", encoding="utf-8") as f:
                 f.write(resultSrt)  # type: ignore
 
-            gClass.insertMwTbTl(f"translated {saveName} and saved to .txt and .srt" + separator)
+            gClass.insertMwTbTl(f"Translated {saveName} and saved to .txt and .srt" + separator)
+            gClass.file_tled_counter += 1
         else:
-            gClass.insertMwTbTl(f"Fail to save file {saveName}. It is empty (no text get from transcription)" + separator)
+            gClass.insertMwTbTl(f"Translated file {saveName} is empty (no text get from transcription) so it's not saved" + separator)
             logger.warning("Translated Text is empty")
 
 
@@ -641,35 +659,58 @@ def multiproc_tc(
     try:
         logger.debug("Source Language: Auto" if auto else f"Source Language: {lang_source}")
         model = whisper.load_model(modelName)
-        result_Tc = model.transcribe(audio_name, task="transcribe", language=lang_source if not auto else None)
+        # result_Tc = model.transcribe(audio_name, task="transcribe", language=lang_source if not auto else None)
+
+        def run_threaded():
+            result = model.transcribe(audio_name, task="transcribe", language=lang_source if not auto else None)
+            # result = model.transcribe(toTranslate, task="translate", language=lang_source if not auto else None)
+            gClass.data_queue.put(result)
+
+        thread = threading.Thread(target=run_threaded, daemon=True)
+        thread.start()
+
+        while thread.is_alive():
+            if not gClass.transcribing:
+                logger.debug("Cancelling transcription")
+                raise Exception("Cancelled")
+            sleep(0.1)
+
+        result_Tc = gClass.data_queue.get()
 
         gClass.disableTranscribing()
         gClass.mw.stop_loadBar()
     except Exception as e:
         gClass.disableTranscribing()  # flag processing as done if error
         gClass.mw.stop_loadBar()
-        logger.exception(e)
-        nativeNotify("Error: Transcribing Audio", str(e), app_icon, app_name)
+
+        if str(e) == "Cancelled":
+            logger.info("Transcribing cancelled")
+        else:
+            logger.exception(e)
+            nativeNotify("Error: Transcribing Audio", str(e), app_icon, app_name)
         return
 
     # export to file
     audioNameOnly = getFileNameOnlyFromPath(audio_name)
-    saveName = audioNameOnly + str(int(time()))
+    audioNameOnly = audioNameOnly[:100]  # limit length of file name to 100 characters
+
+    saveName = datetime.now().strftime("%Y-%m-%d %H_%M_%S_%f") + " " + audioNameOnly
     if transcribe:
         resultTxt = result_Tc["text"].strip()  # type: ignore
 
         if len(resultTxt) > 0:
             resultSrt = whisper_result_to_srt(result_Tc)
 
-            with open(os.path.join(dir_export, f"tc_{saveName}.txt"), "w", encoding="utf-8") as f:
+            with open(os.path.join(dir_export, f"{saveName}_transcribed.txt"), "w", encoding="utf-8") as f:
                 f.write(resultTxt)
 
-            with open(os.path.join(dir_export, f"tc_{saveName}.srt"), "w", encoding="utf-8") as f:
+            with open(os.path.join(dir_export, f"{saveName}_transcribed.srt"), "w", encoding="utf-8") as f:
                 f.write(resultSrt)
 
-            gClass.insertMwTbTc(f"File {audioNameOnly} saved to {saveName} .txt and .srt" + separator)
+            gClass.insertMwTbTc(f"Transcribed File {audioNameOnly} saved to {saveName} .txt and .srt" + separator)
+            gClass.file_tced_counter += 1
         else:
-            gClass.insertMwTbTc(f"Fail to save file {audioNameOnly}. It is empty (no text get from transcription)" + separator)
+            gClass.insertMwTbTc(f"Transcribed File {audioNameOnly} is empty (no text get from transcription) so it's not saved" + separator)
             logger.warning("Transcribed Text is empty")
     if translate:
         toTranslate = whisper_result_to_srt(result_Tc) if engine != "Whisper" else audio_name
@@ -694,6 +735,8 @@ def from_file(files: list[str], modelInput: str, langSource: str, langTarget: st
     """
     startProc = time()
     logger.info(f"Start Process (FILE)")
+    gClass.file_tced_counter = 0
+    gClass.file_tled_counter = 0
 
     src_english = langSource == "english"
     auto = langSource == "auto detect"
@@ -740,7 +783,10 @@ def from_file(files: list[str], modelInput: str, langSource: str, langTarget: st
             print(f"TL Wait ({timeNow:.2f}s)", end="\r", flush=True)
             sleep(0.1)  # waiting for process to finish
 
+    # open folder
+    if gClass.file_tced_counter > 0 or gClass.file_tled_counter > 0:
         startFile(dir_export)
+        nativeNotify("File Transcription/Translation Done", f"Transcribed {gClass.file_tced_counter} file(s) and Translated {gClass.file_tled_counter} file(s)", app_icon, app_name)
 
     # turn off loadbar
     gClass.mw.stop_loadBar("file")

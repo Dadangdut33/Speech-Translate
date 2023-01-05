@@ -6,7 +6,6 @@ import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter import filedialog
 from typing import Literal
-from sys import exit
 
 import sounddevice as sd
 
@@ -382,7 +381,8 @@ class MainWindow:
         gClass.ex_tlw.root.destroy()  # type: ignore
         self.root.destroy()
 
-        exit(0)
+        logger.info("Exiting...")
+        os._exit(0) # force kill everything
 
     # Show window
     def show_window(self):
@@ -901,23 +901,17 @@ class MainWindow:
             self.from_file_stop()
 
     def from_file_stop(self):
+        logger.info("Cancelling file import processing...")
         gClass.disableRecording()
+        gClass.disableTranscribing()
+        gClass.disableTranslating()
 
-        logger.info("Processing file cancelled")
         if gClass.dl_proc is not None:
             gClass.dl_proc.terminate()
             gClass.dl_proc = None
             Mbox("Model Download Cancelled", "Cancelled model downloading", 0, self.root)
 
-        if gClass.tc_proc is not None:
-            gClass.tc_proc.terminate()
-            gClass.tc_proc = None
-            gClass.disableTranscribing()
-
-        if gClass.tl_proc is not None:
-            gClass.tl_proc.terminate()
-            gClass.tl_proc = None
-            gClass.disableTranslating()
+        Mbox("Cancelled", "Cancelled file import processing", 0, self.root)
 
         self.loadBar.stop()
         self.loadBar.config(mode="determinate")

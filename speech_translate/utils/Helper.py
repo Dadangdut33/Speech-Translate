@@ -83,7 +83,11 @@ def whisper_result_to_srt(result):
 
     return "\n".join(text)
 
+
 def srt_to_txt_format(srt: str):
+    """
+    Convert SRT format to text format
+    """
     text = []
     for line in srt.splitlines():
         if line.strip().isdigit():
@@ -94,6 +98,7 @@ def srt_to_txt_format(srt: str):
             continue
         text.append(line.strip())
     return "\n".join(text)
+
 
 def getFileNameOnlyFromPath(path: str):
     return path.split("/")[-1]

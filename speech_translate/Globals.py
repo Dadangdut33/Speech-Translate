@@ -48,8 +48,6 @@ class Globals:
 
         # process
         self.dl_proc: Optional[Process] = None
-        self.tc_proc: Optional[Process] = None
-        self.tl_proc: Optional[Process] = None
 
         # References to class
         self.tray = None  # tray
@@ -66,6 +64,10 @@ class Globals:
         self.stream: Optional[pyaudio.Stream] = None
         self.data_queue = Queue()
         self.max_energy: int = 5000
+
+        # file process
+        self.file_tced_counter: int = 0
+        self.file_tled_counter: int = 0
 
     def enableRecording(self):
         self.recording = True
