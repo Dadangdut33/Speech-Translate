@@ -760,8 +760,8 @@ def from_file(files: list[str], modelInput: str, langSource: str, langTarget: st
 
         # Proccess it
         if translate and not transcribe and whisperEngine:  # if only translating and using the whisper engine
-            audioNameOnly = file.split(os.sep)[-1].split(".")[0]
-            saveName = audioNameOnly + str(int(time()))
+            audioNameOnly = getFileNameOnlyFromPath(file)
+            saveName = datetime.now().strftime("%Y-%m-%d %H_%M_%S_%f") + " " + audioNameOnly
             tcThread = threading.Thread(target=multiproc_tl, args=[file, langSource, langTarget, modelName, engine, auto, saveName], daemon=True)
             tcThread.start()
         else:
