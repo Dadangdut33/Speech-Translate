@@ -381,6 +381,11 @@ class MainWindow:
         gClass.ex_tlw.root.destroy()  # type: ignore
         self.root.destroy()
 
+        if gClass.dl_proc is not None:
+            logger.info("Killing download process...")
+            gClass.dl_proc.terminate()
+            gClass.dl_proc = None
+
         logger.info("Exiting...")
         os._exit(0) # force kill everything
 

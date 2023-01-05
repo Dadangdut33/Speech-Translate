@@ -185,7 +185,7 @@ def rec_realTime(
 
     assert gClass.mw is not None
     # check if model is downloaded
-    checkModelFirst(modelName, gClass.mw.btn_mic if not speaker else gClass.mw.btn_speaker)
+    checkModelFirst(modelName, gClass.mw.btn_record_mic if not speaker else gClass.mw.btn_record_speaker)
     if not gClass.recording:  # if cancel button is pressed while downloading
         if speaker:
             gClass.mw.after_speaker_rec_stop()
