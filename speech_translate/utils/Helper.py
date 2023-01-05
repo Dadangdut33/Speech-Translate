@@ -63,7 +63,7 @@ def nativeNotify(title: str, message: str, logo: str, app_name: str):
 def whisper_result_to_srt(result):
     """
     Generate SRT format from Whisper result
-    from https://github.com/openai/whisper/discussions/262#discussioncomment-4164515
+    from https://github.com/marferca/yt-whisper-demo/blob/5deef0ee0656cb6df54232c3dc62dbca1e7340c8/utils.py#L42
     """
     text = []
     for i, s in enumerate(result["segments"]):
