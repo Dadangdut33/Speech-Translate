@@ -17,7 +17,7 @@ default_setting = {
     "model": "tiny",
     "verbose": False,
     "keep_log": False,
-    "hide_console_window_on_start": True,
+    "hide_console_window_on_start": False,
     "separate_with": "\\n",
     "realtime_mode": True,
     "mic": "",
