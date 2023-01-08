@@ -1,5 +1,6 @@
 import tkinter as tk
 import tkinter.ttk as ttk
+import platform
 from typing import Literal
 
 from speech_translate.Globals import fJson, gClass, app_icon
@@ -56,7 +57,8 @@ class AbstractDetachedWindow:
         self.menuDropdown.add_command(label="Copy", command=lambda: self.copy_tb_content(), accelerator="Alt + C")
         self.menuDropdown.add_separator()
         self.menuDropdown.add_checkbutton(label="Hide Title bar", command=lambda: self.toggle_hidden_top(False), onvalue=1, offvalue=0, variable=self.hidden_top, accelerator="Alt + T")
-        self.menuDropdown.add_checkbutton(label="Click Through/Transparent", command=lambda: self.toggle_click_through(False), onvalue=1, offvalue=0, variable=self.clickThrough, accelerator="Alt + S")
+        if platform.system() == "Windows":
+            self.menuDropdown.add_checkbutton(label="Click Through/Transparent", command=lambda: self.toggle_click_through(False), onvalue=1, offvalue=0, variable=self.clickThrough, accelerator="Alt + S")
         self.menuDropdown.add_checkbutton(label="Always On Top", command=lambda: self.toggle_always_on_top(False), onvalue=1, offvalue=0, variable=self.always_on_top, accelerator="Alt + O")
         self.menuDropdown.add_separator()
         self.menuDropdown.add_command(label="Increase Opacity by 0.1", command=lambda: self.increase_opacity(), accelerator="Mouse Wheel Up")
@@ -75,7 +77,8 @@ class AbstractDetachedWindow:
         self.root.bind("<Button-3>", lambda event: self.menuDropdown.post(event.x_root, event.y_root))
 
         # keybinds
-        self.root.bind("<Alt-KeyPress-s>", lambda event: self.toggle_click_through())
+        if platform.system() == "Windows":
+            self.root.bind("<Alt-KeyPress-s>", lambda event: self.toggle_click_through())
         self.root.bind("<Alt-KeyPress-c>", lambda event: self.copy_tb_content())
         self.root.bind("<Alt-KeyPress-t>", lambda event: self.toggle_hidden_top())
         self.root.bind("<Alt-KeyPress-o>", lambda event: self.toggle_always_on_top())
@@ -196,16 +199,17 @@ class AbstractDetachedWindow:
 
     def toggle_click_through(self, fromKeyBind=True):
         """
-        Method to toggle click through.
+        Method to toggle click through. Only on windows.
         """
-        beep()
-        if fromKeyBind:
-            self.clickThrough.set(0 if self.clickThrough.get() == 1 else 1)
+        if platform.system() == "Windows":
+            beep()
+            if fromKeyBind:
+                self.clickThrough.set(0 if self.clickThrough.get() == 1 else 1)
 
-        if self.clickThrough.get() == 1:
-            self.root.wm_attributes("-transparentcolor", self.root["bg"])
-        else:
-            self.root.wm_attributes("-transparentcolor", "")
+            if self.clickThrough.get() == 1:
+                self.root.wm_attributes("-transparentcolor", self.root["bg"])
+            else:
+                self.root.wm_attributes("-transparentcolor", "")
 
     def toggle_always_on_top(self, fromKeyBind=True):
         """
