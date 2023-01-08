@@ -32,7 +32,7 @@ from speech_translate.components.TC_win import TcsWindow
 from speech_translate.components.TL_win import TlsWindow
 from speech_translate.components.MBox import Mbox
 from speech_translate.components.Tooltip import CreateToolTip
-from speech_translate.utils.Helper import modelKeys, modelSelectDict, upFirstCase, startFile, nativeNotify
+from speech_translate.utils.Helper import modelKeys, modelSelectDict, upFirstCase, startFile
 from speech_translate.utils.LangCode import engine_select_source_dict, engine_select_target_dict, whisper_compatible
 from speech_translate.utils.Record import getInputDevices, getOutputDevices, getDefaultOutputDevice, getDefaultInputDevice, from_file, rec_realTime
 

@@ -1,6 +1,5 @@
 import os
 import platform
-from time import sleep
 import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter import font, colorchooser
