@@ -5,5 +5,5 @@ class TlsWindow(AbstractDetachedWindow):
     """Tcs Window"""
 
     # ----------------------------------------------------------------------
-    def __init__(self):
-        super().__init__("Translated Speech", "tl")
+    def __init__(self, master):
+        super().__init__(master, "Translated Speech", "tl")

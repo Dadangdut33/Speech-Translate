@@ -4,10 +4,10 @@
 ##  2 : error
 ##  3 : Yes No
 from tkinter import Tk, messagebox
-from typing import Literal, Optional
+from typing import Literal
 
 
-def Mbox(title: str, text: str, style: Literal[0, 1, 2, 3], parent: Optional[Tk] = None):
+def Mbox(title: str, text: str, style: Literal[0, 1, 2, 3], parent = None):
     """Message Box, made simpler
     ##  Styles:
     ##  0 : info

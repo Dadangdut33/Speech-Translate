@@ -27,8 +27,8 @@ class SettingWindow:
     Setting UI
     """
 
-    def __init__(self):
-        self.root = tk.Tk()
+    def __init__(self, master):
+        self.root = tk.Toplevel(master)
 
         self.root.title(app_name)
         self.root.geometry("1000x420")
@@ -1091,7 +1091,7 @@ class SettingWindow:
             btn.config(text="Downloaded", state=tk.DISABLED)
 
     def downloadPollCheck(self, model: str, btn: ttk.Button) -> None:
-        if gClass.dl_proc and gClass.dl_proc.is_alive(): # type: ignore
+        if gClass.dl_proc and gClass.dl_proc.is_alive():  # type: ignore
             self.root.after(1000, lambda: self.downloadPollCheck(model, btn))
         else:
             if verify_model(model):
@@ -1116,7 +1116,6 @@ class SettingWindow:
 
         # Check if model is downloaded
         self.root.after(1000, lambda: self.downloadPollCheck(model, btn))
-
 
     def modelDownloadCancel(self, model: str, btn: ttk.Button) -> None:
         # Kill process

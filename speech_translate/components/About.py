@@ -17,8 +17,8 @@ class AboutWindow:
     """About Window"""
 
     # ----------------------------------------------------------------------
-    def __init__(self):
-        self.root = tk.Tk()
+    def __init__(self, master):
+        self.root = tk.Toplevel(master)
         self.root.title("About Speech Translate")
         self.root.geometry("375x220")
         self.root.wm_withdraw()
@@ -133,13 +133,14 @@ class AboutWindow:
         logger.info("Checking for update...")
 
         Thread(target=self.req_update_check, daemon=True).start()
-        self.root.after(250, self.checking_thread)
 
-    def checking_thread(self):
-        if not self.checking:
-            logger.info("Checking done")
-            if self.checkedGet is not None and self.checkedGet.status_code == 200:
-                data = self.checkedGet.json()
+    def req_update_check(self):
+        try:
+            # request to github api, compare version. If not same tell user to update
+            req = requests.get("https://api.github.com/repos/Dadangdut33/Speech-Translate/releases/latest")
+
+            if req is not None and req.status_code == 200:
+                data = req.json()
                 latest_version = str(data["tag_name"])
                 if __version__ < latest_version:
                     logger.info(f"New version found: {latest_version}")
@@ -163,22 +164,10 @@ class AboutWindow:
                 if not self.checkingOnStart:  # suppress error if checking on start
                     nativeNotify("Fail to check for update!", "Click to try again", app_icon, app_name)
 
-            # turn off flag
-            if self.checkingOnStart:
-                self.checkingOnStart = False
-
-            # update after checking done
             self.checkUpdateLabel.config(text=self.checkUpdateLabelText, fg=self.checkUpdateLabelFg)
             self.checkUpdateLabel.bind("<Button-1>", self.checkUpdateLabelFunc)
 
-            return
-
-        self.root.after(250, self.checking_thread)
-
-    def req_update_check(self):
-        try:
-            # request to github api, compare version. If not same tell user to update
-            self.checkedGet = requests.get("https://api.github.com/repos/Dadangdut33/Speech-Translate/releases/latest")
+            self.checking = False
         except Exception as e:
             logger.exception(e)
         finally:

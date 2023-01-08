@@ -494,7 +494,6 @@ class MainWindow:
         # update on start
         self.cb_engine_change()
         self.cb_mode_change()
-        self.tb_clear()
         self.cb_mic_init()
 
         # check console window setting
@@ -967,9 +966,9 @@ if __name__ == "__main__":
 
     # --- GUI ---
     tray = AppTray()  # Start tray app in the background
-    tcWin = TcsWindow()
-    tlWin = TlsWindow()
-    setting = SettingWindow()
-    about = AboutWindow()
     main = MainWindow()
+    tcWin = TcsWindow(main.root)
+    tlWin = TlsWindow(main.root)
+    setting = SettingWindow(main.root)
+    about = AboutWindow(main.root)
     main.root.mainloop()  # Start main app
