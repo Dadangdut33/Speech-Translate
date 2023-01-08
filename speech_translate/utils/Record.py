@@ -116,6 +116,8 @@ def checkModelFirst(modelName: str, btn):
         nativeNotify("Downloading Model", "Model is downloaded but checksum does not match. Redownloading the model. This may take a while. (Check the console/log for progress)", app_icon, app_name)
         gClass.dl_proc.join()
 
+    # after it is done
+    gClass.dl_proc = None
 
 # --------------------------------------------------------------------------------------------------------------------------------------
 def getDeviceAverageThreshold(deviceType: Literal["mic", "speaker"], duration: int = 3) -> float:

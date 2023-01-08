@@ -1080,14 +1080,23 @@ class SettingWindow:
             # confirmation using mbox
             Mbox("Delete Log Files", "Log files deleted successfully!", 0, self.root)
 
-    def model_check(self, model: str, btn: ttk.Button) -> None:
+    def model_check(self, model: str, btn: ttk.Button, withPopup=True) -> None:
         downloaded = verify_model(model)
 
         if not downloaded:
-            Mbox("Model not found", "Model not found or checksum does not match. You can press download to download the model.", 0, self.root)
+            if withPopup:
+                Mbox("Model not found", "Model not found or checksum does not match. You can press download to download the model.", 0, self.root)
             btn.config(text="Download", command=lambda: self.modelDownload(model, btn))
         else:
             btn.config(text="Downloaded", state=tk.DISABLED)
+
+    def downloadPollCheck(self, model: str, btn: ttk.Button) -> None:
+        if gClass.dl_proc and gClass.dl_proc.is_alive(): # type: ignore
+            self.root.after(1000, lambda: self.downloadPollCheck(model, btn))
+        else:
+            if verify_model(model):
+                btn.config(text="Downloaded", state=tk.DISABLED)
+                Mbox("Download complete", "Model downloaded successfully!", 0, self.root)
 
     def modelDownload(self, model: str, btn: ttk.Button) -> None:
         # if already downloading then return
@@ -1104,6 +1113,10 @@ class SettingWindow:
 
         # notify
         Mbox("Downloading model...", "Check the log for more information", 0, self.root)
+
+        # Check if model is downloaded
+        self.root.after(1000, lambda: self.downloadPollCheck(model, btn))
+
 
     def modelDownloadCancel(self, model: str, btn: ttk.Button) -> None:
         # Kill process

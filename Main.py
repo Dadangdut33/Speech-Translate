@@ -7,6 +7,7 @@ import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter import filedialog
 from typing import Literal
+from multiprocessing import freeze_support
 
 import sounddevice as sd
 
@@ -781,6 +782,10 @@ class MainWindow:
     # ------------------ Rec ------------------
     # From mic
     def mic_rec(self):
+        if gClass.dl_proc and gClass.dl_proc.is_alive():
+            Mbox("Please wait!", "Model is still downloading! Please wait... You can check the progress in the terminal", 1)
+            return
+
         # Checking args
         mode, model, engine, sourceLang, targetLang, mic, speaker = self.get_args()
         if sourceLang == targetLang and mode == 2:
@@ -828,6 +833,10 @@ class MainWindow:
 
     # From pc
     def speaker_rec(self):
+        if gClass.dl_proc and gClass.dl_proc.is_alive():
+            Mbox("Please wait!", "Model is still downloading! Please wait... You can check the progress in the terminal", 1)
+            return
+
         # check if on windows or not
         if platform.system() != "Windows":
             Mbox(
@@ -887,6 +896,10 @@ class MainWindow:
 
     # From file
     def from_file(self):
+        if gClass.dl_proc and gClass.dl_proc.is_alive():
+            Mbox("Please wait!", "Model is still downloading! Please wait... You can check the progress in the terminal", 1)
+            return
+
         # Checking args
         mode, model, engine, sourceLang, targetLang, mic, speaker = self.get_args()
         if sourceLang == targetLang and mode == 2:
@@ -941,6 +954,9 @@ class MainWindow:
 
 
 if __name__ == "__main__":
+    # https://docs.python.org/3/library/multiprocessing.html#multiprocessing.freeze_support
+    freeze_support()  # Fix For multiprocessing spawning new window for building exe
+
     logger.info("Booting up...")
     try:
         if platform.system() == "Windows":
