@@ -99,40 +99,6 @@ class AbstractDetachedWindow:
         except:
             pass
 
-        # ------------------ Polling ------------------
-        self.root.after(100, self.textUpdatePoll)
-
-    # curText polling
-    def textUpdatePoll(self):
-        """
-        Method to update the textbox value in a thread without runtimeerror.
-        Updating is done by setting flag to true and then checking it here.
-        """
-        if self.getTbVal:
-            self.curText = self.labelText.cget("text")
-            self.getTbVal = False
-
-        if self.updateTb:
-            self.labelText.config(text=self.curText)
-            self.check_height_resize()
-            self.updateTb = False
-
-        self.root.after(100, self.textUpdatePoll)
-
-    def update_text(self):
-        """
-        Method to update the textbox value in a thread without runtimeerror.
-        Setting flag to true will update the textbox value in the pollingStuff method.
-        """
-        self.updateTb = True
-
-    def get_cur_text(self):
-        """
-        Method to update self.curText value with the textbox value in a thread without runtimeerror.
-        Setting flag to true will update the self.curText value in the pollingStuff method.
-        """
-        self.getTbVal = True
-
     def on_resize(self, event):
         """
         Method to resize the window.

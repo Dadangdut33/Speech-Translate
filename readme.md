@@ -135,4 +135,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 # Other
 
-Check out my other similar project called [Screen Translate](https://github.com/Dadangdut33/Speech-Translate/)
+Check out my other similar project called [Screen Translate](https://github.com/Dadangdut33/Screen-Translate/). This one is a screen translator / OCR tools made possible using tesseract.

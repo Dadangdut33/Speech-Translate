@@ -1,5 +1,7 @@
 import os
 import platform
+import threading
+from time import sleep
 import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter import font, colorchooser
@@ -1090,9 +1092,9 @@ class SettingWindow:
         else:
             btn.config(text="Downloaded", state=tk.DISABLED)
 
-    def downloadPollCheck(self, model: str, btn: ttk.Button) -> None:
-        if gClass.dl_proc and gClass.dl_proc.is_alive():  # type: ignore
-            self.root.after(1000, lambda: self.downloadPollCheck(model, btn))
+    def downloadCheck_thread(self, model: str, btn: ttk.Button) -> None:
+        while gClass.dl_proc is not None and gClass.dl_proc.is_alive():  # type: ignore
+            sleep(1)
         else:
             if verify_model(model):
                 btn.config(text="Downloaded", state=tk.DISABLED)
@@ -1112,10 +1114,11 @@ class SettingWindow:
         btn.config(text="Downloading... (Click to cancel)", command=lambda: self.modelDownloadCancel(model, btn))
 
         # notify
-        Mbox("Downloading model...", "Check the log for more information", 0, self.root)
+        Mbox("Downloading model...", "Check the log / terminal for more information", 0, self.root)
 
         # Check if model is downloaded
-        self.root.after(1000, lambda: self.downloadPollCheck(model, btn))
+        thread = threading.Thread(target=self.downloadCheck_thread, args=(model, btn), daemon=True)
+        thread.start()
 
     def modelDownloadCancel(self, model: str, btn: ttk.Button) -> None:
         # Kill process

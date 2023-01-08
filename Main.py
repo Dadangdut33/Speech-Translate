@@ -584,8 +584,8 @@ class MainWindow:
 
     # clear textboxes
     def tb_clear(self):
-        self.tb_transcribed.delete(1.0, tk.END)
-        self.tb_translated.delete(1.0, tk.END)
+        gClass.clearMwTc()
+        gClass.clearMwTl()
         gClass.clearExTc()
         gClass.clearExTl()
 

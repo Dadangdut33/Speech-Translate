@@ -14,6 +14,7 @@ import whisper
 import sounddevice as sd
 import audioop
 
+
 if platform.system() == "Windows":
     import pyaudiowpatch as pyaudio
 else:
@@ -23,6 +24,7 @@ import wave
 
 from speech_translate.Globals import app_icon, app_name, dir_temp, fJson, gClass, dir_export
 from speech_translate.Logging import logger
+from speech_translate.components.MBox import Mbox
 
 from .Helper import modelSelectDict, nativeNotify, whisper_result_to_srt, startFile, getFileNameOnlyFromPath, srt_to_txt_format
 from .Translate import google_tl, libre_tl, memory_tl
@@ -118,6 +120,7 @@ def checkModelFirst(modelName: str, btn):
 
     # after it is done
     gClass.dl_proc = None
+
 
 # --------------------------------------------------------------------------------------------------------------------------------------
 def getDeviceAverageThreshold(deviceType: Literal["mic", "speaker"], duration: int = 3) -> float:
@@ -894,7 +897,7 @@ def from_file(files: list[str], modelInput: str, langSource: str, langTarget: st
     # open folder
     if gClass.file_tced_counter > 0 or gClass.file_tled_counter > 0:
         startFile(dir_export)
-        nativeNotify("File Transcription/Translation Done", f"Transcribed {gClass.file_tced_counter} file(s) and Translated {gClass.file_tled_counter} file(s)", app_icon, app_name)
+        Mbox("File Transcription/Translation Done", f"Transcribed {gClass.file_tced_counter} file(s) and Translated {gClass.file_tled_counter} file(s)", 0)
 
     # turn off loadbar
     gClass.mw.stop_loadBar("file")
