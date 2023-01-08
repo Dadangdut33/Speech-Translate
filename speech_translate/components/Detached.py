@@ -201,15 +201,14 @@ class AbstractDetachedWindow:
         """
         Method to toggle click through. Only on windows.
         """
-        if platform.system() == "Windows":
-            beep()
-            if fromKeyBind:
-                self.clickThrough.set(0 if self.clickThrough.get() == 1 else 1)
+        beep()
+        if fromKeyBind:
+            self.clickThrough.set(0 if self.clickThrough.get() == 1 else 1)
 
-            if self.clickThrough.get() == 1:
-                self.root.wm_attributes("-transparentcolor", self.root["bg"])
-            else:
-                self.root.wm_attributes("-transparentcolor", "")
+        if self.clickThrough.get() == 1:
+            self.root.wm_attributes("-transparentcolor", self.root["bg"])
+        else:
+            self.root.wm_attributes("-transparentcolor", "")
 
     def toggle_always_on_top(self, fromKeyBind=True):
         """
@@ -226,9 +225,10 @@ class AbstractDetachedWindow:
         """
         Method to show the window.
         """
-        self.root.attributes("-alpha", 1)
-        self.root.attributes("-transparentcolor", "")
         self.root.wm_deiconify()
+        self.root.attributes("-alpha", 1)
+        if platform.system() == "Windows":
+            self.root.attributes("-transparentcolor", "")
 
     def on_closing(self):
         self.root.wm_withdraw()
