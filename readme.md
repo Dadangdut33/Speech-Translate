@@ -31,8 +31,8 @@ A speech transcription and translation application using whisper AI model.
       <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/assets/4.png" width="700" alt="About window">
       <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/assets/5.png" alt="Detached window preview">
       Detached window preview
-      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/assets/6.png" alt="Transcribe mode on detached window (English to Indonesia)">
-      Transcribe mode on detached window (English to Indonesia)
+      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/assets/6.png" alt="Transcribe mode on detached window (English)">
+      Transcribe mode on detached window (English)
       <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/assets/7.png" alt="Translate mode on detached window (English to Indonesia)">
       Translate mode on detached window (English to Indonesia)
     </p>
