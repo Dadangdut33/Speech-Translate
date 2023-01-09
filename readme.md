@@ -20,20 +20,27 @@ A speech transcription and translation application using whisper AI model.
 
 - Speech to text
 - Translation of transcribed text (Speech to translated text)
-- Input from speaker, mic, and file
+- Realtime input from mic and speaker
+- Batch file processing with timestamp
 - <details open>
     <summary>Preview</summary>
     <p align="center">
       <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/assets/1.png" width="700" alt="Speech Translate Looks">
-      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/assets/2.png" width="700" alt="Speech Translate Looks">
-      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/assets/3.png" width="700" alt="Speech Translate Looks">
+      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/assets/2.png" width="700" alt="Setting transcription">
+      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/assets/3.png" width="700" alt="Setting textbox">
+      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/assets/4.png" width="700" alt="About window">
+      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/assets/5.png" alt="Detached window preview">
+      Detached window preview
+      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/assets/6.png" alt="Transcribe mode on detached window (English to Indonesia)">
+      Transcribe mode on detached window (English to Indonesia)
+      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/assets/7.png" alt="Translate mode on detached window (English to Indonesia)">
+      Translate mode on detached window (English to Indonesia)
     </p>
   </details>
 
 # User Requirements
 
 - Whisper uses vram/gpu to process the audio, so it is recommended to have a CUDA compatible GPU. If there is no compatible GPU, the application will use the CPU to process the audio (This might make it slower). For each model requirement you can check directly at the [whisper repository](https://github.com/openai/whisper) or you can hover over the model selection in the app (there will be a tooltip about the model info).
-
 - Speaker input only work on windows 8 and above.
 
 # Download & Installation
@@ -44,11 +51,12 @@ A speech transcription and translation application using whisper AI model.
 
 # General Usage
 
-1. Select model
-2. Select mode and language
-3. Click the record button
-4. Stop record
-5. (Optionally) export the result to a file
+1. Set user setting
+2. Select model
+3. Select mode and language
+4. Click the record button
+5. Stop record
+6. (Optionally) export the result to a file
 
 # User Settings
 
@@ -135,4 +143,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 # Other
 
-Check out my other similar project called [Screen Translate](https://github.com/Dadangdut33/Screen-Translate/). This one is a screen translator / OCR tools made possible using tesseract.
+Check out my other similar project called [Screen Translate](https://github.com/Dadangdut33/Screen-Translate/) a screen translator / OCR tools made possible using tesseract.
