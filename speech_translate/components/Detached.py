@@ -194,7 +194,8 @@ class AbstractDetachedWindow:
         self.root.wm_deiconify()
         self.root.attributes("-alpha", 1)
         if platform.system() == "Windows":
-            self.root.attributes("-transparentcolor", "")
+            self.clickThrough.set(0)
+            self.root.wm_attributes("-transparentcolor", "")
 
     def on_closing(self):
         self.root.wm_withdraw()
