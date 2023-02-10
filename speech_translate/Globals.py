@@ -1,12 +1,10 @@
-__all__ = ["dir_project", "dir_setting", "dir_temp", "dir_log", "dir_assets", "gClass", "fJson", "app_icon", "app_name"]
-
 import os
 import platform
 import ast
 import shlex
 from multiprocessing import Process, Queue
 from typing import Optional
-from time import sleep
+from ._path import dir_temp, dir_log, dir_export, dir_user
 
 if platform.system() == "Windows":
     import pyaudiowpatch as pyaudio
@@ -16,21 +14,9 @@ else:
 from .utils.Json import SettingJsonHandler
 
 # ------------------ #
-# Paths
-dir_project: str = os.path.dirname(os.path.realpath(__file__))
-dir_setting: str = os.path.join(dir_project, "../setting")
-dir_temp: str = os.path.join(dir_project, "../temp")
-dir_log: str = os.path.join(dir_project, "../log")
-dir_assets: str = os.path.join(dir_project, "../assets")
-dir_export: str = os.path.join(dir_project, "../export")
-app_icon: str = os.path.join(dir_assets, "icon.ico")
-if not os.path.exists(app_icon):  # verify app_icon exist or not
-    app_icon_missing = True
-else:
-    app_icon_missing = False
-# ------------------ #
 app_name: str = "Speech Translate"
-fJson: SettingJsonHandler = SettingJsonHandler(os.path.join(dir_setting, "setting.json"), dir_setting, [dir_temp, dir_log, dir_export])
+fJson: SettingJsonHandler = SettingJsonHandler(os.path.join(dir_user, "setting.json"), dir_user, [dir_temp, dir_log, dir_export])
+
 # ------------------ #
 class Globals:
     """

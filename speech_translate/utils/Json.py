@@ -1,6 +1,7 @@
 __all__ = ["default_setting", "SettingJsonHandler"]
 import json
 import os
+import darkdetect
 
 from notifypy import Notify
 
@@ -16,19 +17,25 @@ default_setting = {
     "mode": "Transcribe",
     "model": "tiny",
     "verbose": False,
-    "keep_log": False,
     "hide_console_window_on_start": False,
     "separate_with": "\\n",
     "realtime_mode": True,
     "mic": "",
     "speaker": "",
+    "theme": "sv-dark" if darkdetect.isDark() else "sv-light",
+    # ------------------ #
+    # logging
+    "keep_log": False,
+    "log_level": "DEBUG",  # INFO DEBUG WARNING ERROR
+    "auto_scroll_log": True,
+    "auto_refresh_log": True,
     # ------------------ #
     # Tl Settings
     "sourceLang": "Auto Detect",
     "targetLang": "Indonesian",
     "tl_engine": "Google",
     "libre_api_key": "",
-    "libre_host": "libretranslate.de",
+    "libre_host": "translate.argosopentech.com",
     "libre_port": "",
     "libre_https": True,
     # ------------------ #
@@ -47,20 +54,18 @@ default_setting = {
     "auto_sample_rate": False,
     "auto_channels_amount": False,
     "keep_temp": False,
+    # Whisper settings
+    "whisper_extra_args": "",
     # ------------------ #
     # Textboxes
     "tb_mw_tc_max": 0,
     "tb_mw_tc_font": "TKDefaultFont",
     "tb_mw_tc_font_bold": False,
     "tb_mw_tc_font_size": 10,
-    "tb_mw_tc_font_color": "#000000",
-    "tb_mw_tc_bg_color": "#FFFFFF",
     "tb_mw_tl_max": 0,
     "tb_mw_tl_font": "TKDefaultFont",
     "tb_mw_tl_font_bold": False,
     "tb_mw_tl_font_size": 10,
-    "tb_mw_tl_font_color": "#000000",
-    "tb_mw_tl_bg_color": "#FFFFFF",
     "tb_ex_tc_max": 0,
     "tb_ex_tc_font": "TKDefaultFont",
     "tb_ex_tc_font_bold": False,

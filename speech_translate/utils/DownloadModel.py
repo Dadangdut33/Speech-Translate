@@ -26,8 +26,6 @@ def download_model(model_name, download_root=None, in_memory=False):
     if model_name not in whisper._MODELS:
         raise RuntimeError(f"Model {model_name} not found; available models = {whisper.available_models()}")
 
-    print("Preparing to download!")
-    print("Please wait... (progress will show up soon)")
     return whisper._download(whisper._MODELS[model_name], download_root, in_memory)
 
 

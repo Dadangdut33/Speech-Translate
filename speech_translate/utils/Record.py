@@ -22,12 +22,13 @@ else:
 
 import wave
 
-from speech_translate.Globals import app_icon, app_name, dir_temp, fJson, gClass, dir_export
+from speech_translate._path import app_icon
+from speech_translate.Globals import app_name, dir_temp, fJson, gClass, dir_export
 from speech_translate.Logging import logger
 from speech_translate.components.MBox import Mbox
 
 from .Helper import modelSelectDict, nativeNotify, whisper_result_to_srt, startFile, getFileNameOnlyFromPath, srt_to_txt_format
-from .Translate import google_tl, libre_tl, memory_tl
+from .Translator import google_tl, libre_tl, memory_tl
 from .DownloadModel import check_model, download_model, verify_model
 
 

@@ -16,6 +16,23 @@
 
 A speech transcription and translation application using whisper AI model.
 
+<h1>Jump to</h1>
+
+- [Features](#features)
+- [User Requirements](#user-requirements)
+- [Download \& Installation](#download--installation)
+- [General Usage](#general-usage)
+- [User Settings](#user-settings)
+- [Development](#--development--)
+  - [Setup](#setup)
+  - [Using GPU for Whisper](#using-gpu-for-whisper)
+  - [Building](#building)
+  - [Compatibility](#compatibility)
+- [Contributing](#contributing)
+- [License](#license)
+- [Attribution](#attribution)
+- [Other](#other)
+
 # Features
 
 - Speech to text
@@ -60,14 +77,14 @@ A speech transcription and translation application using whisper AI model.
 
 # User Settings
 
-You can change the settings by clicking the settings button on the menubar of the app. Alternatively, you can press F2 to open the menu window or you could also edit the settings file manually located at `./setting/setting.json`.
+You can change the settings by clicking the settings button on the menubar of the app. Alternatively, you can press F2 to open the menu window or you could also edit the settings file manually located at `./user/setting.json`.
 
 ---
 
 <h1 align="center">- Development -</h1>
 
 > **Warning** \
-> As of right now (4th of November 2022) I guess pytorch is not compatible with python 3.11 so you can't use python 3.11. I tried with 3.11 but it doesn't work so i rollback to python 3.10.8.
+> As of right now (4th of November 2022) I guess pytorch is not compatible with python 3.11 so you can't use python 3.11. I tried with 3.11 but it doesn't work so i rollback to python 3.10.9.
 
 ## Setup
 
@@ -133,6 +150,7 @@ This project should be compatible with Windows (preferrably windows 10 or later)
 
 ---
 
+
 # Contributing
 
 Feel free to contribute to this project by forking the repository, making your changes, and submitting a pull request. You can also contribute by creating an issue if you find a bug or have a feature request. Also, feel free to give this project a star if you like it.
@@ -140,6 +158,10 @@ Feel free to contribute to this project by forking the repository, making your c
 # License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
+
+# Attribution
+
+- [Sunvalley TTK Theme](https://github.com/rdbende/Sun-Valley-ttk-theme/) (used for app theme although i modified it a bit)
 
 # Other
 

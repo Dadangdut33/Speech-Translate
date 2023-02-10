@@ -8,16 +8,18 @@ from PIL import Image, ImageTk
 
 from speech_translate._version import __version__
 from speech_translate.Logging import logger
-from speech_translate.Globals import app_icon, app_name, gClass, fJson
+from speech_translate._path import app_icon
+from speech_translate.Globals import app_name, gClass, fJson
 from speech_translate.utils.Helper import OpenUrl, nativeNotify
 from .Tooltip import CreateToolTip
+
 
 # Classes
 class AboutWindow:
     """About Window"""
 
     # ----------------------------------------------------------------------
-    def __init__(self, master):
+    def __init__(self, master: tk.Tk):
         self.root = tk.Toplevel(master)
         self.root.title("About Speech Translate")
         self.root.geometry("375x220")

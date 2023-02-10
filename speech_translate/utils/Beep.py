@@ -2,7 +2,7 @@ import os
 import sounddevice as sd
 import soundfile as sf
 
-from speech_translate.Globals import dir_assets
+from speech_translate._path import dir_assets
 from speech_translate.Logging import logger
 
 

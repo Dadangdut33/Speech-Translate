@@ -25,7 +25,8 @@ from pystray import MenuItem as item
 
 # User defined
 from speech_translate._version import __version__
-from speech_translate.Globals import app_icon, app_icon_missing, app_name, fJson, gClass
+from speech_translate._path import app_icon, app_icon_missing
+from speech_translate.Globals import app_name, fJson, gClass
 from speech_translate.Logging import logger
 from speech_translate.components.About import AboutWindow
 from speech_translate.components.Setting import SettingWindow

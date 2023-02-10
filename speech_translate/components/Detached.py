@@ -3,7 +3,8 @@ import tkinter.ttk as ttk
 import platform
 from typing import Literal
 
-from speech_translate.Globals import fJson, gClass, app_icon
+from speech_translate._path import app_icon
+from speech_translate.Globals import fJson, gClass
 from speech_translate.utils.Beep import beep
 from .Tooltip import CreateToolTip
 from .MBox import Mbox
@@ -14,7 +15,7 @@ class AbstractDetachedWindow:
     """Detached Window"""
 
     # ----------------------------------------------------------------------
-    def __init__(self, master, title: str, winType: Literal["tc", "tl"]):
+    def __init__(self, master: tk.Tk, title: str, winType: Literal["tc", "tl"]):
         self.root = tk.Toplevel(master)
         self.root.title(title)
         self.root.geometry("600x160")

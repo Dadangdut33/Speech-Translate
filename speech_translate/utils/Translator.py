@@ -1,9 +1,11 @@
 import requests
 from notifypy import Notify, exceptions
 
-from speech_translate.Globals import app_icon, app_name
+from speech_translate._path import app_icon
+from speech_translate.Globals import app_name
 from speech_translate.Logging import logger
 
+from .Helper import get_similar_keys
 from .LangCode import google_lang, libre_lang, myMemory_lang
 
 
@@ -68,10 +70,14 @@ def google_tl(text: str, from_lang: str, to_lang: str, oldMethod: bool = False):
     result = ""
     # --- Get lang code ---
     try:
-        to_LanguageCode_Google = google_lang[to_lang]
-        from_LanguageCode_Google = google_lang[from_lang]
+        try:
+            to_LanguageCode_Google = google_lang[to_lang]
+            from_LanguageCode_Google = google_lang[from_lang]
+        except KeyError as e:
+            to_LanguageCode_Google = google_lang[get_similar_keys(google_lang, to_lang)[0]]
+            from_LanguageCode_Google = google_lang[get_similar_keys(google_lang, from_lang)[0]]
     except KeyError as e:
-        logger.exception("Error: " + str(e))
+        logger.exception(e)
         return is_Success, "Error Language Code Undefined"
 
     # --- Translate ---
@@ -115,10 +121,14 @@ def memory_tl(text: str, from_lang: str, to_lang: str):
     result = ""
     # --- Get lang code ---
     try:
-        to_LanguageCode_Memory = myMemory_lang[to_lang]
-        from_LanguageCode_Memory = myMemory_lang[from_lang]
+        try:
+            to_LanguageCode_Memory = myMemory_lang[to_lang]
+            from_LanguageCode_Memory = myMemory_lang[from_lang]
+        except KeyError as e:
+            to_LanguageCode_Memory = myMemory_lang[get_similar_keys(myMemory_lang, to_lang)[0]]
+            from_LanguageCode_Memory = myMemory_lang[get_similar_keys(myMemory_lang, from_lang)[0]]
     except KeyError as e:
-        logger.exception("Error: " + str(e))
+        logger.exception(e)
         return is_Success, "Error Language Code Undefined"
     # --- Translate ---
     try:
@@ -161,10 +171,14 @@ def libre_tl(text: str, from_lang: str, to_lang: str, https: bool = False, host:
     result = ""
     # --- Get lang code ---
     try:
-        to_LanguageCode_Libre = libre_lang[to_lang]
-        from_LanguageCode_Libre = libre_lang[from_lang]
+        try:
+            to_LanguageCode_Libre = libre_lang[to_lang]
+            from_LanguageCode_Libre = libre_lang[from_lang]
+        except KeyError as e:
+            to_LanguageCode_Libre = libre_lang[get_similar_keys(libre_lang, to_lang)[0]]
+            from_LanguageCode_Libre = libre_lang[get_similar_keys(libre_lang, from_lang)[0]]
     except KeyError as e:
-        logger.exception("Error: " + str(e))
+        logger.exception(e)
         return is_Success, "Error Language Code Undefined"
     # --- Translate ---
     try:

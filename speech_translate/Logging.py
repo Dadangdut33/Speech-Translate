@@ -1,14 +1,15 @@
 import logging
 import time
 import os
+from ._path import dir_log
 
 # ------------------ #
-dir_project: str = os.path.dirname(os.path.realpath(__file__))
-dir_log: str = os.path.join(dir_project, "../log")
 current_log: str = f"{time.strftime('%Y-%m-%d %H-%M-%S')}.log"
 # make sure log folder exist
 if not os.path.exists(dir_log):
     os.makedirs(dir_log)
+
+
 # ------------------ #
 class c_formatter(logging.Formatter):
     bold = "\033[1m"
@@ -20,8 +21,8 @@ class c_formatter(logging.Formatter):
     bold_red = "\x1b[31;1m"
     blue = "\x1b[34;20m"
     reset = "\x1b[0m"
-    textFormat = "%(levelname)-7s - %(message)s"
     timeFormat = blue + "%(asctime)s " + reset
+    textFormat = "%(levelname)-7s - %(message)s"
     fileLineFormat = green + " (%(filename)s:%(lineno)d) [%(threadName)s]" + reset
 
     FORMATS = {
@@ -39,7 +40,7 @@ class c_formatter(logging.Formatter):
 
 
 class f_formatter(logging.Formatter):
-    textFormat = "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
+    textFormat = "%(asctime)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d) [%(threadName)s]"
 
     FORMATS = {
         logging.DEBUG: textFormat,
@@ -56,29 +57,42 @@ class f_formatter(logging.Formatter):
 
 
 # ------------------ #
-# Create a custom logger
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+def initLogging():
+    global logger
+    logger = logging.getLogger(__name__)
 
-# Create handlers
-c_handler = logging.StreamHandler()
-f_handler = logging.FileHandler(dir_log + "/" + current_log, encoding="utf-8")
-c_handler.setLevel(logging.DEBUG)
-f_handler.setLevel(logging.WARNING)
+    # reset logger
+    for handler in logger.handlers[:]:  # make a copy of the list
+        logger.removeHandler(handler)
 
-# Create formatters and add it to handlers
-c_handler.setFormatter(c_formatter())
-f_handler.setFormatter(f_formatter())
+    # Create a custom logger
+    logger.setLevel(logging.DEBUG)
 
-# Add handlers to the logger
-logger.addHandler(c_handler)
-logger.addHandler(f_handler)
+    # Create handlers
+    c_handler = logging.StreamHandler()
+    f_handler = logging.FileHandler(dir_log + "/" + current_log, encoding="utf-8", mode="w")
+    c_handler.setLevel(logging.DEBUG)
+    f_handler.setLevel(logging.DEBUG)
+
+    # Create formatters and add it to handlers
+    c_handler.setFormatter(c_formatter())
+    f_handler.setFormatter(f_formatter())
+
+    # Add handlers to the logger
+    logger.addHandler(c_handler)
+    logger.addHandler(f_handler)
+
+
+initLogging()
 
 # ------------------ #
 # to debug/test the logger
 if __name__ == "__main__":
     print("This is a normal print text")
     print("This is a looooooooooooooong print text")
+    x = {"a": 1, "b": 2, "c": 3}
+
+    logger.info(f"X is: {x}")
 
     logger.info("This is an info")
     logger.info("This is a looooooooooooooooooong info")
