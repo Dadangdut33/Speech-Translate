@@ -4,49 +4,36 @@ import time
 import platform
 import threading
 import tkinter as tk
-import tkinter.ttk as ttk
-from tkinter import filedialog
+from tkinter import ttk, filedialog
 from typing import Literal
 from multiprocessing import freeze_support
 
 import sounddevice as sd
 
-if platform.system() == "Windows":
-    try:
-        import win32.lib.win32con as win32con
-        import win32gui
-    except Exception as e:
-        print(e)
 from notifypy import Notify, exceptions
 from PIL import Image, ImageDraw
 from pystray import Icon as icon
 from pystray import Menu as menu
 from pystray import MenuItem as item
 
-# User defined
 from speech_translate._version import __version__
 from speech_translate._path import app_icon, app_icon_missing
 from speech_translate.Globals import app_name, fJson, gClass
 from speech_translate.Logging import logger
+
 from speech_translate.components.About import AboutWindow
+from speech_translate.components.Log import LogWindow
 from speech_translate.components.Setting import SettingWindow
 from speech_translate.components.TC_win import TcsWindow
 from speech_translate.components.TL_win import TlsWindow
 from speech_translate.components.MBox import Mbox
 from speech_translate.components.Tooltip import CreateToolTip
+
+from speech_translate.utils.Helper import tb_copy_only
+from speech_translate.utils.Style import set_ui_style, init_theme, get_theme_list, get_current_theme
 from speech_translate.utils.Helper import modelKeys, modelSelectDict, upFirstCase, startFile
 from speech_translate.utils.LangCode import engine_select_source_dict, engine_select_target_dict, whisper_compatible
 from speech_translate.utils.Record import getInputDevices, getOutputDevices, getDefaultOutputDevice, getDefaultInputDevice, from_file, rec_realTime
-
-
-def hideConsole(win):
-    if win is not None:
-        win32gui.ShowWindow(win, win32con.SW_HIDE)
-
-
-def showConsole(win):
-    if win is not None:
-        win32gui.ShowWindow(win, win32con.SW_SHOW)
 
 
 class AppTray:
@@ -57,7 +44,7 @@ class AppTray:
     def __init__(self):
         self.icon: icon = None  # type: ignore
         self.menu: menu = None  # type: ignore
-        self.menu_items: tuple[item, item] = None  # type: ignore
+        self.menu_items = None  # type: ignore
         gClass.tray = self  # type: ignore
         self.create_tray()
 
@@ -78,7 +65,16 @@ class AppTray:
         except Exception:
             trayIco = self.create_image(64, 64, "black", "white")
 
-        self.menu_items = (item("Show", self.open_app), item("Exit", self.exit_app))
+        self.menu_items = (
+            item(f"{app_name} {__version__}", lambda *args: None, enabled=False),  # do nothing
+            menu.SEPARATOR,
+            item("About", self.open_app),
+            item("Settings", self.open_app),
+            item("Show Main Window", self.open_app),
+            menu.SEPARATOR,
+            item("Exit", self.exit_app),
+            item("Hidden onclick", self.open_app, default=True, visible=False),  # onclick the icon will open_app
+        )
         self.menu = menu(*self.menu_items)
         self.icon = icon("Speech Translate", trayIco, f"Speech Translate V{__version__}", self.menu)
         self.icon.run_detached()
@@ -87,6 +83,16 @@ class AppTray:
     def open_app(self):
         assert gClass.mw is not None  # Show main window
         gClass.mw.show_window()
+
+    # -- Open setting window
+    def open_setting(self):
+        assert gClass.sw is not None
+        gClass.sw.show()
+
+    # -- Open about window
+    def open_about(self):
+        assert gClass.about is not None
+        gClass.about.show()
 
     # -- Exit app by flagging runing false to stop main loop
     def exit_app(self):
@@ -108,18 +114,47 @@ class MainWindow:
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.root.wm_attributes("-topmost", False)  # Default False
 
+        # Flags
+        self.always_on_top: bool = False
+        self.notified_hidden: bool = False
+        gClass.mw = self  # type: ignore
+
+        # Styles
+        init_theme()
+        self.style = ttk.Style()
+        gClass.style = self.style
+        gClass.native_theme = get_current_theme()  # get first theme before changing
+        gClass.theme_lists = list(get_theme_list())
+
+        # rearrange some positions
+        try:
+            gClass.theme_lists.remove("sv")
+        except Exception:  # sv theme is not available
+            gClass.theme_lists.remove("sv-dark")
+            gClass.theme_lists.remove("sv-light")
+
+        gClass.theme_lists.insert(0, gClass.native_theme)  # add native theme to top of list
+        logger.debug(f"Available Theme to use: {gClass.theme_lists}")
+        gClass.theme_lists.insert(len(gClass.theme_lists), "custom")
+
+        set_ui_style(fJson.settingCache["theme"])
+
         # ------------------ Frames ------------------
         self.f1_toolbar = ttk.Frame(self.root)
         self.f1_toolbar.pack(side=tk.TOP, fill="x", expand=False)
+        self.f1_toolbar.bind("<Button-1>", lambda event: self.root.focus_set())
 
         self.f2_textBox = ttk.Frame(self.root)
         self.f2_textBox.pack(side=tk.TOP, fill="both", expand=True)
+        self.f2_textBox.bind("<Button-1>", lambda event: self.root.focus_set())
 
         self.f3_toolbar = ttk.Frame(self.root)
         self.f3_toolbar.pack(side=tk.TOP, fill="x", expand=False)
+        self.f3_toolbar.bind("<Button-1>", lambda event: self.root.focus_set())
 
         self.f4_statusbar = ttk.Frame(self.root)
         self.f4_statusbar.pack(side=tk.BOTTOM, fill="x", expand=False)
+        self.f4_statusbar.bind("<Button-1>", lambda event: self.root.focus_set())
 
         # ------------------ Elements ------------------
         # -- f1_toolbar
@@ -191,10 +226,8 @@ class MainWindow:
             width=25,
             relief="flat",
             font=(fJson.settingCache["tb_mw_tc_font"], fJson.settingCache["tb_mw_tc_font_size"]),
-            fg=fJson.settingCache["tb_mw_tc_font_color"],
-            bg=fJson.settingCache["tb_mw_tc_bg_color"],
         )
-        self.tb_transcribed.bind("<Key>", self.tb_allowed_key)
+        self.tb_transcribed.bind("<Key>", tb_copy_only)
         self.tb_transcribed.pack(side=tk.LEFT, fill="both", expand=True, padx=1, pady=1)
         self.tb_transcribed.config(yscrollcommand=self.sb_transcribed.set)
         self.sb_transcribed.config(command=self.tb_transcribed.yview)
@@ -211,10 +244,8 @@ class MainWindow:
             width=25,
             relief="flat",
             font=(fJson.settingCache["tb_mw_tl_font"], fJson.settingCache["tb_mw_tl_font_size"]),
-            fg=fJson.settingCache["tb_mw_tl_font_color"],
-            bg=fJson.settingCache["tb_mw_tl_bg_color"],
         )
-        self.tb_translated.bind("<Key>", self.tb_allowed_key)
+        self.tb_translated.bind("<Key>", tb_copy_only)
         self.tb_translated.pack(fill="both", expand=True, padx=1, pady=1)
         self.tb_translated.config(yscrollcommand=self.sb_translated.set)
         self.sb_translated.config(command=self.tb_translated.yview)
@@ -323,8 +354,7 @@ class MainWindow:
 
         self.fm_view = tk.Menu(self.menubar, tearoff=0)
         self.fm_view.add_command(label="Settings", command=self.open_setting, accelerator="F2")
-        if platform.system() == "Windows":
-            self.fm_view.add_checkbutton(label="Log", command=self.toggle_log)
+        self.fm_view.add_command(label="Log", command=self.open_log)
         self.menubar.add_cascade(label="View", menu=self.fm_view)
 
         self.fm_generate = tk.Menu(self.menubar, tearoff=0)
@@ -337,13 +367,6 @@ class MainWindow:
         self.menubar.add_cascade(label="Help", menu=self.fm_help)
 
         self.root.config(menu=self.menubar)
-
-        # ------------------ Variables ------------------
-        # Flags
-        self.logOpened: bool = False
-        self.always_on_top: bool = False
-        self.notified_hidden: bool = False
-        gClass.mw = self  # type: ignore
 
         # ------------------ Bind keys ------------------
         self.root.bind("<F1>", self.open_about)
@@ -365,9 +388,6 @@ class MainWindow:
     # ------------------ Handle window ------------------
     # Quit the app
     def quit_app(self):
-        if not self.logOpened:  # reopen console window on app exit
-            showConsole(gClass.cw)
-
         gClass.disableRecording()
         gClass.disableTranscribing()
         gClass.disableTranslating()
@@ -431,14 +451,6 @@ class MainWindow:
         self.always_on_top = not self.always_on_top
         self.root.wm_attributes("-topmost", self.always_on_top)
 
-    def toggle_log(self):
-        if self.logOpened:
-            hideConsole(gClass.cw)
-        else:
-            showConsole(gClass.cw)
-
-        self.logOpened = not self.logOpened
-
     # ------------------ Open External Window ------------------
     def open_about(self, _event=None):
         assert gClass.about is not None
@@ -448,6 +460,10 @@ class MainWindow:
         assert gClass.sw is not None
         gClass.sw.on_open()
 
+    def open_log(self, _event=None):
+        assert gClass.lw is not None
+        gClass.lw.show()
+
     def open_detached_tcw(self, _event=None):
         assert gClass.ex_tcw is not None
         gClass.ex_tcw.show()
@@ -455,23 +471,6 @@ class MainWindow:
     def open_detached_tlw(self, _event=None):
         assert gClass.ex_tlw is not None
         gClass.ex_tlw.show()
-
-    # ------------------ Handler ------------------
-    # Disable writing, allow copy
-    def tb_allowed_key(self, event: tk.Event):
-        key = event.keysym
-
-        # Allow
-        allowedEventState = [4, 8, 12]
-        if key.lower() in [tk.LEFT, tk.RIGHT]:  # Arrow left right
-            return
-        if event.state in allowedEventState and key.lower() == "a":  # Ctrl + a
-            return
-        if event.state in allowedEventState and key.lower() == "c":  # Ctrl + c
-            return
-
-        # If not allowed
-        return "break"
 
     # ------------------ Functions ------------------
     # error
@@ -496,10 +495,6 @@ class MainWindow:
         self.cb_engine_change()
         self.cb_mode_change()
         self.cb_mic_init()
-
-        # check console window setting
-        if fJson.settingCache["hide_console_window_on_start"]:
-            hideConsole(gClass.cw)
 
     # mic
     def cb_mic_init(self):
@@ -958,18 +953,12 @@ if __name__ == "__main__":
     freeze_support()  # Fix For multiprocessing spawning new window for building exe
 
     logger.info("Booting up...")
-    try:
-        if platform.system() == "Windows":
-            logger.debug("Got console window")
-            gClass.cw = win32gui.GetForegroundWindow()  # type: ignore
-    except Exception as e:
-        logger.exception(e)
-
     # --- GUI ---
     tray = AppTray()  # Start tray app in the background
     main = MainWindow()
     tcWin = TcsWindow(main.root)
     tlWin = TlsWindow(main.root)
     setting = SettingWindow(main.root)
+    lw = LogWindow(main.root)
     about = AboutWindow(main.root)
     main.root.mainloop()  # Start main app

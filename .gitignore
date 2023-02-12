@@ -11,7 +11,7 @@ env.bak/
 venv.bak/
 
 # Project specific
-setting/
+user/
 temp/
 ignore/
 build/

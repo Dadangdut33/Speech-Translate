@@ -8,7 +8,7 @@ import numpy
 from datetime import datetime, timedelta
 from multiprocessing import Process
 from time import sleep, time
-from typing import Literal
+from typing import Literal, List
 
 import whisper
 import sounddevice as sd
@@ -830,7 +830,7 @@ def multiproc_tc(
         translateThread.start()  # Start translation in a new thread to prevent blocking
 
 
-def from_file(files: list[str], modelInput: str, langSource: str, langTarget: str, transcribe: bool, translate: bool, engine: str) -> None:
+def from_file(files: List[str], modelInput: str, langSource: str, langTarget: str, transcribe: bool, translate: bool, engine: str) -> None:
     """Function to record audio from default microphone. It will then transcribe/translate the audio depending on the input.
 
     Args:

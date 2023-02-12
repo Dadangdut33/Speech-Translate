@@ -19,7 +19,7 @@ def uninstall_torch():
 
 
 def install_torch():
-    if platform.system() == "Darwin": # if mac
+    if platform.system() == "Darwin":  # if mac
         os.system(f"{pip} install torch torchvision torchaudio")
     elif platform.system() == "Linux":
         os.system(f"{pip} install torch torchvision torchaudio")
@@ -55,3 +55,5 @@ if __name__ == "__main__":
     print("-" * 100)
     print("Done!")
     print(f"Total time {time.time() - timeStart: .2f}")
+    print("-" * 100)
+    print("IF PYTORCH version is not compatible with your system, please install it manually with direction located at https://pytorch.org/")

@@ -1,6 +1,6 @@
-import tkinter as tk
-import tkinter.ttk as ttk
 import platform
+import tkinter as tk
+from tkinter import ttk
 from typing import Literal
 
 from speech_translate._path import app_icon

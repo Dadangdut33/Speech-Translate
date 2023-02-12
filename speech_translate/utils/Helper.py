@@ -105,3 +105,18 @@ def srt_to_txt_format(srt: str):
 
 def getFileNameOnlyFromPath(path: str):
     return path.split("/")[-1]
+
+def tb_copy_only(event):
+    key = event.keysym
+
+    # Allow
+    allowedEventState = [4, 8, 12]
+    if key.lower() in ["left", "right"]:  # Arrow left right
+        return
+    if event.state in allowedEventState and key.lower() == "a":  # Ctrl + a
+        return
+    if event.state in allowedEventState and key.lower() == "c":  # Ctrl + c
+        return
+
+    # If not allowed
+    return "break"

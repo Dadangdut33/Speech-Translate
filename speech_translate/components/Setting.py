@@ -1,13 +1,11 @@
 import os
 import platform
 import threading
-from time import sleep
 import tkinter as tk
-import tkinter.ttk as ttk
-from tkinter import font, colorchooser
+from tkinter import ttk, font, colorchooser
 from multiprocessing import Process
+from time import sleep
 
-# User defined
 from speech_translate._path import app_icon
 from speech_translate.Globals import app_name, fJson, gClass, dir_log, dir_temp, dir_export
 from speech_translate.Logging import logger, current_log
@@ -58,56 +56,98 @@ class SettingWindow:
         self.tabControl.add(self.ft1, text="General")
 
         self.ft2 = ttk.Frame(self.tabControl)
-        self.tabControl.add(self.ft2, text="Transcribe & Translate")
+        self.tabControl.add(self.ft2, text="Transcribe")
 
         self.ft3 = ttk.Frame(self.tabControl)
-        self.tabControl.add(self.ft3, text="Textbox")
+        self.tabControl.add(self.ft2, text="Translate")
+
+        self.ft4 = ttk.Frame(self.tabControl)
+        self.tabControl.add(self.ft4, text="Textbox")
 
         # ------------------ General ------------------
         # app
         self.ft1lf_application = tk.LabelFrame(self.ft1, text="• Application")
         self.ft1lf_application.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 
+        self.tf_application_1 = ttk.Frame(self.ft1lf_application)
+        self.tf_application_1.pack(side=tk.TOP, fill=tk.X, pady=5)
+
+        self.tf_application_2 = ttk.Frame(self.ft1lf_application)
+        self.tf_application_2.pack(side=tk.TOP, fill=tk.X, pady=5)
+
         self.cbtn_update_on_start = ttk.Checkbutton(
-            self.ft1lf_application, text="Check for update on start", command=lambda: fJson.savePartialSetting("checkUpdateOnStart", self.cbtn_update_on_start.instate(["selected"]))
+            self.tf_application_1, text="Check for update on start", command=lambda: fJson.savePartialSetting("checkUpdateOnStart", self.cbtn_update_on_start.instate(["selected"]))
         )
         self.cbtn_update_on_start.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.btn_open_export_folder = ttk.Button(self.ft1lf_application, text="Open Export Folder", command=lambda: startFile(dir_export))
+        self.btn_open_export_folder = ttk.Button(self.tf_application_1, text="Open Export Folder", command=lambda: startFile(dir_export))
         self.btn_open_export_folder.pack(side=tk.LEFT, padx=5, pady=5)
         CreateToolTip(self.btn_open_export_folder, "Open the folder where exported text from import file are saved.")
+
+        # --------------------
+        # theme
+        self.lbl_theme = ttk.Label(self.tf_application_2, text="Theme")
+        self.lbl_theme.pack(side=tk.LEFT, padx=5, pady=5)
+        CreateToolTip(
+            self.lbl_theme,
+            "Set theme for app.\nThe topmost selection is your default tkinter os theme.\n\nTo add custom theme you can read the readme.txt in the theme folder.\n\nMight need to reload the app for the changes to take effect.",
+            wrapLength=500,
+        )
+
+        self.cb_theme = ttk.Combobox(self.tf_application_2, values=["dummy list"], state="readonly")
+        self.cb_theme.pack(side=tk.LEFT, padx=5, pady=5)
+        # self.cb_theme.bind("<<ComboboxSelected>>", self.cb_theme_change)
+        CreateToolTip(
+            self.cb_theme,
+            "Set theme for app.\nThe topmost selection is your default tkinter os theme.\n\nTo add custom theme you can read the readme.txt in the theme folder.\n\nMight need to reload the app for the changes to take effect.",
+            wrapLength=500,
+        )
+
+        self.entry_theme = ttk.Entry(self.tf_application_2)
+        self.entry_theme.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.X, expand=True)
+        CreateToolTip(
+            self.entry_theme,
+            "Set the custom theme name if the one from dropdown is not working.\n\nThe theme name should be according to the `set_theme` parameter in the .tcl folder of the theme.\n\nMight need to reload the app for the changes to take effect.",
+            wrapLength=500,
+        )
 
         # log
         self.ft1lf_logging = tk.LabelFrame(self.ft1, text="• Logging")
         self.ft1lf_logging.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 
-        self.t1_logging_1 = ttk.Frame(self.ft1lf_logging)
-        self.t1_logging_1.pack(side=tk.TOP, fill=tk.X, pady=5)
+        self.tf_logging_1 = ttk.Frame(self.ft1lf_logging)
+        self.tf_logging_1.pack(side=tk.TOP, fill=tk.X, pady=5)
 
-        self.lbl_log_location = ttk.Label(self.t1_logging_1, text="Log Files Location ", width=16)
+        self.lbl_log_location = ttk.Label(self.tf_logging_1, text="Log Files Location ", width=16)
         self.lbl_log_location.pack(side=tk.LEFT, padx=5)
 
-        self.entry_log_location_value = ttk.Entry(self.t1_logging_1, cursor="hand2", width=100)
+        self.entry_log_location_value = ttk.Entry(self.tf_logging_1, cursor="hand2", width=100)
         self.entry_log_location_value.insert(0, dir_log)
-        self.entry_log_location_value.config(state="readonly")
+        self.entry_log_location_value.configure(state="readonly")
         self.entry_log_location_value.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
         self.entry_log_location_value.bind("<Button-1>", lambda e: startFile(dir_log))
         self.entry_log_location_value.bind("<Button-3>", lambda e: self.promptDeleteLog())
         CreateToolTip(self.entry_log_location_value, "Location of log file.\n- LClick to open the folder.\n- RClick to delete all log files.")
 
-        self.t1_logging_2 = ttk.Frame(self.ft1lf_logging)
-        self.t1_logging_2.pack(side=tk.TOP, fill=tk.X, pady=5)
+        self.tf_logging_2 = ttk.Frame(self.ft1lf_logging)
+        self.tf_logging_2.pack(side=tk.TOP, fill=tk.X, pady=5)
 
-        self.cbtn_keep_log = ttk.Checkbutton(self.t1_logging_2, text="Keep Log Files", command=lambda: fJson.savePartialSetting("keep_log", self.cbtn_keep_log.instate(["selected"])))
+        self.cbtn_verbose = ttk.Checkbutton(self.tf_logging_2, text="Verbose Logging for Whisper", command=lambda: fJson.savePartialSetting("verbose", self.cbtn_verbose.instate(["selected"])))
+        self.cbtn_verbose.pack(side=tk.LEFT, padx=5)
+
+        self.cbtn_keep_log = ttk.Checkbutton(self.tf_logging_2, text="Keep Log Files", command=lambda: fJson.savePartialSetting("keep_log", self.cbtn_keep_log.instate(["selected"])))
         self.cbtn_keep_log.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.cbtn_verbose = ttk.Checkbutton(self.t1_logging_2, text="Verbose Logging for Whisper", command=lambda: fJson.savePartialSetting("verbose", self.cbtn_verbose.instate(["selected"])))
-        self.cbtn_verbose.pack(side=tk.LEFT, padx=5)
+        self.lbl_loglevel = ttk.Label(self.tf_logging_2, text="— Log Level")
+        self.lbl_loglevel.pack(side=tk.LEFT, padx=(0, 5), pady=5)
+
+        self.cb_log_level = ttk.Combobox(self.tf_logging_2, values=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], state="readonly")
+        self.cb_log_level.pack(side=tk.LEFT, padx=0, pady=5)
 
         # only on windows
         if platform.system() == "Windows":
             self.cbtn_hide_console_window_on_start = ttk.Checkbutton(
-                self.t1_logging_2, text="Hide Console Window on Start", command=lambda: fJson.savePartialSetting("hide_console_window_on_start", self.cbtn_hide_console_window_on_start.instate(["selected"]))
+                self.tf_logging_2, text="Hide Console Window on Start", command=lambda: fJson.savePartialSetting("hide_console_window_on_start", self.cbtn_hide_console_window_on_start.instate(["selected"]))
             )
             self.cbtn_hide_console_window_on_start.pack(side=tk.LEFT, padx=5)
             CreateToolTip(self.cbtn_hide_console_window_on_start, "Will hide console (log) window every program start. Only on Windows.")
@@ -125,7 +165,7 @@ class SettingWindow:
 
         self.entry_model_location_value = ttk.Entry(self.t1_model_1, cursor="hand2", width=100)
         self.entry_model_location_value.insert(0, get_default_download_root())
-        self.entry_model_location_value.config(state="readonly")
+        self.entry_model_location_value.configure(state="readonly")
         self.entry_model_location_value.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
         self.entry_model_location_value.bind("<Button-1>", lambda e: startFile(get_default_download_root()))
         CreateToolTip(self.entry_model_location_value, "Location of the model file.\nLClick to open the folder")
@@ -509,7 +549,7 @@ class SettingWindow:
 
         # ------------------ Textbox ------------------
         # mw tc
-        self.lf_mw_tc = tk.LabelFrame(self.ft3, text="• Main Window Transcribed Textbox")
+        self.lf_mw_tc = tk.LabelFrame(self.ft4, text="• Main Window Transcribed Textbox")
         self.lf_mw_tc.pack(side=tk.TOP, padx=5, pady=5, fill=tk.X)
 
         self.lbl_mw_tc_max = ttk.Label(self.lf_mw_tc, text="Max Length")
@@ -558,32 +598,8 @@ class SettingWindow:
         )
         self.cbtn_mw_tc_font_bold.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.lbl_mw_tc_font_color = ttk.Label(self.lf_mw_tc, text="Font Color")
-        self.lbl_mw_tc_font_color.pack(side=tk.LEFT, padx=5, pady=5)
-
-        self.entry_mw_tc_font_color = ttk.Entry(self.lf_mw_tc, width=10)
-        self.entry_mw_tc_font_color.pack(side=tk.LEFT, padx=5, pady=5)
-        self.entry_mw_tc_font_color.bind(
-            "<Button-1>",
-            lambda e: chooseColor(self.entry_mw_tc_font_color, self.entry_mw_tc_font_color.get(), self.root)
-            or fJson.savePartialSetting("tb_mw_tc_font_color", self.entry_mw_tc_font_color.get())
-            or self.preview_changes_tb(),
-        )
-        self.entry_mw_tc_font_color.bind("<Key>", lambda e: "break")
-
-        self.lbl_mw_tc_bg_color = ttk.Label(self.lf_mw_tc, text="Background Color")
-        self.lbl_mw_tc_bg_color.pack(side=tk.LEFT, padx=5, pady=5)
-
-        self.entry_mw_tc_bg_color = ttk.Entry(self.lf_mw_tc, width=10)
-        self.entry_mw_tc_bg_color.pack(side=tk.LEFT, padx=5, pady=5)
-        self.entry_mw_tc_bg_color.bind(
-            "<Button-1>",
-            lambda e: chooseColor(self.entry_mw_tc_bg_color, self.entry_mw_tc_bg_color.get(), self.root) or fJson.savePartialSetting("tb_mw_tc_bg_color", self.entry_mw_tc_bg_color.get()) or self.preview_changes_tb(),
-        )
-        self.entry_mw_tc_bg_color.bind("<Key>", lambda e: "break")
-
         # mw tl
-        self.lf_mw_tl = tk.LabelFrame(self.ft3, text="• Main Window Translated Textbox")
+        self.lf_mw_tl = tk.LabelFrame(self.ft4, text="• Main Window Translated Textbox")
         self.lf_mw_tl.pack(side=tk.TOP, padx=5, pady=5, fill=tk.X)
 
         self.lbl_mw_tl_max = ttk.Label(self.lf_mw_tl, text="Max Length")
@@ -632,32 +648,8 @@ class SettingWindow:
         )
         self.cbtn_mw_tl_font_bold.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.lbl_mw_tl_font_color = ttk.Label(self.lf_mw_tl, text="Font Color")
-        self.lbl_mw_tl_font_color.pack(side=tk.LEFT, padx=5, pady=5)
-
-        self.entry_mw_tl_font_color = ttk.Entry(self.lf_mw_tl, width=10)
-        self.entry_mw_tl_font_color.pack(side=tk.LEFT, padx=5, pady=5)
-        self.entry_mw_tl_font_color.bind(
-            "<Button-1>",
-            lambda e: chooseColor(self.entry_mw_tl_font_color, self.entry_mw_tl_font_color.get(), self.root)
-            or fJson.savePartialSetting("tb_mw_tl_font_color", self.entry_mw_tl_font_color.get())
-            or self.preview_changes_tb(),
-        )
-        self.entry_mw_tl_font_color.bind("<Key>", lambda e: "break")
-
-        self.lbl_mw_tl_bg_color = ttk.Label(self.lf_mw_tl, text="Background Color")
-        self.lbl_mw_tl_bg_color.pack(side=tk.LEFT, padx=5, pady=5)
-
-        self.entry_mw_tl_bg_color = ttk.Entry(self.lf_mw_tl, width=10)
-        self.entry_mw_tl_bg_color.pack(side=tk.LEFT, padx=5, pady=5)
-        self.entry_mw_tl_bg_color.bind(
-            "<Button-1>",
-            lambda e: chooseColor(self.entry_mw_tl_bg_color, self.entry_mw_tl_bg_color.get(), self.root) or fJson.savePartialSetting("tb_mw_tl_bg_color", self.entry_mw_tl_bg_color.get()) or self.preview_changes_tb(),
-        )
-        self.entry_mw_tl_bg_color.bind("<Key>", lambda e: "break")
-
         # detached tc
-        self.lf_ex_tc = tk.LabelFrame(self.ft3, text="• Detached Transcribed Window Textbox")
+        self.lf_ex_tc = tk.LabelFrame(self.ft4, text="• Detached Transcribed Window Textbox")
         self.lf_ex_tc.pack(side=tk.TOP, padx=5, pady=5, fill=tk.X, expand=True)
 
         self.lbl_ex_tc_max = ttk.Label(self.lf_ex_tc, text="Max Length")
@@ -731,7 +723,7 @@ class SettingWindow:
         self.entry_ex_tc_bg_color.bind("<Key>", lambda e: "break")
 
         # detached tl
-        self.lf_ex_tl = tk.LabelFrame(self.ft3, text="• Detached Translated Window Textbox")
+        self.lf_ex_tl = tk.LabelFrame(self.ft4, text="• Detached Translated Window Textbox")
         self.lf_ex_tl.pack(side=tk.TOP, padx=5, pady=5, fill=tk.X)
 
         self.lbl_ex_tl_max = ttk.Label(self.lf_ex_tl, text="Max Length")
@@ -805,7 +797,7 @@ class SettingWindow:
         self.entry_ex_tl_bg_color.bind("<Key>", lambda e: "break")
 
         # button
-        self.ft3_tb_preview = ttk.Frame(self.ft3)
+        self.ft3_tb_preview = ttk.Frame(self.ft4)
         self.ft3_tb_preview.pack(side=tk.TOP, fill=tk.X, pady=5)
 
         self.tb_preview_1 = tk.Text(
@@ -814,8 +806,6 @@ class SettingWindow:
             width=27,
             wrap=tk.WORD,
             font=(fJson.settingCache["tb_mw_tc_font"], fJson.settingCache["tb_mw_tc_font_size"], "bold" if fJson.settingCache["tb_mw_tc_font_bold"] else "normal"),
-            fg=fJson.settingCache["tb_mw_tc_font_color"],
-            bg=fJson.settingCache["tb_mw_tc_bg_color"],
         )
         self.tb_preview_1.bind("<Key>", "break")
         self.tb_preview_1.insert(tk.END, "1234567 Preview プレビュー 预习 предварительный просмотр")
@@ -827,8 +817,6 @@ class SettingWindow:
             width=27,
             wrap=tk.WORD,
             font=(fJson.settingCache["tb_mw_tl_font"], fJson.settingCache["tb_mw_tl_font_size"], "bold" if fJson.settingCache["tb_mw_tl_font_bold"] else "normal"),
-            fg=fJson.settingCache["tb_mw_tl_font_color"],
-            bg=fJson.settingCache["tb_mw_tl_bg_color"],
         )
         self.tb_preview_2.bind("<Key>", "break")
         self.tb_preview_2.insert(tk.END, "1234567 Preview プレビュー 预习 предварительный просмотр")
@@ -840,8 +828,8 @@ class SettingWindow:
             width=27,
             wrap=tk.WORD,
             font=(fJson.settingCache["tb_ex_tc_font"], fJson.settingCache["tb_ex_tc_font_size"], "bold" if fJson.settingCache["tb_ex_tc_font_bold"] else "normal"),
-            fg=fJson.settingCache["tb_ex_tc_font_color"],
-            bg=fJson.settingCache["tb_ex_tc_bg_color"],
+            foreground=fJson.settingCache["tb_ex_tc_font_color"],
+            background=fJson.settingCache["tb_ex_tc_bg_color"],
         )
         self.tb_preview_3.bind("<Key>", "break")
         self.tb_preview_3.insert(tk.END, "1234567 Preview プレビュー 预习 предварительный просмотр")
@@ -853,8 +841,8 @@ class SettingWindow:
             width=27,
             wrap=tk.WORD,
             font=(fJson.settingCache["tb_ex_tl_font"], fJson.settingCache["tb_ex_tl_font_size"], "bold" if fJson.settingCache["tb_ex_tl_font_bold"] else "normal"),
-            fg=fJson.settingCache["tb_ex_tl_font_color"],
-            bg=fJson.settingCache["tb_ex_tl_bg_color"],
+            foreground=fJson.settingCache["tb_ex_tl_font_color"],
+            background=fJson.settingCache["tb_ex_tl_bg_color"],
         )
         self.tb_preview_4.bind("<Key>", "break")
         self.tb_preview_4.insert(tk.END, "1234567 Preview プレビュー 预习 предварительный просмотр")
@@ -936,12 +924,6 @@ class SettingWindow:
             self.spn_threshold_speaker.set(fJson.settingCache["speaker_energy_threshold"])
 
     def tb_delete(self):
-        self.entry_mw_tc_font_color.delete(0, tk.END)
-        self.entry_mw_tc_bg_color.delete(0, tk.END)
-
-        self.entry_mw_tl_font_color.delete(0, tk.END)
-        self.entry_mw_tl_bg_color.delete(0, tk.END)
-
         self.entry_ex_tc_font_color.delete(0, tk.END)
         self.entry_ex_tc_bg_color.delete(0, tk.END)
 
@@ -953,14 +935,10 @@ class SettingWindow:
         self.spn_mw_tc_max.set(theSetting["tb_mw_tc_max"])
         self.cb_mw_tc_font.set(theSetting["tb_mw_tc_font"])
         self.spn_mw_tc_font_size.set(theSetting["tb_mw_tc_font_size"])
-        self.entry_mw_tc_font_color.insert(0, theSetting["tb_mw_tc_font_color"])
-        self.entry_mw_tc_bg_color.insert(0, theSetting["tb_mw_tc_bg_color"])
 
         self.spn_mw_tl_max.set(theSetting["tb_mw_tl_max"])
         self.cb_mw_tl_font.set(theSetting["tb_mw_tl_font"])
         self.spn_mw_tl_font_size.set(theSetting["tb_mw_tl_font_size"])
-        self.entry_mw_tl_font_color.insert(0, theSetting["tb_mw_tl_font_color"])
-        self.entry_mw_tl_bg_color.insert(0, theSetting["tb_mw_tl_bg_color"])
 
         self.spn_ex_tc_max.set(theSetting["tb_ex_tc_max"])
         self.cb_ex_tc_font.set(theSetting["tb_ex_tc_font"])
@@ -978,50 +956,34 @@ class SettingWindow:
         if gClass.mw is None:
             return
 
-        gClass.mw.tb_transcribed.config(
-            font=(self.cb_mw_tc_font.get(), int(self.spn_mw_tc_font_size.get()), "bold" if self.cbtn_mw_tc_font_bold.instate(["selected"]) else "normal"),
-            fg=self.entry_mw_tc_font_color.get(),
-            bg=self.entry_mw_tc_bg_color.get(),
-        )
-        self.tb_preview_1.config(
-            font=(self.cb_mw_tc_font.get(), int(self.spn_mw_tc_font_size.get()), "bold" if self.cbtn_mw_tc_font_bold.instate(["selected"]) else "normal"),
-            fg=self.entry_mw_tc_font_color.get(),
-            bg=self.entry_mw_tc_bg_color.get(),
-        )
+        gClass.mw.tb_transcribed.configure(font=(self.cb_mw_tc_font.get(), int(self.spn_mw_tc_font_size.get()), "bold" if self.cbtn_mw_tc_font_bold.instate(["selected"]) else "normal"))
+        self.tb_preview_1.configure(font=(self.cb_mw_tc_font.get(), int(self.spn_mw_tc_font_size.get()), "bold" if self.cbtn_mw_tc_font_bold.instate(["selected"]) else "normal"))
 
-        gClass.mw.tb_translated.config(
-            font=(self.cb_mw_tl_font.get(), int(self.spn_mw_tl_font_size.get()), "bold" if self.cbtn_mw_tl_font_bold.instate(["selected"]) else "normal"),
-            fg=self.entry_mw_tl_font_color.get(),
-            bg=self.entry_mw_tl_bg_color.get(),
-        )
-        self.tb_preview_2.config(
-            font=(self.cb_mw_tl_font.get(), int(self.spn_mw_tl_font_size.get()), "bold" if self.cbtn_mw_tl_font_bold.instate(["selected"]) else "normal"),
-            fg=self.entry_mw_tl_font_color.get(),
-            bg=self.entry_mw_tl_bg_color.get(),
-        )
+        gClass.mw.tb_translated.configure(font=(self.cb_mw_tl_font.get(), int(self.spn_mw_tl_font_size.get()), "bold" if self.cbtn_mw_tl_font_bold.instate(["selected"]) else "normal"))
+        self.tb_preview_2.configure(font=(self.cb_mw_tl_font.get(), int(self.spn_mw_tl_font_size.get()), "bold" if self.cbtn_mw_tl_font_bold.instate(["selected"]) else "normal"))
 
         assert gClass.ex_tcw is not None
-        gClass.ex_tcw.labelText.config(
+        gClass.ex_tcw.labelText.configure(
             font=(self.cb_ex_tc_font.get(), int(self.spn_ex_tc_font_size.get()), "bold" if self.cbtn_ex_tc_font_bold.instate(["selected"]) else "normal"),
-            fg=self.entry_ex_tc_font_color.get(),
-            bg=self.entry_ex_tc_bg_color.get(),
+            foreground=self.entry_ex_tc_font_color.get(),
+            background=self.entry_ex_tc_bg_color.get(),
         )
-        self.tb_preview_3.config(
+        self.tb_preview_3.configure(
             font=(self.cb_ex_tc_font.get(), int(self.spn_ex_tc_font_size.get()), "bold" if self.cbtn_ex_tc_font_bold.instate(["selected"]) else "normal"),
-            fg=self.entry_ex_tc_font_color.get(),
-            bg=self.entry_ex_tc_bg_color.get(),
+            foreground=self.entry_ex_tc_font_color.get(),
+            background=self.entry_ex_tc_bg_color.get(),
         )
 
         assert gClass.ex_tlw is not None
-        gClass.ex_tlw.labelText.config(
+        gClass.ex_tlw.labelText.configure(
             font=(self.cb_ex_tl_font.get(), int(self.spn_ex_tl_font_size.get()), "bold" if self.cbtn_ex_tl_font_bold.instate(["selected"]) else "normal"),
-            fg=self.entry_ex_tl_font_color.get(),
-            bg=self.entry_ex_tl_bg_color.get(),
+            foreground=self.entry_ex_tl_font_color.get(),
+            background=self.entry_ex_tl_bg_color.get(),
         )
-        self.tb_preview_4.config(
+        self.tb_preview_4.configure(
             font=(self.cb_ex_tl_font.get(), int(self.spn_ex_tl_font_size.get()), "bold" if self.cbtn_ex_tl_font_bold.instate(["selected"]) else "normal"),
-            fg=self.entry_ex_tl_font_color.get(),
-            bg=self.entry_ex_tl_bg_color.get(),
+            foreground=self.entry_ex_tl_font_color.get(),
+            background=self.entry_ex_tl_bg_color.get(),
         )
 
     def number_only(self, P):
@@ -1089,16 +1051,16 @@ class SettingWindow:
         if not downloaded:
             if withPopup:
                 Mbox("Model not found", "Model not found or checksum does not match. You can press download to download the model.", 0, self.root)
-            btn.config(text="Download", command=lambda: self.modelDownload(model, btn))
+            btn.configure(text="Download", command=lambda: self.modelDownload(model, btn))
         else:
-            btn.config(text="Downloaded", state=tk.DISABLED)
+            btn.configure(text="Downloaded", state=tk.DISABLED)
 
     def downloadCheck_thread(self, model: str, btn: ttk.Button) -> None:
         while gClass.dl_proc is not None and gClass.dl_proc.is_alive():  # type: ignore
             sleep(1)
         else:
             if verify_model(model):
-                btn.config(text="Downloaded", state=tk.DISABLED)
+                btn.configure(text="Downloaded", state=tk.DISABLED)
                 Mbox("Download complete", "Model downloaded successfully!", 0, self.root)
 
     def modelDownload(self, model: str, btn: ttk.Button) -> None:
@@ -1112,7 +1074,7 @@ class SettingWindow:
         gClass.dl_proc.start()
 
         # Update button
-        btn.config(text="Downloading... (Click to cancel)", command=lambda: self.modelDownloadCancel(model, btn))
+        btn.configure(text="Downloading... (Click to cancel)", command=lambda: self.modelDownloadCancel(model, btn))
 
         # notify
         Mbox("Downloading model...", "Check the log / terminal for more information", 0, self.root)
@@ -1128,7 +1090,7 @@ class SettingWindow:
             gClass.dl_proc = None
 
         # Update button
-        btn.config(text="Download", command=lambda: self.modelDownload(model, btn))
+        btn.configure(text="Download", command=lambda: self.modelDownload(model, btn))
 
         # notify
         Mbox("Download cancelled.", "Model download cancelled.", 0, self.root)
@@ -1149,49 +1111,49 @@ class SettingWindow:
         checkLarge = verify_model("large")
 
         if not checkTiny:
-            self.btn_interact_tiny.config(text="Download", command=lambda: self.modelDownload("tiny", self.btn_interact_tiny))
+            self.btn_interact_tiny.configure(text="Download", command=lambda: self.modelDownload("tiny", self.btn_interact_tiny))
         else:
-            self.btn_interact_tiny.config(text="Downloaded", state=tk.DISABLED)
+            self.btn_interact_tiny.configure(text="Downloaded", state=tk.DISABLED)
 
         if not checkTinyEn:
-            self.btn_interact_tiny_eng.config(text="Download", command=lambda: self.modelDownload("tiny.en", self.btn_interact_tiny_eng))
+            self.btn_interact_tiny_eng.configure(text="Download", command=lambda: self.modelDownload("tiny.en", self.btn_interact_tiny_eng))
         else:
-            self.btn_interact_tiny_eng.config(text="Downloaded", state=tk.DISABLED)
+            self.btn_interact_tiny_eng.configure(text="Downloaded", state=tk.DISABLED)
 
         if not checkBase:
-            self.btn_interact_base.config(text="Download", command=lambda: self.modelDownload("base", self.btn_interact_base))
+            self.btn_interact_base.configure(text="Download", command=lambda: self.modelDownload("base", self.btn_interact_base))
         else:
-            self.btn_interact_base.config(text="Downloaded", state=tk.DISABLED)
+            self.btn_interact_base.configure(text="Downloaded", state=tk.DISABLED)
 
         if not checkBaseEn:
-            self.btn_interact_base_eng.config(text="Download", command=lambda: self.modelDownload("base.en", self.btn_interact_base_eng))
+            self.btn_interact_base_eng.configure(text="Download", command=lambda: self.modelDownload("base.en", self.btn_interact_base_eng))
         else:
-            self.btn_interact_base_eng.config(text="Downloaded", state=tk.DISABLED)
+            self.btn_interact_base_eng.configure(text="Downloaded", state=tk.DISABLED)
 
         if not checkSmall:
-            self.btn_interact_small.config(text="Download", command=lambda: self.modelDownload("small", self.btn_interact_small))
+            self.btn_interact_small.configure(text="Download", command=lambda: self.modelDownload("small", self.btn_interact_small))
         else:
-            self.btn_interact_small.config(text="Downloaded", state=tk.DISABLED)
+            self.btn_interact_small.configure(text="Downloaded", state=tk.DISABLED)
 
         if not checkSmallEn:
-            self.btn_interact_small_eng.config(text="Download", command=lambda: self.modelDownload("small.en", self.btn_interact_small_eng))
+            self.btn_interact_small_eng.configure(text="Download", command=lambda: self.modelDownload("small.en", self.btn_interact_small_eng))
         else:
-            self.btn_interact_small_eng.config(text="Downloaded", state=tk.DISABLED)
+            self.btn_interact_small_eng.configure(text="Downloaded", state=tk.DISABLED)
 
         if not checkMedium:
-            self.btn_interact_medium.config(text="Download", command=lambda: self.modelDownload("medium", self.btn_interact_medium))
+            self.btn_interact_medium.configure(text="Download", command=lambda: self.modelDownload("medium", self.btn_interact_medium))
         else:
-            self.btn_interact_medium.config(text="Downloaded", state=tk.DISABLED)
+            self.btn_interact_medium.configure(text="Downloaded", state=tk.DISABLED)
 
         if not checkMediumEn:
-            self.btn_interact_medium_eng.config(text="Download", command=lambda: self.modelDownload("medium.en", self.btn_interact_medium_eng))
+            self.btn_interact_medium_eng.configure(text="Download", command=lambda: self.modelDownload("medium.en", self.btn_interact_medium_eng))
         else:
-            self.btn_interact_medium_eng.config(text="Downloaded", state=tk.DISABLED)
+            self.btn_interact_medium_eng.configure(text="Downloaded", state=tk.DISABLED)
 
         if not checkLarge:
-            self.btn_interact_large.config(text="Download", command=lambda: self.modelDownload("large", self.btn_interact_large))
+            self.btn_interact_large.configure(text="Download", command=lambda: self.modelDownload("large", self.btn_interact_large))
         else:
-            self.btn_interact_large.config(text="Downloaded", state=tk.DISABLED)
+            self.btn_interact_large.configure(text="Downloaded", state=tk.DISABLED)
 
     def micAutoThreshold(self):
         Mbox(
@@ -1226,3 +1188,11 @@ class SettingWindow:
 
         # save
         fJson.savePartialSetting("speaker_energy_threshold", threshold)
+
+    def cb_theme_change(self, _event=None):
+        if self.cb_theme.get() == "custom":
+            self.entry_theme.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.X, expand=True)
+            self.entry_theme.delete(0, tk.END)
+        else:
+            self.entry_theme.pack_forget()
+            self.entry_theme.delete(0, tk.END)

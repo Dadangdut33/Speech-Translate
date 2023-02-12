@@ -107,3 +107,4 @@ if __name__ == "__main__":
     except Exception as e:
         logger.exception("This is an exception")
         logger.exception("This is a looooooooooooooooooooong exception")
+        logger.exception(e)

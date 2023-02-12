@@ -2,8 +2,9 @@ import os
 import platform
 import ast
 import shlex
+from tkinter import ttk
 from multiprocessing import Process, Queue
-from typing import Optional
+from typing import Optional, List
 from ._path import dir_temp, dir_log, dir_export, dir_user
 
 if platform.system() == "Windows":
@@ -16,6 +17,7 @@ from .utils.Json import SettingJsonHandler
 # ------------------ #
 app_name: str = "Speech Translate"
 fJson: SettingJsonHandler = SettingJsonHandler(os.path.join(dir_user, "setting.json"), dir_user, [dir_temp, dir_log, dir_export])
+
 
 # ------------------ #
 class Globals:
@@ -32,19 +34,29 @@ class Globals:
         self.transcribing: bool = False
         self.translating: bool = False
 
+        # Style
+        self.native_theme: str = ""
+        self.theme_lists: List[str] = []
+        self.style: Optional[ttk.Style] = None
+
         # process
         self.dl_proc: Optional[Process] = None
 
         # References to class
-        self.tray = None  # tray
-        self.mw = None  # main window
-        self.sw = None  # setting window
-        self.about = None  # about window
-        self.ex_tcw = None  # detached transcribed window
-        self.ex_tlw = None  # detached translated window
-
-        # window
-        self.cw = None  # console window
+        self.tray = None
+        """Tray app class"""
+        self.mw = None
+        """Main window class"""
+        self.sw = None
+        """Setting window class"""
+        self.lw = None
+        """Log window class"""
+        self.about = None
+        """About window class"""
+        self.ex_tcw = None
+        """Detached transcribed window class"""
+        self.ex_tlw = None
+        """Detached translated window class"""
 
         # record stream
         self.stream: Optional[pyaudio.Stream] = None

@@ -1,8 +1,8 @@
-from threading import Thread
-from time import sleep
-import tkinter.ttk as ttk
-import tkinter as tk
 import requests
+import tkinter as tk
+from tkinter import ttk
+from time import sleep
+from threading import Thread
 from PIL import Image, ImageTk
 
 
@@ -29,27 +29,21 @@ class AboutWindow:
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
         # Top frame
-        self.topFrame = tk.Frame(self.root, bg="white")
-        self.topFrame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        self.f_top = ttk.Frame(self.root, style="Brighter.TFrame")
+        self.f_top.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
-        self.bottomFrame = tk.Frame(self.root, bg="#F0F0F0")
-        self.bottomFrame.pack(side=tk.BOTTOM, fill=tk.X, expand=False)
+        self.f_bot = ttk.Frame(self.root, style="Bottom.TFrame")
+        self.f_bot.pack(side=tk.BOTTOM, fill=tk.X, expand=False)
 
-        self.bottomLeft = tk.Frame(self.bottomFrame, bg="#F0F0F0")
-        self.bottomLeft.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.f_bot_l = ttk.Frame(self.f_bot, style="Bottom.TFrame")
+        self.f_bot_l.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        self.botLeftTop = tk.Frame(self.bottomLeft, bg="#F0F0F0")
-        self.botLeftTop.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-
-        self.botLeftBottom = tk.Frame(self.bottomLeft, bg="#F0F0F0")
-        self.botLeftBottom.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
-
-        self.bottomRight = tk.Frame(self.bottomFrame, bg="#F0F0F0")
-        self.bottomRight.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+        self.f_bot_r = ttk.Frame(self.f_bot, style="Bottom.TFrame")
+        self.f_bot_r.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
         # Top frame
         try:  # Try catch the logo so if logo not found it can still run
-            self.canvasImg = tk.Canvas(self.topFrame, width=100, height=100, bg="white")
+            self.canvasImg = tk.Canvas(self.f_top, width=100, height=100, bg="white")
             self.canvasImg.pack(side=tk.TOP, padx=5, pady=5)
             self.imgObj = Image.open(app_icon.replace(".ico", ".png"))
             self.imgObj = self.imgObj.resize((100, 100), Image.ANTIALIAS)
@@ -57,35 +51,30 @@ class AboutWindow:
             self.img = ImageTk.PhotoImage(self.imgObj, master=self.canvasImg)
             self.canvasImg.create_image(2, 50, anchor=tk.W, image=self.img)
         except Exception:
-            self.logoNotFoud = tk.Label(self.topFrame, text="Fail To Load Logo, icon.png not found", bg="white", fg="red")
+            self.logoNotFoud = ttk.Label(self.f_top, text="Fail To Load Logo, Logo not found", foreground="red")
             self.logoNotFoud.pack(side=tk.TOP, padx=5, pady=5)
             self.root.geometry("375x325")
 
-        self.titleLabel = tk.Label(self.topFrame, text="Speech Translate", bg="white", font=("Helvetica", 12, "bold"))
+        self.titleLabel = ttk.Label(self.f_top, text="Speech Translate", font=("Helvetica", 12, "bold"), style="BrighterTFrameBg.TLabel")
         self.titleLabel.pack(padx=5, pady=2, side=tk.TOP)
 
-        self.contentLabel = tk.Label(
-            self.topFrame,
-            text="An open source Speech Transcription and Translation tool.\nMade using Whisper OpenAI and some translation API.",
-            bg="white",
-        )
+        self.contentLabel = ttk.Label(self.f_top, text="An open source Speech Transcription and Translation tool.\nMade using Whisper OpenAI and some translation API.", style="BrighterTFrameBg.TLabel")
         self.contentLabel.pack(padx=5, pady=0, side=tk.TOP)
 
         # Label for version
-        self.versionLabel = tk.Label(self.botLeftTop, text=f"Version: {__version__}", font=("Segoe UI", 8))
+        self.versionLabel = ttk.Label(self.f_bot_l, text=f"Version: {__version__}", font=("Segoe UI", 8))
         self.versionLabel.pack(padx=5, pady=2, ipadx=0, side=tk.LEFT)
 
-        # Label for Icons credit
         self.checkUpdateLabelText = "Click to check for update"
         self.checkUpdateLabelFg = "blue"
         self.checkUpdateLabelFunc = self.check_for_update
-        self.checkUpdateLabel = tk.Label(self.botLeftBottom, text=self.checkUpdateLabelText, font=("Segoe UI", 8), fg=self.checkUpdateLabelFg, cursor="hand2")
+        self.checkUpdateLabel = ttk.Label(self.f_bot_l, text=self.checkUpdateLabelText, foreground=self.checkUpdateLabelFg, font=("Segoe UI", 8), cursor="hand2")
         self.checkUpdateLabel.pack(padx=5, pady=0, side=tk.LEFT)
         self.checkUpdateLabel.bind("<Button-1>", self.checkUpdateLabelFunc)
         self.tooltipCheckUpdate = CreateToolTip(self.checkUpdateLabel, "Click to check for update")
 
         # Button
-        self.okBtn = ttk.Button(self.bottomRight, text="Close", command=self.on_closing, width=10)
+        self.okBtn = ttk.Button(self.f_bot_r, text="Ok", command=self.on_closing, width=10, style="Accent.TButton")
         self.okBtn.pack(padx=5, pady=5, side=tk.RIGHT)
 
         # ------------------------------
@@ -130,7 +119,7 @@ class AboutWindow:
         self.checkUpdateLabelText = "Checking..."
         self.checkUpdateLabelFg = "black"
         self.tooltipCheckUpdate.text = "Checking... Please wait"
-        self.checkUpdateLabel.config(text=self.checkUpdateLabelText, fg=self.checkUpdateLabelFg)
+        self.checkUpdateLabel.configure(text=self.checkUpdateLabelText, foreground=self.checkUpdateLabelFg)
         self.root.update()
         logger.info("Checking for update...")
 
@@ -166,7 +155,7 @@ class AboutWindow:
                 if not self.checkingOnStart:  # suppress error if checking on start
                     nativeNotify("Fail to check for update!", "Click to try again", app_icon, app_name)
 
-            self.checkUpdateLabel.config(text=self.checkUpdateLabelText, fg=self.checkUpdateLabelFg)
+            self.checkUpdateLabel.configure(text=self.checkUpdateLabelText, foreground=self.checkUpdateLabelFg)
             self.checkUpdateLabel.bind("<Button-1>", self.checkUpdateLabelFunc)
 
             self.checking = False

@@ -2,6 +2,7 @@ __all__ = ["default_setting", "SettingJsonHandler"]
 import json
 import os
 import darkdetect
+from typing import List
 
 from notifypy import Notify
 
@@ -86,7 +87,7 @@ class SettingJsonHandler:
     Class to handle setting.json
     """
 
-    def __init__(self, settingPath: str, settingDir: str, checkdirs: list[str]):
+    def __init__(self, settingPath: str, settingDir: str, checkdirs: List[str]):
         self.settingCache = {}
         self.settingPath = settingPath
         self.settingDir = settingDir
@@ -146,7 +147,7 @@ class SettingJsonHandler:
                 with open(path, "w", encoding="utf-8") as f:
                     json.dump(default_setting, f, ensure_ascii=False, indent=4)
         except Exception as e:
-            logger.exception("Error creating default setting file: " + str(e))
+            logger.exception(e)
             Mbox("Error", "Error: Creating default setting file. " + path + "\nReason: " + str(e), 2)
 
     def saveSetting(self, data: dict):
