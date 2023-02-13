@@ -22,7 +22,7 @@ from tkinter import ttk, TclError
 theme_list = ["sv-light", "sv-dark"]
 
 
-def set_ui_style(theme: str):
+def set_ui_style(theme: str, root=None):
     success = False
     try:
         logger.debug("Setting theme: %s", theme)
@@ -30,8 +30,8 @@ def set_ui_style(theme: str):
         success = True
     except Exception as e:
         logger.exception(e)
-        logger.debug("Setting theme failed, using default theme")
-        Mbox("Error", f"Failed to set `{theme}` theme, converting back to default theme", 2)
+        logger.debug("Setting theme failed, converting back to default native theme")
+        Mbox("Error", f"Failed to set `{theme}` theme, converting back to default native theme", 2, root)
         theme = gClass.native_theme
         set_theme(theme)
         fJson.savePartialSetting("theme", theme)
@@ -90,7 +90,7 @@ def set_theme(theme: str):
     real_theme_list = list(get_root().tk.call("ttk::style", "theme", "names"))
     real_theme_list.extend(theme_list)
     if theme not in real_theme_list:
-        raise RuntimeError("not a valid theme name: {}".format(theme))
+        raise Exception("not a valid theme name: {}".format(theme))
 
     get_root().tk.call("set_theme", theme)
 

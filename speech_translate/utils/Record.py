@@ -770,12 +770,10 @@ def multiproc_tc(
 
     try:
         logger.debug("Source Language: Auto" if auto else f"Source Language: {lang_source}")
-        model = whisper.load_model(modelName)
-        # result_Tc = model.transcribe(audio_name, task="transcribe", language=lang_source if not auto else None)
+        model: whisper.Whisper = whisper.load_model(modelName)
 
         def run_threaded():
             result = model.transcribe(audio_name, task="transcribe", language=lang_source if not auto else None)
-            # result = model.transcribe(toTranslate, task="translate", language=lang_source if not auto else None)
             gClass.data_queue.put(result)
 
         thread = threading.Thread(target=run_threaded, daemon=True)

@@ -25,7 +25,7 @@ A speech transcription and translation application using whisper AI model.
 - [User Settings](#user-settings)
 - [Development](#--development--)
   - [Setup](#setup)
-  - [Using GPU for Whisper](#using-gpu-for-whisper)
+  - [Using GPU](#using-gpu)
   - [Building](#building)
   - [Compatibility](#compatibility)
 - [Contributing](#contributing)
@@ -86,6 +86,9 @@ You can change the settings by clicking the settings button on the menubar of th
 > **Warning** \
 > As of right now (4th of November 2022) I guess pytorch is not compatible with python 3.11 so you can't use python 3.11. I tried with 3.11 but it doesn't work so i rollback to python 3.10.9.
 
+> **Info** \
+> Ignore all this if you are using the release/compiled version.
+
 ## Setup
 
 > **Note** \
@@ -119,7 +122,7 @@ choco install ffmpeg
 scoop install ffmpeg
 ```
 
-## Using GPU for Whisper
+## Using GPU
 
 > **Note** \
 > This process could be handled automatically by running [devSetup.py](./devSetup.py)

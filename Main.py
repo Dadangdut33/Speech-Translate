@@ -141,7 +141,7 @@ class MainWindow:
 
         # ------------------ Frames ------------------
         self.f1_toolbar = ttk.Frame(self.root)
-        self.f1_toolbar.pack(side=tk.TOP, fill="x", expand=False)
+        self.f1_toolbar.pack(side=tk.TOP, fill="x", expand=False, pady=(5, 0))
         self.f1_toolbar.bind("<Button-1>", lambda event: self.root.focus_set())
 
         self.f2_textBox = ttk.Frame(self.root)

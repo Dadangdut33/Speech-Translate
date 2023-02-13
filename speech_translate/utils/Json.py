@@ -47,7 +47,7 @@ default_setting = {
     "speaker_energy_threshold": 5000,
     "enable_threshold": False,
     "debug_energy": False,
-    "transcribe_rate": 500,
+    "transcribe_rate": 500,  
     "sample_rate": 16000,
     "chunk_size": 1024,
     "max_sentences": 5,
@@ -57,6 +57,11 @@ default_setting = {
     "keep_temp": False,
     # Whisper settings
     "whisper_extra_args": "",
+    "compression_ratio_threshold": 2.4,     # Default value from whisper
+    "logprob_threshold": -1.0,              # Default value from whisper
+    "no_speech_threshold": 0.6,             # Default value from whisper
+    "condition_on_previous_text": True,     # Default value from whisper
+    "initial_prompt": "",                   # Default value from whisper
     # ------------------ #
     # Textboxes
     "tb_mw_tc_max": 0,

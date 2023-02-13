@@ -153,7 +153,7 @@ namespace eval ttk::theme::sv_light {
 			}
 		}
 
-		ttk::style configure TCheckbutton -padding 2
+		ttk::style configure TCheckbutton -padding 0
 
 		ttk::style element create Checkbutton.indicator image \
 			[list $I(check-unsel-rest) \
@@ -249,7 +249,7 @@ namespace eval ttk::theme::sv_light {
 			}
 		}
 
-		ttk::style configure TRadiobutton -padding 2
+		ttk::style configure TRadiobutton -padding 1
 
 		ttk::style element create Radiobutton.indicator image \
 			[list $I(radio-unsel-rest) \
@@ -268,7 +268,7 @@ namespace eval ttk::theme::sv_light {
 
 		# ----------------------------------------------------------------------------------------
 		# Entry
-		ttk::style configure TEntry -foreground $theme_colors(-fg) -padding {1 1 1 1}
+		ttk::style configure TEntry -foreground $theme_colors(-fg) -padding 0
 		ttk::style map TEntry -foreground [list disabled "#0a0a0a" pressed "#636363" active "#626262"]
 
 		ttk::style element create Entry.field image \
@@ -291,7 +291,7 @@ namespace eval ttk::theme::sv_light {
 			}
 		}
 
-		ttk::style configure TCombobox -foreground $theme_colors(-fg) -padding 1
+		ttk::style configure TCombobox -foreground $theme_colors(-fg) -padding 0
 		ttk::style configure ComboboxPopdownFrame -borderwidth 1 -relief solid
 		ttk::style map TCombobox -foreground [list disabled "#0a0a0a" pressed "#636363" active "#626262"]
 
@@ -448,15 +448,15 @@ namespace eval ttk::theme::sv_light {
 			}
 		}
 
-		ttk::style configure TNotebook -padding 1
+		ttk::style configure TNotebook -padding 0
 		ttk::style configure TNotebook.Tab -focuscolor $theme_colors(-accent)
-		ttk::style element create Notebook.border image $I(notebook-border) -border 5 -padding 5
+		ttk::style element create Notebook.border image $I(notebook-border) -border 5 -padding 3
 
 		ttk::style element create Notebook.tab image \
 			[list $I(tab-rest) \
 			selected $I(tab-selected) \
 			active $I(tab-hover) \
-			] -border 13 -padding {16 14 16 6} -height 32
+			] -border 13 -padding {12 8 12 2} -height 28
 
 		# ----------------------------------------------------------------------------------------
 		# Treeview
