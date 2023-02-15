@@ -13,8 +13,10 @@ modelValues = list(modelSelectDict.values())
 def upFirstCase(string: str):
     return string[0].upper() + string[1:]
 
+
 def get_similar_keys(_dict: Dict, key: str):
     return [k for k in _dict.keys() if key.lower() in k.lower()]
+
 
 def startFile(filename: str):
     """
@@ -105,6 +107,7 @@ def srt_to_txt_format(srt: str):
 
 def getFileNameOnlyFromPath(path: str):
     return path.split("/")[-1]
+
 
 def tb_copy_only(event):
     key = event.keysym

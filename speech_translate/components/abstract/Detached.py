@@ -6,8 +6,8 @@ from typing import Literal
 from speech_translate._path import app_icon
 from speech_translate.Globals import fJson, gClass
 from speech_translate.utils.Beep import beep
-from .Tooltip import CreateToolTip
-from .MBox import Mbox
+from speech_translate.components.custom.Tooltip import CreateToolTip
+from speech_translate.components.custom.MBox import Mbox
 
 
 # Classes

@@ -21,13 +21,13 @@ from speech_translate._path import app_icon, app_icon_missing
 from speech_translate.Globals import app_name, fJson, gClass
 from speech_translate.Logging import logger
 
-from speech_translate.components.About import AboutWindow
-from speech_translate.components.Log import LogWindow
-from speech_translate.components.Setting import SettingWindow
-from speech_translate.components.TC_win import TcsWindow
-from speech_translate.components.TL_win import TlsWindow
-from speech_translate.components.MBox import Mbox
-from speech_translate.components.Tooltip import CreateToolTip
+from speech_translate.components.window.About import AboutWindow
+from speech_translate.components.window.Log import LogWindow
+from speech_translate.components.window.Setting import SettingWindow
+from speech_translate.components.window.TC_win import TcsWindow
+from speech_translate.components.window.TL_win import TlsWindow
+from speech_translate.components.custom.MBox import Mbox
+from speech_translate.components.custom.Tooltip import CreateToolTip
 
 from speech_translate.utils.Helper import tb_copy_only
 from speech_translate.utils.Style import set_ui_style, init_theme, get_theme_list, get_current_theme

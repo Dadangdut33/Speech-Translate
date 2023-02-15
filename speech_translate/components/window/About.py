@@ -11,7 +11,7 @@ from speech_translate.Logging import logger
 from speech_translate._path import app_icon
 from speech_translate.Globals import app_name, gClass, fJson
 from speech_translate.utils.Helper import OpenUrl, nativeNotify
-from .Tooltip import CreateToolTip
+from speech_translate.components.custom.Tooltip import CreateToolTip
 
 
 # Classes

@@ -16,7 +16,7 @@ import tkinter as tk
 from speech_translate.Logging import logger
 from speech_translate.Globals import gClass, fJson
 from speech_translate._path import dir_theme
-from speech_translate.components.MBox import Mbox
+from speech_translate.components.custom.MBox import Mbox
 from tkinter import ttk, TclError
 
 theme_list = ["sv-light", "sv-dark"]

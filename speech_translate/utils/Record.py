@@ -25,7 +25,7 @@ import wave
 from speech_translate._path import app_icon
 from speech_translate.Globals import app_name, dir_temp, fJson, gClass, dir_export
 from speech_translate.Logging import logger
-from speech_translate.components.MBox import Mbox
+from speech_translate.components.custom.MBox import Mbox
 
 from .Helper import modelSelectDict, nativeNotify, whisper_result_to_srt, startFile, getFileNameOnlyFromPath, srt_to_txt_format
 from .Translator import google_tl, libre_tl, memory_tl
@@ -422,7 +422,17 @@ def rec_realTime(
                     audio_target = audio_as_np_float32 / max_int16  # normalized as Numpy array
 
                 logger.info(f"Transcribing")
-                result = model.transcribe(audio_target, language=lang_source if not auto else None, task=task)
+                result = model.transcribe(
+                    audio_target,
+                    language=lang_source if not auto else None,
+                    task=task,
+                    # compression_ratio_threshold=2.4,
+                    # logprob_threshold=-1.0,
+                    # no_speech_threshold=0.6,
+                    # condition_on_previous_text=True,
+                    # initial_prompt=None,
+                    # sample_len=1,
+                ) #todo: add the actual parameter
                 text = result["text"].strip()  # type: ignore
 
                 if len(text) > 0 and text != prev_tc_text:
@@ -530,7 +540,16 @@ def whisper_realtime_tl(audio_normalised, lang_source: str, auto: bool, model: w
     global prev_tl_text, sentences_tl
     separator = ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))
 
-    result = model.transcribe(audio_normalised, language=lang_source if not auto else None, task="translate")
+    result = model.transcribe(
+        audio_normalised,
+        language=lang_source if not auto else None,
+        task="translate",
+        # compression_ratio_threshold=2.4,
+        # logprob_threshold=-1.0,
+        # no_speech_threshold=0.6,
+        # condition_on_previous_text=True,
+        # initial_prompt=None,
+    )
     text = result["text"].strip()  # type: ignore
 
     if len(text) > 0 and text != prev_tl_text:

@@ -1,10 +1,12 @@
 import os
 import platform
 import threading
+import random
 import tkinter as tk
 from tkinter import ttk, font, colorchooser
 from multiprocessing import Process
 from time import sleep
+from tkinter import filedialog
 
 from speech_translate._path import app_icon
 from speech_translate.Globals import app_name, fJson, gClass, dir_log, dir_temp, dir_export
@@ -13,8 +15,9 @@ from speech_translate.utils.DownloadModel import verify_model, download_model, g
 from speech_translate.utils.Helper import startFile
 from speech_translate.utils.Record import getDeviceAverageThreshold
 from speech_translate.utils.Style import set_ui_style
-from .MBox import Mbox
-from .Tooltip import CreateToolTip
+from speech_translate.components.custom.MBox import Mbox
+from speech_translate.components.custom.Mbox_Info import Mbox_InfoTb
+from speech_translate.components.custom.Tooltip import CreateToolTip, createMultipleTooltips, CreateToolTipOnText
 
 
 def chooseColor(theWidget, initialColor, parent):
@@ -33,7 +36,7 @@ class SettingWindow:
         self.root = tk.Toplevel(master)
 
         self.root.title(app_name)
-        self.root.geometry("1000x560")
+        self.root.geometry("1000x580")
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.root.wm_attributes("-topmost", False)  # Default False
 
@@ -84,11 +87,6 @@ class SettingWindow:
         )
         self.cbtn_update_on_start.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.btn_open_export_folder = ttk.Button(self.f_application_1, text="Open Export Folder", command=lambda: startFile(dir_export))
-        self.btn_open_export_folder.pack(side=tk.LEFT, padx=5, pady=5)
-        CreateToolTip(self.btn_open_export_folder, "Open the folder where exported text from import file are saved.")
-
-        # --------------------
         # theme
         self.lbl_theme = ttk.Label(self.f_application_2, text="Theme")
         self.lbl_theme.pack(side=tk.LEFT, padx=5, pady=5)
@@ -123,6 +121,36 @@ class SettingWindow:
             wrapLength=500,
         )
 
+        # --------------------
+        # export
+        self.lf_export = tk.LabelFrame(self.ft_general, text="• Export")
+        self.lf_export.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+
+        self.f_export_1 = ttk.Frame(self.lf_export)
+        self.f_export_1.pack(side=tk.TOP, fill=tk.X, padx=5)
+
+        self.f_export_2 = ttk.Frame(self.lf_export)
+        self.f_export_2.pack(side=tk.TOP, fill=tk.X, padx=5)
+
+        self.label_export = ttk.Label(self.f_export_1, text="Export Folder")
+        self.label_export.pack(side=tk.LEFT, padx=5, pady=5)
+
+        self.entry_export = ttk.Entry(self.f_export_1)
+        self.entry_export.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.X, expand=True)
+        self.entry_export.insert(0, dir_export)
+        self.entry_export.configure(state="readonly")
+        self.entry_export.bind("<Button-1>", lambda event: self.change_export_path())
+        self.entry_export.bind("<Button-3>", lambda event: self.default_export_path())
+        CreateToolTip(self.entry_export, "The folder where exported text from import file are saved.\n\n-LClick the button to change the folder.\n-RClick to set back to default.")
+
+        self.btn_open_export_folder = ttk.Button(self.f_export_2, text="Open Export Folder", command=lambda: startFile(dir_export))
+        self.btn_open_export_folder.pack(side=tk.LEFT, padx=5, pady=5)
+        CreateToolTip(self.btn_open_export_folder, "Open the folder where exported text from import file are saved.")
+
+        self.btn_delete_export_folder = ttk.Button(self.f_export_2, text="Clear Export Folder", command=self.clear_export)
+        self.btn_delete_export_folder.pack(side=tk.LEFT, padx=5, pady=5)
+
+        # --------------------
         # log
         self.lf_logging = tk.LabelFrame(self.ft_general, text="• Logging")
         self.lf_logging.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
@@ -132,6 +160,9 @@ class SettingWindow:
 
         self.f_logging_2 = ttk.Frame(self.lf_logging)
         self.f_logging_2.pack(side=tk.TOP, fill=tk.X, pady=5, padx=5)
+
+        self.f_logging_3 = ttk.Frame(self.lf_logging)
+        self.f_logging_3.pack(side=tk.TOP, fill=tk.X, pady=5, padx=5)
 
         self.lbl_log_location = ttk.Label(self.f_logging_1, text="Log Files Location ", width=16)
         self.lbl_log_location.pack(side=tk.LEFT, padx=5)
@@ -147,13 +178,13 @@ class SettingWindow:
         self.cbtn_verbose = ttk.Checkbutton(self.f_logging_2, text="Verbose Logging for Whisper", command=lambda: fJson.savePartialSetting("verbose", self.cbtn_verbose.instate(["selected"])), style="Switch.TCheckbutton")
         self.cbtn_verbose.pack(side=tk.LEFT, padx=5)
 
-        self.cbtn_keep_log = ttk.Checkbutton(self.f_logging_2, text="Keep Log Files", command=lambda: fJson.savePartialSetting("keep_log", self.cbtn_keep_log.instate(["selected"])), style="Switch.TCheckbutton")
+        self.cbtn_keep_log = ttk.Checkbutton(self.f_logging_3, text="Keep Log Files", command=lambda: fJson.savePartialSetting("keep_log", self.cbtn_keep_log.instate(["selected"])), style="Switch.TCheckbutton")
         self.cbtn_keep_log.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.lbl_loglevel = ttk.Label(self.f_logging_2, text="— Log Level")
+        self.lbl_loglevel = ttk.Label(self.f_logging_3, text="— Log Level")
         self.lbl_loglevel.pack(side=tk.LEFT, padx=(0, 5), pady=5)
 
-        self.cb_log_level = ttk.Combobox(self.f_logging_2, values=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], state="readonly")
+        self.cb_log_level = ttk.Combobox(self.f_logging_3, values=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], state="readonly")
         self.cb_log_level.pack(side=tk.LEFT, padx=0, pady=5)
 
         # model
@@ -526,8 +557,8 @@ class SettingWindow:
             self.btn_auto_speaker_threshold.pack(side=tk.LEFT, padx=5)
             CreateToolTip(self.btn_auto_speaker_threshold, "Try to auto calculate the speaker threshold value. \n\n*Might not be accurate.")
 
-        # Extra whisper args
-        self.lf_extra_whisper_args = ttk.LabelFrame(self.f_tc_params_5, text="Extra Whisper Args")
+        # whisper args
+        self.lf_extra_whisper_args = ttk.LabelFrame(self.f_tc_params_5, text="Whisper Args")
         self.lf_extra_whisper_args.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
 
         self.f_extra_whisper_args_1 = ttk.Frame(self.lf_extra_whisper_args)
@@ -539,6 +570,9 @@ class SettingWindow:
         self.f_extra_whisper_args_3 = ttk.Frame(self.lf_extra_whisper_args)
         self.f_extra_whisper_args_3.pack(side=tk.TOP, fill=tk.X, pady=5, padx=5)
 
+        self.f_extra_whisper_args_4 = ttk.Frame(self.lf_extra_whisper_args)
+        self.f_extra_whisper_args_4.pack(side=tk.TOP, fill=tk.X, pady=5, padx=5)
+
         self.cbtn_condition_on_previous_text = ttk.Checkbutton(
             self.f_extra_whisper_args_1,
             text="Condition on previous text",
@@ -546,64 +580,142 @@ class SettingWindow:
             style="Switch.TCheckbutton",
         )
         self.cbtn_condition_on_previous_text.pack(side=tk.LEFT, padx=5)
+        CreateToolTip(
+            self.cbtn_condition_on_previous_text,
+            """if True, the previous output of the model is provided as a prompt for the next window;
+        \rdisabling may make the text inconsistent across windows, but the model becomes less prone to
+        \rgetting stuck in a failure loop, such as repetition looping or timestamps going out of sync.
+        \rDefault value is True""",
+        )
 
-        self.lbl_compression_ratio_threshold = ttk.Label(self.f_extra_whisper_args_2, text="Compression ratio", width=18)
+        self.lbl_temperature = ttk.Label(self.f_extra_whisper_args_2, text="Temperature", width=18)
+        self.lbl_temperature.pack(side=tk.LEFT, padx=5)
+
+        self.entry_temperature = ttk.Entry(self.f_extra_whisper_args_2)
+        self.entry_temperature.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+
+        self.lbl_compression_ratio_threshold = ttk.Label(self.f_extra_whisper_args_3, text="Compression ratio", width=18)
         self.lbl_compression_ratio_threshold.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.lbl_compression_ratio_threshold, "Compression ratio threshold for the audio. \n\n*Default: 2.4")
 
         self.spn_compression_ratio_threshold = ttk.Spinbox(
-            self.f_extra_whisper_args_2,
-            from_=0,
+            self.f_extra_whisper_args_3,
+            format="%.2f",
+            from_=-100,
             to=100,
+            increment=0.1,
             validate="key",
             validatecommand=(self.root.register(self.number_only), "%P"),
-            command=lambda: fJson.savePartialSetting("compression_ratio_threshold", int(self.spn_compression_ratio_threshold.get())),
+            command=lambda: fJson.savePartialSetting("compression_ratio_threshold", float(self.spn_compression_ratio_threshold.get())),
         )
         self.spn_compression_ratio_threshold.bind(
             "<KeyRelease>",
-            lambda e: self.verifyMaxNumber(self.spn_compression_ratio_threshold, 0, 100, lambda: fJson.savePartialSetting("compression_ratio_threshold", int(self.spn_compression_ratio_threshold.get()))),
+            lambda e: self.verifyMaxNumber(self.spn_compression_ratio_threshold, 0, 100, lambda: fJson.savePartialSetting("compression_ratio_threshold", float(self.spn_compression_ratio_threshold.get()))),
         )
         self.spn_compression_ratio_threshold.pack(side=tk.LEFT, padx=5)
+        createMultipleTooltips(
+            [self.lbl_compression_ratio_threshold, self.spn_compression_ratio_threshold], "Compression ration threshold.\n\nIf the gzip compression ratio is above this value, treat as failed.\n\nDefault value is 2.4"
+        )
 
-        self.lbl_logprob_threshold = ttk.Label(self.f_extra_whisper_args_2, text="Logprob threshold", width=18)
+        self.lbl_logprob_threshold = ttk.Label(self.f_extra_whisper_args_3, text="Logprob threshold", width=18)
         self.lbl_logprob_threshold.pack(side=tk.LEFT, padx=5)
 
         self.spn_logprob_threshold = ttk.Spinbox(
-            self.f_extra_whisper_args_2,
-            from_=0,
+            self.f_extra_whisper_args_3,
+            format="%.2f",
+            from_=-100,
             to=100,
+            increment=0.1,
             validate="key",
             validatecommand=(self.root.register(self.number_only), "%P"),
-            command=lambda: fJson.savePartialSetting("logprob_threshold", int(self.spn_logprob_threshold.get())),
+            command=lambda: fJson.savePartialSetting("logprob_threshold", float(self.spn_logprob_threshold.get())),
         )
         self.spn_logprob_threshold.bind(
             "<KeyRelease>",
-            lambda e: self.verifyMaxNumber(self.spn_logprob_threshold, 0, 100, lambda: fJson.savePartialSetting("logprob_threshold", int(self.spn_logprob_threshold.get()))),
+            lambda e: self.verifyMaxNumber(self.spn_logprob_threshold, 0, 100, lambda: fJson.savePartialSetting("logprob_threshold", float(self.spn_logprob_threshold.get()))),
         )
         self.spn_logprob_threshold.pack(side=tk.LEFT, padx=5)
+        createMultipleTooltips([self.lbl_logprob_threshold, self.spn_logprob_threshold], "If the average log probability over sampled tokens is below this value, treat as failed.\n\nDefault value is -1.0")
 
-        self.lbl_no_speech_threshold = ttk.Label(self.f_extra_whisper_args_2, text="No speech threshold", width=18)
+        self.lbl_no_speech_threshold = ttk.Label(self.f_extra_whisper_args_3, text="No speech threshold", width=18)
         self.lbl_no_speech_threshold.pack(side=tk.LEFT, padx=5)
 
         self.spn_no_speech_threshold = ttk.Spinbox(
-            self.f_extra_whisper_args_2,
-            from_=0,
+            self.f_extra_whisper_args_3,
+            format="%.2f",
+            from_=-100,
             to=100,
-            validate="key",
+            increment=0.1,
             validatecommand=(self.root.register(self.number_only), "%P"),
-            command=lambda: fJson.savePartialSetting("no_speech_threshold", int(self.spn_no_speech_threshold.get())),
+            command=lambda: fJson.savePartialSetting("no_speech_threshold", float(self.spn_no_speech_threshold.get())),
         )
         self.spn_no_speech_threshold.bind(
             "<KeyRelease>",
-            lambda e: self.verifyMaxNumber(self.spn_no_speech_threshold, 0, 100, lambda: fJson.savePartialSetting("no_speech_threshold", int(self.spn_no_speech_threshold.get()))),
+            lambda e: self.verifyMaxNumber(self.spn_no_speech_threshold, 0, 100, lambda: fJson.savePartialSetting("no_speech_threshold", float(self.spn_no_speech_threshold.get()))),
         )
         self.spn_no_speech_threshold.pack(side=tk.LEFT, padx=5)
+        createMultipleTooltips(
+            [self.lbl_no_speech_threshold, self.spn_no_speech_threshold],
+            """If the no_speech probability is higher than this value AND the average log probability
+        \rover sampled tokens is below `logprob_threshold`, consider the segment as silent.\n\nDefault value is 0.6""",
+        )
 
-        self.lbl_extra_whisper_args = ttk.Label(self.f_extra_whisper_args_3, text="Extra Whisper Args", width=18)
+        self.lbl_extra_whisper_args = ttk.Label(self.f_extra_whisper_args_4, text="Extra Whisper Args", width=18)
         self.lbl_extra_whisper_args.pack(side=tk.LEFT, padx=5)
 
-        self.entry_extra_whisper_args = ttk.Entry(self.f_extra_whisper_args_3)
+        self.entry_extra_whisper_args = ttk.Entry(self.f_extra_whisper_args_4)
         self.entry_extra_whisper_args.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+        createMultipleTooltips([self.lbl_extra_whisper_args, self.entry_extra_whisper_args], "Click the ❓ label to see the available arguments.")
+
+        hint = (
+            "Extra arguments to pass to the whisper command. Default value is empty / using whisper default\n(Usage value shown as example here are only for reference)"
+            #
+            f"\n\n# Temperature to increase when falling back when the decoding fails to meet either of the thresholds below"
+            f"\nTemperature: float\n--temperature 0.0"
+            #
+            f"\n\n# Maximum number of tokens to sample"
+            f"\nsample_len: int\n--sample_len 0"
+            #
+            f"\n\n# Number of independent samples to collect, when t > 0"
+            f"\nbest_of: int\n--best_of 0"
+            #
+            f"\n\n# Number of beams in beam search, when t == 0"
+            f"\nbeam_size: int\n--beam_size 0"
+            #
+            f"\n\n# Patience in beam search (https://arxiv.org/abs/2204.05424)"
+            f"\npatience: float\n--patience 0.0"
+            #
+            f"\n\n# Options for ranking generations (either beams or best-of-N samples)"
+            f"\n# 'alpha' in Google NMT, None defaults to length norm"
+            f"\nlength_penalty: float = None\n--length_penalty 0.0"
+            #
+            f"\n\n# Text or tokens for the previous context"
+            f'\nprompt: str or [int]\n--prompt "hello world" or --prompt [1, 2, 3]'
+            #
+            f"\n\n# Text or tokens to prefix the current context"
+            f'\nprefix: str or [int]\n--prefix "hello world" or --prefix [1, 2, 3]'
+            #
+            f"\n\n# Text or tokens for the previous context"
+            f"\nsuppress_blank: bool\n--suppress_blank true"
+            #
+            f'\n\n# List of tokens ids (or comma-separated token ids) to suppress\n# "-1" will suppress a set of symbols as defined in `tokenizer.non_speech_tokens()`'
+            f'\nsuppress_tokens: str or [int]\n--suppress_tokens "-1" or --suppress_tokens [-1, 0]'
+            #
+            f"\n\n# Timestamp sampling options"
+            f"\nwithout_timestamps: bool\n--without_timestamps true"
+            #
+            f"\n\n# The initial timestamp cannot be later than this"
+            f"\nmax_initial_timestamp: float\n--max_initial_timestamp 1.0"
+            #
+            f"\n\n# Implementation details"
+            f"\n# Use fp16 for most of the calculation"
+            f"\nfp16: bool\n--fp16 true"
+        )
+        CreateToolTipOnText(self.entry_extra_whisper_args, hint)
+
+        rng = random.randint(0, 10000)
+        self.lbl_hint_whisper_args = ttk.Label(self.f_extra_whisper_args_4, text="❓", cursor="hand2")
+        self.lbl_hint_whisper_args.pack(side=tk.RIGHT, padx=5)
+        self.lbl_hint_whisper_args.bind("<Button-1>", lambda e: Mbox_InfoTb(rng, self.root, "Whisper Args", hint))
 
         # ------------------ Translate ------------------
         # translate
@@ -1113,7 +1225,6 @@ class SettingWindow:
                     if file != current_log:  # show warning only if the fail to delete is not the current log
                         logger.warning("Failed to delete log file: " + file)
                         logger.warning("Reason " + str(e))
-                    pass
 
     def deleteTemp(self):
         # delete all temp wav files
@@ -1124,7 +1235,6 @@ class SettingWindow:
                 except Exception as e:
                     logger.warning("Failed to delete temp file: " + file)
                     logger.warning("Reason " + str(e))
-                    pass
 
     def deleteLogOnStart(self):
         if not fJson.settingCache["keep_log"]:
@@ -1338,3 +1448,22 @@ class SettingWindow:
     def log_level_change(self, _event=None):
         fJson.savePartialSetting("log_level", self.cb_log_level.get())
         logger.setLevel(self.cb_log_level.get())
+
+    def change_export_path(self):
+        path = filedialog.askdirectory()
+        if path != "":
+            self.entry_export.delete(0, tk.END)
+            self.entry_export.insert(0, path)
+            fJson.savePartialSetting("dir_export", path)
+
+    def default_export_path(self):
+        self.entry_export.delete(0, tk.END)
+        self.entry_export.insert(0, dir_export)
+        fJson.savePartialSetting("dir_export", "auto")
+
+    def clear_export(self):
+        if Mbox("Clear Export Folder", "Are you sure you want to clear the export folder?", 3, self.root):
+            # get all the files in the export folder
+            files = os.listdir(fJson.settingCache["dir_export"])
+            for file in files:
+                os.remove(os.path.join(fJson.settingCache["dir_export"], file))

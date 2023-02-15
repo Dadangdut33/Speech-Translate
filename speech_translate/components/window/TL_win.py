@@ -1,5 +1,5 @@
 import tkinter as tk
-from .Detached import AbstractDetachedWindow
+from speech_translate.components.abstract.Detached import AbstractDetachedWindow
 
 
 # Classes

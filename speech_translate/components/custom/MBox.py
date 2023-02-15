@@ -1,13 +1,9 @@
-##  Styles:
-##  0 : info
-##  1 : warning
-##  2 : error
-##  3 : Yes No
-from tkinter import Tk, messagebox
-from typing import Literal
+import tkinter as tk
+from tkinter import messagebox, ttk
+from typing import Literal, Union, Optional
 
 
-def Mbox(title: str, text: str, style: Literal[0, 1, 2, 3], parent = None):
+def Mbox(title: str, text: str, style: Literal[0, 1, 2, 3], parent: Optional[Union[tk.Tk, tk.Toplevel]] = None):
     """Message Box, made simpler
     ##  Styles:
     ##  0 : info
@@ -27,7 +23,7 @@ def Mbox(title: str, text: str, style: Literal[0, 1, 2, 3], parent = None):
 
 # Testing
 if __name__ == "__main__":
-    root = Tk()
+    root = tk.Tk()
 
     # -----------------
     Mbox("Info", "Info no parent", 0)
@@ -40,6 +36,5 @@ if __name__ == "__main__":
     Mbox("Warning", "Warning with parent", 1, parent=root)
     Mbox("Error", "Error with parent", 2, parent=root)
     print(Mbox("Yes No", "Yes No with parent", 3, parent=root))
-    
-    
+
     root.destroy()

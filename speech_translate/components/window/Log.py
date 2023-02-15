@@ -4,7 +4,7 @@ import time
 import tkinter as tk
 from tkinter import ttk
 
-from .MBox import Mbox
+from speech_translate.components.custom.MBox import Mbox
 from speech_translate._path import app_icon
 from speech_translate.Globals import gClass, fJson
 from speech_translate.Logging import logger, current_log, dir_log, initLogging
@@ -43,7 +43,7 @@ class LogWindow:
         self.tbLogger.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.tbLogger.configure(yscrollcommand=self.sbY.set)
         self.sbY.configure(command=self.tbLogger.yview)
-        self.tbLogger.bind("<Alt-MouseWheel>", lambda event: self.increase_font_size() if event.delta > 0 else self.lower_font_size())  # bind scrollwheel to change font size
+        self.tbLogger.bind("<Control-MouseWheel>", lambda event: self.increase_font_size() if event.delta > 0 else self.lower_font_size())  # bind scrollwheel to change font size
 
         # Other stuff
         self.btn_clear = ttk.Button(self.f_bot, text="⚠ Clear", command=self.clearLog)
