@@ -13,6 +13,7 @@ from speech_translate.Globals import app_name, fJson, gClass, dir_log, dir_temp,
 from speech_translate.Logging import logger, current_log
 from speech_translate.utils.DownloadModel import verify_model, download_model, get_default_download_root
 from speech_translate.utils.Helper import startFile
+from speech_translate.utils.Helper_Whisper import convert_str_options_to_dict, get_temperature
 from speech_translate.utils.Record import getDeviceAverageThreshold
 from speech_translate.utils.Style import set_ui_style
 from speech_translate.components.custom.MBox import Mbox
@@ -43,6 +44,7 @@ class SettingWindow:
         self.fonts = list(font.families())
         self.fonts.append("TKDefaultFont")
         self.fonts.sort()
+        self.initial_theme = ""
 
         # ------------------ Frames ------------------
         self.frame_top = tk.Frame(self.root)
@@ -58,15 +60,19 @@ class SettingWindow:
 
         self.ft_general = ttk.Frame(self.tabControl)
         self.tabControl.add(self.ft_general, text="General")
+        self.ft_general.bind("<Button-1>", lambda event: self.root.focus_set())
 
         self.ft_transcribe = ttk.Frame(self.tabControl)
         self.tabControl.add(self.ft_transcribe, text="Transcribe")
+        self.ft_transcribe.bind("<Button-1>", lambda event: self.root.focus_set())
 
         self.ft_translate = ttk.Frame(self.tabControl)
         self.tabControl.add(self.ft_translate, text="Translate")
+        self.ft_translate.bind("<Button-1>", lambda event: self.root.focus_set())
 
         self.ft_textbox = ttk.Frame(self.tabControl)
         self.tabControl.add(self.ft_textbox, text="Textbox")
+        self.ft_textbox.bind("<Button-1>", lambda event: self.root.focus_set())
 
         # ------------------ General ------------------
         # app
@@ -86,6 +92,12 @@ class SettingWindow:
             self.f_application_1, text="Check for update on start", command=lambda: fJson.savePartialSetting("checkUpdateOnStart", self.cbtn_update_on_start.instate(["selected"])), style="Switch.TCheckbutton"
         )
         self.cbtn_update_on_start.pack(side=tk.LEFT, padx=5, pady=5)
+
+        self.sep_vert_notice_theme = ttk.Separator(self.f_application_1, orient=tk.VERTICAL)
+        self.sep_vert_notice_theme.pack(side=tk.LEFT, padx=5, pady=5)
+
+        self.lbl_notice_theme = ttk.Label(self.f_application_1, text="Might need to reload the app for the changes to take effect.")
+        self.lbl_notice_theme.pack(side=tk.LEFT, padx=5, pady=5)
 
         # theme
         self.lbl_theme = ttk.Label(self.f_application_2, text="Theme")
@@ -132,10 +144,10 @@ class SettingWindow:
         self.f_export_2 = ttk.Frame(self.lf_export)
         self.f_export_2.pack(side=tk.TOP, fill=tk.X, padx=5)
 
-        self.label_export = ttk.Label(self.f_export_1, text="Export Folder")
+        self.label_export = ttk.Label(self.f_export_1, text="Export Folder", width=16)
         self.label_export.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.entry_export = ttk.Entry(self.f_export_1)
+        self.entry_export = ttk.Entry(self.f_export_1, cursor="hand2")
         self.entry_export.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.X, expand=True)
         self.entry_export.insert(0, dir_export)
         self.entry_export.configure(state="readonly")
@@ -173,7 +185,7 @@ class SettingWindow:
         self.entry_log_location_value.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
         self.entry_log_location_value.bind("<Button-1>", lambda e: startFile(dir_log))
         self.entry_log_location_value.bind("<Button-3>", lambda e: self.promptDeleteLog())
-        CreateToolTip(self.entry_log_location_value, "Location of log file.\n- LClick to open the folder.\n- RClick to delete all log files.")
+        CreateToolTip(self.entry_log_location_value, "Location of log file.\n\n- LClick to open the folder.\n- RClick to delete all log files.")
 
         self.cbtn_verbose = ttk.Checkbutton(self.f_logging_2, text="Verbose Logging for Whisper", command=lambda: fJson.savePartialSetting("verbose", self.cbtn_verbose.instate(["selected"])), style="Switch.TCheckbutton")
         self.cbtn_verbose.pack(side=tk.LEFT, padx=5)
@@ -206,7 +218,7 @@ class SettingWindow:
         self.entry_model_location_value.configure(state="readonly")
         self.entry_model_location_value.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
         self.entry_model_location_value.bind("<Button-1>", lambda e: startFile(get_default_download_root()))
-        CreateToolTip(self.entry_model_location_value, "Location of the model file.\nLClick to open the folder")
+        CreateToolTip(self.entry_model_location_value, "Location of the model file.\n\n- LClick to open the folder")
 
         # small
         self.lf_md_dl1 = ttk.Frame(self.f_model_2)
@@ -406,7 +418,7 @@ class SettingWindow:
         self.cbtn_auto_sample_rate.pack(side=tk.LEFT, padx=5)
         CreateToolTip(
             self.cbtn_auto_sample_rate,
-            "If checked, the sample rate will be automatically set based on the device default sample rate. \n\nCheck this option if you are having issues.\n\nDefault is turned off\n*Speaker input will always be true for this option.",
+            "If checked, the sample rate will be automatically set based on the device default sample rate. \n\nCheck this option if you are having issues.\n\nDefault is false/unchecked\n*Speaker input will always be true for this option.",
             wrapLength=400,
         )
 
@@ -416,7 +428,7 @@ class SettingWindow:
         self.cbtn_auto_channels_amount.pack(side=tk.LEFT, padx=5)
         CreateToolTip(
             self.cbtn_auto_channels_amount,
-            "If checked, the channels amount will be automatically set based on the device default channels amount. \n\nCheck this option if you are having issues.\n\nDefault is turned off (defaulted to 1 if off)\n*Speaker input will always be true for this option.",
+            "If checked, the channels amount will be automatically set based on the device default channels amount. \n\nCheck this option if you are having issues.\n\nDefault is false/unchecked (channel amount is defaulted to 1 on mic input if value is false)\n*Speaker input will always be true for this option.",
             wrapLength=400,
         )
 
@@ -424,15 +436,18 @@ class SettingWindow:
             self.f_tc_params_2, text="Keep temp files", command=lambda: fJson.savePartialSetting("keep_temp_files", self.cbtn_keep_temp.instate(["selected"])), style="Switch.TCheckbutton"
         )
         self.cbtn_keep_temp.pack(side=tk.LEFT, padx=5)
-        CreateToolTip(self.cbtn_keep_temp, "If checked, will not delete temporary audio file that might be created by the program. \n\nDefault value is unchecked.")
+        CreateToolTip(self.cbtn_keep_temp, "If checked, will not delete temporary audio file that might be created by the program. \n\nDefault value is false/unchecked.")
 
         # ------------------ Buffer ------------------
         self.lf_buffer = ttk.LabelFrame(self.f_tc_params_3, text="Max Buffer (seconds)")
         self.lf_buffer.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
-        CreateToolTip(self.lf_buffer, "Max buffer is the maximum continous recording time. After it is reached buffer will be reset.")
 
         self.f_buffer_1 = ttk.Frame(self.lf_buffer)
         self.f_buffer_1.pack(side=tk.TOP, fill=tk.X, pady=5, padx=5)
+
+        self.lbl_hint_buffer = ttk.Label(self.f_buffer_1, text="❓")
+        self.lbl_hint_buffer.pack(side=tk.RIGHT, padx=5)
+        CreateToolTip(self.lbl_hint_buffer, "Max buffer is the maximum continous recording time. After it is reached buffer will be reset.")
 
         self.lbl_buffer_mic = ttk.Label(self.f_buffer_1, text="Mic", width=18)
         self.lbl_buffer_mic.pack(side=tk.LEFT, padx=5)
@@ -488,7 +503,6 @@ class SettingWindow:
         # ------------------ Threshold ------------------
         self.lf_threshold = ttk.LabelFrame(self.f_tc_params_4, text="Sound Input Threshold")
         self.lf_threshold.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
-        CreateToolTip(self.lf_threshold, "Minimum threshold is the minimum volume level that is needed for the audio to be recorded. If set correctly might help to reduce background noise.")
 
         self.f_threshold_1 = ttk.Frame(self.lf_threshold)
         self.f_threshold_1.pack(side=tk.TOP, fill=tk.X, pady=5, padx=5)
@@ -498,6 +512,10 @@ class SettingWindow:
 
         self.f_threshold_3 = ttk.Frame(self.lf_threshold)
         self.f_threshold_3.pack(side=tk.TOP, fill=tk.X, pady=5, padx=5)
+
+        self.lbl_hint_threshold = ttk.Label(self.f_threshold_1, text="❓")
+        self.lbl_hint_threshold.pack(side=tk.RIGHT, padx=5)
+        CreateToolTip(self.lbl_hint_threshold, "Minimum threshold is the minimum volume level that is needed for the audio to be recorded. If set correctly might help to reduce background noise.")
 
         self.cbtn_enable_threshold = ttk.Checkbutton(
             self.f_threshold_1, text="Enable", command=lambda: fJson.savePartialSetting("enable_threshold", self.cbtn_enable_threshold.instate(["selected"])), style="Switch.TCheckbutton"
@@ -583,74 +601,67 @@ class SettingWindow:
         CreateToolTip(
             self.cbtn_condition_on_previous_text,
             """if True, the previous output of the model is provided as a prompt for the next window;
-        \rdisabling may make the text inconsistent across windows, but the model becomes less prone to
-        \rgetting stuck in a failure loop, such as repetition looping or timestamps going out of sync.
-        \rDefault value is True""",
+        \rDisabling may make the text inconsistent across windows, but the model becomes less prone to getting stuck in a failure loop, such as repetition looping or timestamps going out of sync.
+        \rDefault value is true/checked""",
         )
 
-        self.lbl_temperature = ttk.Label(self.f_extra_whisper_args_2, text="Temperature", width=18)
-        self.lbl_temperature.pack(side=tk.LEFT, padx=5)
-
-        self.entry_temperature = ttk.Entry(self.f_extra_whisper_args_2)
-        self.entry_temperature.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
-
-        self.lbl_compression_ratio_threshold = ttk.Label(self.f_extra_whisper_args_3, text="Compression ratio", width=18)
+        self.lbl_compression_ratio_threshold = ttk.Label(self.f_extra_whisper_args_2, text="Compression threshold", width=18)
         self.lbl_compression_ratio_threshold.pack(side=tk.LEFT, padx=5)
 
         self.spn_compression_ratio_threshold = ttk.Spinbox(
-            self.f_extra_whisper_args_3,
+            self.f_extra_whisper_args_2,
             format="%.2f",
             from_=-100,
             to=100,
             increment=0.1,
             validate="key",
-            validatecommand=(self.root.register(self.number_only), "%P"),
+            validatecommand=(self.root.register(self.number_only_float), "%P"),
             command=lambda: fJson.savePartialSetting("compression_ratio_threshold", float(self.spn_compression_ratio_threshold.get())),
         )
         self.spn_compression_ratio_threshold.bind(
             "<KeyRelease>",
-            lambda e: self.verifyMaxNumber(self.spn_compression_ratio_threshold, 0, 100, lambda: fJson.savePartialSetting("compression_ratio_threshold", float(self.spn_compression_ratio_threshold.get()))),
+            lambda e: self.verifyMaxNumber_float(self.spn_compression_ratio_threshold, -100, 100, lambda: fJson.savePartialSetting("compression_ratio_threshold", float(self.spn_compression_ratio_threshold.get()))),
         )
         self.spn_compression_ratio_threshold.pack(side=tk.LEFT, padx=5)
         createMultipleTooltips(
-            [self.lbl_compression_ratio_threshold, self.spn_compression_ratio_threshold], "Compression ration threshold.\n\nIf the gzip compression ratio is above this value, treat as failed.\n\nDefault value is 2.4"
+            [self.lbl_compression_ratio_threshold, self.spn_compression_ratio_threshold], "Compression ratio threshold.\n\nIf the gzip compression ratio is above this value, treat as failed.\n\nDefault value is 2.4"
         )
 
-        self.lbl_logprob_threshold = ttk.Label(self.f_extra_whisper_args_3, text="Logprob threshold", width=18)
+        self.lbl_logprob_threshold = ttk.Label(self.f_extra_whisper_args_2, text="Logprob threshold", width=18)
         self.lbl_logprob_threshold.pack(side=tk.LEFT, padx=5)
 
         self.spn_logprob_threshold = ttk.Spinbox(
-            self.f_extra_whisper_args_3,
+            self.f_extra_whisper_args_2,
             format="%.2f",
             from_=-100,
             to=100,
             increment=0.1,
             validate="key",
-            validatecommand=(self.root.register(self.number_only), "%P"),
+            validatecommand=(self.root.register(self.number_only_float), "%P"),
             command=lambda: fJson.savePartialSetting("logprob_threshold", float(self.spn_logprob_threshold.get())),
         )
         self.spn_logprob_threshold.bind(
             "<KeyRelease>",
-            lambda e: self.verifyMaxNumber(self.spn_logprob_threshold, 0, 100, lambda: fJson.savePartialSetting("logprob_threshold", float(self.spn_logprob_threshold.get()))),
+            lambda e: self.verifyMaxNumber_float(self.spn_logprob_threshold, -100, 100, lambda: fJson.savePartialSetting("logprob_threshold", float(self.spn_logprob_threshold.get()))),
         )
         self.spn_logprob_threshold.pack(side=tk.LEFT, padx=5)
         createMultipleTooltips([self.lbl_logprob_threshold, self.spn_logprob_threshold], "If the average log probability over sampled tokens is below this value, treat as failed.\n\nDefault value is -1.0")
 
-        self.lbl_no_speech_threshold = ttk.Label(self.f_extra_whisper_args_3, text="No speech threshold", width=18)
+        self.lbl_no_speech_threshold = ttk.Label(self.f_extra_whisper_args_2, text="No speech threshold", width=18)
         self.lbl_no_speech_threshold.pack(side=tk.LEFT, padx=5)
 
         self.spn_no_speech_threshold = ttk.Spinbox(
-            self.f_extra_whisper_args_3,
+            self.f_extra_whisper_args_2,
             format="%.2f",
             from_=-100,
             to=100,
             increment=0.1,
-            validatecommand=(self.root.register(self.number_only), "%P"),
+            validatecommand=(self.root.register(self.number_only_float), "%P"),
             command=lambda: fJson.savePartialSetting("no_speech_threshold", float(self.spn_no_speech_threshold.get())),
         )
         self.spn_no_speech_threshold.bind(
             "<KeyRelease>",
-            lambda e: self.verifyMaxNumber(self.spn_no_speech_threshold, 0, 100, lambda: fJson.savePartialSetting("no_speech_threshold", float(self.spn_no_speech_threshold.get()))),
+            lambda e: self.verifyMaxNumber_float(self.spn_no_speech_threshold, -100, 100, lambda: fJson.savePartialSetting("no_speech_threshold", float(self.spn_no_speech_threshold.get()))),
         )
         self.spn_no_speech_threshold.pack(side=tk.LEFT, padx=5)
         createMultipleTooltips(
@@ -659,18 +670,42 @@ class SettingWindow:
         \rover sampled tokens is below `logprob_threshold`, consider the segment as silent.\n\nDefault value is 0.6""",
         )
 
-        self.lbl_extra_whisper_args = ttk.Label(self.f_extra_whisper_args_4, text="Extra Whisper Args", width=18)
-        self.lbl_extra_whisper_args.pack(side=tk.LEFT, padx=5)
+        self.lbl_initial_prompt = ttk.Label(self.f_extra_whisper_args_3, text="Initial prompt", width=18)
+        self.lbl_initial_prompt.pack(side=tk.LEFT, padx=5)
 
-        self.entry_extra_whisper_args = ttk.Entry(self.f_extra_whisper_args_4)
-        self.entry_extra_whisper_args.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
-        createMultipleTooltips([self.lbl_extra_whisper_args, self.entry_extra_whisper_args], "Click the ❓ label to see the available arguments.")
+        self.entry_initial_prompt = ttk.Entry(self.f_extra_whisper_args_3)
+        self.entry_initial_prompt.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        self.entry_initial_prompt.bind("<KeyRelease>", lambda e: fJson.savePartialSetting("initial_prompt", self.entry_initial_prompt.get()))
+        createMultipleTooltips([self.lbl_initial_prompt, self.entry_initial_prompt], "optional text to provide as a prompt for the first window.\n\nDefault is empty")
+
+        self.lbl_temperature = ttk.Label(self.f_extra_whisper_args_3, text="Temperature", width=18)
+        self.lbl_temperature.pack(side=tk.LEFT, padx=5)
+
+        self.entry_temperature = ttk.Entry(self.f_extra_whisper_args_3)
+        self.entry_temperature.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        self.entry_temperature.bind("<KeyRelease>", lambda e: fJson.savePartialSetting("temperature", self.entry_temperature.get()))
+        createMultipleTooltips(
+            [self.lbl_temperature, self.entry_temperature],
+            "Temperature for sampling. It can be a tuple of temperatures, which will be successively used upon failures according to either `compression_ratio_threshold` or `logprob_threshold`.\n\nDefault is 0.0, 0.2, 0.4, 0.6, 0.8, 1.0",
+        )
+
+        self.btn_verify_temperature = ttk.Button(self.f_extra_whisper_args_3, text="Verify", command=lambda: self.verifyTemp())
+        self.btn_verify_temperature.pack(side=tk.LEFT, padx=5)
+        CreateToolTip(self.btn_verify_temperature, "Verify temperature input.")
+
+        rng = random.randint(0, 10000)
+        self.lbl_extra_whisper_args = ttk.Label(self.f_extra_whisper_args_4, text="Extra Whisper Args", width=18, cursor="hand2")
+        self.lbl_extra_whisper_args.pack(side=tk.LEFT, padx=5)
+        self.lbl_extra_whisper_args.bind("<Button-1>", lambda e: Mbox_InfoTb(rng, self.root, "Whisper Args", hint))
+        CreateToolTip(self.lbl_extra_whisper_args, "Click to see the available arguments.")
+
+        self.entry_whisper_extra_args = ttk.Entry(self.f_extra_whisper_args_4)
+        self.entry_whisper_extra_args.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+        self.entry_whisper_extra_args.bind("<KeyRelease>", lambda e: fJson.savePartialSetting("whisper_extra_args", self.entry_whisper_extra_args.get()))
+        CreateToolTip(self.entry_whisper_extra_args, "Whisper extra arguments.\n\nDefault is empty")
 
         hint = (
             "Extra arguments to pass to the whisper command. Default value is empty / using whisper default\n(Usage value shown as example here are only for reference)"
-            #
-            f"\n\n# Temperature to increase when falling back when the decoding fails to meet either of the thresholds below"
-            f"\nTemperature: float\n--temperature 0.0"
             #
             f"\n\n# Maximum number of tokens to sample"
             f"\nsample_len: int\n--sample_len 0"
@@ -710,12 +745,11 @@ class SettingWindow:
             f"\n# Use fp16 for most of the calculation"
             f"\nfp16: bool\n--fp16 true"
         )
-        CreateToolTipOnText(self.entry_extra_whisper_args, hint)
+        CreateToolTipOnText(self.entry_whisper_extra_args, hint, geometry="700x250")
 
-        rng = random.randint(0, 10000)
-        self.lbl_hint_whisper_args = ttk.Label(self.f_extra_whisper_args_4, text="❓", cursor="hand2")
-        self.lbl_hint_whisper_args.pack(side=tk.RIGHT, padx=5)
-        self.lbl_hint_whisper_args.bind("<Button-1>", lambda e: Mbox_InfoTb(rng, self.root, "Whisper Args", hint))
+        self.btn_verify = ttk.Button(self.f_extra_whisper_args_4, text="Verify", command=lambda: self.verifyWhisperArgs())
+        self.btn_verify.pack(side=tk.LEFT, padx=5)
+        CreateToolTip(self.btn_verify, "Verify the extra arguments.")
 
         # ------------------ Translate ------------------
         # translate
@@ -727,12 +761,11 @@ class SettingWindow:
 
         self.lbl_libre_key = ttk.Label(self.f_libre_1, text="API Key")
         self.lbl_libre_key.pack(side=tk.LEFT, padx=5, pady=5)
-        CreateToolTip(self.lbl_libre_key, "Libre Translate API Key. Leave empty if not needed or host locally.")
 
         self.entry_libre_key = ttk.Entry(self.f_libre_1)
         self.entry_libre_key.pack(side=tk.LEFT, padx=5, pady=5)
         self.entry_libre_key.bind("<KeyRelease>", lambda e: fJson.savePartialSetting("libre_api_key", self.entry_libre_key.get()))
-        CreateToolTip(self.entry_libre_key, "Libre Translate API Key. Leave empty if not needed or host locally.")
+        createMultipleTooltips([self.lbl_libre_key, self.entry_libre_key], "Libre Translate API Key. Leave empty if not needed or host locally.")
 
         self.lbl_libre_host = ttk.Label(self.f_libre_1, text="Host")
         self.lbl_libre_host.pack(side=tk.LEFT, padx=5, pady=5)
@@ -740,6 +773,11 @@ class SettingWindow:
         self.entry_libre_host = ttk.Entry(self.f_libre_1, width=40)
         self.entry_libre_host.pack(side=tk.LEFT, padx=5, pady=5)
         self.entry_libre_host.bind("<KeyRelease>", lambda e: fJson.savePartialSetting("libre_host", self.entry_libre_host.get()))
+        createMultipleTooltips(
+            [self.lbl_libre_host, self.entry_libre_host],
+            "The host of Libre Translate. You can check out the official instance/mirrors at https://github.com/LibreTranslate/LibreTranslate or host your own instance",
+            wrapLength=300,
+        )
 
         self.lbl_libre_port = ttk.Label(self.f_libre_1, text="Port")
         self.lbl_libre_port.pack(side=tk.LEFT, padx=5, pady=5)
@@ -748,10 +786,11 @@ class SettingWindow:
         self.entry_libre_port = ttk.Entry(self.f_libre_1)
         self.entry_libre_port.pack(side=tk.LEFT, padx=5, pady=5)
         self.entry_libre_port.bind("<KeyRelease>", lambda e: fJson.savePartialSetting("libre_port", self.entry_libre_port.get()))
+        createMultipleTooltips([self.lbl_libre_port, self.entry_libre_port], "Libre Translate Port.")
 
         self.cbtn_libre_https = ttk.Checkbutton(self.f_libre_1, text="Use HTTPS", command=lambda: fJson.savePartialSetting("libre_https", self.cbtn_libre_https.instate(["selected"])), style="Switch.TCheckbutton")
         self.cbtn_libre_https.pack(side=tk.LEFT, padx=5, pady=5)
-        CreateToolTip(self.cbtn_libre_https, "Don't use this if you're hosting locally.")
+        CreateToolTip(self.cbtn_libre_https, "Set it to false if you're hosting locally.")
 
         # ------------------ Textbox ------------------
         self.f_textbox = ttk.Frame(self.ft_textbox)
@@ -768,13 +807,13 @@ class SettingWindow:
         self.spn_mw_tc_max = ttk.Spinbox(
             self.lf_mw_tc,
             from_=0,
-            to=10_000,
+            to=5000,
             validate="key",
             validatecommand=(self.root.register(self.number_only), "%P"),
             command=lambda: fJson.savePartialSetting("tb_mw_tc_max", int(self.spn_mw_tc_max.get())) or self.preview_changes_tb(),
             width=10,
         )
-        self.spn_mw_tc_max.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_mw_tc_max, 0, 10_000, lambda: fJson.savePartialSetting("tb_mw_tc_max", int(self.spn_mw_tc_max.get()))) or self.preview_changes_tb())
+        self.spn_mw_tc_max.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_mw_tc_max, 0, 5000, lambda: fJson.savePartialSetting("tb_mw_tc_max", int(self.spn_mw_tc_max.get()))) or self.preview_changes_tb())
         self.spn_mw_tc_max.pack(side=tk.LEFT, padx=5, pady=5)
         CreateToolTip(self.spn_mw_tc_max, "Maximum length of the textbox. 0 = no limit.\n\nDefault value is 0.")
 
@@ -818,13 +857,13 @@ class SettingWindow:
         self.spn_mw_tl_max = ttk.Spinbox(
             self.lf_mw_tl,
             from_=0,
-            to=10_000,
+            to=5000,
             validate="key",
             validatecommand=(self.root.register(self.number_only), "%P"),
             command=lambda: fJson.savePartialSetting("tb_mw_tl_max", int(self.spn_mw_tl_max.get()) or self.preview_changes_tb()),
             width=10,
         )
-        self.spn_mw_tl_max.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_mw_tl_max, 0, 10_000, lambda: fJson.savePartialSetting("tb_mw_tl_max", int(self.spn_mw_tl_max.get())) or self.preview_changes_tb()))
+        self.spn_mw_tl_max.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_mw_tl_max, 0, 5000, lambda: fJson.savePartialSetting("tb_mw_tl_max", int(self.spn_mw_tl_max.get())) or self.preview_changes_tb()))
         self.spn_mw_tl_max.pack(side=tk.LEFT, padx=5, pady=5)
         CreateToolTip(self.spn_mw_tl_max, "Maximum length of the textbox. 0 = no limit.\n\nDefault value is 0.")
 
@@ -868,13 +907,13 @@ class SettingWindow:
         self.spn_ex_tc_max = ttk.Spinbox(
             self.lf_ex_tc,
             from_=0,
-            to=10_000,
+            to=5000,
             validate="key",
             validatecommand=(self.root.register(self.number_only), "%P"),
             command=lambda: fJson.savePartialSetting("tb_ex_tc_max", int(self.spn_ex_tc_max.get()) or self.preview_changes_tb()),
             width=10,
         )
-        self.spn_ex_tc_max.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_ex_tc_max, 0, 10_000, lambda: fJson.savePartialSetting("tb_ex_tc_max", int(self.spn_ex_tc_max.get())) or self.preview_changes_tb()))
+        self.spn_ex_tc_max.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_ex_tc_max, 0, 5000, lambda: fJson.savePartialSetting("tb_ex_tc_max", int(self.spn_ex_tc_max.get())) or self.preview_changes_tb()))
         self.spn_ex_tc_max.pack(side=tk.LEFT, padx=5, pady=5)
         CreateToolTip(self.spn_ex_tc_max, "Maximum length of the textbox. 0 = no limit.\n\nDefault value is 0.")
 
@@ -942,13 +981,13 @@ class SettingWindow:
         self.spn_ex_tl_max = ttk.Spinbox(
             self.lf_ex_tl,
             from_=0,
-            to=10_000,
+            to=5000,
             validate="key",
             validatecommand=(self.root.register(self.number_only), "%P"),
             command=lambda: fJson.savePartialSetting("tb_ex_tl_max", int(self.spn_ex_tl_max.get())) or self.preview_changes_tb(),
             width=10,
         )
-        self.spn_ex_tl_max.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_ex_tl_max, 0, 10_000, lambda: fJson.savePartialSetting("tb_ex_tl_max", int(self.spn_ex_tl_max.get())) or self.preview_changes_tb()))
+        self.spn_ex_tl_max.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_ex_tl_max, 0, 5000, lambda: fJson.savePartialSetting("tb_ex_tl_max", int(self.spn_ex_tl_max.get())) or self.preview_changes_tb()))
         self.spn_ex_tl_max.pack(side=tk.LEFT, padx=5, pady=5)
         CreateToolTip(self.spn_ex_tl_max, "Maximum length of the textbox. 0 = no limit.\n\nDefault value is 0.")
 
@@ -1063,10 +1102,10 @@ class SettingWindow:
 
         # ------------------ Functions ------------------
         self.on_close()  # hide window on start
+        self.init_threaded()
         self.checkModelOnStart()
-        self.deleteLogOnStart()
-        self.deleteTempOnStart()
         self.init_setting_once()
+        self.bind_focus_on_frame_recursively(self.root)
 
         # ------------------ Set Icon ------------------
         try:
@@ -1075,11 +1114,29 @@ class SettingWindow:
             pass
 
     # ------------------ Functions ------------------
+    def init_threaded(self):
+        """
+        Init some startup function in a thread to avoid blocking
+        """
+        threading.Thread(target=self.deleteLogOnStart, daemon=True).start()
+        threading.Thread(target=self.deleteTempOnStart, daemon=True).start()
+
     def on_close(self):
         self.root.withdraw()
 
     def on_open(self):
         self.root.deiconify()
+
+    def bind_focus_on_frame_recursively(self, root_widget):
+        widgets = root_widget.winfo_children()
+
+        # now check if there are any children of the children
+        for widget in widgets:
+            if len(widget.winfo_children()) > 0:
+                self.bind_focus_on_frame_recursively(widget)
+
+            if isinstance(widget, tk.Frame) or isinstance(widget, ttk.Frame) or isinstance(widget, tk.LabelFrame):
+                widget.bind("<Button-1>", lambda event: self.root.focus_set())  # type: ignore
 
     def cbtnInvoker(self, settingVal: bool, widget: ttk.Checkbutton):
         if settingVal:
@@ -1112,6 +1169,18 @@ class SettingWindow:
         self.cbtnInvoker(fJson.settingCache["enable_threshold"], self.cbtn_enable_threshold)
         self.cbtnInvoker(fJson.settingCache["debug_energy"], self.cbtn_debug_energy)
         self.spn_threshold_mic.set(fJson.settingCache["mic_energy_threshold"])
+
+        # whisper settings
+        self.cbtnInvoker(fJson.settingCache["condition_on_previous_text"], self.cbtn_condition_on_previous_text)
+        self.spn_compression_ratio_threshold.set(fJson.settingCache["compression_ratio_threshold"])
+        self.spn_logprob_threshold.set(fJson.settingCache["logprob_threshold"])
+        self.spn_no_speech_threshold.set(fJson.settingCache["no_speech_threshold"])
+        self.entry_initial_prompt.delete(0, tk.END)
+        self.entry_initial_prompt.insert(0, fJson.settingCache["initial_prompt"])
+        self.entry_temperature.delete(0, tk.END)
+        self.entry_temperature.insert(0, fJson.settingCache["temperature"])
+        self.entry_whisper_extra_args.delete(0, tk.END)
+        self.entry_whisper_extra_args.insert(0, fJson.settingCache["whisper_extra_args"])
 
         # tl
         self.entry_libre_key.delete(0, tk.END)
@@ -1199,17 +1268,29 @@ class SettingWindow:
     def number_only(self, P):
         return P.isdigit()
 
+    def number_only_float(self, P):
+        try:
+            float(P)
+        except ValueError:
+            return False
+        return True
+
     def verifyMaxNumber(self, el, min: int, max: int, cb_func=None):
         # verify value only after user has finished typing
         self.root.after(1000, lambda: self.checkNumber(el, min, max, cb_func))
 
-    def checkNumber(self, el, min: int, max: int, cb_func=None):
+    def verifyMaxNumber_float(self, el, min: int, max: int, cb_func=None):
+        # verify value only after user has finished typing
+        self.root.after(1000, lambda: self.checkNumber(el, min, max, cb_func, True))
+
+    def checkNumber(self, el, min: int, max: int, cb_func=None, converts_to_float=False):
         value = el.get()
 
-        if int(value) > max:
+        converts_to = float if converts_to_float else int
+        if converts_to(value) > max:
             el.set(max)
 
-        if int(value) < min:
+        if converts_to(value) < min:
             el.set(min)
 
         if cb_func is not None:
@@ -1403,6 +1484,8 @@ class SettingWindow:
         self.initial_theme = fJson.settingCache["theme"]
         self.entry_theme.pack_forget()
         self.btn_theme_add.pack_forget()
+        self.sep_vert_notice_theme.pack_forget()
+        self.lbl_notice_theme.pack_forget()
 
     def cb_theme_change(self, _event=None):
         if self.cb_theme.get() == "custom":
@@ -1413,6 +1496,13 @@ class SettingWindow:
             self.entry_theme.pack_forget()
             self.entry_theme.delete(0, tk.END)
             self.btn_theme_add.pack_forget()
+
+            if self.initial_theme != self.cb_theme.get():
+                self.sep_vert_notice_theme.pack(side=tk.LEFT, padx=5, pady=5)
+                self.lbl_notice_theme.pack(side=tk.LEFT, padx=5, pady=5)
+            else:
+                self.sep_vert_notice_theme.pack_forget()
+                self.lbl_notice_theme.pack_forget()
 
             # save
             fJson.savePartialSetting("theme", self.cb_theme.get())
@@ -1445,6 +1535,11 @@ class SettingWindow:
             self.entry_theme.pack_forget()
             self.btn_theme_add.pack_forget()
 
+        # if success, show notice
+        # if fail also show. This is because if it fail it will fallback to the default theme
+        self.sep_vert_notice_theme.pack(side=tk.LEFT, padx=5, pady=5)
+        self.lbl_notice_theme.pack(side=tk.LEFT, padx=5, pady=5)
+
     def log_level_change(self, _event=None):
         fJson.savePartialSetting("log_level", self.cb_log_level.get())
         logger.setLevel(self.cb_log_level.get())
@@ -1467,3 +1562,21 @@ class SettingWindow:
             files = os.listdir(fJson.settingCache["dir_export"])
             for file in files:
                 os.remove(os.path.join(fJson.settingCache["dir_export"], file))
+
+    def verifyWhisperArgs(self):
+        # get the values
+        success, data = convert_str_options_to_dict(self.entry_whisper_extra_args.get())
+
+        if not success:
+            Mbox("Error", f"Invalid Extra Whisper arguments detected.\nDetails: {data}", 0, self.root)
+        else:
+            Mbox("Success", f"Extra Whisper arguments are valid\nParsed: {data}", 0, self.root)
+
+    def verifyTemp(self):
+        # get values
+        success, data = get_temperature(self.entry_temperature.get())
+
+        if not success:
+            Mbox("Error", f"Invalid temperature arguments detected.\nDetails: {data}", 0, self.root)
+        else:
+            Mbox("Success", f"Temperature arguments are valid\nParsed: {data}", 0, self.root)

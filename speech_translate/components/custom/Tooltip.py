@@ -85,12 +85,13 @@ def createMultipleTooltips(widgets: List[tk.Widget], text: str, delay: int = 250
 
 
 class CreateToolTipOnText:
-    def __init__(self, widget: Union[tk.Text, tk.Entry, ttk.Entry], text: str, delay=250, opacity=0.9, always_on_top=True):
+    def __init__(self, widget: Union[tk.Text, tk.Entry, ttk.Entry], text: str, delay=250, opacity=0.9, always_on_top=True, geometry=None):
         self.waitTime = delay  # miliseconds
         self.widget = widget
         self.text = text
         self.opacity = opacity
         self.always_on_top = always_on_top
+        self.geometry = geometry
         self.widget.bind("<FocusIn>", self.enter)
         self.widget.bind("<FocusOut>", self.leave)
 
@@ -127,7 +128,11 @@ class CreateToolTipOnText:
         self.root.wm_attributes("-topmost", True)  # Make it stay on top
         self.root.wm_attributes("-alpha", self.opacity)  # Make it a little transparent
         self.root.wm_overrideredirect(True)  # Leaves only the label and removes the app window
-        self.root.wm_geometry("+%d+%d" % (x, y))  # position
+
+        if self.geometry:
+            self.root.wm_geometry(f"{self.geometry}+{x}+{y}")  # position
+        else:
+            self.root.wm_geometry(f"+{x}+{y}")  # position
 
         self.f_1 = ttk.Frame(self.root)
         self.f_1.pack(fill=tk.BOTH, expand=True, side=tk.TOP, padx=5, pady=5)

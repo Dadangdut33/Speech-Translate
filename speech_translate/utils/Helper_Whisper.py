@@ -1,4 +1,5 @@
 import re
+from speech_translate.Logging import logger
 
 
 def str_to_union_str_list_int(string):
@@ -33,7 +34,6 @@ def str_to_bool(string: str):
 
 
 decodingDict = {
-    "temperature": float,
     "sample_len": int,
     "best_of": int,
     "beam_size": int,
@@ -58,33 +58,47 @@ def convert_str_options_to_dict(options):
     :return: dict options
     """
     # Options are indicated by --option_name option_value
-    # Example: --temperature 0.7 --sample_len 1024
+    # Example: --sample_len 1024
     # capture each option and its value
-    options = options.split("--")
-    options = [option.strip() for option in options if option.strip() != ""]
-
-    # convert to dict
     result = {}
-    for i, option in enumerate(options):
-        option = option.split(" ")
-        param = option[0]
-        value = " ".join(option[1:])  # value rest of the string
+    success = False
+    try:
+        options = options.split("--")
+        options = [option.strip() for option in options if option.strip() != ""]
 
-        if param in validDecodingOptions:
-            # add to dict but delete all " ' in value
-            val = re.sub(r"['\"]", "", value)
-            val = decodingDict[param](val) # convert values
+        # convert to dict
+        for option in options:
+            option = option.split(" ")
+            param = option[0]
+            value = " ".join(option[1:])  # value rest of the string
 
-            result[param] = val
+            if param in validDecodingOptions:
+                # add to dict but delete all " ' in value
+                val = re.sub(r"['\"]", "", value)
+                val = decodingDict[param](val)  # convert values
 
-    return result
+                result[param] = val
+
+        success = True
+    except Exception as e:
+        logger.exception(e)
+        result = str(e)
+    finally:
+        return success, result
 
 
-# DEBUG
-if __name__ == "__main__":
-    # Example of a valid option string: (This is only an example, value is just gibberish)
-    # options = '--temperature 0.7 --sample_len 1024 --best_of 3 --beam_size 5 --patience 5 --length_penalty 1.0 --prompt "Hello, my name is" --prefix "Hello, my name is" --suppress_blank 1 --suppress_tokens "Hello, my name is" --without_timestamps 1 --max_initial_timestamp 0.0 --fp16 1'
-    options = '--prompt "hello world" --prefix 0 --suppress_tokens "[hello world"'
-    # options = "1 adas d asd asdasd as --temperature 0.7 --test tust"
-    options = convert_str_options_to_dict(options)
-    print(options)
+def get_temperature(args):
+    """
+    Input must be a string of either a single float number (ex: 0.0) or tuple of floats number separated with commas (ex: 0.2, 0.3, 0.4 ...).
+    """
+    try:
+        if "," in args:
+            temperatures = [float(x) for x in args.split(",")]
+            temperatures = tuple(temperatures)
+        else:
+            temperatures = float(args)
+
+        return True, temperatures
+    except Exception as e:
+        logger.exception(e)
+        return False, str(e)

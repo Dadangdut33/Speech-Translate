@@ -57,8 +57,8 @@ default_setting = {
     "auto_channels_amount": False,
     "keep_temp": False,
     # Whisper settings
-    "whisper_extra_args": "",
-    "temperature": (0.0, 0.2, 0.4, 0.6, 0.8, 1.0),  # Default value from whisper
+    "whisper_extra_args": "",  # Default value from whisper
+    "temperature": "0.0, 0.2, 0.4, 0.6, 0.8, 1.0",  # Default value from whisper
     "compression_ratio_threshold": 2.4,  # Default value from whisper
     "logprob_threshold": -1.0,  # Default value from whisper
     "no_speech_threshold": 0.6,  # Default value from whisper

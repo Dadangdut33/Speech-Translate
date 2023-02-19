@@ -28,6 +28,7 @@ from speech_translate.Logging import logger
 from speech_translate.components.custom.MBox import Mbox
 
 from .Helper import modelSelectDict, nativeNotify, whisper_result_to_srt, startFile, getFileNameOnlyFromPath, srt_to_txt_format
+from .Helper_Whisper import get_temperature, convert_str_options_to_dict
 from .Translator import google_tl, libre_tl, memory_tl
 from .DownloadModel import check_model, download_model, verify_model
 
@@ -273,6 +274,34 @@ def rec_realTime(
     max_int16 = 2**15
     separator = ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))
 
+    compression_ratio_threshold = fJson.settingCache["compression_ratio_threshold"]
+    logprob_threshold = fJson.settingCache["logprob_threshold"]
+    no_speech_threshold = fJson.settingCache["no_speech_threshold"]
+    condition_on_previous_text = fJson.settingCache["condition_on_previous_text"]
+    initial_prompt = fJson.settingCache["initial_prompt"]
+    temperature = fJson.settingCache["temperature"]
+    whisper_extra_args = fJson.settingCache["whisper_extra_args"]
+
+    success, data = get_temperature(temperature)
+    if not success:
+        raise Exception(data)
+    else:
+        temperature = data
+
+    # assert temperature is not string
+    if isinstance(temperature, str):
+        raise Exception("temperature must be a floating point number")
+
+    success, data = convert_str_options_to_dict(fJson.settingCache["whisper_extra_args"])
+    if not success:
+        raise Exception(data)
+    else:
+        whisper_extra_args = data
+
+    # assert whisper_extra_args is an object
+    if not isinstance(whisper_extra_args, dict):
+        raise Exception("whisper_extra_args must be an object")
+
     # recording session init
     global prev_tl_text, sentences_tl
     tempList = []
@@ -297,7 +326,7 @@ def rec_realTime(
         return
 
     # load model
-    model = whisper.load_model(modelName)
+    model: whisper.Whisper = whisper.load_model(modelName)
 
     # stop loadbar
     gClass.mw.stop_loadBar("mic" if not speaker else "pc")
@@ -426,13 +455,14 @@ def rec_realTime(
                     audio_target,
                     language=lang_source if not auto else None,
                     task=task,
-                    # compression_ratio_threshold=2.4,
-                    # logprob_threshold=-1.0,
-                    # no_speech_threshold=0.6,
-                    # condition_on_previous_text=True,
-                    # initial_prompt=None,
-                    # sample_len=1,
-                ) #todo: add the actual parameter
+                    temperature=temperature,
+                    compression_ratio_threshold=compression_ratio_threshold,
+                    logprob_threshold=logprob_threshold,
+                    no_speech_threshold=no_speech_threshold,
+                    condition_on_previous_text=condition_on_previous_text,
+                    initial_prompt=initial_prompt,
+                    **whisper_extra_args,
+                )
                 text = result["text"].strip()  # type: ignore
 
                 if len(text) > 0 and text != prev_tc_text:
@@ -462,7 +492,23 @@ def rec_realTime(
 
                     if translate:
                         if whisperEngine:
-                            tlThread = threading.Thread(target=whisper_realtime_tl, args=[audio_target, lang_source, auto, model], daemon=True)
+                            tlThread = threading.Thread(
+                                target=whisper_realtime_tl,
+                                args=[
+                                    audio_target,
+                                    lang_source,
+                                    auto,
+                                    model,
+                                    temperature,
+                                    compression_ratio_threshold,
+                                    logprob_threshold,
+                                    no_speech_threshold,
+                                    condition_on_previous_text,
+                                    initial_prompt,
+                                    whisper_extra_args,
+                                ],
+                                daemon=True,
+                            )
                             tlThread.start()
                         else:
                             tlThread = threading.Thread(target=realtime_tl, args=[text, lang_source, lang_target, engine], daemon=True)
@@ -533,7 +579,19 @@ def realtime_recording_thread(chunk_size: int, rec_type: Literal["mic", "speaker
             gClass.data_queue.put(data)
 
 
-def whisper_realtime_tl(audio_normalised, lang_source: str, auto: bool, model: whisper.Whisper):
+def whisper_realtime_tl(
+    audio_normalised,
+    lang_source: str,
+    auto: bool,
+    model: whisper.Whisper,
+    temperature,
+    compression_ratio_threshold,
+    logprob_threshold,
+    no_speech_threshold,
+    condition_on_previous_text,
+    initial_prompt,
+    whisper_extra_args,
+):
     """Translate the result"""
     assert gClass.mw is not None
     gClass.enableTranslating()
@@ -544,11 +602,13 @@ def whisper_realtime_tl(audio_normalised, lang_source: str, auto: bool, model: w
         audio_normalised,
         language=lang_source if not auto else None,
         task="translate",
-        # compression_ratio_threshold=2.4,
-        # logprob_threshold=-1.0,
-        # no_speech_threshold=0.6,
-        # condition_on_previous_text=True,
-        # initial_prompt=None,
+        temperature=temperature,
+        compression_ratio_threshold=compression_ratio_threshold,
+        logprob_threshold=logprob_threshold,
+        no_speech_threshold=no_speech_threshold,
+        condition_on_previous_text=condition_on_previous_text,
+        initial_prompt=initial_prompt,
+        **whisper_extra_args,
     )
     text = result["text"].strip()  # type: ignore
 
@@ -627,7 +687,22 @@ def realtime_tl(text: str, lang_source: str, lang_target: str, engine: Literal["
 
 # --------------------------------------------------------------------------------------------------------------------------------------
 # run in multiprocess to allow cancelling
-def multiproc_tl(toTranslate: str, lang_source: str, lang_target: str, modelName: str, engine: Literal["Whisper", "Google", "LibreTranslate", "MyMemoryTranslator"], auto: bool, saveName: str = ""):
+def multiproc_tl(
+    toTranslate: str,
+    lang_source: str,
+    lang_target: str,
+    modelName: str,
+    engine: Literal["Whisper", "Google", "LibreTranslate", "MyMemoryTranslator"],
+    auto: bool,
+    saveName: str,
+    temperature,
+    compression_ratio_threshold,
+    logprob_threshold,
+    no_speech_threshold,
+    condition_on_previous_text,
+    initial_prompt,
+    whisper_extra_args,
+):
     """Translate the result
 
     Args:
@@ -661,7 +736,18 @@ def multiproc_tl(toTranslate: str, lang_source: str, lang_target: str, modelName
                 model = whisper.load_model(modelName)
 
                 def run_threaded():
-                    result = model.transcribe(toTranslate, task="translate", language=lang_source if not auto else None)
+                    result = model.transcribe(
+                        toTranslate,
+                        task="translate",
+                        language=lang_source if not auto else None,
+                        temperature=temperature,
+                        compression_ratio_threshold=compression_ratio_threshold,
+                        logprob_threshold=logprob_threshold,
+                        no_speech_threshold=no_speech_threshold,
+                        condition_on_previous_text=condition_on_previous_text,
+                        initial_prompt=initial_prompt,
+                        **whisper_extra_args,
+                    )
                     gClass.data_queue.put(result)
 
                 thread = threading.Thread(target=run_threaded, daemon=True)
@@ -736,6 +822,7 @@ def multiproc_tl(toTranslate: str, lang_source: str, lang_target: str, modelName
         resultTxt = srt_to_txt_format(resultSrt)  # type: ignore
 
         if len(resultSrt) > 0:
+            gClass.file_tled_counter += 1
             with open(os.path.join(dir_export, f"{saveName}_translated.txt"), "w", encoding="utf-8") as f:
                 f.write(resultTxt)
 
@@ -743,7 +830,6 @@ def multiproc_tl(toTranslate: str, lang_source: str, lang_target: str, modelName
                 f.write(resultSrt)  # type: ignore
 
             gClass.insertMwTbTl(f"Translated {saveName} and saved to .txt and .srt" + separator)
-            gClass.file_tled_counter += 1
         else:
             gClass.insertMwTbTl(f"Translated file {saveName} is empty (no text get from transcription) so it's not saved" + separator)
             logger.warning("Translated Text is empty")
@@ -758,6 +844,13 @@ def multiproc_tc(
     transcribe: bool,
     translate: bool,
     engine: Literal["Whisper", "Google", "LibreTranslate", "MyMemoryTranslator"],
+    temperature,
+    compression_ratio_threshold,
+    logprob_threshold,
+    no_speech_threshold,
+    condition_on_previous_text,
+    initial_prompt,
+    whisper_extra_args,
 ) -> None:
     """Transcribe Audio using whisper
 
@@ -792,7 +885,18 @@ def multiproc_tc(
         model: whisper.Whisper = whisper.load_model(modelName)
 
         def run_threaded():
-            result = model.transcribe(audio_name, task="transcribe", language=lang_source if not auto else None)
+            result = model.transcribe(
+                audio_name,
+                task="transcribe",
+                language=lang_source if not auto else None,
+                temperature=temperature,
+                compression_ratio_threshold=compression_ratio_threshold,
+                logprob_threshold=logprob_threshold,
+                no_speech_threshold=no_speech_threshold,
+                condition_on_previous_text=condition_on_previous_text,
+                initial_prompt=initial_prompt,
+                **whisper_extra_args,
+            )
             gClass.data_queue.put(result)
 
         thread = threading.Thread(target=run_threaded, daemon=True)
@@ -828,6 +932,7 @@ def multiproc_tc(
         resultTxt = result_Tc["text"].strip()  # type: ignore
 
         if len(resultTxt) > 0:
+            gClass.file_tced_counter += 1
             resultSrt = whisper_result_to_srt(result_Tc)
 
             with open(os.path.join(dir_export, f"{saveName}_transcribed.txt"), "w", encoding="utf-8") as f:
@@ -837,7 +942,6 @@ def multiproc_tc(
                 f.write(resultSrt)
 
             gClass.insertMwTbTc(f"Transcribed File {audioNameOnly} saved to {saveName} .txt and .srt" + separator)
-            gClass.file_tced_counter += 1
         else:
             gClass.insertMwTbTc(f"Transcribed File {audioNameOnly} is empty (no text get from transcription) so it's not saved" + separator)
             logger.warning("Transcribed Text is empty")
@@ -876,6 +980,34 @@ def from_file(files: List[str], modelInput: str, langSource: str, langTarget: st
     if modelName != "large" and src_english:
         modelName = modelName + ".en"
 
+    compression_ratio_threshold = fJson.settingCache["compression_ratio_threshold"]
+    logprob_threshold = fJson.settingCache["logprob_threshold"]
+    no_speech_threshold = fJson.settingCache["no_speech_threshold"]
+    condition_on_previous_text = fJson.settingCache["condition_on_previous_text"]
+    initial_prompt = fJson.settingCache["initial_prompt"]
+    temperature = fJson.settingCache["temperature"]
+    whisper_extra_args = fJson.settingCache["whisper_extra_args"]
+
+    success, data = get_temperature(temperature)
+    if not success:
+        raise Exception(data)
+    else:
+        temperature = data
+
+    # assert temperature is not string
+    if isinstance(temperature, str):
+        raise Exception("temperature must be a floating point number")
+
+    success, data = convert_str_options_to_dict(fJson.settingCache["whisper_extra_args"])
+    if not success:
+        raise Exception(data)
+    else:
+        whisper_extra_args = data
+
+    # assert whisper_extra_args is an object
+    if not isinstance(whisper_extra_args, dict):
+        raise Exception("whisper_extra_args must be an object")
+
     # update button text
     assert gClass.mw is not None
     gClass.mw.btn_import_file.config(text="Cancel")  # type: ignore
@@ -891,12 +1023,51 @@ def from_file(files: List[str], modelInput: str, langSource: str, langTarget: st
         if translate and not transcribe and whisperEngine:  # if only translating and using the whisper engine
             audioNameOnly = getFileNameOnlyFromPath(file)
             saveName = datetime.now().strftime("%Y-%m-%d %H_%M_%S_%f") + " " + audioNameOnly
-            tcThread = threading.Thread(target=multiproc_tl, args=[file, langSource, langTarget, modelName, engine, auto, saveName], daemon=True)
+            tcThread = threading.Thread(
+                target=multiproc_tl,
+                args=[
+                    file,
+                    langSource,
+                    langTarget,
+                    modelName,
+                    engine,
+                    auto,
+                    saveName,
+                    temperature,
+                    compression_ratio_threshold,
+                    logprob_threshold,
+                    no_speech_threshold,
+                    condition_on_previous_text,
+                    initial_prompt,
+                    whisper_extra_args,
+                ],
+                daemon=True,
+            )
             tcThread.start()
         else:
             # will automatically check translate on or not depend on input
             # translate is called from here because other engine need to get transcribed text first if translating
-            tcThread = threading.Thread(target=multiproc_tc, args=[file, langSource, langTarget, modelName, auto, transcribe, translate, engine], daemon=True)
+            tcThread = threading.Thread(
+                target=multiproc_tc,
+                args=[
+                    file,
+                    langSource,
+                    langTarget,
+                    modelName,
+                    auto,
+                    transcribe,
+                    translate,
+                    engine,
+                    temperature,
+                    compression_ratio_threshold,
+                    logprob_threshold,
+                    no_speech_threshold,
+                    condition_on_previous_text,
+                    initial_prompt,
+                    whisper_extra_args,
+                ],
+                daemon=True,
+            )
             tcThread.start()
 
         # wait for process to finish
