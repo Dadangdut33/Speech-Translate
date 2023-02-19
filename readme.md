@@ -57,14 +57,34 @@ A speech transcription and translation application using whisper AI model.
 
 # User Requirements
 
+- [FFmpeg](https://ffmpeg.org/) is required to be installed and added to the PATH environment variable. You can download it [here](https://ffmpeg.org/download.html) and add it to your path manually OR you can do it automatically using the following commands:
+
+```
+# on Windows using Chocolatey (https://chocolatey.org/)
+choco install ffmpeg
+
+# on Windows using Scoop (https://scoop.sh/)
+scoop install ffmpeg
+
+# on Ubuntu or Debian
+sudo apt update && sudo apt install ffmpeg
+
+# on Arch Linux
+sudo pacman -S ffmpeg
+
+# on MacOS using Homebrew (https://brew.sh/)
+brew install ffmpeg
+```
 - Whisper uses vram/gpu to process the audio, so it is recommended to have a CUDA compatible GPU. If there is no compatible GPU, the application will use the CPU to process the audio (This might make it slower). For each model requirement you can check directly at the [whisper repository](https://github.com/openai/whisper) or you can hover over the model selection in the app (there will be a tooltip about the model info).
 - Speaker input only work on windows 8 and above.
 
+
 # Download & Installation
 
-1. Download the latest release [here](https://github.com/Dadangdut33/Speech-Translate/releases/latest)
-2. Install
-3. Run the program
+1. Make sure that you have installed [FFmpeg](https://ffmpeg.org/) and added it to the PATH environment variable. [See here](#user-requirements) for more info.
+2. Download the latest release [here](https://github.com/Dadangdut33/Speech-Translate/releases/latest)
+3. Install or extract the downloaded file
+4. Run the program
 
 # General Usage
 
@@ -86,7 +106,7 @@ You can change the settings by clicking the settings button on the menubar of th
 > **Warning** \
 > As of right now (4th of November 2022) I guess pytorch is not compatible with python 3.11 so you can't use python 3.11. I tried with 3.11 but it doesn't work so i rollback to python 3.10.9.
 
-> **Info** \
+> **Note** \
 > Ignore all this if you are using the release/compiled version.
 
 ## Setup
@@ -101,26 +121,8 @@ You can change the settings by clicking the settings button on the menubar of th
 1. Create your virtual environment by running `python -m venv venv`
 2. Activate your virtual environment by running `source venv/bin/activate`
 3. Install all the dependencies needed by running the [`devSetup.py`](./devSetup.py) located in **root directory** or install the packages yourself by installing from the requirements.txt yourself by running `pip install -r requirements.txt`
-4. Get to root directory and Run the script by typing `python Main.py`
-
-Whisper needs [ffmpeg](https://ffmpeg.org/) to work, you can install it and add it to your path manually or you can do it easily by running the following command:
-
-```
-# on Ubuntu or Debian
-sudo apt update && sudo apt install ffmpeg
-
-# on Arch Linux
-sudo pacman -S ffmpeg
-
-# on MacOS using Homebrew (https://brew.sh/)
-brew install ffmpeg
-
-# on Windows using Chocolatey (https://chocolatey.org/)
-choco install ffmpeg
-
-# on Windows using Scoop (https://scoop.sh/)
-scoop install ffmpeg
-```
+4. Make sure to have ffmpeg installed and added to your PATH
+5. Get to root directory and Run the script by typing `python Main.py`
 
 ## Using GPU
 
