@@ -19,3 +19,7 @@ log/
 dist/
 output/
 export/
+
+# created when building
+LICENSE.txt 
+*.spec

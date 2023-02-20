@@ -1,11 +1,11 @@
 deep_translator==1.10.0
 notify-py==0.3.42
-Pillow == 9.4.0
+pillow == 9.4.0
 PyAudioWPatch==0.2.12.5
 pystray==0.19.4
 requests==2.28.1
 scipy==1.9.3
-sounddevice==0.4.5
+sounddevice==0.4.6
 soundfile==0.11.0
 darkdetect==0.8.0
 pyinstaller==5.8.0
