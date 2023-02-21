@@ -18,13 +18,24 @@ def uninstall_torch():
     os.system(f"{pip} uninstall -y torch")
 
 
-def install_torch():
+def install_torch_gpu():
     if platform.system() == "Darwin":  # if mac
+        print("*MAC System only have CPU version of torch.")
         os.system(f"{pip} install torch torchvision torchaudio")
     elif platform.system() == "Linux":
         os.system(f"{pip} install torch torchvision torchaudio")
     elif platform.system() == "Windows":
         os.system(f"{pip} install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu117")
+    else:
+        print("Unknown OS, please install torch manually by visting https://pytorch.org/")
+
+def install_torch_cpu():
+    if platform.system() == "Darwin":  # if mac
+        os.system(f"{pip} install torch torchvision torchaudio")
+    elif platform.system() == "Linux":
+        os.system(f"{pip} install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cpu")
+    elif platform.system() == "Windows":
+        os.system(f"{pip} install torch torchvision torchaudio")
     else:
         print("Unknown OS, please install torch manually by visting https://pytorch.org/")
 
@@ -41,16 +52,21 @@ if __name__ == "__main__":
     print(f"Installing from {req}.txt")
     install_requirements()
 
-    if use_gpu.lower() == "y":
-        # uninstall torch
-        print("-" * 100)
-        print("Uninstalling torch")
-        uninstall_torch()
+    # uninstall torch
+    print("-" * 100)
+    print("Uninstalling torch")
+    uninstall_torch()
 
+    if use_gpu.lower() == "y":
         # install torch
         print("-" * 100)
-        print("Installing torch")
-        install_torch()
+        print("Installing torch GPU version")
+        install_torch_gpu()
+    else:
+        # install torch
+        print("-" * 100)
+        print("Reinstalling torch CPU version")
+        install_torch_cpu()
 
     print("-" * 100)
     print("Done!")

@@ -8,6 +8,7 @@ from speech_translate._version import __version__
 
 
 def run_makespec(filenames, **opts):
+    print(">> Generating spec file...")
     # Split pathex by using the path separator
     temppaths = opts["pathex"][:]
     pathex = opts["pathex"] = []
@@ -63,8 +64,9 @@ print(f"Currently running in virtual environment {get_env_name()} using python {
 specName = f"SpeechTranslate {__version__}"
 argsName = f"-n{specName}"  # name of the spec file
 
+options.append(argsName)
 # -----------------
-# make spec folder
+# make spec file
 parser = generate_parser()
 args = parser.parse_args(options)
 run_makespec(**vars(args))

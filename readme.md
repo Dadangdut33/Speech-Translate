@@ -133,21 +133,15 @@ To use GPU you first need to uninstall `torch` then you can go to [pytorch offic
 
 ## Building
 
-You can use [pyinstaller](https://pyinstaller.org/) or [auto-py-to-exe](https://github.com/brentvollebregt/auto-py-to-exe) for a graphical interface.
+Before compiling the project, make sure you have installed all the dependencies and setup your pytorch correctly. Your pytorch version will control wether the app will use GPU or CPU (that's why it's recommended to make virtual environment for the project).
 
-- If you use **pyinstaller** you can load the [spec file](./build.spec) by running `pyinstaller ./build.spec` to build the project. Alternatively, you can type the build command when in `root directory` directly like this:
+I have provided a `[build script](./build.py)` that will build the project for you. You can run it by typing `python build.py` in the **root directory**. This will produce an executable file in the `dist` directory. An active python virtual environment is required to run the script. Alternatively you can use the following commands to build the project:
 
-  ```bash
-  pyinstaller --noconfirm --onedir --console --icon "./assets/icon.ico" --name "Speech Translate" --clean --add-data "./assets;assets/" --copy-metadata "tqdm" --copy-metadata "regex" --copy-metadata "requests" --copy-metadata "packaging" --copy-metadata "filelock" --copy-metadata "numpy" --copy-metadata "tokenizers" --add-data "./venv/Lib/site-packages/whisper/assets;whisper/assets/"  "./Main.py"
-  ```
+```bash
+pyinstaller --noconfirm --onedir --console --icon "./assets/icon.ico" --name "Speech Translate" --clean --add-data "./assets;assets/" --copy-metadata "tqdm" --copy-metadata "regex" --copy-metadata "requests" --copy-metadata "packaging" --copy-metadata "filelock" --copy-metadata "numpy" --copy-metadata "tokenizers" --add-data "./venv/Lib/site-packages/whisper/assets;whisper/assets/"  "./Main.py"
+```
 
-  This will produce an exceutable file in the `dist` directory.
-
-  **Note: Replace the venv with your actual venv path**
-
-- If you use **auto-py-to-exe** you can load the [build.json file](./build.json) located in root directory. **You will need to replace the dot (.) in the build.json file with the actual path of the project**. This will produce an exceutable file in the `output` directory.
-
-You should be able to compile it on other platform (mac/linux) but I only tested it on Windows.
+**Note: Replace the venv with your actual venv / python path**
 
 ## Compatibility
 

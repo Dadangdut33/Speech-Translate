@@ -1124,8 +1124,8 @@ class SettingWindow:
     def on_close(self):
         self.root.withdraw()
 
-    def on_open(self):
-        self.root.deiconify()
+    def show(self):
+        self.root.after(0, self.root.deiconify)
 
     def bind_focus_on_frame_recursively(self, root_widget):
         widgets = root_widget.winfo_children()
