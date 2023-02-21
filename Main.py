@@ -69,8 +69,8 @@ class AppTray:
             item(f"{app_name} {__version__}", lambda *args: None, enabled=False),  # do nothing
             menu.SEPARATOR,
             item("About", self.open_app),
-            item("Settings", self.open_app),
-            item("Show Main Window", self.open_app),
+            item("Settings", self.open_setting),
+            item("Show Main Window", self.open_about),
             menu.SEPARATOR,
             item("Exit", self.exit_app),
             item("Hidden onclick", self.open_app, default=True, visible=False),  # onclick the icon will open_app
@@ -458,7 +458,7 @@ class MainWindow:
 
     def open_setting(self, _event=None):
         assert gClass.sw is not None
-        gClass.sw.on_open()
+        gClass.sw.show()
 
     def open_log(self, _event=None):
         assert gClass.lw is not None
