@@ -404,7 +404,7 @@ class MainWindow:
     # Quit the app
     def quit_app(self):
         if platform.system() == "Windows":
-            win32gui.ShowWindow(gClass.cw, win32con.SW_HIDE)
+            win32gui.ShowWindow(gClass.cw, win32con.SW_SHOW)
 
         gClass.disableRecording()
         gClass.disableTranscribing()
