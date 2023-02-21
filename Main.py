@@ -35,6 +35,18 @@ from speech_translate.utils.Helper import modelKeys, modelSelectDict, upFirstCas
 from speech_translate.utils.LangCode import engine_select_source_dict, engine_select_target_dict, whisper_compatible
 from speech_translate.utils.Record import getInputDevices, getOutputDevices, getDefaultOutputDevice, getDefaultInputDevice, from_file, rec_realTime
 
+# Terminal window hide/showing
+import ctypes
+if platform.system() == "Windows":
+    try:
+        import win32.lib.win32con as win32con
+        import win32gui
+        kernel32 = ctypes.WinDLL('kernel32')
+        user32 = ctypes.WinDLL('user32')
+    except Exception as e:
+        logger.info("Ignore this error if not running on Windows")
+        logger.exception(e)
+        pass
 
 class AppTray:
     """
@@ -68,9 +80,9 @@ class AppTray:
         self.menu_items = (
             item(f"{app_name} {__version__}", lambda *args: None, enabled=False),  # do nothing
             menu.SEPARATOR,
-            item("About", self.open_app),
+            item("About", self.open_about),
             item("Settings", self.open_setting),
-            item("Show Main Window", self.open_about),
+            item("Show Main Window", self.open_app),
             menu.SEPARATOR,
             item("Exit", self.exit_app),
             item("Hidden onclick", self.open_app, default=True, visible=False),  # onclick the icon will open_app
@@ -117,6 +129,7 @@ class MainWindow:
         # Flags
         self.always_on_top: bool = False
         self.notified_hidden: bool = False
+        self.console_opened: bool = False
         gClass.mw = self  # type: ignore
 
         # Styles
@@ -355,6 +368,8 @@ class MainWindow:
         self.fm_view = tk.Menu(self.menubar, tearoff=0)
         self.fm_view.add_command(label="Settings", command=self.open_setting, accelerator="F2")
         self.fm_view.add_command(label="Log", command=self.open_log)
+        if platform.system() == "Windows":
+            self.fm_view.add_checkbutton(label="Console/Terminal", command=self.toggle_console)
         self.menubar.add_cascade(label="View", menu=self.fm_view)
 
         self.fm_generate = tk.Menu(self.menubar, tearoff=0)
@@ -388,6 +403,9 @@ class MainWindow:
     # ------------------ Handle window ------------------
     # Quit the app
     def quit_app(self):
+        if platform.system() == "Windows":
+            win32gui.ShowWindow(gClass.cw, win32con.SW_HIDE)
+
         gClass.disableRecording()
         gClass.disableTranscribing()
         gClass.disableTranslating()
@@ -463,6 +481,18 @@ class MainWindow:
     def open_log(self, _event=None):
         assert gClass.lw is not None
         gClass.lw.show()
+
+    def toggle_console(self):
+        if platform.system() != "Windows":
+            logger.info("Console toggling is only available on Windows")
+            return
+
+        if not self.console_opened:
+            win32gui.ShowWindow(gClass.cw, win32con.SW_SHOW) 
+        else:
+            win32gui.ShowWindow(gClass.cw, win32con.SW_HIDE) 
+
+        self.console_opened = not self.console_opened
 
     def open_detached_tcw(self, _event=None):
         assert gClass.ex_tcw is not None
@@ -951,6 +981,18 @@ class MainWindow:
 if __name__ == "__main__":
     # https://docs.python.org/3/library/multiprocessing.html#multiprocessing.freeze_support
     freeze_support()  # Fix For multiprocessing spawning new window for building exe
+
+    if platform.system() == "Windows":
+        # Windows 11 default the terminal to windows terminal
+        # You cannot just getConsoleWindow to hide the terminal because of https://github.com/microsoft/terminal/issues/12570 
+        # so we set it as foregroundwindow first an then get the foreground window and hide it
+        hWnd = kernel32.GetConsoleWindow() # type: ignore
+        win32gui.SetForegroundWindow(hWnd) # type: ignore
+        
+        hWnd = win32gui.GetForegroundWindow() # type: ignore
+        win32gui.ShowWindow(hWnd, win32con.SW_HIDE) # type: ignore
+        gClass.cw = hWnd # type: ignore
+
 
     logger.info("Booting up...")
     # --- GUI ---

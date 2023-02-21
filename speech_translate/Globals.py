@@ -42,6 +42,7 @@ class Globals:
         # process
         self.dl_proc: Optional[Process] = None
 
+        self.cw = None # Console window
         # References to class
         self.tray = None
         """Tray app class"""
