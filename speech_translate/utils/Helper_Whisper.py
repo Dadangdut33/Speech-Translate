@@ -1,6 +1,9 @@
 import re
 from speech_translate.Logging import logger
 
+modelSelectDict = {"Tiny (~32x speed)": "tiny", "Base (~16x speed)": "base", "Small (~6x speed)": "small", "Medium (~2x speed)": "medium", "Large (1x speed)": "large"}
+modelKeys = list(modelSelectDict.keys())
+modelValues = list(modelSelectDict.values())
 
 def str_to_union_str_list_int(string):
     """
@@ -31,6 +34,45 @@ def str_to_bool(string: str):
         return False
 
     raise ValueError(f"Cannot convert {string} to bool")
+
+def whisper_result_to_srt(result):
+    """
+    Generate SRT format from Whisper result
+    from https://github.com/marferca/yt-whisper-demo/blob/5deef0ee0656cb6df54232c3dc62dbca1e7340c8/utils.py#L42
+    """
+    text = []
+    for i, s in enumerate(result["segments"]):
+        text.append(str(i + 1))
+
+        time_start = s["start"]
+        hours, minutes, seconds = int(time_start / 3600), (time_start / 60) % 60, (time_start) % 60
+        timestamp_start = "%02d:%02d:%06.3f" % (hours, minutes, seconds)
+        timestamp_start = timestamp_start.replace(".", ",")
+        time_end = s["end"]
+
+        hours, minutes, seconds = int(time_end / 3600), (time_end / 60) % 60, (time_end) % 60
+        timestamp_end = "%02d:%02d:%06.3f" % (hours, minutes, seconds)
+        timestamp_end = timestamp_end.replace(".", ",")
+        text.append(timestamp_start + " --> " + timestamp_end)
+        text.append(s["text"].strip() + "\n")
+
+    return "\n".join(text)
+
+
+def srt_whisper_to_txt_format(srt: str):
+    """
+    Convert SRT format to text format
+    """
+    text = []
+    for line in srt.splitlines():
+        if line.strip().isdigit():
+            continue
+        if "-->" in line:
+            continue
+        if line.strip() == "":
+            continue
+        text.append(line.strip())
+    return "\n".join(text)
 
 
 decodingDict = {

@@ -55,7 +55,7 @@ class tl_cons:
 tlCons = tl_cons(GoogleTranslator, MyMemoryTranslator, PonsTranslator)
 
 
-def google_tl(text: str, from_lang: str, to_lang: str, oldMethod: bool = False):
+def google_tl(text: str, from_lang: str, to_lang: str):
     """Translate Using Google Translate
     Args:
         text (str): Text to translate
@@ -91,12 +91,7 @@ def google_tl(text: str, from_lang: str, to_lang: str, oldMethod: bool = False):
                 no_connection_notify()
                 return is_Success, "Error: Not connected to internet"
 
-        if not oldMethod:
-            result = tlCons.GoogleTranslator(source=from_LanguageCode_Google, target=to_LanguageCode_Google).translate(text.strip())  # type: ignore
-        else:
-            url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl={}&tl={}&dt=t&q={}".format(from_LanguageCode_Google, to_LanguageCode_Google, text.replace("\n", " ").replace(" ", "%20").strip())
-            result = requests.get(url).json()[0][0][0]
-
+        result = tlCons.GoogleTranslator(source=from_LanguageCode_Google, target=to_LanguageCode_Google).translate(text.strip())  # type: ignore
         is_Success = True
     except Exception as e:
         logger.exception(str(e))
@@ -141,7 +136,7 @@ def memory_tl(text: str, from_lang: str, to_lang: str):
                 no_connection_notify()
                 return is_Success, "Error: Not connected to internet"
 
-        result = tlCons.MyMemoryTranslator(source=from_LanguageCode_Memory, target=to_LanguageCode_Memory).translate(text.strip())
+        result = str(tlCons.MyMemoryTranslator(source=from_LanguageCode_Memory, target=to_LanguageCode_Memory).translate(text.strip()))
         is_Success = True
     except Exception as e:
         logger.exception(str(e))

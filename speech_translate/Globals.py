@@ -18,7 +18,6 @@ from .utils.Json import SettingJsonHandler
 app_name: str = "Speech Translate"
 fJson: SettingJsonHandler = SettingJsonHandler(os.path.join(dir_user, "setting.json"), dir_user, [dir_temp, dir_log, dir_export])
 
-
 # ------------------ #
 class Globals:
     """

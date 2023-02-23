@@ -31,7 +31,8 @@ from speech_translate.components.custom.Tooltip import CreateToolTip
 
 from speech_translate.utils.Helper import tb_copy_only
 from speech_translate.utils.Style import set_ui_style, init_theme, get_theme_list, get_current_theme
-from speech_translate.utils.Helper import modelKeys, modelSelectDict, upFirstCase, startFile
+from speech_translate.utils.Helper import upFirstCase, startFile
+from speech_translate.utils.Helper_Whisper import modelKeys, modelSelectDict
 from speech_translate.utils.LangCode import engine_select_source_dict, engine_select_target_dict, whisper_compatible
 from speech_translate.utils.Record import getInputDevices, getOutputDevices, getDefaultOutputDevice, getDefaultInputDevice, from_file, rec_realTime
 
@@ -230,7 +231,7 @@ class MainWindow:
         self.tb_transcribed_bg = tk.Frame(self.f2_textBox, bg="#7E7E7E")
         self.tb_transcribed_bg.pack(side=tk.LEFT, fill="both", expand=True, padx=5, pady=5)
 
-        self.sb_transcribed = tk.Scrollbar(self.tb_transcribed_bg)
+        self.sb_transcribed = ttk.Scrollbar(self.tb_transcribed_bg)
         self.sb_transcribed.pack(side=tk.RIGHT, fill="y")
 
         self.tb_transcribed = tk.Text(
@@ -248,7 +249,7 @@ class MainWindow:
         self.tb_translated_bg = tk.Frame(self.f2_textBox, bg="#7E7E7E")
         self.tb_translated_bg.pack(side=tk.LEFT, fill="both", expand=True, padx=5, pady=5)
 
-        self.sb_translated = tk.Scrollbar(self.tb_translated_bg)
+        self.sb_translated = ttk.Scrollbar(self.tb_translated_bg)
         self.sb_translated.pack(side=tk.RIGHT, fill="y")
 
         self.tb_translated = tk.Text(

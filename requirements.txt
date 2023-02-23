@@ -1,4 +1,4 @@
-deep_translator==1.10.0
+deep_translator==1.10.1
 notify-py==0.3.42
 pillow == 9.4.0
 PyAudioWPatch==0.2.12.5
@@ -9,4 +9,6 @@ sounddevice==0.4.6
 soundfile==0.11.0
 darkdetect==0.8.0
 pyinstaller==5.8.0
+arabic-reshaper==3.0.0
 git+https://github.com/openai/whisper.git 
+git+https://github.com/linto-ai/whisper-timestamped.git
