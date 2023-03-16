@@ -113,10 +113,6 @@ You can change the settings by clicking the settings button on the menubar of th
 
 > **Note** \
 > It is recommended to create a virtual environment, but it is not required.
->
-> **For OS other than windows**, you can install the packages from [requirements_notwindows.txt](./requirements_notwindows.txt)
->
-> The master branch might not always be stable so you can checkout to the latest release tag to get the latest stable version.
 
 1. Create your virtual environment by running `python -m venv venv`
 2. Activate your virtual environment by running `source venv/bin/activate`
@@ -141,7 +137,7 @@ I have provided a `[build script](./build.py)` that will build the project for y
 pyinstaller --noconfirm --onedir --console --icon "./assets/icon.ico" --name "Speech Translate" --clean --add-data "./assets;assets/" --copy-metadata "tqdm" --copy-metadata "regex" --copy-metadata "requests" --copy-metadata "packaging" --copy-metadata "filelock" --copy-metadata "numpy" --copy-metadata "tokenizers" --add-data "./venv/Lib/site-packages/whisper/assets;whisper/assets/"  "./Main.py"
 ```
 
-**Note: Replace the venv with your actual venv / python path**
+**Note: Replace the __venv__ with your actual venv / python path**
 
 ## Compatibility
 

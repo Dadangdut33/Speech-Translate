@@ -1,7 +1,8 @@
 deep_translator==1.10.1
 notify-py==0.3.42
-pillow == 9.4.0
-PyAudioWPatch==0.2.12.5
+pillow==9.4.0
+PyAudioWPatch==2.0.18; platform_system == "Windows"
+PyAudio==2.0.18; platform_system != "Windows"
 pystray==0.19.4
 requests==2.28.1
 scipy==1.9.3

@@ -2,6 +2,7 @@ import os
 import platform
 import ast
 import shlex
+import arabic_reshaper
 from tkinter import ttk
 from multiprocessing import Process, Queue
 from typing import Optional, List
@@ -17,7 +18,7 @@ from .utils.Json import SettingJsonHandler
 # ------------------ #
 app_name: str = "Speech Translate"
 fJson: SettingJsonHandler = SettingJsonHandler(os.path.join(dir_user, "setting.json"), dir_user, [dir_temp, dir_log, dir_export])
-
+reshape_lang_list = ["arabic", "urdu", "faroese"]
 # ------------------ #
 class Globals:
     """
@@ -99,15 +100,16 @@ class Globals:
         # Main window textbox
         if fJson.settingCache["tb_mw_tc_max"] != 0 and len(currentText) > fJson.settingCache["tb_mw_tc_max"]:  # if not infinite and text too long
             # remove words from the start with length of the new text
+            # then add new text to the end
             currentText = currentText[len(textToAppend) :]
-            # add new text to the end
             currentText += textToAppend
-            # update textbox
+            textToAppend = currentText
             self.mw.tb_transcribed.delete("1.0", "end")
-            self.mw.tb_transcribed.insert("end", currentText)
-        else:
-            self.mw.tb_transcribed.insert("end", textToAppend)
 
+        if fJson.settingCache["sourceLang"].lower() in reshape_lang_list:
+            textToAppend = arabic_reshaper.reshape(textToAppend)
+
+        self.mw.tb_transcribed.insert("end", textToAppend)
         self.mw.tb_transcribed.see("end")
 
     def insertMwTbTl(self, textToAppend: str):
@@ -124,16 +126,17 @@ class Globals:
         # Main window textbox
         if fJson.settingCache["tb_mw_tl_max"] != 0 and len(currentText) > fJson.settingCache["tb_mw_tl_max"]:  # if not infinite and text is too long
             # remove words from the start with length of the new text
+            # then add new text to the end
             currentText = currentText[len(textToAppend) :]
-            # add new text to the end
             currentText += textToAppend
-            # update textbox
+            textToAppend = currentText
             self.mw.tb_translated.delete("1.0", "end")
-            self.mw.tb_translated.insert("end", currentText)
-        else:
-            self.mw.tb_translated.insert("end", textToAppend)
 
-        self.mw.tb_transcribed.see("end")
+        if fJson.settingCache["sourceLang"].lower() in reshape_lang_list:
+            textToAppend = arabic_reshaper.reshape(textToAppend)
+
+        self.mw.tb_translated.insert("end", textToAppend)
+        self.mw.tb_translated.see("end")
 
     def insertExTbTc(self, textToAppend: str):
         """Insert text to detached transcribed textbox. Will also check if the text is too long and will truncate it if it is.
@@ -149,11 +152,16 @@ class Globals:
         textToAppend = textToAppend.strip()
         # Main window textbox
         if fJson.settingCache["tb_ex_tc_max"] != 0 and len(currentText) > fJson.settingCache["tb_ex_tc_max"]:  # if not infinite and text is too long
-            currentText = currentText[len(textToAppend) :]  # remove words from the start with length of the new text
-            currentText += textToAppend  # add new text to the end
+            # remove words from the start with length of the new text
+            # then add new text to the end
+            currentText = currentText[len(textToAppend) :]  
+            currentText += textToAppend 
             textToAppend = currentText  # set new text
         else:
             textToAppend += ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))  # set new text
+
+        if fJson.settingCache["sourceLang"].lower() in reshape_lang_list:
+            textToAppend = arabic_reshaper.reshape(textToAppend)
 
         self.ex_tcw.labelText.config(text=textToAppend)
         self.ex_tcw.check_height_resize()
@@ -177,6 +185,9 @@ class Globals:
             textToAppend = currentText  # set new text
         else:
             textToAppend += ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))  # set new text
+
+        if fJson.settingCache["sourceLang"].lower() in reshape_lang_list:
+            textToAppend = arabic_reshaper.reshape(textToAppend)
 
         self.ex_tlw.labelText.config(text=textToAppend)
         self.ex_tlw.check_height_resize()
