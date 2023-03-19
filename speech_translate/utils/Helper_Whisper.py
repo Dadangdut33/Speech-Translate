@@ -74,6 +74,35 @@ def srt_whisper_to_txt_format(srt: str):
         text.append(line.strip())
     return "\n".join(text)
 
+def srt_whisper_to_txt_format_stamps(srt: str):
+    """
+    Convert SRT format to text format, and return stamps
+    """
+    text = []
+    stamps = []
+    for line in srt.splitlines():
+        if line.strip().isdigit():
+            continue
+        if "-->" in line:
+            stamps.append(line)
+            continue
+        if line.strip() == "":
+            continue
+        text.append(line.strip())
+    return "\n".join(text), stamps
+
+def txt_to_srt_whisper_format_stamps(txt: str, stamps:list[str]):
+    """
+    Convert text format to SRT format, require list of stamps
+    """
+    srt = []
+    for idx,(line,stamp) in enumerate(zip(txt.splitlines(),stamps)):
+        srt.append(str(idx+1))
+        srt.append(stamp.strip())
+        srt.append(line.strip())
+        srt.append("")
+    return "\n".join(srt)
+
 
 decodingDict = {
     "sample_len": int,
