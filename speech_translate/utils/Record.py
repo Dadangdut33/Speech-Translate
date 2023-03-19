@@ -29,7 +29,7 @@ from speech_translate.Logging import logger
 from speech_translate.components.custom.MBox import Mbox
 
 from .Helper import nativeNotify, startFile, getFileNameOnlyFromPath 
-from .Helper_Whisper import get_temperature, convert_str_options_to_dict, modelSelectDict, whisper_result_to_srt, srt_whisper_to_txt_format
+from .Helper_Whisper import get_temperature, convert_str_options_to_dict, modelSelectDict, whisper_result_to_srt, srt_whisper_to_txt_format, srt_whisper_to_txt_format_stamps, txt_to_srt_whisper_format_stamps
 from .Translator import google_tl, libre_tl, memory_tl
 from .DownloadModel import check_model, download_model, verify_model
 
@@ -780,10 +780,16 @@ def cancellable_tl(
         else:
             # limit to 5000 characters
             toTranslates = wrap(toTranslate, 5000, break_long_words=False, replace_whitespace=False)
+            toTranslates_txt = []
+            timestamps = []
+            for toTranslate in toTranslates:
+                toTranslate, timestamp = srt_whisper_to_txt_format_stamps(toTranslate)
+                toTranslates_txt.append(toTranslate)
+                timestamps.append(timestamp)
             result_Tl = []
 
             # translate each part
-            for toTranslate in toTranslates:
+            for toTranslate, timestamp in zip(toTranslates_txt, timestamps):
                 if engine == "Google":
                     logger.debug("Translating with google translate")
                     success, result = google_tl(toTranslate, lang_source, lang_target)
@@ -802,6 +808,7 @@ def cancellable_tl(
                     if not success:
                         nativeNotify("Error: translation with mymemory failed", result, app_icon, app_name)
 
+                result = txt_to_srt_whisper_format_stamps(result, timestamp)
                 result_Tl.append(result)
 
             # sended text (toTranslate parameter) is sended in srt format so the result that we got from translation is as srt
