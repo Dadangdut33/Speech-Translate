@@ -22,7 +22,7 @@ A speech transcription and translation application using whisper AI model.
 - [User Requirements](#user-requirements)
 - [Download \& Installation](#download--installation)
 - [General Usage](#general-usage)
-- [User Settings](#user-settings)
+- [User Settings](#user-settings-and-thing-to-note)
 - [Development](#--development--)
   - [Setup](#setup)
   - [Using GPU](#using-gpu)
@@ -95,9 +95,11 @@ brew install ffmpeg
 5. Stop record
 6. (Optionally) export the result to a file
 
-# User Settings
+# User Settings and Thing to Note
 
-You can change the settings by clicking the settings button on the menubar of the app. Alternatively, you can press F2 to open the menu window or you could also edit the settings file manually located at `./user/setting.json`.
+- You can change the settings by clicking the settings button on the menubar of the app. Alternatively, you can press F2 to open the menu window when in focus or you could also edit the settings file manually located at `$project_dir/user/setting.json`.
+- If the terminal/console is still showing, you will need to set your `default terminal application` to `windows console host` in your `windows terminal` setting. 
+![image](https://user-images.githubusercontent.com/57717531/226117592-e10ebdf3-fb09-44b2-b6be-1a445dc8c265.png)
 
 ---
 
@@ -116,7 +118,7 @@ You can change the settings by clicking the settings button on the menubar of th
 
 1. Create your virtual environment by running `python -m venv venv`
 2. Activate your virtual environment by running `source venv/bin/activate`
-3. Install all the dependencies needed by running the [`devSetup.py`](./devSetup.py) located in **root directory** or install the packages yourself by installing from the requirements.txt yourself by running `pip install -r requirements.txt`
+3. Install all the dependencies needed by running the [`devSetup.py`](./devSetup.py) located in **root directory** or install the packages yourself by running `pip install -r requirements.txt`
 4. Make sure to have ffmpeg installed and added to your PATH
 5. Get to root directory and Run the script by typing `python Main.py`
 

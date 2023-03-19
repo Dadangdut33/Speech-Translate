@@ -24,7 +24,8 @@ else:
 import wave
 
 from speech_translate._path import app_icon
-from speech_translate.Globals import app_name, dir_temp, fJson, gClass, dir_export
+from speech_translate._contants import APP_NAME
+from speech_translate.Globals import dir_temp, fJson, gClass, dir_export
 from speech_translate.Logging import logger
 from speech_translate.components.custom.MBox import Mbox
 
@@ -107,7 +108,7 @@ def checkModelFirst(modelName: str, btn):
 
         gClass.dl_proc = Process(target=download_model, args=[modelName], daemon=True)
         gClass.dl_proc.start()
-        nativeNotify("Downloading Model", "Downloading model for the first time. This may take a while. (Check the console/log for progress)", app_icon, app_name)
+        nativeNotify("Downloading Model", "Downloading model for the first time. This may take a while. (Check the console/log for progress)")
         gClass.dl_proc.join()
 
     # verify downloaded model
@@ -118,7 +119,7 @@ def checkModelFirst(modelName: str, btn):
 
         gClass.dl_proc = Process(target=download_model, args=[modelName], daemon=True)
         gClass.dl_proc.start()
-        nativeNotify("Downloading Model", "Model is downloaded but checksum does not match. Redownloading the model. This may take a while. (Check the console/log for progress)", app_icon, app_name)
+        nativeNotify("Downloading Model", "Model is downloaded but checksum does not match. Redownloading the model. This may take a while. (Check the console/log for progress)")
         gClass.dl_proc.join()
 
     # after it is done
@@ -647,17 +648,17 @@ def realtime_tl(text: str, lang_source: str, lang_target: str, engine: Literal["
         if engine == "Google":
             success, result_Tl = google_tl(text, lang_source, lang_target)
             if not success:
-                nativeNotify("Error: translation with google failed", result_Tl, app_icon, app_name)
+                nativeNotify("Error: translation with google failed", result_Tl)
 
         elif engine == "LibreTranslate":
             success, result_Tl = libre_tl(text, lang_source, lang_target, fJson.settingCache["libre_https"], fJson.settingCache["libre_host"], fJson.settingCache["libre_port"], fJson.settingCache["libre_api_key"])
             if not success:
-                nativeNotify("Error: translation with libre failed", result_Tl, app_icon, app_name)
+                nativeNotify("Error: translation with libre failed", result_Tl)
 
         elif engine == "MyMemoryTranslator":
             success, result_Tl = memory_tl(text, lang_source, lang_target)
             if not success:
-                nativeNotify("Error: translation with mymemory failed", str(result_Tl), app_icon, app_name)
+                nativeNotify("Error: translation with mymemory failed", str(result_Tl))
 
         result_Tl = result_Tl.strip()  # type: ignore
         if len(result_Tl) > 0 and result_Tl != prev_tl_text:
@@ -681,7 +682,7 @@ def realtime_tl(text: str, lang_source: str, lang_target: str, engine: Literal["
 
     except Exception as e:
         logger.exception(e)
-        nativeNotify("Error: translating failed", str(e), app_icon, app_name)
+        nativeNotify("Error: translating failed", str(e))
     finally:
         gClass.disableTranslating()  # flag processing as done
 
@@ -757,7 +758,7 @@ def cancellable_tl(
                     logger.info("Translation cancelled")
                 else:
                     logger.exception(e)
-                    nativeNotify("Error: translating with whisper failed", str(e), app_icon, app_name)
+                    nativeNotify("Error: translating with whisper failed", str(e))
                 return
 
             # if whisper, sended text (toTranslate) is the audio file path
@@ -794,19 +795,19 @@ def cancellable_tl(
                     logger.debug("Translating with google translate")
                     success, result = google_tl(toTranslate, lang_source, lang_target)
                     if not success:
-                        nativeNotify("Error: translation with google failed", result, app_icon, app_name)
+                        nativeNotify("Error: translation with google failed", result)
 
                 elif engine == "LibreTranslate":
                     logger.debug("Translating with libre translate")
                     success, result = libre_tl(toTranslate, lang_source, lang_target, fJson.settingCache["libre_https"], fJson.settingCache["libre_host"], fJson.settingCache["libre_port"], fJson.settingCache["libre_api_key"])
                     if not success:
-                        nativeNotify("Error: translation with libre failed", result, app_icon, app_name)
+                        nativeNotify("Error: translation with libre failed", result)
 
                 elif engine == "MyMemoryTranslator":
                     logger.debug("Translating with mymemorytranslator")
                     success, result = memory_tl(toTranslate, lang_source, lang_target)
                     if not success:
-                        nativeNotify("Error: translation with mymemory failed", result, app_icon, app_name)
+                        nativeNotify("Error: translation with mymemory failed", result)
 
                 result = txt_to_srt_whisper_format_stamps(result, timestamp)
                 result_Tl.append(result)
@@ -834,7 +835,7 @@ def cancellable_tl(
 
     except Exception as e:
         logger.exception(e)
-        nativeNotify("Error: translating failed", str(e), app_icon, app_name)
+        nativeNotify("Error: translating failed", str(e))
         return
     finally:
         gClass.disableTranslating()  # flag processing as done. No need to check for transcription because it is done before this
@@ -960,7 +961,7 @@ def cancellable_tc(
             logger.info("Transcribing cancelled")
         else:
             logger.exception(e)
-            nativeNotify("Error: Transcribing Audio", str(e), app_icon, app_name)
+            nativeNotify("Error: Transcribing Audio", str(e))
     finally:
         gClass.disableTranscribing()
         gClass.mw.stop_loadBar()

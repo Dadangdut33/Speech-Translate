@@ -9,7 +9,7 @@ from PIL import Image, ImageTk
 from speech_translate._version import __version__
 from speech_translate.Logging import logger
 from speech_translate._path import app_icon
-from speech_translate.Globals import app_name, gClass, fJson
+from speech_translate.Globals import gClass, fJson
 from speech_translate.utils.Helper import OpenUrl, nativeNotify
 from speech_translate.components.custom.Tooltip import CreateToolTip
 
@@ -43,12 +43,12 @@ class AboutWindow:
 
         # Top frame
         try:  # Try catch the logo so if logo not found it can still run
-            self.canvasImg = tk.Canvas(self.f_top, width=100, height=100, bg="white")
+            self.canvasImg = tk.Canvas(self.f_top, width=100, height=100)
             self.canvasImg.pack(side=tk.TOP, padx=5, pady=5)
             self.imgObj = Image.open(app_icon.replace(".ico", ".png"))
             self.imgObj = self.imgObj.resize((100, 100), Image.ANTIALIAS)
 
-            self.img = ImageTk.PhotoImage(self.imgObj, master=self.canvasImg)
+            self.img = ImageTk.PhotoImage(self.imgObj)
             self.canvasImg.create_image(2, 50, anchor=tk.W, image=self.img)
         except Exception:
             self.logoNotFoud = ttk.Label(self.f_top, text="Fail To Load Logo, Logo not found", foreground="red")
@@ -139,7 +139,7 @@ class AboutWindow:
                     self.checkUpdateLabelFg = "blue"
                     self.checkUpdateLabelFunc = self.open_dl_link
                     self.tooltipCheckUpdate.text = "Click to go to the latest release page"
-                    nativeNotify("New version available", "Visit the repository to download the latest update", app_icon, app_name)
+                    nativeNotify("New version available", "Visit the repository to download the latest update")
                 else:
                     logger.info("No update available")
                     self.checkUpdateLabelText = "You are using the latest version"
@@ -153,7 +153,7 @@ class AboutWindow:
                 self.checkUpdateLabelFunc = self.check_for_update
                 self.tooltipCheckUpdate.text = "Click to try again"
                 if not self.checkingOnStart:  # suppress error if checking on start
-                    nativeNotify("Fail to check for update!", "Click to try again", app_icon, app_name)
+                    nativeNotify("Fail to check for update!", "Click to try again")
 
             self.checkUpdateLabel.configure(text=self.checkUpdateLabelText, foreground=self.checkUpdateLabelFg)
             self.checkUpdateLabel.bind("<Button-1>", self.checkUpdateLabelFunc)

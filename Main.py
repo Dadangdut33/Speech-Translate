@@ -10,15 +10,15 @@ from multiprocessing import freeze_support
 
 import sounddevice as sd
 
-from notifypy import Notify, exceptions
 from PIL import Image, ImageDraw
 from pystray import Icon as icon
 from pystray import Menu as menu
 from pystray import MenuItem as item
 
 from speech_translate._version import __version__
-from speech_translate._path import app_icon, app_icon_missing
-from speech_translate.Globals import app_name, fJson, gClass
+from speech_translate._path import app_icon
+from speech_translate._contants import APP_NAME
+from speech_translate.Globals import fJson, gClass
 from speech_translate.Logging import logger
 
 from speech_translate.components.window.About import AboutWindow
@@ -29,7 +29,7 @@ from speech_translate.components.window.TL_win import TlsWindow
 from speech_translate.components.custom.MBox import Mbox
 from speech_translate.components.custom.Tooltip import CreateToolTip
 
-from speech_translate.utils.Helper import tb_copy_only
+from speech_translate.utils.Helper import tb_copy_only, nativeNotify
 from speech_translate.utils.Style import set_ui_style, init_theme, get_theme_list, get_current_theme
 from speech_translate.utils.Helper import upFirstCase, startFile
 from speech_translate.utils.Helper_Whisper import modelKeys, modelSelectDict
@@ -41,17 +41,12 @@ try:
     import ctypes
     import win32.lib.win32con as win32con
     import win32gui
-    # Windows 11 default the terminal to windows terminal
-    # You cannot just getConsoleWindow to hide the terminal because of https://github.com/microsoft/terminal/issues/12570 
-    # so we set it as foregroundwindow first an then get the foreground window and hide it
     kernel32 = ctypes.WinDLL('kernel32')
     user32 = ctypes.WinDLL('user32')
 
-    hWnd = kernel32.GetConsoleWindow() # type: ignore
-    win32gui.SetForegroundWindow(hWnd) # type: ignore
-    
-    hWnd = win32gui.GetForegroundWindow() # type: ignore
-    win32gui.ShowWindow(hWnd, win32con.SW_HIDE) # type: ignore
+    hWnd = kernel32.GetConsoleWindow() 
+    win32gui.ShowWindow(hWnd, win32con.SW_HIDE)
+    logger.info("Console window hidden. If it is not hidden (only minimized), try changing your default windows terminal to windows cmd.")
     gClass.cw = hWnd # type: ignore
 except Exception as e:
     logger.debug("Ignore this error if not running on Windows OR if not run directly from terminal (e.g. run from IDE)")
@@ -88,7 +83,7 @@ class AppTray:
             trayIco = self.create_image(64, 64, "black", "white")
 
         self.menu_items = (
-            item(f"{app_name} {__version__}", lambda *args: None, enabled=False),  # do nothing
+            item(f"{APP_NAME} {__version__}", lambda *args: None, enabled=False),  # do nothing
             menu.SEPARATOR,
             item("About", self.open_about),
             item("Settings", self.open_setting),
@@ -131,7 +126,7 @@ class MainWindow:
         # UI
         self.root = tk.Tk()
 
-        self.root.title(app_name)
+        self.root.title(APP_NAME)
         self.root.geometry("1200x400")
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.root.wm_attributes("-topmost", False)  # Default False
@@ -143,9 +138,10 @@ class MainWindow:
         gClass.mw = self  # type: ignore
 
         # Styles
-        init_theme()
         self.style = ttk.Style()
         gClass.style = self.style
+        
+        init_theme()
         gClass.native_theme = get_current_theme()  # get first theme before changing
         gClass.theme_lists = list(get_theme_list())
 
@@ -383,8 +379,8 @@ class MainWindow:
         self.menubar.add_cascade(label="View", menu=self.fm_view)
 
         self.fm_generate = tk.Menu(self.menubar, tearoff=0)
-        self.fm_generate.add_command(label="Detached Transcribed Speech Window", command=self.open_detached_tcw, accelerator="F3")
-        self.fm_generate.add_command(label="Detached Translated Speech Window", command=self.open_detached_tlw, accelerator="F4")
+        self.fm_generate.add_command(label="Transcribed Speech Subtitle Window", command=self.open_detached_tcw, accelerator="F3")
+        self.fm_generate.add_command(label="Translated Speech Subtitle Window", command=self.open_detached_tlw, accelerator="F4")
         self.menubar.add_cascade(label="Generate", menu=self.fm_generate)
 
         self.fm_help = tk.Menu(self.menubar, tearoff=0)
@@ -457,15 +453,7 @@ class MainWindow:
     def on_close(self):
         # Only show notification once
         if not self.notified_hidden:
-            notification = Notify()
-            notification.title = "Hidden to tray"
-            notification.message = "The app is still running in the background."
-            notification.application_name = app_name
-            try:
-                notification.icon = app_icon
-            except exceptions.InvalidIconPath:
-                pass
-            notification.send()
+            nativeNotify("Hidden to tray", "The app is still running in the background.")
             self.notified_hidden = True
 
         self.root.withdraw()
@@ -519,13 +507,7 @@ class MainWindow:
     # ------------------ Functions ------------------
     # error
     def errorNotif(self, err: str):
-        notification = Notify()
-        notification.title = "Unexpected Error!"
-        notification.message = err
-        notification.application_name = app_name
-        if not app_icon_missing:
-            notification.icon = app_icon
-        notification.send()
+        nativeNotify("Unexpected Error!", err)
 
     # on start
     def onInit(self):

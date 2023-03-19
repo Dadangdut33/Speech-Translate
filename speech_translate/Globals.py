@@ -7,6 +7,7 @@ from tkinter import ttk
 from multiprocessing import Process, Queue
 from typing import Optional, List
 from ._path import dir_temp, dir_log, dir_export, dir_user
+from ._contants import SUBTITLE_PLACEHOLDER, RESHAPE_LANG_LIST
 
 if platform.system() == "Windows":
     import pyaudiowpatch as pyaudio
@@ -16,9 +17,7 @@ else:
 from .utils.Json import SettingJsonHandler
 
 # ------------------ #
-app_name: str = "Speech Translate"
 fJson: SettingJsonHandler = SettingJsonHandler(os.path.join(dir_user, "setting.json"), dir_user, [dir_temp, dir_log, dir_export])
-reshape_lang_list = ["arabic", "urdu", "faroese"]
 # ------------------ #
 class Globals:
     """
@@ -106,7 +105,7 @@ class Globals:
             textToAppend = currentText
             self.mw.tb_transcribed.delete("1.0", "end")
 
-        if fJson.settingCache["sourceLang"].lower() in reshape_lang_list:
+        if fJson.settingCache["sourceLang"].lower() in RESHAPE_LANG_LIST:
             textToAppend = arabic_reshaper.reshape(textToAppend)
 
         self.mw.tb_transcribed.insert("end", textToAppend)
@@ -132,7 +131,7 @@ class Globals:
             textToAppend = currentText
             self.mw.tb_translated.delete("1.0", "end")
 
-        if fJson.settingCache["sourceLang"].lower() in reshape_lang_list:
+        if fJson.settingCache["sourceLang"].lower() in RESHAPE_LANG_LIST:
             textToAppend = arabic_reshaper.reshape(textToAppend)
 
         self.mw.tb_translated.insert("end", textToAppend)
@@ -160,7 +159,7 @@ class Globals:
         else:
             textToAppend += ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))  # set new text
 
-        if fJson.settingCache["sourceLang"].lower() in reshape_lang_list:
+        if fJson.settingCache["sourceLang"].lower() in RESHAPE_LANG_LIST:
             textToAppend = arabic_reshaper.reshape(textToAppend)
 
         self.ex_tcw.labelText.config(text=textToAppend)
@@ -186,7 +185,7 @@ class Globals:
         else:
             textToAppend += ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))  # set new text
 
-        if fJson.settingCache["sourceLang"].lower() in reshape_lang_list:
+        if fJson.settingCache["sourceLang"].lower() in RESHAPE_LANG_LIST:
             textToAppend = arabic_reshaper.reshape(textToAppend)
 
         self.ex_tlw.labelText.config(text=textToAppend)
@@ -210,11 +209,11 @@ class Globals:
 
     def clearExTc(self):
         assert self.ex_tcw is not None
-        self.ex_tcw.labelText.config(text="")
+        self.ex_tcw.labelText.config(text=SUBTITLE_PLACEHOLDER)
 
     def clearExTl(self):
         assert self.ex_tlw is not None
-        self.ex_tlw.labelText.config(text="")
+        self.ex_tlw.labelText.config(text=SUBTITLE_PLACEHOLDER)
 
 
 # ------------------ #

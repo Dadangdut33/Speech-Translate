@@ -1,9 +1,12 @@
 import os
 import subprocess
 import webbrowser
+
 from typing import Dict
 from notifypy import Notify, exceptions
 from speech_translate.Logging import logger
+from speech_translate._path import app_icon, app_icon_missing
+from speech_translate._contants import APP_NAME
 
 def upFirstCase(string: str):
     return string[0].upper() + string[1:]
@@ -21,16 +24,16 @@ def startFile(filename: str):
         os.startfile(filename)
     except FileNotFoundError:
         logger.exception("Cannot find the file specified.")
-        nativeNotify("Error", "Cannot find the file specified.", "", "Speech Translate")
+        nativeNotify("Error", "Cannot find the file specified.")
     except Exception:
         try:
             subprocess.Popen(["xdg-open", filename])
         except FileNotFoundError:
             logger.exception("Cannot open the file specified.")
-            nativeNotify("Error", "Cannot find the file specified.", "", "Speech Translate")
+            nativeNotify("Error", "Cannot find the file specified.")
         except Exception as e:
             logger.exception("Error: " + str(e))
-            nativeNotify("Error", f"Uncaught error {str(e)}", "", "Speech Translate")
+            nativeNotify("Error", f"Uncaught error {str(e)}")
 
 
 def OpenUrl(url: str):
@@ -41,24 +44,33 @@ def OpenUrl(url: str):
         webbrowser.open_new(url)
     except Exception as e:
         logger.exception(e)
-        nativeNotify("Error", "Cannot open the url specified.", "", "Speech Translate")
+        nativeNotify("Error", "Cannot open the url specified.")
 
 
-def nativeNotify(title: str, message: str, logo: str, app_name: str):
+def nativeNotify(title: str, message: str):
     """
     Native notification
     """
     notification = Notify()
-    notification.application_name = app_name
+    notification.application_name = APP_NAME
     notification.title = title
     notification.message = message
-    try:
-        notification.icon = logo
-    except exceptions:
-        pass
+    if not app_icon_missing:
+        try:
+            notification.icon = app_icon
+        except exceptions:
+            pass
 
     notification.send()
 
+def no_connection_notify(
+    customTitle: str = "No Internet Connection",
+    customMessage: str = "Translation for engine other than Whisper or your local LibreTranslate Deployment (If you have one) will not work until you reconnect to the internet.",
+):
+    """
+    Notify user that they are not connected to the internet
+    """
+    nativeNotify(customTitle, customMessage)
 
 
 def getFileNameOnlyFromPath(path: str):

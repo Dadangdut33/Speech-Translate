@@ -1,6 +1,7 @@
 deep_translator==1.10.1
 notify-py==0.3.42
 pillow==9.4.0
+pywin32==305; platform_system == "Windows"
 PyAudioWPatch==2.0.18; platform_system == "Windows"
 PyAudio==2.0.18; platform_system != "Windows"
 pystray==0.19.4

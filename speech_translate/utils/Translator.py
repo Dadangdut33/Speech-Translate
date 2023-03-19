@@ -1,27 +1,8 @@
 import requests
-from notifypy import Notify, exceptions
-
-from speech_translate._path import app_icon
-from speech_translate.Globals import app_name
 from speech_translate.Logging import logger
-
-from .Helper import get_similar_keys
+from .Helper import get_similar_keys, no_connection_notify
 from .LangCode import google_lang, libre_lang, myMemory_lang
 
-
-def no_connection_notify(
-    customTitle: str = "No Internet Connection",
-    customMessage: str = "Translation for engine other than Whisper or your local LibreTranslate Deployment (If you have one) will not work until you reconnect to the internet.",
-):
-    notification = Notify()
-    notification.title = customTitle
-    notification.message = customMessage
-    notification.application_name = app_name
-    try:
-        notification.icon = app_icon
-    except exceptions.InvalidIconPath:
-        pass
-    notification.send()
 
 
 # Import the translator

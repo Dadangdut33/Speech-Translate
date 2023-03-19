@@ -9,7 +9,8 @@ from time import sleep
 from tkinter import filedialog
 
 from speech_translate._path import app_icon
-from speech_translate.Globals import app_name, fJson, gClass, dir_log, dir_temp, dir_export
+from speech_translate._contants import APP_NAME
+from speech_translate.Globals import fJson, gClass, dir_log, dir_temp, dir_export
 from speech_translate.Logging import logger, current_log
 from speech_translate.utils.DownloadModel import verify_model, download_model, get_default_download_root
 from speech_translate.utils.Helper import startFile
@@ -36,7 +37,7 @@ class SettingWindow:
     def __init__(self, master: tk.Tk):
         self.root = tk.Toplevel(master)
 
-        self.root.title(app_name)
+        self.root.title(APP_NAME + " | Settings")
         self.root.geometry("1000x580")
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.root.wm_attributes("-topmost", False)  # Default False

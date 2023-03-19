@@ -57,13 +57,13 @@ default_setting = {
     "auto_channels_amount": False,
     "keep_temp": False,
     # Whisper settings
-    "whisper_extra_args": "",  # Default value from whisper
-    "temperature": "0.0, 0.2, 0.4, 0.6, 0.8, 1.0",  # Default value from whisper
-    "compression_ratio_threshold": 2.4,  # Default value from whisper
-    "logprob_threshold": -1.0,  # Default value from whisper
-    "no_speech_threshold": 0.6,  # Default value from whisper
-    "condition_on_previous_text": True,  # Default value from whisper
-    "initial_prompt": "",  # Default value from whisper
+    "whisper_extra_args": "",
+    "temperature": "0.0, 0.2, 0.4, 0.6, 0.8, 1.0",
+    "compression_ratio_threshold": 2.4,
+    "logprob_threshold": -1.0,
+    "no_speech_threshold": 0.6,
+    "condition_on_previous_text": True,
+    "initial_prompt": "", 
     # ------------------ #
     # Textboxes
     "tb_mw_tc_max": 0,
@@ -75,15 +75,27 @@ default_setting = {
     "tb_mw_tl_font_bold": False,
     "tb_mw_tl_font_size": 10,
     "tb_ex_tc_max": 0,
-    "tb_ex_tc_font": "TKDefaultFont",
-    "tb_ex_tc_font_bold": False,
-    "tb_ex_tc_font_size": 10,
+    # Tc sub
+    "ex_tc_bg": "#00ff00",
+    "ex_tc_always_on_top": 1,
+    "ex_tc_click_through": 1,
+    "ex_tc_no_title_bar": 1,
+    "ex_tc_no_tooltip": 1,
+    "tb_ex_tc_font": "Helvetica",
+    "tb_ex_tc_font_bold": True,
+    "tb_ex_tc_font_size": 12,
     "tb_ex_tc_font_color": "#FFFFFF",
     "tb_ex_tc_bg_color": "#000000",
-    "tb_ex_tl_max": 0,
-    "tb_ex_tl_font": "TKDefaultFont",
-    "tb_ex_tl_font_bold": False,
-    "tb_ex_tl_font_size": 10,
+    "ex_tc_bg": "#00ff00",
+    # Tl sub
+    "ex_tl_bg": "#00ff00",
+    "ex_tl_always_on_top": 1,
+    "ex_tl_click_through": 1,
+    "ex_tl_no_title_bar": 1,
+    "ex_tl_no_tooltip": 1,
+    "tb_ex_tl_font": "Helvetica",
+    "tb_ex_tl_font_bold": True,
+    "tb_ex_tl_font_size": 12,
     "tb_ex_tl_font_color": "#FFFFFF",
     "tb_ex_tl_bg_color": "#000000",
 }

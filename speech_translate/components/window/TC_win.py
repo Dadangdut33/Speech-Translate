@@ -4,8 +4,8 @@ from speech_translate.components.abstract.Detached import AbstractDetachedWindow
 
 # Classes
 class TcsWindow(AbstractDetachedWindow):
-    """Tcs Window"""
+    """Tcs Subtitle Window"""
 
     # ----------------------------------------------------------------------
     def __init__(self, master: tk.Tk):
-        super().__init__(master, "Transcribed Speech", "tc")
+        super().__init__(master, "Transcribed Speech Subtitle Window", "tc")
