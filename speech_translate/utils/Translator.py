@@ -21,7 +21,9 @@ except Exception as e:
 
 class tl_cons:
     """Translate Connections
-    Attributes:
+    
+    Attributes
+    ----------
         GoogleTranslator (function): Google Translate
         MyMemoryTranslator (function): MyMemoryTranslator
         PonsTranslator (function): PonsTranslator
@@ -36,14 +38,18 @@ class tl_cons:
 tlCons = tl_cons(GoogleTranslator, MyMemoryTranslator, PonsTranslator)
 
 
-def google_tl(text: str, from_lang: str, to_lang: str):
+def google_tl(text: str, from_lang: str, to_lang: str, debug_log: bool = False):
     """Translate Using Google Translate
-    Args:
+
+    Args
+    ----
         text (str): Text to translate
         from_lang (str): Language From
         to_lang (str): Language to translate
-        oldMethod (bool, optional): Use old method. Defaults to False.
-    Returns:
+        debug_log (bool, optional): Debug Log. Defaults to False.
+
+    Returns
+    -------
         is_Success: Success or not
         result: Translation result
     """
@@ -78,20 +84,27 @@ def google_tl(text: str, from_lang: str, to_lang: str):
         logger.exception(str(e))
         result = str(e)
     finally:
-        logger.info("-" * 50)
-        logger.debug("Query: " + text.strip())
-        logger.debug("Translation Get: " + result)
+        if debug_log:
+            logger.info("-" * 50)
+            logger.debug("Query: " + text.strip())
+            logger.debug("Translation Get: " + result)
         return is_Success, result
 
 
-def memory_tl(text: str, from_lang: str, to_lang: str):
+def memory_tl(text: str, from_lang: str, to_lang: str, debug_log: bool = False):
     """Translate Using MyMemoryTranslator
-    Args:
+    
+    Args
+    ----
         text (str): Text to translate
         from_lang (str): Language From
         to_lang (str): Language to translate
-    Returns:
-        [type]: Translation result
+        debug_log (bool, optional): Debug Log. Defaults to False.
+    
+    Returns
+    -------
+        is_Success: Success or not
+        result: Translation result
     """
     is_Success = False
     result = ""
@@ -123,16 +136,19 @@ def memory_tl(text: str, from_lang: str, to_lang: str):
         logger.exception(str(e))
         result = str(e)
     finally:
-        logger.info("-" * 50)
-        logger.debug("Query: " + text.strip())
-        logger.debug("Translation Get: " + result)  # type: ignore
+        if debug_log:
+            logger.info("-" * 50)
+            logger.debug("Query: " + text.strip())
+            logger.debug("Translation Get: " + result)
         return is_Success, result
 
 
 # LibreTranslator
-def libre_tl(text: str, from_lang: str, to_lang: str, https: bool = False, host: str = "libretranslate.de", port: str = "", apiKeys: str = ""):
+def libre_tl(text: str, from_lang: str, to_lang: str, https: bool = False, host: str = "libretranslate.de", port: str = "", apiKeys: str = "", debug_log: bool = False):
     """Translate Using LibreTranslate
-    Args:
+
+    Args
+    ----
         text (str): Text to translate
         from_lang (str): Language From
         to_lang (str): Language to translate
@@ -140,8 +156,12 @@ def libre_tl(text: str, from_lang: str, to_lang: str, https: bool = False, host:
         host (str, optional): Host. Defaults to "libretranslate.de".
         port (str, optional): Port. Defaults to "".
         apiKeys (str, optional): API Keys. Defaults to "".
-    Returns:
-        [type]: Translation result
+        debug_log (bool, optional): Debug Log. Defaults to False.
+    
+    Returns
+    -------
+        is_Success: Success or not
+        result: Translation result
     """
     is_Success = False
     result = ""
@@ -180,7 +200,8 @@ def libre_tl(text: str, from_lang: str, to_lang: str, https: bool = False, host:
         if "request expecting value" in str(e):
             result = "Error: Invalid parameter value. Check for https, host, port, and apiKeys. If you use external server, make sure https is set to True."
     finally:
-        logger.info("-" * 50)
-        logger.debug("Query: " + text.strip())
-        logger.debug("Translation Get: " + result)
+        if debug_log:
+            logger.info("-" * 50)
+            logger.debug("Query: " + text.strip())
+            logger.debug("Translation Get: " + result)
         return is_Success, result

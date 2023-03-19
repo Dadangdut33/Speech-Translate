@@ -6,6 +6,7 @@ from tkinter import ttk
 
 from speech_translate.components.custom.MBox import Mbox
 from speech_translate._path import app_icon
+from speech_translate._contants import APP_NAME
 from speech_translate.Globals import gClass, fJson
 from speech_translate.Logging import logger, current_log, dir_log, initLogging
 from speech_translate.utils.Helper import startFile, tb_copy_only
@@ -18,7 +19,7 @@ class LogWindow:
     # ----------------------------------------------------------------------
     def __init__(self, master: tk.Tk):
         self.root = tk.Toplevel(master)
-        self.root.title("Log")
+        self.root.title(APP_NAME + " | Log")
         self.root.geometry("900x350")
         self.root.wm_withdraw()
         self.currentFontSize = 10

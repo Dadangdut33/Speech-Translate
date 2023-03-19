@@ -3,13 +3,13 @@ import platform
 import threading
 import random
 import tkinter as tk
-from tkinter import ttk, font, colorchooser
+from tkinter import ttk, font, colorchooser, filedialog
 from multiprocessing import Process
 from time import sleep
-from tkinter import filedialog
+from typing import Literal
 
 from speech_translate._path import app_icon
-from speech_translate._contants import APP_NAME
+from speech_translate._contants import APP_NAME, PREVIEW_WORDS
 from speech_translate.Globals import fJson, gClass, dir_log, dir_temp, dir_export
 from speech_translate.Logging import logger, current_log
 from speech_translate.utils.DownloadModel import verify_model, download_model, get_default_download_root
@@ -17,6 +17,7 @@ from speech_translate.utils.Helper import startFile
 from speech_translate.utils.Helper_Whisper import convert_str_options_to_dict, get_temperature
 from speech_translate.utils.Record import getDeviceAverageThreshold
 from speech_translate.utils.Style import set_ui_style
+from speech_translate.components.custom.Countdown import CountdownWindow
 from speech_translate.components.custom.MBox import Mbox
 from speech_translate.components.custom.Mbox_Info import Mbox_InfoTb
 from speech_translate.components.custom.Tooltip import CreateToolTip, createMultipleTooltips, CreateToolTipOnText
@@ -46,6 +47,7 @@ class SettingWindow:
         self.fonts.append("TKDefaultFont")
         self.fonts.sort()
         self.initial_theme = ""
+        self.getting_threshold = False
 
         # ------------------ Frames ------------------
         self.frame_top = tk.Frame(self.root)
@@ -177,6 +179,9 @@ class SettingWindow:
         self.f_logging_3 = ttk.Frame(self.lf_logging)
         self.f_logging_3.pack(side=tk.TOP, fill=tk.X, pady=5, padx=5)
 
+        self.f_logging_4 = ttk.Frame(self.lf_logging)
+        self.f_logging_4.pack(side=tk.TOP, fill=tk.X, pady=5, padx=5)
+
         self.lbl_log_location = ttk.Label(self.f_logging_1, text="Log Files Location ", width=16)
         self.lbl_log_location.pack(side=tk.LEFT, padx=5)
 
@@ -192,13 +197,16 @@ class SettingWindow:
         self.cbtn_verbose.pack(side=tk.LEFT, padx=5)
 
         self.cbtn_keep_log = ttk.Checkbutton(self.f_logging_3, text="Keep Log Files", command=lambda: fJson.savePartialSetting("keep_log", self.cbtn_keep_log.instate(["selected"])), style="Switch.TCheckbutton")
-        self.cbtn_keep_log.pack(side=tk.LEFT, padx=5, pady=5)
+        self.cbtn_keep_log.pack(side=tk.LEFT, padx=5)
 
         self.lbl_loglevel = ttk.Label(self.f_logging_3, text="— Log Level")
-        self.lbl_loglevel.pack(side=tk.LEFT, padx=(0, 5), pady=5)
+        self.lbl_loglevel.pack(side=tk.LEFT, padx=(0, 5))
 
         self.cb_log_level = ttk.Combobox(self.f_logging_3, values=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], state="readonly")
-        self.cb_log_level.pack(side=tk.LEFT, padx=0, pady=5)
+        self.cb_log_level.pack(side=tk.LEFT, padx=0)
+
+        self.cbtn_debug_translate = ttk.Checkbutton(self.f_logging_4, text="Debug Translate", command=lambda: fJson.savePartialSetting("debug_translate", self.cbtn_debug_translate.instate(["selected"])), style="Switch.TCheckbutton")
+        self.cbtn_debug_translate.pack(side=tk.LEFT, padx=5, pady=(0, 5))
 
         # model
         self.ft1lf_model = tk.LabelFrame(self.ft_general, text="• Model")
@@ -798,7 +806,7 @@ class SettingWindow:
         self.f_textbox.pack(side=tk.TOP, fill=tk.BOTH, padx=5, pady=5, expand=False)
 
         # mw tc
-        self.lf_mw_tc = tk.LabelFrame(self.f_textbox, text="• Main Window Transcribed Textbox")
+        self.lf_mw_tc = tk.LabelFrame(self.f_textbox, text="• Main Window Transcribed Speech")
         self.lf_mw_tc.pack(side=tk.TOP, padx=5, pady=5, fill=tk.X, expand=True)
 
         self.lbl_mw_tc_max = ttk.Label(self.lf_mw_tc, text="Max Length")
@@ -848,7 +856,7 @@ class SettingWindow:
         self.cbtn_mw_tc_font_bold.pack(side=tk.LEFT, padx=5, pady=5)
 
         # mw tl
-        self.lf_mw_tl = tk.LabelFrame(self.f_textbox, text="• Main Window Translated Textbox")
+        self.lf_mw_tl = tk.LabelFrame(self.f_textbox, text="• Main Window Translated Speech")
         self.lf_mw_tl.pack(side=tk.TOP, padx=5, pady=5, fill=tk.X, expand=True)
 
         self.lbl_mw_tl_max = ttk.Label(self.lf_mw_tl, text="Max Length")
@@ -898,7 +906,7 @@ class SettingWindow:
         self.cbtn_mw_tl_font_bold.pack(side=tk.LEFT, padx=5, pady=5)
 
         # detached tc
-        self.lf_ex_tc = tk.LabelFrame(self.f_textbox, text="• Detached Transcribed Window Textbox")
+        self.lf_ex_tc = tk.LabelFrame(self.f_textbox, text="• Subtitle Window Transcribed Speech")
         self.lf_ex_tc.pack(side=tk.TOP, padx=5, pady=5, fill=tk.X, expand=True)
 
         self.lbl_ex_tc_max = ttk.Label(self.lf_ex_tc, text="Max Length")
@@ -972,7 +980,7 @@ class SettingWindow:
         self.entry_ex_tc_bg_color.bind("<Key>", lambda e: "break")
 
         # detached tl
-        self.lf_ex_tl = tk.LabelFrame(self.f_textbox, text="• Detached Translated Window Textbox")
+        self.lf_ex_tl = tk.LabelFrame(self.f_textbox, text="• Subtitle Window Translated Speech")
         self.lf_ex_tl.pack(side=tk.TOP, padx=5, pady=5, fill=tk.X, expand=True)
 
         self.lbl_ex_tl_max = ttk.Label(self.lf_ex_tl, text="Max Length")
@@ -1045,9 +1053,12 @@ class SettingWindow:
         )
         self.entry_ex_tl_bg_color.bind("<Key>", lambda e: "break")
 
-        # PREVIEW
+        # PREVIEW'
         self.f_textbox_2 = ttk.Frame(self.ft_textbox)
         self.f_textbox_2.pack(side=tk.TOP, fill=tk.X, pady=5)
+
+        self.f_textbox_3 = ttk.Frame(self.ft_textbox)
+        self.f_textbox_3.pack(side=tk.TOP, fill=tk.X, pady=5)
 
         self.tb_preview_1 = tk.Text(
             self.f_textbox_2,
@@ -1057,7 +1068,7 @@ class SettingWindow:
             font=(fJson.settingCache["tb_mw_tc_font"], fJson.settingCache["tb_mw_tc_font_size"], "bold" if fJson.settingCache["tb_mw_tc_font_bold"] else "normal"),
         )
         self.tb_preview_1.bind("<Key>", "break")
-        self.tb_preview_1.insert(tk.END, "1234567 Preview プレビュー 预习 предварительный просмотр")
+        self.tb_preview_1.insert(tk.END, "TC Main window:\n" + PREVIEW_WORDS)
         self.tb_preview_1.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.BOTH, expand=True)
 
         self.tb_preview_2 = tk.Text(
@@ -1068,11 +1079,11 @@ class SettingWindow:
             font=(fJson.settingCache["tb_mw_tl_font"], fJson.settingCache["tb_mw_tl_font_size"], "bold" if fJson.settingCache["tb_mw_tl_font_bold"] else "normal"),
         )
         self.tb_preview_2.bind("<Key>", "break")
-        self.tb_preview_2.insert(tk.END, "1234567 Preview プレビュー 预习 предварительный просмотр")
+        self.tb_preview_2.insert(tk.END, "TL Main window:\n" + PREVIEW_WORDS)
         self.tb_preview_2.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.BOTH, expand=True)
 
         self.tb_preview_3 = tk.Text(
-            self.f_textbox_2,
+            self.f_textbox_3,
             height=5,
             width=27,
             wrap=tk.WORD,
@@ -1081,11 +1092,11 @@ class SettingWindow:
             background=fJson.settingCache["tb_ex_tc_bg_color"],
         )
         self.tb_preview_3.bind("<Key>", "break")
-        self.tb_preview_3.insert(tk.END, "1234567 Preview プレビュー 预习 предварительный просмотр")
+        self.tb_preview_3.insert(tk.END, "TC Subtitle window:\n" + PREVIEW_WORDS)
         self.tb_preview_3.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.BOTH, expand=True)
 
         self.tb_preview_4 = tk.Text(
-            self.f_textbox_2,
+            self.f_textbox_3,
             height=5,
             width=27,
             wrap=tk.WORD,
@@ -1094,7 +1105,7 @@ class SettingWindow:
             background=fJson.settingCache["tb_ex_tl_bg_color"],
         )
         self.tb_preview_4.bind("<Key>", "break")
-        self.tb_preview_4.insert(tk.END, "1234567 Preview プレビュー 预习 предварительный просмотр")
+        self.tb_preview_4.insert(tk.END, "TL Subtitle window:\n" + PREVIEW_WORDS)
         self.tb_preview_4.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.BOTH, expand=True)
 
         # ------------------ Variables ------------------
@@ -1149,6 +1160,7 @@ class SettingWindow:
     def init_setting_once(self):
         # app
         self.cbtnInvoker(fJson.settingCache["keep_log"], self.cbtn_keep_log)
+        self.cbtnInvoker(fJson.settingCache["debug_translate"], self.cbtn_debug_translate)
         self.cbtnInvoker(fJson.settingCache["verbose"], self.cbtn_verbose)
         self.cbtnInvoker(fJson.settingCache["checkUpdateOnStart"], self.cbtn_update_on_start)
         self.cb_log_level.set(fJson.settingCache["log_level"])
@@ -1445,39 +1457,55 @@ class SettingWindow:
         else:
             self.btn_interact_large.configure(text="Downloaded", state=tk.DISABLED)
 
-    def micAutoThreshold(self):
-        Mbox(
-            "Auto Threshold",
-            "AFTER YOU PRESS OK. The program will freeze for 5 seconds. The program will record for 5 seconds after you press OK and try to get the optimal threshold.\nTry not to the mic silent to avoid inaccuracy",
-            0,
-            self.root,
-        )
-
-        # get the threshold from the slider
-        threshold = getDeviceAverageThreshold("mic")
-
-        # set the threshold
+    def get_the_threshold(self, device: Literal["mic", "speaker"]) -> None:
+        self.getting_threshold = True
+        threshold = getDeviceAverageThreshold(device)
         self.spn_threshold_mic.set(str(int(threshold)))
+        fJson.savePartialSetting("mic_energy_threshold" if device == "mic" else "speaker_energy_threshold", threshold)
+        self.getting_threshold = False
 
-        # save
-        fJson.savePartialSetting("mic_energy_threshold", threshold)
+    def micAutoThreshold(self):
+        """
+        Prompt the user to record for 5 seconds and get the optimal threshold for the mic.
+        """
+        if self.getting_threshold:
+            Mbox("Already getting threshold", "Please wait until the current threshold is calculated.", 1)
+            return
+
+        if Mbox(
+            "Auto Threshold - Mic",
+            "After you press `yes` the program will record for 5 seconds and try to get the optimal threshold\n\nTry to keep the device silent to avoid inaccuracy\n\nSelected device: " + fJson.settingCache["mic"] + "\n\n*Press no to cancel",
+            3,
+            self.root,
+        ):
+            # run in thread
+            thread = threading.Thread(target=self.get_the_threshold, args=("mic",), daemon=True)
+            thread.start()
+
+            # show countdown window and wait for it to close
+            CountdownWindow(self.root, 5, "Getting threshold...", "Getting threshold for mic")
+            
 
     def speakerAutoThreshold(self):
-        Mbox(
-            "Auto Threshold",
-            "AFTER YOU PRESS OK. The program will freeze for 5 seconds. The program will record for 5 seconds after you press OK and try to get the optimal threshold.\nTry to keep the device silent to avoid inaccuracy",
-            0,
+        """
+        Prompt the user to record for 5 seconds and get the optimal threshold for the speaker.
+        """
+        if self.getting_threshold:
+            Mbox("Already getting threshold", "Please wait until the current threshold is calculated.", 1)
+            return
+
+        if Mbox(
+            "Auto Threshold - Speaker",
+            "After you press `yes` the program will record for 5 seconds and try to get the optimal threshold\n\nTry to keep the device silent to avoid inaccuracy\n\nSelected device: " + fJson.settingCache["speaker"] + "\n\n*Press no to cancel",
+            3,
             self.root,
-        )
+        ):
+            # run in thread
+            thread = threading.Thread(target=self.get_the_threshold, args=("speaker",), daemon=True)
+            thread.start()
 
-        # get the threshold from the slider
-        threshold = getDeviceAverageThreshold("speaker")
-
-        # set the threshold
-        self.spn_threshold_speaker.set(str(int(threshold)))
-
-        # save
-        fJson.savePartialSetting("speaker_energy_threshold", threshold)
+            # show countdown window and wait for it to close
+            CountdownWindow(self.root, 5, "Getting threshold...", "Getting threshold for speaker")
 
     def fill_theme(self):
         self.cb_theme["values"] = gClass.theme_lists

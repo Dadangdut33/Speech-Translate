@@ -31,6 +31,7 @@ default_setting = {
     "log_level": "DEBUG",  # INFO DEBUG WARNING ERROR
     "auto_scroll_log": True,
     "auto_refresh_log": True,
+    "debug_translate": False,
     # ------------------ #
     # Tl Settings
     "sourceLang": "Auto Detect",

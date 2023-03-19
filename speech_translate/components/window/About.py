@@ -9,6 +9,7 @@ from PIL import Image, ImageTk
 from speech_translate._version import __version__
 from speech_translate.Logging import logger
 from speech_translate._path import app_icon
+from speech_translate._contants import APP_NAME
 from speech_translate.Globals import gClass, fJson
 from speech_translate.utils.Helper import OpenUrl, nativeNotify
 from speech_translate.components.custom.Tooltip import CreateToolTip
@@ -21,7 +22,7 @@ class AboutWindow:
     # ----------------------------------------------------------------------
     def __init__(self, master: tk.Tk):
         self.root = tk.Toplevel(master)
-        self.root.title("About Speech Translate")
+        self.root.title(APP_NAME + " | About")
         self.root.geometry("375x220")
         self.root.wm_withdraw()
 

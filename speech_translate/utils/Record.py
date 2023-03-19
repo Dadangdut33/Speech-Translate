@@ -23,8 +23,6 @@ else:
 
 import wave
 
-from speech_translate._path import app_icon
-from speech_translate._contants import APP_NAME
 from speech_translate.Globals import dir_temp, fJson, gClass, dir_export
 from speech_translate.Logging import logger
 from speech_translate.components.custom.MBox import Mbox
@@ -127,7 +125,7 @@ def checkModelFirst(modelName: str, btn):
 
 
 # --------------------------------------------------------------------------------------------------------------------------------------
-def getDeviceAverageThreshold(deviceType: Literal["mic", "speaker"], duration: int = 3) -> float:
+def getDeviceAverageThreshold(deviceType: Literal["mic", "speaker"], duration: int = 5) -> float:
     """
     Function to get the average threshold of the device.
 
@@ -575,6 +573,7 @@ def realtime_recording_thread(chunk_size: int, rec_type: Literal["mic", "speaker
         if fJson.settingCache["debug_energy"]:
             logger.debug(f"Energy: {energy}")
 
+        # store chunks of audio in queue
         if not fJson.settingCache["enable_threshold"]:  # record regardless of energy
             gClass.data_queue.put(data)
         elif energy > fJson.settingCache[f"{rec_type}_energy_threshold"] and fJson.settingCache["enable_threshold"]:  # only record if energy is above threshold
@@ -594,7 +593,7 @@ def whisper_realtime_tl(
     initial_prompt,
     whisper_extra_args,
 ):
-    """Translate the result"""
+    """Translate the result of realtime_recording_thread using whisper model"""
     assert gClass.mw is not None
     gClass.enableTranslating()
 
@@ -636,7 +635,7 @@ def whisper_realtime_tl(
 
 
 def realtime_tl(text: str, lang_source: str, lang_target: str, engine: Literal["Google", "LibreTranslate", "MyMemoryTranslator"]):
-    """Translate the result"""
+    """Translate the result of realtime_recording_thread using translation API"""
     assert gClass.mw is not None
     gClass.enableTranslating()
 
@@ -644,19 +643,20 @@ def realtime_tl(text: str, lang_source: str, lang_target: str, engine: Literal["
         global prev_tl_text, sentences_tl
         separator = ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))
         result_Tl = ""
+        debug_log = fJson.settingCache["debug_translate"]
     
         if engine == "Google":
-            success, result_Tl = google_tl(text, lang_source, lang_target)
+            success, result_Tl = google_tl(text, lang_source, lang_target, debug_log)
             if not success:
                 nativeNotify("Error: translation with google failed", result_Tl)
 
         elif engine == "LibreTranslate":
-            success, result_Tl = libre_tl(text, lang_source, lang_target, fJson.settingCache["libre_https"], fJson.settingCache["libre_host"], fJson.settingCache["libre_port"], fJson.settingCache["libre_api_key"])
+            success, result_Tl = libre_tl(text, lang_source, lang_target, fJson.settingCache["libre_https"], fJson.settingCache["libre_host"], fJson.settingCache["libre_port"], fJson.settingCache["libre_api_key"], debug_log)
             if not success:
                 nativeNotify("Error: translation with libre failed", result_Tl)
 
         elif engine == "MyMemoryTranslator":
-            success, result_Tl = memory_tl(text, lang_source, lang_target)
+            success, result_Tl = memory_tl(text, lang_source, lang_target, debug_log)
             if not success:
                 nativeNotify("Error: translation with mymemory failed", str(result_Tl))
 
@@ -704,7 +704,36 @@ def cancellable_tl(
     initial_prompt,
     whisper_extra_args,
 ):
-    """Translate the result"""
+    """
+    Translate the result of file input using either whisper model or translation API
+    This function is cancellable with the cancel flag that is set by the cancel button and will be checked periodically every 0.1 seconds
+    If the cancel flag is set, the function will raise an exception to stop the thread
+
+    We use thread instead of multiprocessing because it seems to be faster and easier to use
+
+    Args
+    ----
+    toTranslate: str
+        audio file path if engine is whisper, text in .srt format if engine is translation API
+    lang_source: str
+        source language
+    lang_target: str
+        target language
+    modelName: str
+        name of the whisper model
+    engine: Literal["Whisper", "Google", "LibreTranslate", "MyMemoryTranslator"]
+        engine to use
+    auto: bool
+        whether to use auto language detection
+    saveName: str
+        name of the file to save the translation to
+    **whisper_extra_args:
+        extra arguments for whisper
+
+    Returns
+    -------
+    None
+    """
     assert gClass.mw is not None
     gClass.enableTranslating()
     gClass.mw.start_loadBar()
@@ -788,24 +817,25 @@ def cancellable_tl(
                 toTranslates_txt.append(toTranslate)
                 timestamps.append(timestamp)
             result_Tl = []
+            debug_log = fJson.settingCache["debug_translate"]
 
             # translate each part
             for toTranslate, timestamp in zip(toTranslates_txt, timestamps):
                 if engine == "Google":
                     logger.debug("Translating with google translate")
-                    success, result = google_tl(toTranslate, lang_source, lang_target)
+                    success, result = google_tl(toTranslate, lang_source, lang_target, debug_log)
                     if not success:
                         nativeNotify("Error: translation with google failed", result)
 
                 elif engine == "LibreTranslate":
                     logger.debug("Translating with libre translate")
-                    success, result = libre_tl(toTranslate, lang_source, lang_target, fJson.settingCache["libre_https"], fJson.settingCache["libre_host"], fJson.settingCache["libre_port"], fJson.settingCache["libre_api_key"])
+                    success, result = libre_tl(toTranslate, lang_source, lang_target, fJson.settingCache["libre_https"], fJson.settingCache["libre_host"], fJson.settingCache["libre_port"], fJson.settingCache["libre_api_key"], debug_log)
                     if not success:
                         nativeNotify("Error: translation with libre failed", result)
 
                 elif engine == "MyMemoryTranslator":
                     logger.debug("Translating with mymemorytranslator")
-                    success, result = memory_tl(toTranslate, lang_source, lang_target)
+                    success, result = memory_tl(toTranslate, lang_source, lang_target, debug_log)
                     if not success:
                         nativeNotify("Error: translation with mymemory failed", result)
 
@@ -859,7 +889,35 @@ def cancellable_tc(
     initial_prompt,
     whisper_extra_args,
 ) -> None:
-    """Transcribe Audio using whisper in a cancellable thread"""
+    """
+    Transcribe and translate audio/video file with whisper.
+    Also cancelable like the cancellable_tl function
+
+    Args
+    ----
+    audio_name: str
+        path to file
+    lang_source: str
+        source language
+    lang_target: str
+        target language
+    modelName: str
+        name of the model to use
+    auto: bool
+        if True, source language will be auto detected
+    transcribe: bool
+        if True, transcribe the audio
+    translate: bool
+        if True, translate the transcription
+    engine: Literal["Whisper", "Google", "LibreTranslate", "MyMemoryTranslator"]
+        engine to use for translation
+    **whisper_extra_args:
+        extra arguments for whisper
+
+    Returns
+    -------
+    None
+    """
     assert gClass.mw is not None
     gClass.enableTranscribing()
     gClass.mw.start_loadBar()
@@ -912,6 +970,7 @@ def cancellable_tc(
         saveName = datetime.now().strftime("%Y-%m-%d %H_%M_%S_%f") + " " + audioNameOnly
         export_to = dir_export if fJson.settingCache["dir_export"] == "auto" else fJson.settingCache["dir_export"]
 
+        # export if transcribe mode is on
         if transcribe:
             resultTxt = result_Tc["text"].strip()  # type: ignore
 
@@ -930,6 +989,7 @@ def cancellable_tc(
                 gClass.insertMwTbTc(f"Transcribed File {audioNameOnly} is empty (no text get from transcription) so it's not saved" + separator)
                 logger.warning("Transcribed Text is empty")
 
+        # start translation thread if translate mode is on
         if translate:
             # send result as srt if not using whisper because it will be send to translation API. If using whisper translation will be done using whisper model
             toTranslate = whisper_result_to_srt(result_Tc) if engine != "Whisper" else audio_name
@@ -967,18 +1027,27 @@ def cancellable_tc(
         gClass.mw.stop_loadBar()
 
 def from_file(files: List[str], modelInput: str, langSource: str, langTarget: str, transcribe: bool, translate: bool, engine: str) -> None:
-    """Function to record audio from default microphone. It will then transcribe/translate the audio depending on the input.
+    """Function to transcribe and translate from audio/video files.
 
-    Args:
-        files (list[str]): The path to the audio/video file.
-        modelInput (str): The model to use for the input.
-        langSource (str): The language of the input.
-        langTarget (str): The language to translate to.
-        transcibe (bool): Whether to transcribe the audio.
-        translate (bool): Whether to translate the audio.
-        engine (str): The engine to use for the translation.
+    Args
+    ----
+    files (list[str])
+        The path to the audio/video file.
+    modelInput (str)
+        The model to use for the input.
+    langSource (str)
+        The language of the input.
+    langTarget (str)
+        The language to translate to.
+    transcibe (bool)
+        Whether to transcribe the audio.
+    translate (bool)
+        Whether to translate the audio.
+    engine (str)
+        The engine to use for the translation.
 
-    Returns:
+    Returns
+    -------
         None
     """
     startProc = time()
