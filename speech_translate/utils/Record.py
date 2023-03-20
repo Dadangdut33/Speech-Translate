@@ -6,7 +6,6 @@ import ast
 import shlex
 import numpy
 from textwrap import wrap
-from multiprocessing import Process
 from datetime import datetime, timedelta
 from time import sleep, time
 from typing import Literal, List
@@ -14,14 +13,12 @@ from typing import Literal, List
 import whisper
 import sounddevice as sd
 import audioop
-
+import wave
 
 if platform.system() == "Windows":
     import pyaudiowpatch as pyaudio
 else:
     import pyaudio  # type: ignore
-
-import wave
 
 from speech_translate.Globals import dir_temp, fJson, gClass, dir_export
 from speech_translate.Logging import logger
@@ -30,7 +27,6 @@ from speech_translate.components.custom.MBox import Mbox
 from .Helper import nativeNotify, startFile, getFileNameOnlyFromPath 
 from .Helper_Whisper import get_temperature, convert_str_options_to_dict, modelSelectDict, whisper_result_to_srt, srt_whisper_to_txt_format, srt_whisper_to_txt_format_stamps, txt_to_srt_whisper_format_stamps
 from .Translator import google_tl, libre_tl, memory_tl
-from .DownloadModel import check_model, download_model, verify_model
 
 
 def getInputDevices():
@@ -96,32 +92,6 @@ def verboseWhisperLogging(result):
         logger.debug(f"Avg Logprob: {segment['avg_logprob']}")
         logger.debug(f"Compression Ratio: {segment['compression_ratio']}")
         logger.debug(f"No Speech Prob: {segment['no_speech_prob']}")
-
-
-def checkModelFirst(modelName: str, btn):
-    # check if model is downloaded
-    if check_model(modelName) is False:
-        btn.config(text="Downloading model... (Click to cancel)")
-        logger.info("Model is not yet downloaded")
-
-        gClass.dl_proc = Process(target=download_model, args=[modelName], daemon=True)
-        gClass.dl_proc.start()
-        nativeNotify("Downloading Model", "Downloading model for the first time. This may take a while. (Check the console/log for progress)")
-        gClass.dl_proc.join()
-
-    # verify downloaded model
-    elif verify_model(modelName) is False:
-        btn.config(text="Downloading model... (Click to cancel)")
-        logger.info("Model is downloaded but checksum does not match")
-        logger.info("Redownloading the model")
-
-        gClass.dl_proc = Process(target=download_model, args=[modelName], daemon=True)
-        gClass.dl_proc.start()
-        nativeNotify("Downloading Model", "Model is downloaded but checksum does not match. Redownloading the model. This may take a while. (Check the console/log for progress)")
-        gClass.dl_proc.join()
-
-    # after it is done
-    gClass.dl_proc = None
 
 
 # --------------------------------------------------------------------------------------------------------------------------------------
@@ -315,20 +285,11 @@ def rec_realTime(
     max_record_time = int(fJson.settingCache["speaker_maxBuffer"]) if speaker else int(fJson.settingCache["mic_maxBuffer"])
     task = "translate" if whisperEngine and translate and not transcribe else "transcribe"  # if only translate to english using whisper engine
 
-    assert gClass.mw is not None
-    # check if model is downloaded
-    checkModelFirst(modelName, gClass.mw.btn_record_mic if not speaker else gClass.mw.btn_record_speaker)
-    if not gClass.recording:  # if cancel button is pressed while downloading
-        if speaker:
-            gClass.mw.after_speaker_rec_stop()
-        else:
-            gClass.mw.after_mic_rec_stop()
-        return
-
     # load model
     model: whisper.Whisper = whisper.load_model(modelName)
 
     # stop loadbar
+    assert gClass.mw is not None
     gClass.mw.stop_loadBar("mic" if not speaker else "pc")
 
     # ----------------- Start recording -----------------
@@ -1095,9 +1056,6 @@ def from_file(files: List[str], modelInput: str, langSource: str, langTarget: st
     # update button text
     assert gClass.mw is not None
     gClass.mw.btn_import_file.config(text="Cancel")  # type: ignore
-
-    # first check if model is downloaded
-    checkModelFirst(modelName, gClass.mw.btn_import_file)
 
     for file in files:
         if not gClass.recording:  # if cancel button is pressed while downloading

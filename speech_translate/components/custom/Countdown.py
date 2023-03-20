@@ -29,11 +29,11 @@ class CountdownWindow:
         self.mf.pack(side=tk.TOP, fill=tk.BOTH, padx=5, pady=5, expand=True)
         
         self.lbl = ttk.Label(self.mf, text=f"Current Task: {taskname}\nTask will be done in: {countdown}")
-        self.lbl.pack(side=tk.TOP, fill=tk.BOTH, padx=5, pady=5, expand=True)
+        self.lbl.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5, expand=True)
 
         if cancelFunc:
             self.btn = ttk.Button(self.mf, text="Cancel", command=cancelFunc)
-            self.btn.pack(side=tk.BOTTOM, fill=tk.BOTH, padx=5, pady=5, expand=True)
+            self.btn.pack(side=tk.BOTTOM, fill=tk.X, padx=5, pady=5, expand=True)
 
         self.root.after(1000, self.countdown, countdown)
 

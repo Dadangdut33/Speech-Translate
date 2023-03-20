@@ -4,8 +4,6 @@ import threading
 import random
 import tkinter as tk
 from tkinter import ttk, font, colorchooser, filedialog
-from multiprocessing import Process
-from time import sleep
 from typing import Literal
 
 from speech_translate._path import app_icon
@@ -1357,45 +1355,33 @@ class SettingWindow:
         else:
             btn.configure(text="Downloaded", state=tk.DISABLED)
 
-    def downloadCheck_thread(self, model: str, btn: ttk.Button) -> None:
-        while gClass.dl_proc is not None and gClass.dl_proc.is_alive():  # type: ignore
-            sleep(1)
-        else:
-            if verify_model(model):
-                btn.configure(text="Downloaded", state=tk.DISABLED)
-                Mbox("Download complete", "Model downloaded successfully!", 0, self.root)
-
     def modelDownload(self, model: str, btn: ttk.Button) -> None:
         # if already downloading then return
-        if gClass.dl_proc is not None:
+        if gClass.dl_thread and gClass.dl_thread.is_alive():
             Mbox("Already downloading", "Please wait for the current download to finish.", 0, self.root)
             return
 
+        # verify first
+        if verify_model(model): # already downloaded
+            btn.configure(text="Downloaded", state=tk.DISABLED)
+            return
+
         # Download model
-        gClass.dl_proc = Process(target=download_model, args=(model,), daemon=True)
-        gClass.dl_proc.start()
+        try:
+            def after_func():
+                btn.configure(text="Downloaded", state=tk.DISABLED)
 
-        # Update button
-        btn.configure(text="Downloading... (Click to cancel)", command=lambda: self.modelDownloadCancel(model, btn))
+            gClass.dl_thread = threading.Thread(target=download_model, args=(model, self.root, lambda: self.modelDownloadCancel(model, btn), after_func), daemon=True)
+            gClass.dl_thread.start()
 
-        # notify
-        Mbox("Downloading model...", "Check the log / terminal for more information", 0, self.root)
-
-        # Check if model is downloaded
-        thread = threading.Thread(target=self.downloadCheck_thread, args=(model, btn), daemon=True)
-        thread.start()
+            btn.configure(text="Downloading...", state=tk.DISABLED)
+        except Exception as e:
+            btn.configure(text="Download", command=lambda: self.modelDownload(model, btn), state=tk.NORMAL)
+            Mbox("Download error", f"Err details: {e}", 0, self.root)
 
     def modelDownloadCancel(self, model: str, btn: ttk.Button) -> None:
-        # Kill process
-        if gClass.dl_proc is not None:
-            gClass.dl_proc.terminate()
-            gClass.dl_proc = None
-
-        # Update button
-        btn.configure(text="Download", command=lambda: self.modelDownload(model, btn))
-
-        # notify
-        Mbox("Download cancelled.", "Model download cancelled.", 0, self.root)
+        btn.configure(text="Download", command=lambda: self.modelDownload(model, btn), state=tk.NORMAL)
+        gClass.cancel_dl = True # Raise flag to stop
 
     def checkModelOnStart(self):
         """

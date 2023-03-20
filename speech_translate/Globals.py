@@ -4,7 +4,8 @@ import ast
 import shlex
 import arabic_reshaper
 from tkinter import ttk
-from multiprocessing import Process, Queue
+from threading import Thread
+from multiprocessing import Queue
 from typing import Optional, List
 from ._path import dir_temp, dir_log, dir_export, dir_user
 from ._contants import SUBTITLE_PLACEHOLDER, RESHAPE_LANG_LIST
@@ -38,8 +39,9 @@ class Globals:
         self.theme_lists: List[str] = []
         self.style: Optional[ttk.Style] = None
 
-        # process
-        self.dl_proc: Optional[Process] = None
+        # model download
+        self.dl_thread: Optional[Thread] = None
+        self.cancel_dl: bool = False
 
         self.cw = None # Console window
         # References to class

@@ -29,6 +29,7 @@ from speech_translate.components.window.TL_win import TlsWindow
 from speech_translate.components.custom.MBox import Mbox
 from speech_translate.components.custom.Tooltip import CreateToolTip
 
+from speech_translate.utils.DownloadModel import verify_model, download_model
 from speech_translate.utils.Helper import tb_copy_only, nativeNotify
 from speech_translate.utils.Style import set_ui_style, init_theme, get_theme_list, get_current_theme
 from speech_translate.utils.Helper import upFirstCase, startFile
@@ -431,10 +432,9 @@ class MainWindow:
         gClass.ex_tlw.root.destroy()  # type: ignore
         self.root.destroy()
 
-        if gClass.dl_proc is not None:
+        if gClass.dl_thread and gClass.dl_thread.is_alive():
             logger.info("Killing download process...")
-            gClass.dl_proc.terminate()
-            gClass.dl_proc = None
+            gClass.cancel_dl = True
 
         logger.info("Exiting...")
         try:
@@ -800,17 +800,40 @@ class MainWindow:
             self.export_tc()
             self.export_tl()
 
+    def modelDownloadCancel(self):
+        gClass.cancel_dl = True # Raise flag to stop
+
+    def after_model_dl(self, taskname, task):
+        # ask if user wants to continue using the model
+        if Mbox("Model is now Ready!", f"Continue task? ({taskname})", 3, self.root):
+            task()
+        
     # ------------------ Rec ------------------
     # From mic
     def mic_rec(self):
-        if gClass.dl_proc and gClass.dl_proc.is_alive():
-            Mbox("Please wait!", "Model is still downloading! Please wait... You can check the progress in the terminal", 1)
+        if gClass.dl_thread and gClass.dl_thread.is_alive():
+            Mbox("Please wait! A model is being downloaded", "A Model is still being downloaded! Please wait until it finishes first!", 1)
             return
 
         # Checking args
         mode, model, engine, sourceLang, targetLang, mic, speaker = self.get_args()
         if sourceLang == targetLang and mode == 2:
             Mbox("Invalid options!", "Source and target language cannot be the same", 2)
+            return
+
+        # check model first
+        modelCheck = modelSelectDict[model]
+        if model != "large" and sourceLang == "english":
+            modelCheck = model + ".en"
+        if not verify_model(modelCheck):
+            if Mbox("Model is not downloaded yet!", f"`{modelCheck}` Model not found! You will need to download it first!\n\nDo you want to download it now?", 3, self.root):
+                logger.info("Downloading model...")
+                try:
+                    gClass.dl_thread = threading.Thread(target=download_model, args=(modelCheck, self.root, self.modelDownloadCancel, lambda: self.after_model_dl("mic record", self.mic_rec)), daemon=True)
+                    gClass.dl_thread.start()
+                except Exception as e:
+                    logger.exception(e)
+                    self.errorNotif(str(e))
             return
 
         # ui changes
@@ -836,11 +859,6 @@ class MainWindow:
         logger.info("Recording Mic Stopped")
         gClass.disableRecording()
 
-        if gClass.dl_proc is not None:
-            gClass.dl_proc.terminate()
-            gClass.dl_proc = None
-            Mbox("Model Download Cancelled", "Cancelled model downloading", 0, self.root)
-
         self.btn_record_mic.config(text="Stopping...", state="disabled")
 
     def after_mic_rec_stop(self):
@@ -854,10 +872,6 @@ class MainWindow:
 
     # From pc
     def speaker_rec(self):
-        if gClass.dl_proc and gClass.dl_proc.is_alive():
-            Mbox("Please wait!", "Model is still downloading! Please wait... You can check the progress in the terminal", 1)
-            return
-
         # check if on windows or not
         if platform.system() != "Windows":
             Mbox(
@@ -869,11 +883,30 @@ class MainWindow:
                 self.root,
             )
             return
+            
+        if gClass.dl_thread and gClass.dl_thread.is_alive():
+            Mbox("Please wait! A model is being downloaded", "A Model is still being downloaded! Please wait until it finishes first!", 1)
+            return
 
         # Checking args
         mode, model, engine, sourceLang, targetLang, mic, speaker = self.get_args()
         if sourceLang == targetLang and mode == 2:
             Mbox("Invalid options!", "Source and target language cannot be the same", 2)
+            return
+
+        # check model first
+        modelCheck = modelSelectDict[model]
+        if model != "large" and sourceLang == "english":
+            modelCheck = model + ".en"
+        if not verify_model(modelCheck):
+            if Mbox("Model is not downloaded yet!", f"`{modelCheck}` Model not found! You will need to download it first!\n\nDo you want to download it now?", 3, self.root):
+                logger.info("Downloading model...")
+                try:
+                    gClass.dl_thread = threading.Thread(target=download_model, args=(modelCheck, self.root, self.modelDownloadCancel, lambda: self.after_model_dl("speaker record", self.speaker_rec)), daemon=True)
+                    gClass.dl_thread.start()
+                except Exception as e:
+                    logger.exception(e)
+                    self.errorNotif(str(e))
             return
 
         # ui changes
@@ -899,11 +932,6 @@ class MainWindow:
         logger.info("Recording PC Stopped")
         gClass.disableRecording()
 
-        if gClass.dl_proc is not None:
-            gClass.dl_proc.terminate()
-            gClass.dl_proc = None
-            Mbox("Model Download Cancelled", "Cancelled model downloading", 0, self.root)
-
         self.btn_record_speaker.config(text="Stopping...", state="disabled")
 
     def after_speaker_rec_stop(self):
@@ -917,14 +945,29 @@ class MainWindow:
 
     # From file
     def from_file(self):
-        if gClass.dl_proc and gClass.dl_proc.is_alive():
-            Mbox("Please wait!", "Model is still downloading! Please wait... You can check the progress in the terminal", 1)
+        if gClass.dl_thread and gClass.dl_thread.is_alive():
+            Mbox("Please wait! A model is being downloaded", "A Model is still being downloaded! Please wait until it finishes first!", 1)
             return
 
         # Checking args
         mode, model, engine, sourceLang, targetLang, mic, speaker = self.get_args()
         if sourceLang == targetLang and mode == 2:
             Mbox("Invalid options!", "Source and target language cannot be the same", 2)
+            return
+
+        # check model first
+        modelCheck = modelSelectDict[model]
+        if model != "large" and sourceLang == "english":
+            modelCheck = model + ".en"
+        if not verify_model(modelCheck):
+            if Mbox("Model is not downloaded yet!", f"`{modelCheck}` Model not found! You will need to download it first!\n\nDo you want to download it now?", 3, self.root):
+                logger.info("Downloading model...")
+                try:
+                    gClass.dl_thread = threading.Thread(target=download_model, args=(modelCheck, self.root, self.modelDownloadCancel, lambda: self.after_model_dl("file import", self.from_file)), daemon=True)
+                    gClass.dl_thread.start()
+                except Exception as e:
+                    logger.exception(e)
+                    self.errorNotif(str(e))
             return
 
         # get file
@@ -960,11 +1003,6 @@ class MainWindow:
         gClass.disableRecording()
         gClass.disableTranscribing()
         gClass.disableTranslating()
-
-        if gClass.dl_proc is not None:
-            gClass.dl_proc.terminate()
-            gClass.dl_proc = None
-            Mbox("Model Download Cancelled", "Cancelled model downloading", 0, self.root)
 
         Mbox("Cancelled", "Cancelled file import processing", 0, self.root)
 

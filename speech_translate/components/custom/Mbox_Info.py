@@ -64,11 +64,9 @@ class Mbox_InfoTb:
             id = self.id
             opened.remove(id)
         except ValueError as e:
-            print(e)
             pass
 
         try:
             self.root.destroy()
         except tk.TclError as e:
-            print(e)
             pass
