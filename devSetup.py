@@ -7,8 +7,6 @@ req = "requirements"
 # check if not windows
 if platform.system() != "Windows":
     pip = "pip3"
-    req = "requirements_notwindows"
-
 
 def install_requirements():
     os.system(f"{pip} install -r {req}.txt")

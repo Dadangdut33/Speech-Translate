@@ -3,7 +3,7 @@ notify-py==0.3.42
 pillow==9.4.0
 pywin32==305; platform_system == "Windows"
 PyAudioWPatch==0.2.12.5; platform_system == "Windows"
-PyAudio==2.0.18; platform_system != "Windows"
+PyAudio==0.2.13; platform_system != "Windows"
 pystray==0.19.4
 requests==2.28.1
 scipy==1.9.3
