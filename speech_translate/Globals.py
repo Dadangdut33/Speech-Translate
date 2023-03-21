@@ -180,7 +180,7 @@ class Globals:
         currentText = self.ex_tlw.labelText.cget("text").strip()
         textToAppend = textToAppend.strip()
         # Main window textbox
-        if fJson.settingCache["tb_ex_tc_max"] != 0 and len(currentText) > fJson.settingCache["tb_ex_tc_max"]:  # if not infinite and text is too long
+        if fJson.settingCache["tb_ex_tl_max"] != 0 and len(currentText) > fJson.settingCache["tb_ex_tl_max"]:  # if not infinite and text is too long
             currentText = currentText[len(textToAppend) :]  # remove words from the start with length of the new text
             currentText += textToAppend  # add new text to the end
             textToAppend = currentText  # set new text

@@ -56,7 +56,6 @@ options = [
     "--copy-metadata=packaging",
     "--copy-metadata=filelock",
     "--copy-metadata=numpy",
-    "--copy-metadata=tokenizers",
     "--exclude-module=pyinstaller",
 ]
 
@@ -72,11 +71,17 @@ args = parser.parse_args(options)
 run_makespec(**vars(args))
 
 # Edit spec folder
+folderName = f"{specName} {get_env_name()}"
 specFile = f"{specName}.spec"
 spec = ""
 with open(specFile, "r") as f:
     spec = f.read()
+    # add recursion limit after copy_metadata
+    spec = spec.replace("copy_metadata", "copy_metadata\nimport sys\nsys.setrecursionlimit(5000)", 1)
+    # rename the exe file
     spec = spec.replace(f"name='{specName}'", f"name='SpeechTranslate'", 1)
+    # rename the build folder name, add venv name to it
+    spec = spec.replace(f"name='{specName}'", f"name='{folderName}'", 1)
 
 # write spec file
 with open(specFile, "w") as f:
@@ -95,18 +100,19 @@ run([specFile, "--noconfirm", "--clean"])
 print(">> Deleting created license.txt file")
 os.remove("LICENSE.txt")
 
-output_folder = f"dist/{specName}"
+output_folder = f"dist/{folderName}"
 
 # create lib folder in output folder
 lib_folder = f"{output_folder}/lib"
 os.mkdir(lib_folder)
 
-# move all .dll .pyd files to lib folder with some exception
+# move all .dll .pyd files to lib folder with some whitelist
+# whitelist some dll files and numpy dependencies (libopenblas)
 print(">> Moving .dll files to lib folder")
-dontMove = ["python3.dll", "python310.dll", "python38.dll", "python39.dll", "libopenblas64__v0.3.21-gcc_10_3_0.dll"]
+dontMove = ["python3.dll", "python310.dll", "python38.dll", "python39.dll"]
 for file in os.listdir(output_folder):
     if file.endswith(".dll") or file.endswith(".pyd"):
-        if file not in dontMove:
+        if file not in dontMove and "libopenblas" not in file:
             shutil.move(f"{output_folder}/{file}", f"{lib_folder}/{file}")
 
 # open folder

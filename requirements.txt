@@ -10,7 +10,7 @@ scipy==1.9.3
 sounddevice==0.4.6
 soundfile==0.11.0
 darkdetect==0.8.0
-pyinstaller==5.8.0
+pyinstaller==5.9.0
 arabic-reshaper==3.0.0
 git+https://github.com/openai/whisper.git 
 git+https://github.com/linto-ai/whisper-timestamped.git
