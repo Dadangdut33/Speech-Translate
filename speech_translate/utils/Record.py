@@ -756,7 +756,7 @@ def cancellable_tl(
 
             if len(resultsTxt) > 0:
                 gClass.file_tled_counter += 1
-                resultSrt = whisper_result_to_srt(resultsTxt)
+                resultSrt = whisper_result_to_srt(result_Tl_whisper)
 
                 with open(os.path.join(export_to, f"{saveName}_translated.txt"), "w", encoding="utf-8") as f:
                     f.write(resultsTxt)
