@@ -314,7 +314,7 @@ class SettingWindow:
         self.lf_model_large = ttk.LabelFrame(self.lf_md_dl9, text="Large")
         self.lf_model_large.pack(side=tk.LEFT)
 
-        self.btn_interact_large = ttk.Button(self.lf_model_large, text="Verify", command=lambda: self.model_check("large", self.btn_interact_large))
+        self.btn_interact_large = ttk.Button(self.lf_model_large, text="Verify", command=lambda: self.model_check("large-v2", self.btn_interact_large))
         self.btn_interact_large.pack(side=tk.LEFT, padx=5)
 
         # ------------------ Transcribe  ------------------
@@ -1396,7 +1396,7 @@ class SettingWindow:
         checkSmallEn = verify_model("small.en")
         checkMedium = verify_model("medium")
         checkMediumEn = verify_model("medium.en")
-        checkLarge = verify_model("large")
+        checkLarge = verify_model("large-v2")
 
         if not checkTiny:
             self.btn_interact_tiny.configure(text="Download", command=lambda: self.modelDownload("tiny", self.btn_interact_tiny))
@@ -1439,7 +1439,7 @@ class SettingWindow:
             self.btn_interact_medium_eng.configure(text="Downloaded", state=tk.DISABLED)
 
         if not checkLarge:
-            self.btn_interact_large.configure(text="Download", command=lambda: self.modelDownload("large", self.btn_interact_large))
+            self.btn_interact_large.configure(text="Download", command=lambda: self.modelDownload("large-v2", self.btn_interact_large))
         else:
             self.btn_interact_large.configure(text="Downloaded", state=tk.DISABLED)
 

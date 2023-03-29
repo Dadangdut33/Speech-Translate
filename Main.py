@@ -823,8 +823,8 @@ class MainWindow:
 
         # check model first
         modelCheck = modelSelectDict[model]
-        if model != "large" and sourceLang == "english":
-            modelCheck = model + ".en"
+        if modelCheck != "large-v2" and sourceLang == "english":
+            modelCheck = modelCheck + ".en"
         if not verify_model(modelCheck):
             if Mbox("Model is not downloaded yet!", f"`{modelCheck}` Model not found! You will need to download it first!\n\nDo you want to download it now?", 3, self.root):
                 logger.info("Downloading model...")
@@ -896,8 +896,8 @@ class MainWindow:
 
         # check model first
         modelCheck = modelSelectDict[model]
-        if model != "large" and sourceLang == "english":
-            modelCheck = model + ".en"
+        if modelCheck != "large-v2" and sourceLang == "english":
+            modelCheck = modelCheck + ".en"
         if not verify_model(modelCheck):
             if Mbox("Model is not downloaded yet!", f"`{modelCheck}` Model not found! You will need to download it first!\n\nDo you want to download it now?", 3, self.root):
                 logger.info("Downloading model...")
@@ -957,8 +957,8 @@ class MainWindow:
 
         # check model first
         modelCheck = modelSelectDict[model]
-        if model != "large" and sourceLang == "english":
-            modelCheck = model + ".en"
+        if modelCheck != "large-v2" and sourceLang == "english":
+            modelCheck = modelCheck + ".en"
         if not verify_model(modelCheck):
             if Mbox("Model is not downloaded yet!", f"`{modelCheck}` Model not found! You will need to download it first!\n\nDo you want to download it now?", 3, self.root):
                 logger.info("Downloading model...")

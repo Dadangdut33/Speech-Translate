@@ -234,7 +234,7 @@ def rec_realTime(
 
     # there are no english models for large
     modelName = modelSelectDict[modelInput]
-    if modelName != "large" and src_english:
+    if modelName != "large-v2" and src_english:
         modelName = modelName + ".en"
 
     # read from settings
@@ -1022,7 +1022,7 @@ def from_file(files: List[str], modelInput: str, langSource: str, langTarget: st
 
     # there are no english models for large
     modelName = modelSelectDict[modelInput]
-    if modelName != "large" and src_english:
+    if modelName != "large-v2" and src_english:
         modelName = modelName + ".en"
 
     compression_ratio_threshold = fJson.settingCache["compression_ratio_threshold"]
