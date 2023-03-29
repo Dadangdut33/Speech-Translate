@@ -46,6 +46,7 @@ class SettingWindow:
         self.fonts.sort()
         self.initial_theme = ""
         self.getting_threshold = False
+        self.model_checked = False
 
         # ------------------ Frames ------------------
         self.frame_top = tk.Frame(self.root)
@@ -217,6 +218,9 @@ class SettingWindow:
         self.f_model_2 = ttk.Frame(self.ft1lf_model)
         self.f_model_2.pack(side=tk.TOP, fill=tk.X, padx=5)
 
+        self.f_model_3 = ttk.Frame(self.ft1lf_model)
+        self.f_model_3.pack(side=tk.TOP, fill=tk.X, padx=5)
+
         self.lbl_model_location = ttk.Label(self.f_model_1, text="Model Location ", width=16)
         self.lbl_model_location.pack(side=tk.LEFT, padx=5)
 
@@ -307,15 +311,25 @@ class SettingWindow:
         self.btn_interact_medium_eng = ttk.Button(self.lf_model_medium_eng, text="Verify", command=lambda: self.model_check("medium.en", self.btn_interact_medium_eng))
         self.btn_interact_medium_eng.pack(side=tk.LEFT, padx=5)
 
-        # large
+        # large v1
         self.lf_md_dl9 = ttk.Frame(self.f_model_2)
         self.lf_md_dl9.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
 
-        self.lf_model_large = ttk.LabelFrame(self.lf_md_dl9, text="Large")
-        self.lf_model_large.pack(side=tk.LEFT)
+        self.lf_model_large_v1 = ttk.LabelFrame(self.lf_md_dl9, text="Large (v1)")
+        self.lf_model_large_v1.pack(side=tk.LEFT)
 
-        self.btn_interact_large = ttk.Button(self.lf_model_large, text="Verify", command=lambda: self.model_check("large-v2", self.btn_interact_large))
-        self.btn_interact_large.pack(side=tk.LEFT, padx=5)
+        self.btn_interact_large_v1 = ttk.Button(self.lf_model_large_v1, text="Verify", command=lambda: self.model_check("large-v1", self.btn_interact_large_v1))
+        self.btn_interact_large_v1.pack(side=tk.LEFT, padx=5)
+
+        # large v2
+        self.lf_md_dl10 = ttk.Frame(self.f_model_2)
+        self.lf_md_dl10.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+
+        self.lf_model_large_v2 = ttk.LabelFrame(self.lf_md_dl10, text="Large (v2)")
+        self.lf_model_large_v2.pack(side=tk.LEFT)
+
+        self.btn_interact_large_v2 = ttk.Button(self.lf_model_large_v2, text="Verify", command=lambda: self.model_check("large-v2", self.btn_interact_large_v2))
+        self.btn_interact_large_v2.pack(side=tk.LEFT, padx=5)
 
         # ------------------ Transcribe  ------------------
         self.lf_tc_result = tk.LabelFrame(self.ft_transcribe, text="• Result")
@@ -1113,7 +1127,6 @@ class SettingWindow:
         # ------------------ Functions ------------------
         self.on_close()  # hide window on start
         self.init_threaded()
-        self.checkModelOnStart()
         self.init_setting_once()
         self.bind_focus_on_frame_recursively(self.root)
 
@@ -1136,6 +1149,9 @@ class SettingWindow:
 
     def show(self):
         self.root.after(0, self.root.deiconify)
+
+        if not self.model_checked:
+            threading.Thread(target=self.checkModelOnStart, daemon=True).start()
 
     def bind_focus_on_frame_recursively(self, root_widget):
         widgets = root_widget.winfo_children()
@@ -1383,65 +1399,36 @@ class SettingWindow:
         btn.configure(text="Download", command=lambda: self.modelDownload(model, btn), state=tk.NORMAL)
         gClass.cancel_dl = True # Raise flag to stop
 
+    def modelBtnChecker(self, model: str, btn: ttk.Button) -> None:
+        """
+        Helper to check if model is downloaded.
+        It will first change btn state to disabled to prevent user from clicking it, set text to "Checking..."
+        Then check it and change the text and state accordingly.
+        """
+        btn.configure(text="Checking...", state=tk.DISABLED)
+
+        downloaded = verify_model(model)
+
+        if not downloaded:
+            btn.configure(text="Download", command=lambda: self.modelDownload(model, btn), state=tk.NORMAL)
+        else:
+            btn.configure(text="Downloaded", state=tk.DISABLED)
+
     def checkModelOnStart(self):
         """
         Check if model is downloaded on start.
         It need to be checked hardcodedly because for some reason if i try to use a map it keep referencing to the wrong button.
         """
-        checkTiny = verify_model("tiny")
-        checkTinyEn = verify_model("tiny.en")
-        checkBase = verify_model("base")
-        checkBaseEn = verify_model("base.en")
-        checkSmall = verify_model("small")
-        checkSmallEn = verify_model("small.en")
-        checkMedium = verify_model("medium")
-        checkMediumEn = verify_model("medium.en")
-        checkLarge = verify_model("large-v2")
-
-        if not checkTiny:
-            self.btn_interact_tiny.configure(text="Download", command=lambda: self.modelDownload("tiny", self.btn_interact_tiny))
-        else:
-            self.btn_interact_tiny.configure(text="Downloaded", state=tk.DISABLED)
-
-        if not checkTinyEn:
-            self.btn_interact_tiny_eng.configure(text="Download", command=lambda: self.modelDownload("tiny.en", self.btn_interact_tiny_eng))
-        else:
-            self.btn_interact_tiny_eng.configure(text="Downloaded", state=tk.DISABLED)
-
-        if not checkBase:
-            self.btn_interact_base.configure(text="Download", command=lambda: self.modelDownload("base", self.btn_interact_base))
-        else:
-            self.btn_interact_base.configure(text="Downloaded", state=tk.DISABLED)
-
-        if not checkBaseEn:
-            self.btn_interact_base_eng.configure(text="Download", command=lambda: self.modelDownload("base.en", self.btn_interact_base_eng))
-        else:
-            self.btn_interact_base_eng.configure(text="Downloaded", state=tk.DISABLED)
-
-        if not checkSmall:
-            self.btn_interact_small.configure(text="Download", command=lambda: self.modelDownload("small", self.btn_interact_small))
-        else:
-            self.btn_interact_small.configure(text="Downloaded", state=tk.DISABLED)
-
-        if not checkSmallEn:
-            self.btn_interact_small_eng.configure(text="Download", command=lambda: self.modelDownload("small.en", self.btn_interact_small_eng))
-        else:
-            self.btn_interact_small_eng.configure(text="Downloaded", state=tk.DISABLED)
-
-        if not checkMedium:
-            self.btn_interact_medium.configure(text="Download", command=lambda: self.modelDownload("medium", self.btn_interact_medium))
-        else:
-            self.btn_interact_medium.configure(text="Downloaded", state=tk.DISABLED)
-
-        if not checkMediumEn:
-            self.btn_interact_medium_eng.configure(text="Download", command=lambda: self.modelDownload("medium.en", self.btn_interact_medium_eng))
-        else:
-            self.btn_interact_medium_eng.configure(text="Downloaded", state=tk.DISABLED)
-
-        if not checkLarge:
-            self.btn_interact_large.configure(text="Download", command=lambda: self.modelDownload("large-v2", self.btn_interact_large))
-        else:
-            self.btn_interact_large.configure(text="Downloaded", state=tk.DISABLED)
+        self.modelBtnChecker("tiny", self.btn_interact_tiny)
+        self.modelBtnChecker("tiny.en", self.btn_interact_tiny_eng)
+        self.modelBtnChecker("base", self.btn_interact_base)
+        self.modelBtnChecker("base.en", self.btn_interact_base_eng)
+        self.modelBtnChecker("small", self.btn_interact_small)
+        self.modelBtnChecker("small.en", self.btn_interact_small_eng)
+        self.modelBtnChecker("medium", self.btn_interact_medium)
+        self.modelBtnChecker("medium.en", self.btn_interact_medium_eng)
+        self.modelBtnChecker("large-v1", self.btn_interact_large_v1)
+        self.modelBtnChecker("large-v2", self.btn_interact_large_v2)
 
     def get_the_threshold(self, device: Literal["mic", "speaker"]) -> None:
         self.getting_threshold = True

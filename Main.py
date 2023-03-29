@@ -33,9 +33,9 @@ from speech_translate.utils.DownloadModel import verify_model, download_model
 from speech_translate.utils.Helper import tb_copy_only, nativeNotify
 from speech_translate.utils.Style import set_ui_style, init_theme, get_theme_list, get_current_theme
 from speech_translate.utils.Helper import upFirstCase, startFile
-from speech_translate.utils.Helper_Whisper import modelKeys, modelSelectDict
+from speech_translate.utils.Helper_Whisper import append_dot_en, modelKeys, modelSelectDict
 from speech_translate.utils.LangCode import engine_select_source_dict, engine_select_target_dict, whisper_compatible
-from speech_translate.utils.Record import getInputDevices, getOutputDevices, getDefaultOutputDevice, getDefaultInputDevice, from_file, rec_realTime
+from speech_translate.utils.Record import getInputDevices, getOutputDevices, getDefaultOutputDevice, getDefaultInputDevice, file_input, rec_realTime
 
 # Terminal window hide/showing
 try:
@@ -816,20 +816,18 @@ class MainWindow:
             return
 
         # Checking args
-        mode, model, engine, sourceLang, targetLang, mic, speaker = self.get_args()
+        mode, modelKey, engine, sourceLang, targetLang, mic, speaker = self.get_args()
         if sourceLang == targetLang and mode == 2:
             Mbox("Invalid options!", "Source and target language cannot be the same", 2)
             return
 
         # check model first
-        modelCheck = modelSelectDict[model]
-        if modelCheck != "large-v2" and sourceLang == "english":
-            modelCheck = modelCheck + ".en"
-        if not verify_model(modelCheck):
-            if Mbox("Model is not downloaded yet!", f"`{modelCheck}` Model not found! You will need to download it first!\n\nDo you want to download it now?", 3, self.root):
+        modelName = append_dot_en(modelKey, sourceLang == "english")
+        if not verify_model(modelName):
+            if Mbox("Model is not downloaded yet!", f"`{modelName}` Model not found! You will need to download it first!\n\nDo you want to download it now?", 3, self.root):
                 logger.info("Downloading model...")
                 try:
-                    gClass.dl_thread = threading.Thread(target=download_model, args=(modelCheck, self.root, self.modelDownloadCancel, lambda: self.after_model_dl("mic record", self.mic_rec)), daemon=True)
+                    gClass.dl_thread = threading.Thread(target=download_model, args=(modelName, self.root, self.modelDownloadCancel, lambda: self.after_model_dl("mic record", self.mic_rec)), daemon=True)
                     gClass.dl_thread.start()
                 except Exception as e:
                     logger.exception(e)
@@ -848,7 +846,7 @@ class MainWindow:
 
         # Start thread
         try:
-            recMicThread = threading.Thread(target=rec_realTime, args=(sourceLang, targetLang, engine, model, mic, transcribe, translate), daemon=True)
+            recMicThread = threading.Thread(target=rec_realTime, args=(sourceLang, targetLang, engine, modelKey, mic, transcribe, translate), daemon=True)
             recMicThread.start()
         except Exception as e:
             logger.exception(e)
@@ -889,20 +887,18 @@ class MainWindow:
             return
 
         # Checking args
-        mode, model, engine, sourceLang, targetLang, mic, speaker = self.get_args()
+        mode, modelKey, engine, sourceLang, targetLang, mic, speaker = self.get_args()
         if sourceLang == targetLang and mode == 2:
             Mbox("Invalid options!", "Source and target language cannot be the same", 2)
             return
 
         # check model first
-        modelCheck = modelSelectDict[model]
-        if modelCheck != "large-v2" and sourceLang == "english":
-            modelCheck = modelCheck + ".en"
-        if not verify_model(modelCheck):
-            if Mbox("Model is not downloaded yet!", f"`{modelCheck}` Model not found! You will need to download it first!\n\nDo you want to download it now?", 3, self.root):
+        modelName = append_dot_en(modelKey, sourceLang == "english")
+        if not verify_model(modelName):
+            if Mbox("Model is not downloaded yet!", f"`{modelName}` Model not found! You will need to download it first!\n\nDo you want to download it now?", 3, self.root):
                 logger.info("Downloading model...")
                 try:
-                    gClass.dl_thread = threading.Thread(target=download_model, args=(modelCheck, self.root, self.modelDownloadCancel, lambda: self.after_model_dl("speaker record", self.speaker_rec)), daemon=True)
+                    gClass.dl_thread = threading.Thread(target=download_model, args=(modelName, self.root, self.modelDownloadCancel, lambda: self.after_model_dl("speaker record", self.speaker_rec)), daemon=True)
                     gClass.dl_thread.start()
                 except Exception as e:
                     logger.exception(e)
@@ -921,7 +917,7 @@ class MainWindow:
 
         # Start thread
         try:
-            recPcThread = threading.Thread(target=rec_realTime, args=(sourceLang, targetLang, engine, model, speaker, transcribe, translate, True), daemon=True)
+            recPcThread = threading.Thread(target=rec_realTime, args=(sourceLang, targetLang, engine, modelKey, speaker, transcribe, translate, True), daemon=True)
             recPcThread.start()
         except Exception as e:
             logger.exception(e)
@@ -950,20 +946,18 @@ class MainWindow:
             return
 
         # Checking args
-        mode, model, engine, sourceLang, targetLang, mic, speaker = self.get_args()
+        mode, modelKey, engine, sourceLang, targetLang, mic, speaker = self.get_args()
         if sourceLang == targetLang and mode == 2:
             Mbox("Invalid options!", "Source and target language cannot be the same", 2)
             return
 
         # check model first
-        modelCheck = modelSelectDict[model]
-        if modelCheck != "large-v2" and sourceLang == "english":
-            modelCheck = modelCheck + ".en"
-        if not verify_model(modelCheck):
-            if Mbox("Model is not downloaded yet!", f"`{modelCheck}` Model not found! You will need to download it first!\n\nDo you want to download it now?", 3, self.root):
+        modelName = append_dot_en(modelKey, sourceLang == "english")
+        if not verify_model(modelName):
+            if Mbox("Model is not downloaded yet!", f"`{modelName}` Model not found! You will need to download it first!\n\nDo you want to download it now?", 3, self.root):
                 logger.info("Downloading model...")
                 try:
-                    gClass.dl_thread = threading.Thread(target=download_model, args=(modelCheck, self.root, self.modelDownloadCancel, lambda: self.after_model_dl("file import", self.from_file)), daemon=True)
+                    gClass.dl_thread = threading.Thread(target=download_model, args=(modelName, self.root, self.modelDownloadCancel, lambda: self.after_model_dl("file import", self.from_file)), daemon=True)
                     gClass.dl_thread.start()
                 except Exception as e:
                     logger.exception(e)
@@ -991,7 +985,7 @@ class MainWindow:
 
         # Start thread
         try:
-            recFileThread = threading.Thread(target=from_file, args=(files, model, sourceLang, targetLang, transcribe, translate, engine), daemon=True)
+            recFileThread = threading.Thread(target=file_input, args=(files, modelKey, sourceLang, targetLang, transcribe, translate, engine), daemon=True)
             recFileThread.start()
         except Exception as e:
             logger.exception(e)

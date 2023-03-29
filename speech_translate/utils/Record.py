@@ -25,7 +25,7 @@ from speech_translate.Logging import logger
 from speech_translate.components.custom.MBox import Mbox
 
 from .Helper import nativeNotify, startFile, getFileNameOnlyFromPath 
-from .Helper_Whisper import get_temperature, convert_str_options_to_dict, modelSelectDict, whisper_result_to_srt, srt_whisper_to_txt_format, srt_whisper_to_txt_format_stamps, txt_to_srt_whisper_format_stamps
+from .Helper_Whisper import get_temperature, convert_str_options_to_dict, modelSelectDict, whisper_result_to_srt, srt_whisper_to_txt_format, srt_whisper_to_txt_format_stamps, txt_to_srt_whisper_format_stamps, append_dot_en
 from .Translator import google_tl, libre_tl, memory_tl
 
 
@@ -195,7 +195,7 @@ def rec_realTime(
     lang_source: str,
     lang_target: str,
     engine: Literal["Whisper", "Google", "LibreTranslate", "MyMemoryTranslator"],
-    modelInput: str,
+    modelKey: str,
     device: str,
     transcribe: bool,
     translate: bool,
@@ -213,8 +213,8 @@ def rec_realTime(
         Target language
     engine: Literal["Whisper", "Google", "LibreTranslate", "MyMemoryTranslator"]
         Translation engine
-    modelInput: str
-        Model to use
+    modelKey: str
+        The key of the model in modelSelectDict as the selected model to use
     device: str
         Device to use
     transcribe: bool
@@ -231,11 +231,7 @@ def rec_realTime(
     src_english = lang_source == "english"
     auto = lang_source == "auto detect"
     whisperEngine = engine == "Whisper"
-
-    # there are no english models for large
-    modelName = modelSelectDict[modelInput]
-    if modelName != "large-v2" and src_english:
-        modelName = modelName + ".en"
+    modelName = append_dot_en(modelKey, src_english)
 
     # read from settings
     sample_rate = int(fJson.settingCache["sample_rate"])
@@ -987,15 +983,15 @@ def cancellable_tc(
         gClass.disableTranscribing()
         gClass.mw.stop_loadBar()
 
-def from_file(files: List[str], modelInput: str, langSource: str, langTarget: str, transcribe: bool, translate: bool, engine: str) -> None:
+def file_input(files: List[str], modelKey: str, langSource: str, langTarget: str, transcribe: bool, translate: bool, engine: str) -> None:
     """Function to transcribe and translate from audio/video files.
 
     Args
     ----
     files (list[str])
         The path to the audio/video file.
-    modelInput (str)
-        The model to use for the input.
+    modelKey (str)
+        The key of the model in modelSelectDict as the selected model to use
     langSource (str)
         The language of the input.
     langTarget (str)
@@ -1019,11 +1015,7 @@ def from_file(files: List[str], modelInput: str, langSource: str, langTarget: st
     src_english = langSource == "english"
     auto = langSource == "auto detect"
     whisperEngine = engine == "Whisper"
-
-    # there are no english models for large
-    modelName = modelSelectDict[modelInput]
-    if modelName != "large-v2" and src_english:
-        modelName = modelName + ".en"
+    modelName = append_dot_en(modelKey, src_english)
 
     compression_ratio_threshold = fJson.settingCache["compression_ratio_threshold"]
     logprob_threshold = fJson.settingCache["logprob_threshold"]

@@ -1,9 +1,28 @@
 import re
 from speech_translate.Logging import logger
 
-modelSelectDict = {"Tiny (~32x speed)": "tiny", "Base (~16x speed)": "base", "Small (~6x speed)": "small", "Medium (~2x speed)": "medium", "Large (1x speed)": "large-v2"}
+modelSelectDict = {"Tiny (~32x speed)": "tiny", "Base (~16x speed)": "base", "Small (~6x speed)": "small", "Medium (~2x speed)": "medium", "Large (v1) (1x speed)": "large-v1", "Large (v2) (1x speed)": "large-v2"}
 modelKeys = list(modelSelectDict.keys())
 modelValues = list(modelSelectDict.values())
+
+def append_dot_en(modelKey: str, src_english: bool):
+    """
+    Append .en to model name if src_english is True and model is not large (large does not have english version)
+
+    Parameters
+    ---
+    modelKey: str
+        The key of the model in modelSelectDict
+    src_english: bool
+        If the source language is english
+    """
+    logger.debug(f"modelKey: {modelKey}, src_english: {src_english}")
+    modelName = modelSelectDict[modelKey]
+    if "large" not in modelName and src_english:
+        modelName = modelName + ".en"
+
+    logger.debug(f"modelName: {modelName}")
+    return modelName
 
 def str_to_union_str_list_int(string):
     """
