@@ -1,6 +1,7 @@
 import whisper
 import hashlib
 import threading
+import time
 import os
 import urllib.request
 import tkinter as tk
@@ -12,9 +13,6 @@ from speech_translate._path import app_icon
 from speech_translate.components.custom.MBox import Mbox
 
 # ----------------------------------------------------------------------
-def do_nothing_on_close() -> None:
-    pass
-
 def whisper_download_with_progress_gui(master: Union[tk.Tk, tk.Toplevel], cancel_func, after_func, model_name: str, url: str, download_root: str, in_memory: bool) -> Union[bytes, str, None]:
     os.makedirs(download_root, exist_ok=True)
 
@@ -36,20 +34,43 @@ def whisper_download_with_progress_gui(master: Union[tk.Tk, tk.Toplevel], cancel
     root = tk.Toplevel(master)
     root.title("Downloading Model")
     root.transient(master)
-    root.geometry("400x150")
-    root.wm_attributes("-topmost", True)
-    root.protocol("WM_DELETE_WINDOW", do_nothing_on_close)
+    root.geometry("450x150")
+    root.protocol("WM_DELETE_WINDOW", lambda: master.state("iconic")) # minimize window when click close button
     root.geometry("+{}+{}".format(master.winfo_rootx() + 50, master.winfo_rooty() + 50))
     try:
         root.iconbitmap(app_icon)
     except:
         pass
 
+    # flag
+    paused = False
+    def pause_download():
+        nonlocal paused
+        paused = not paused
+        if paused:
+            logger.info("Download paused")
+            btn_pause['text'] = "Resume"
+        else:
+            logger.info("Download resumed")
+            btn_pause['text'] = "Pause"
+
     mf = ttk.Frame(root)
     mf.pack(side=tk.TOP, fill=tk.BOTH, padx=5, pady=5, expand=True)
+
+    status_frame = ttk.Frame(mf)
+    status_frame.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5, expand=True)
+
+    btn_frame = ttk.Frame(mf)
+    btn_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=5, pady=5, expand=True)
     
-    lbl = ttk.Label(mf, text=f"Current Task: Downloading {model_name} model")
-    lbl.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5, expand=True)
+    lbl_status_title = ttk.Label(status_frame, text="Status:", font="TkDefaultFont 9 bold")
+    lbl_status_title.pack(side=tk.LEFT, padx=(5, 0), pady=5)
+
+    lbl_status_text = ttk.Label(status_frame, text=f"Downloading {model_name} model")
+    lbl_status_text.pack(side=tk.LEFT, padx=5, pady=5)
+
+    btn_pause = ttk.Button(btn_frame, text="Pause", command=pause_download)
+    btn_pause.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5, expand=True)
 
     downloading = True
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
@@ -72,26 +93,37 @@ def whisper_download_with_progress_gui(master: Union[tk.Tk, tk.Toplevel], cancel
 
                 # update label with mb downloaded
                 mb_downloaded = bytes_read / 1024 / 1024
-                lbl['text'] = f"Current Task: Downloading {model_name} model ({mb_downloaded:.2f}MB/{length_in_mb:.2f}MB)" if percent < 100 else f"Current Task: Downloading {model_name} model (100%)"
 
-                root.after(100, update_progress_bar)
+                if not paused:
+                    lbl_status_text['text'] = f"Downloading {model_name} model ({mb_downloaded:.2f}/{length_in_mb:.2f} MB)" if percent < 100 else f"Downloading {model_name} model (100%)"
+                    root.after(100, update_progress_bar)
+                else:
+                    lbl_status_text['text'] = f"Paused downloading for {model_name} model ({bytes_read / 1024 / 1024:.2f}/{length_in_mb:.2f} MB)"
+                    root.after(1000, update_progress_bar)
 
         if cancel_func:
-            btn = ttk.Button(mf, text="Cancel", command=cancel_func)
-            btn.pack(side=tk.BOTTOM, fill=tk.X, padx=5, pady=5, expand=True)
+            btn = ttk.Button(btn_frame, text="Cancel", command=cancel_func, style="Accent.TButton")
+            btn.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5, expand=True)
 
         update_progress_bar()
         while True:
+            if gClass.cancel_dl:
+                logger.info("Download cancelled")
+                downloading = False
+                gClass.cancel_dl = False
+                root.after(1000, root.destroy)
+                Mbox("Download Cancelled", f"Downloading of {model_name} model has been cancelled", 0, master)
+                return
+
+            if paused:
+                # sleep for 1 second
+                time.sleep(1)
+                continue
+
             buffer = source.read(buffer_size)
             if not buffer:
                 downloading = False
                 break
-
-            if gClass.cancel_dl:
-                gClass.cancel_dl = False
-                Mbox("Download Cancelled", f"Downloading of {model_name} model has been cancelled", 0, master)
-                root.after(1000, root.destroy)
-                return
 
             output.write(buffer)
             bytes_read += len(buffer)
@@ -102,8 +134,15 @@ def whisper_download_with_progress_gui(master: Union[tk.Tk, tk.Toplevel], cancel
     if hashlib.sha256(model_bytes).hexdigest() != expected_sha256:
         raise RuntimeError("Model has been downloaded but the SHA256 checksum does not not match. Please retry loading the model.")
 
+    # all check passed, this means the model has been downloaded successfully
+    # run after_func if it is not None
+    logger.info("Download finished")
     if after_func:
+        logger.info("Running after_func")
         threading.Thread(target=after_func, daemon=True).start()
+
+    # tell setting window to check model again when it open 
+    gClass.sw.model_checked = False # type: ignore
 
     Mbox("Model Downloaded Success", f"{model_name} model has been downloaded successfully", 0, master)
     return model_bytes if in_memory else download_target

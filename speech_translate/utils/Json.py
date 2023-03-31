@@ -25,6 +25,9 @@ default_setting = {
     "speaker": "",
     "theme": "sv-dark" if darkdetect.isDark() else "sv-light",
     "dir_export": "auto",
+    "supress_hidden_to_tray": False,
+    "mw_size": "1200x400",
+    "sw_size": "1000x580",
     # ------------------ #
     # logging
     "keep_log": False,
@@ -133,6 +136,8 @@ class SettingJsonHandler:
 
             # verify setting version
             if self.settingCache["version"] != __setting_version__:
+                # save old one as backup
+                self.saveOldSetting(self.settingCache)
                 self.settingCache = default_setting  # load default
                 self.saveSetting(self.settingCache)  # save
                 # notify
@@ -141,7 +146,7 @@ class SettingJsonHandler:
                 notification.title = "Setting file is outdated"
                 notification.message = "Setting file is outdated. Setting has been reverted to default setting."
                 notification.send()
-                logger.warning("Setting file is outdated. Setting has been reverted to default setting.")
+                logger.warning("Setting file is outdated. Setting has been reverted to default setting. You can find your old setting in the user folder.")
         else:
             self.settingCache = default_setting
             logger.error("Error loading setting file: " + msg)
@@ -181,6 +186,21 @@ class SettingJsonHandler:
                 json.dump(data, f, ensure_ascii=False, indent=4)
             success = True
             self.settingCache = data
+        except Exception as e:
+            msg = str(e)
+        finally:
+            return success, msg
+
+    def saveOldSetting(self, data: dict):
+        """
+        Save json file
+        """
+        success: bool = False
+        msg: str = ""
+        try:
+            with open(self.settingPath.replace("setting.json", f"setting_old_{data['version']}.json"), "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=4)
+            success = True
         except Exception as e:
             msg = str(e)
         finally:

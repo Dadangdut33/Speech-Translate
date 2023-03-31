@@ -128,7 +128,7 @@ class MainWindow:
         self.root = tk.Tk()
 
         self.root.title(APP_NAME)
-        self.root.geometry("1200x400")
+        self.root.geometry(fJson.settingCache["mw_size"])
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.root.wm_attributes("-topmost", False)  # Default False
 
@@ -408,11 +408,25 @@ class MainWindow:
             pass
 
     # ------------------ Handle window ------------------
+    def save_win_size(self):
+        """
+        Save window size
+        """
+        w = self.root.winfo_width()
+        h = self.root.winfo_height()
+        if w > 600 and h > 300:
+            fJson.savePartialSetting("mw_size", f"{w}x{h}")
+
     # Quit the app
     def quit_app(self):
+        # save window size
+        self.save_win_size()
+        gClass.sw.save_win_size()  # type: ignore
+
         if platform.system() == "Windows":
             try:
-                win32gui.ShowWindow(gClass.cw, win32con.SW_SHOW)
+                if gClass.cw:
+                    win32gui.ShowWindow(gClass.cw, win32con.SW_SHOW)
             except:
                 pass
 
@@ -451,8 +465,10 @@ class MainWindow:
 
     # Close window
     def on_close(self):
+        self.save_win_size()
+
         # Only show notification once
-        if not self.notified_hidden:
+        if not self.notified_hidden and not fJson.settingCache["supress_hidden_to_tray"]:
             nativeNotify("Hidden to tray", "The app is still running in the background.")
             self.notified_hidden = True
 
@@ -801,6 +817,9 @@ class MainWindow:
             self.export_tl()
 
     def modelDownloadCancel(self):
+        if not Mbox("Cancel confirmation", "Are you sure you want to cancel downloading?", 3, self.root):
+            return
+
         gClass.cancel_dl = True # Raise flag to stop
 
     def after_model_dl(self, taskname, task):

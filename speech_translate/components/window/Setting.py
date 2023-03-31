@@ -37,7 +37,7 @@ class SettingWindow:
         self.root = tk.Toplevel(master)
 
         self.root.title(APP_NAME + " | Settings")
-        self.root.geometry("1000x580")
+        self.root.geometry(fJson.settingCache["sw_size"])
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.root.wm_attributes("-topmost", False)  # Default False
 
@@ -47,6 +47,8 @@ class SettingWindow:
         self.initial_theme = ""
         self.getting_threshold = False
         self.model_checked = False
+        self.checkingModel = False
+        self.first_check = True
 
         # ------------------ Frames ------------------
         self.frame_top = tk.Frame(self.root)
@@ -95,10 +97,12 @@ class SettingWindow:
         )
         self.cbtn_update_on_start.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.sep_vert_notice_theme = ttk.Separator(self.f_application_1, orient=tk.VERTICAL)
-        self.sep_vert_notice_theme.pack(side=tk.LEFT, padx=5, pady=5)
+        self.cbtn_supress_hidden_to_tray = ttk.Checkbutton(
+            self.f_application_1, text="Supress hidden to tray notif", command=lambda: fJson.savePartialSetting("supress_hidden_to_tray", self.cbtn_supress_hidden_to_tray.instate(["selected"])), style="Switch.TCheckbutton"
+        )
+        self.cbtn_supress_hidden_to_tray.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.lbl_notice_theme = ttk.Label(self.f_application_1, text="Might need to reload the app for the changes to take effect.")
+        self.lbl_notice_theme = ttk.Label(self.f_application_1, text="— Might need to reload the app for the changes to take effect.")
         self.lbl_notice_theme.pack(side=tk.LEFT, padx=5, pady=5)
 
         # theme
@@ -1144,14 +1148,24 @@ class SettingWindow:
         threading.Thread(target=self.deleteLogOnStart, daemon=True).start()
         threading.Thread(target=self.deleteTempOnStart, daemon=True).start()
 
+    def save_win_size(self):
+        """
+        Save window size
+        """
+        w = self.root.winfo_width()
+        h = self.root.winfo_height()
+        if w > 600 and h > 300:
+            fJson.savePartialSetting("sw_size", f"{w}x{h}")
+
     def on_close(self):
+        self.save_win_size()
         self.root.withdraw()
 
     def show(self):
         self.root.after(0, self.root.deiconify)
 
         if not self.model_checked:
-            threading.Thread(target=self.checkModelOnStart, daemon=True).start()
+            threading.Thread(target=self.checkModelOnFirstSettingOpen, daemon=True).start()
 
     def bind_focus_on_frame_recursively(self, root_widget):
         widgets = root_widget.winfo_children()
@@ -1177,6 +1191,7 @@ class SettingWindow:
         self.cbtnInvoker(fJson.settingCache["debug_translate"], self.cbtn_debug_translate)
         self.cbtnInvoker(fJson.settingCache["verbose"], self.cbtn_verbose)
         self.cbtnInvoker(fJson.settingCache["checkUpdateOnStart"], self.cbtn_update_on_start)
+        self.cbtnInvoker(fJson.settingCache["supress_hidden_to_tray"], self.cbtn_supress_hidden_to_tray)
         self.cb_log_level.set(fJson.settingCache["log_level"])
         logger.setLevel(fJson.settingCache["log_level"])
         self.fill_theme()
@@ -1372,6 +1387,9 @@ class SettingWindow:
             btn.configure(text="Downloaded", state=tk.DISABLED)
 
     def modelDownload(self, model: str, btn: ttk.Button) -> None:
+        if self.checkingModel:
+            return
+
         # if already downloading then return
         if gClass.dl_thread and gClass.dl_thread.is_alive():
             Mbox("Already downloading", "Please wait for the current download to finish.", 0, self.root)
@@ -1396,6 +1414,9 @@ class SettingWindow:
             Mbox("Download error", f"Err details: {e}", 0, self.root)
 
     def modelDownloadCancel(self, model: str, btn: ttk.Button) -> None:
+        if not Mbox("Cancel confirmation", "Are you sure you want to cancel downloading?", 3, self.root):
+            return
+
         btn.configure(text="Download", command=lambda: self.modelDownload(model, btn), state=tk.NORMAL)
         gClass.cancel_dl = True # Raise flag to stop
 
@@ -1414,21 +1435,34 @@ class SettingWindow:
         else:
             btn.configure(text="Downloaded", state=tk.DISABLED)
 
-    def checkModelOnStart(self):
+    def checkModelOnFirstSettingOpen(self):
         """
-        Check if model is downloaded on start.
+        Check if model is downloaded on first setting open.
         It need to be checked hardcodedly because for some reason if i try to use a map it keep referencing to the wrong button.
         """
-        self.modelBtnChecker("tiny", self.btn_interact_tiny)
-        self.modelBtnChecker("tiny.en", self.btn_interact_tiny_eng)
-        self.modelBtnChecker("base", self.btn_interact_base)
-        self.modelBtnChecker("base.en", self.btn_interact_base_eng)
-        self.modelBtnChecker("small", self.btn_interact_small)
-        self.modelBtnChecker("small.en", self.btn_interact_small_eng)
-        self.modelBtnChecker("medium", self.btn_interact_medium)
-        self.modelBtnChecker("medium.en", self.btn_interact_medium_eng)
-        self.modelBtnChecker("large-v1", self.btn_interact_large_v1)
-        self.modelBtnChecker("large-v2", self.btn_interact_large_v2)
+        try:
+            self.checkingModel = True
+            self.modelBtnChecker("tiny", self.btn_interact_tiny)
+            self.modelBtnChecker("tiny.en", self.btn_interact_tiny_eng)
+            self.modelBtnChecker("base", self.btn_interact_base)
+            self.modelBtnChecker("base.en", self.btn_interact_base_eng)
+            self.modelBtnChecker("small", self.btn_interact_small)
+            self.modelBtnChecker("small.en", self.btn_interact_small_eng)
+            self.modelBtnChecker("medium", self.btn_interact_medium)
+            self.modelBtnChecker("medium.en", self.btn_interact_medium_eng)
+            self.modelBtnChecker("large-v1", self.btn_interact_large_v1)
+            self.modelBtnChecker("large-v2", self.btn_interact_large_v2)
+            self.model_checked = True
+            self.first_check = False
+        except Exception as e:
+            logger.error("Failed to check model on first setting open")
+            logger.exception(e)
+            if self.first_check:
+                # run this function again if it failed on first check but after 3 second
+                logger.warning("Retrying to check model on first setting open")
+                self.root.after(3000, lambda: threading.Thread(target=self.checkModelOnFirstSettingOpen, daemon=True).start())
+        finally:
+            self.checkingModel = False
 
     def get_the_threshold(self, device: Literal["mic", "speaker"]) -> None:
         self.getting_threshold = True
@@ -1486,7 +1520,6 @@ class SettingWindow:
         self.initial_theme = fJson.settingCache["theme"]
         self.entry_theme.pack_forget()
         self.btn_theme_add.pack_forget()
-        self.sep_vert_notice_theme.pack_forget()
         self.lbl_notice_theme.pack_forget()
 
     def cb_theme_change(self, _event=None):
@@ -1500,10 +1533,8 @@ class SettingWindow:
             self.btn_theme_add.pack_forget()
 
             if self.initial_theme != self.cb_theme.get():
-                self.sep_vert_notice_theme.pack(side=tk.LEFT, padx=5, pady=5)
                 self.lbl_notice_theme.pack(side=tk.LEFT, padx=5, pady=5)
             else:
-                self.sep_vert_notice_theme.pack_forget()
                 self.lbl_notice_theme.pack_forget()
 
             # save
@@ -1539,7 +1570,6 @@ class SettingWindow:
 
         # if success, show notice
         # if fail also show. This is because if it fail it will fallback to the default theme
-        self.sep_vert_notice_theme.pack(side=tk.LEFT, padx=5, pady=5)
         self.lbl_notice_theme.pack(side=tk.LEFT, padx=5, pady=5)
 
     def log_level_change(self, _event=None):
