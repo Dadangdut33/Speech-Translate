@@ -826,6 +826,13 @@ class MainWindow:
         # ask if user wants to continue using the model
         if Mbox("Model is now Ready!", f"Continue task? ({taskname})", 3, self.root):
             task()
+
+    def destroy_transient_toplevel(self, name):
+        for child in self.root.winfo_children():
+            if isinstance(child, tk.Toplevel):
+                if child.title() == name:
+                    child.destroy()
+                    break
         
     # ------------------ Rec ------------------
     # From mic
@@ -996,7 +1003,7 @@ class MainWindow:
         self.tb_clear()
         self.start_loadBar()
         self.disable_interactions()
-        self.btn_import_file.config(text="Loading", command=self.from_file_stop, state="normal")
+        self.btn_import_file.config(text="Loading", command=lambda: self.from_file_stop(True), state="normal")
 
         gClass.enableRecording()  # Flag update
         transcribe = mode == 0 or mode == 2
@@ -1004,20 +1011,25 @@ class MainWindow:
 
         # Start thread
         try:
-            recFileThread = threading.Thread(target=file_input, args=(files, modelKey, sourceLang, targetLang, transcribe, translate, engine), daemon=True)
+            recFileThread = threading.Thread(target=file_input, args=(list(files), modelKey, sourceLang, targetLang, transcribe, translate, engine), daemon=True)
             recFileThread.start()
         except Exception as e:
             logger.exception(e)
             self.errorNotif(str(e))
             self.from_file_stop()
 
-    def from_file_stop(self):
+    def from_file_stop(self, prompt=False):
+        if prompt:
+            if not Mbox("Confirm", "Are you sure you want to cancel the file transcribe/translate process?", 3, self.root):
+                return
+
         logger.info("Cancelling file import processing...")
         gClass.disableRecording()
         gClass.disableTranscribing()
         gClass.disableTranslating()
+        self.destroy_transient_toplevel("File Import Progress")
 
-        Mbox("Cancelled", "Cancelled file import processing", 0, self.root)
+        Mbox("Cancelled", f"Cancelled file import processing\n\nTranscribed {gClass.file_tced_counter} and translated {gClass.file_tled_counter} file", 0, self.root)
 
         self.loadBar.stop()
         self.loadBar.config(mode="determinate")

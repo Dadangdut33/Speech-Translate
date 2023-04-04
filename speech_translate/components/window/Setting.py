@@ -150,6 +150,9 @@ class SettingWindow:
         self.f_export_2 = ttk.Frame(self.lf_export)
         self.f_export_2.pack(side=tk.TOP, fill=tk.X, padx=5)
 
+        self.f_export_3 = ttk.Frame(self.lf_export)
+        self.f_export_3.pack(side=tk.TOP, fill=tk.X, padx=5)
+
         self.label_export = ttk.Label(self.f_export_1, text="Export Folder", width=16)
         self.label_export.pack(side=tk.LEFT, padx=5, pady=5)
 
@@ -161,11 +164,15 @@ class SettingWindow:
         self.entry_export.bind("<Button-3>", lambda event: self.default_export_path())
         CreateToolTip(self.entry_export, "The folder where exported text from import file are saved.\n\n-LClick the button to change the folder.\n-RClick to set back to default.")
 
-        self.btn_open_export_folder = ttk.Button(self.f_export_2, text="Open Export Folder", command=lambda: startFile(dir_export))
+        self.cbtn_auto_open_export = ttk.Checkbutton(self.f_export_2, text="Auto open export folder", command=lambda: fJson.savePartialSetting("auto_open_dir_export", self.cbtn_auto_open_export.instate(["selected"])), style="Switch.TCheckbutton")
+        self.cbtn_auto_open_export.pack(side=tk.LEFT, padx=5, pady=5)
+        CreateToolTip(self.cbtn_auto_open_export, "Auto open the export folder after file import")
+
+        self.btn_open_export_folder = ttk.Button(self.f_export_3, text="Open Export Folder", command=lambda: startFile(dir_export))
         self.btn_open_export_folder.pack(side=tk.LEFT, padx=5, pady=5)
         CreateToolTip(self.btn_open_export_folder, "Open the folder where exported text from import file are saved.")
 
-        self.btn_delete_export_folder = ttk.Button(self.f_export_2, text="Clear Export Folder", command=self.clear_export)
+        self.btn_delete_export_folder = ttk.Button(self.f_export_3, text="Clear Export Folder", command=self.clear_export)
         self.btn_delete_export_folder.pack(side=tk.LEFT, padx=5, pady=5)
 
         # --------------------
@@ -1192,6 +1199,13 @@ class SettingWindow:
         self.cbtnInvoker(fJson.settingCache["verbose"], self.cbtn_verbose)
         self.cbtnInvoker(fJson.settingCache["checkUpdateOnStart"], self.cbtn_update_on_start)
         self.cbtnInvoker(fJson.settingCache["supress_hidden_to_tray"], self.cbtn_supress_hidden_to_tray)
+        self.cbtnInvoker(fJson.settingCache["auto_open_dir_export"], self.cbtn_auto_open_export)
+        if fJson.settingCache["dir_export"] == "auto":
+            self.default_export_path()
+        else:
+            self.entry_export.delete(0, tk.END)
+            self.entry_export.insert(0, fJson.settingCache["dir_export"])
+
         self.cb_log_level.set(fJson.settingCache["log_level"])
         logger.setLevel(fJson.settingCache["log_level"])
         self.fill_theme()

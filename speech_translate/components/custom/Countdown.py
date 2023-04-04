@@ -1,8 +1,8 @@
 import tkinter as tk
 from tkinter import ttk
+from typing import Union
 
 from speech_translate.components.custom.MBox import Mbox
-from typing import Union
 from speech_translate._path import app_icon
 
 

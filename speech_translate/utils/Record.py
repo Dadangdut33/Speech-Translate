@@ -5,6 +5,8 @@ import threading
 import ast
 import shlex
 import numpy
+import tkinter as tk
+from tkinter import ttk, filedialog
 from textwrap import wrap
 from datetime import datetime, timedelta
 from time import sleep, time
@@ -20,6 +22,7 @@ if platform.system() == "Windows":
 else:
     import pyaudio  # type: ignore
 
+from speech_translate._path import app_icon
 from speech_translate.Globals import dir_temp, fJson, gClass, dir_export
 from speech_translate.Logging import logger
 from speech_translate.components.custom.MBox import Mbox
@@ -1049,15 +1052,127 @@ def file_input(files: List[str], modelKey: str, langSource: str, langTarget: str
     assert gClass.mw is not None
     gClass.mw.btn_import_file.config(text="Cancel")  # type: ignore
 
+    # window to show progress
+    master = gClass.mw.root
+    root = tk.Toplevel(master)
+    root.title("File Import Progress")
+    root.transient(master)
+    root.geometry("450x225")
+    root.protocol("WM_DELETE_WINDOW", lambda: master.state("iconic")) # minimize window when click close button
+    root.geometry("+{}+{}".format(master.winfo_rootx() + 50, master.winfo_rooty() + 50))
+    try:
+        root.iconbitmap(app_icon)
+    except:
+        pass
+
+    def add_to_files():
+        nonlocal files
+        to_add = filedialog.askopenfilenames(
+            title="Select a file",
+            filetypes=(("Audio files", "*.wav *.mp3 *.ogg *.flac *.aac *.wma *.m4a"), ("Video files", "*.mp4 *.mkv *.avi *.mov"), ("All files", "*.*")),
+        )
+
+        # if still recording and user select files
+        if gClass.recording and len(to_add) > 0:
+            files.extend(list(to_add))
+            lbl_files.config(text=f"Files: {len(files)}")
+
+    def cancel():
+        # confirm 
+        if Mbox("Cancel confirmation", "Are you sure you want to cancel file process?", 3, master):
+            assert gClass.mw is not None
+            gClass.mw.from_file_stop()
+
+    timerStart = time()
+    def update_progress_ui():
+        nonlocal timerStart
+        if gClass.recording:
+            if transcribe:
+                current_file_counter = gClass.file_tced_counter
+            else:
+                current_file_counter = gClass.file_tled_counter
+
+            lbl_files.config(text=f"Files: {current_file_counter}/{len(files)}")
+            lbl_elapsed.config(text=f"Elapsed: {round(time() - timerStart)}s")
+            
+            if current_file_counter > 0:
+                lbl_files.config(text=f"Files: {current_file_counter}/{len(files)} ({getFileNameOnlyFromPath(files[current_file_counter - 1])})")
+            else:
+                lbl_files.config(text=f"Files: {current_file_counter}/{len(files)} ({getFileNameOnlyFromPath(files[current_file_counter])})")
+            
+            if transcribe:
+                lbl_tced.config(text=f"Transcribed: {gClass.file_tced_counter}")
+            if translate:
+                lbl_tled.config(text=f"Translated: {gClass.file_tled_counter}")
+
+            # update progressbar 
+            progress_bar["value"] = current_file_counter / len(files) * 100 # update the progress bar based on percentage
+
+            root.after(1000, update_progress_ui)
+
+    # widgets
+    frame_lbl = ttk.Frame(root)
+    frame_lbl.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5, expand=True)
+
+    frame_lbl_1 = ttk.Frame(frame_lbl)
+    frame_lbl_1.pack(side=tk.TOP, fill=tk.X, expand=True)
+
+    frame_lbl_2 = ttk.Frame(frame_lbl)
+    frame_lbl_2.pack(side=tk.TOP, fill=tk.X, expand=True)
+
+    frame_lbl_3 = ttk.Frame(frame_lbl)
+    frame_lbl_3.pack(side=tk.TOP, fill=tk.X, expand=True)
+
+    frame_lbl_4 = ttk.Frame(frame_lbl)
+    frame_lbl_4.pack(side=tk.TOP, fill=tk.X, expand=True)
+
+    frame_lbl_5 = ttk.Frame(frame_lbl)
+    frame_lbl_5.pack(side=tk.TOP, fill=tk.X, expand=True)
+
+    frame_btn = ttk.Frame(root)
+    frame_btn.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5, expand=True)
+
+    frame_btn_1 = ttk.Frame(frame_btn)
+    frame_btn_1.pack(side=tk.TOP, fill=tk.X, expand=True)
+
+    frame_btn_2 = ttk.Frame(frame_btn)
+    frame_btn_2.pack(side=tk.TOP, fill=tk.X, expand=True)
+
+    taskname = "Transcribe & Translate" if transcribe and translate else "Transcribe" if transcribe else "Translate"
+    lbl_task_name = ttk.Label(frame_lbl_1, text="Task: " + taskname + f" from {langSource} to {langTarget} with {modelName} model")
+    lbl_task_name.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+
+    lbl_files = ttk.Label(frame_lbl_2, text=f"Files: {len(files)} ({getFileNameOnlyFromPath(files[0])}))")
+    lbl_files.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+
+    lbl_tced = ttk.Label(frame_lbl_3, text=f"Transcribed: {gClass.file_tced_counter}")
+    lbl_tced.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+
+    lbl_tled = ttk.Label(frame_lbl_3, text=f"Translated: {gClass.file_tled_counter}")
+    lbl_tled.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+
+    lbl_elapsed = ttk.Label(frame_lbl_4, text=f"Elapsed: {round(time() - timerStart, 2)}s")
+    lbl_elapsed.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+
+    progress_bar = ttk.Progressbar(frame_lbl_5, orient=tk.HORIZONTAL, length=300, mode='determinate')
+    progress_bar.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5, expand=True)
+
+    btn_add = ttk.Button(frame_btn_1, text="Add", command=add_to_files)
+    btn_add.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5, expand=True)
+
+    btn_cancel = ttk.Button(frame_btn_1, text="Cancel", command=cancel, style="Accent.TButton")
+    btn_cancel.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5, expand=True)
+
+    update_progress_ui()
     for file in files:
-        if not gClass.recording:  # if cancel button is pressed while downloading
+        if not gClass.recording:  # if cancel button is pressed
             return
 
         # Proccess it
         if translate and not transcribe and whisperEngine:  # if only translating and using the whisper engine
             audioNameOnly = getFileNameOnlyFromPath(file)
             saveName = datetime.now().strftime("%Y-%m-%d %H_%M_%S_%f") + " " + audioNameOnly
-            tcThread = threading.Thread(
+            procThread = threading.Thread(
                 target=cancellable_tl,
                 args=[
                     file,
@@ -1077,11 +1192,10 @@ def file_input(files: List[str], modelKey: str, langSource: str, langTarget: str
                 ],
                 daemon=True,
             )
-            tcThread.start()
         else:
             # will automatically check translate on or not depend on input
             # translate is called from here because other engine need to get transcribed text first if translating
-            tcThread = threading.Thread(
+            procThread = threading.Thread(
                 target=cancellable_tc,
                 args=[
                     file,
@@ -1102,26 +1216,25 @@ def file_input(files: List[str], modelKey: str, langSource: str, langTarget: str
                 ],
                 daemon=True,
             )
-            tcThread.start()
+        start = time()
+        logger.debug(f"Starting process for {file}")
+        procThread.start()
+        procThread.join()
+        logger.debug(f"Finished process for {file} in {round(time() - start, 2)}s")
 
-        # wait for process to finish
-        startTime = time()
-        while gClass.transcribing:
-            timeNow = time() - startTime
-            print(f"TC Wait ({timeNow:.2f}s)", end="\r", flush=True)
-            sleep(0.1)  # waiting for process to finish
 
-        startTime = time()
-        while gClass.translating:
-            timeNow = time() - startTime
-            print(f"TL Wait ({timeNow:.2f}s)", end="\r", flush=True)
-            sleep(0.1)  # waiting for process to finish
+    # destroy progress window
+    if root.winfo_exists():
+        root.after(1000, root.destroy)
 
     # open folder
     export_to = dir_export if fJson.settingCache["dir_export"] == "auto" else fJson.settingCache["dir_export"]
     if gClass.file_tced_counter > 0 or gClass.file_tled_counter > 0:
-        startFile(export_to)
-        Mbox("File Transcription/Translation Done", f"Transcribed {gClass.file_tced_counter} file(s) and Translated {gClass.file_tled_counter} file(s)", 0)
+        if fJson.settingCache["auto_open_dir_export"]:
+            startFile(export_to)
+
+        resultMsg = f"Transcribed {gClass.file_tced_counter} file(s) and Translated {gClass.file_tled_counter} file(s)" if transcribe and translate else f"Transcribed {gClass.file_tced_counter} file(s)" if transcribe else f"Translated {gClass.file_tled_counter} file(s)"    
+        Mbox(f"File {taskname} Done", resultMsg, 0)
 
     # turn off loadbar
     gClass.mw.stop_loadBar("file")

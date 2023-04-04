@@ -25,6 +25,7 @@ default_setting = {
     "speaker": "",
     "theme": "sv-dark" if darkdetect.isDark() else "sv-light",
     "dir_export": "auto",
+    "auto_open_dir_export": True,
     "supress_hidden_to_tray": False,
     "mw_size": "1200x400",
     "sw_size": "1000x580",
