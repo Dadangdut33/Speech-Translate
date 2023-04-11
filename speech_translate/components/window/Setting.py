@@ -98,7 +98,10 @@ class SettingWindow:
         self.cbtn_update_on_start.pack(side=tk.LEFT, padx=5, pady=5)
 
         self.cbtn_supress_hidden_to_tray = ttk.Checkbutton(
-            self.f_application_1, text="Supress hidden to tray notif", command=lambda: fJson.savePartialSetting("supress_hidden_to_tray", self.cbtn_supress_hidden_to_tray.instate(["selected"])), style="Switch.TCheckbutton"
+            self.f_application_1,
+            text="Supress hidden to tray notif",
+            command=lambda: fJson.savePartialSetting("supress_hidden_to_tray", self.cbtn_supress_hidden_to_tray.instate(["selected"])),
+            style="Switch.TCheckbutton",
         )
         self.cbtn_supress_hidden_to_tray.pack(side=tk.LEFT, padx=5, pady=5)
 
@@ -164,7 +167,9 @@ class SettingWindow:
         self.entry_export.bind("<Button-3>", lambda event: self.default_export_path())
         CreateToolTip(self.entry_export, "The folder where exported text from import file are saved.\n\n-LClick the button to change the folder.\n-RClick to set back to default.")
 
-        self.cbtn_auto_open_export = ttk.Checkbutton(self.f_export_2, text="Auto open export folder", command=lambda: fJson.savePartialSetting("auto_open_dir_export", self.cbtn_auto_open_export.instate(["selected"])), style="Switch.TCheckbutton")
+        self.cbtn_auto_open_export = ttk.Checkbutton(
+            self.f_export_2, text="Auto open export folder", command=lambda: fJson.savePartialSetting("auto_open_dir_export", self.cbtn_auto_open_export.instate(["selected"])), style="Switch.TCheckbutton"
+        )
         self.cbtn_auto_open_export.pack(side=tk.LEFT, padx=5, pady=5)
         CreateToolTip(self.cbtn_auto_open_export, "Auto open the export folder after file import")
 
@@ -215,7 +220,14 @@ class SettingWindow:
         self.cb_log_level = ttk.Combobox(self.f_logging_3, values=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], state="readonly")
         self.cb_log_level.pack(side=tk.LEFT, padx=0)
 
-        self.cbtn_debug_translate = ttk.Checkbutton(self.f_logging_4, text="Debug Translate", command=lambda: fJson.savePartialSetting("debug_translate", self.cbtn_debug_translate.instate(["selected"])), style="Switch.TCheckbutton")
+        self.cbtn_debug_realtime_record = ttk.Checkbutton(
+            self.f_logging_4, text="Debug Realtime Record", command=lambda: fJson.savePartialSetting("debug_realtime_record", self.cbtn_debug_realtime_record.instate(["selected"])), style="Switch.TCheckbutton"
+        )
+        self.cbtn_debug_realtime_record.pack(side=tk.LEFT, padx=5, pady=(0, 5))
+
+        self.cbtn_debug_translate = ttk.Checkbutton(
+            self.f_logging_4, text="Debug Translate", command=lambda: fJson.savePartialSetting("debug_translate", self.cbtn_debug_translate.instate(["selected"])), style="Switch.TCheckbutton"
+        )
         self.cbtn_debug_translate.pack(side=tk.LEFT, padx=5, pady=(0, 5))
 
         # model
@@ -503,7 +515,7 @@ class SettingWindow:
         self.spn_buffer_mic.pack(side=tk.LEFT, padx=5)
         CreateToolTip(
             self.spn_buffer_mic,
-            "Set the max buffer (in seconds) for microphone input.\n\nThe longer the buffer, the more time it will take to transcribe the audio. Not recommended to have very long buffer on low end PC.\n\nDefault value is 20 seconds.",
+            "Set the max buffer (in seconds) for microphone input.\n\nThe longer the buffer, the more time it will take to transcribe the audio. Not recommended to have very long buffer on low end PC.\n\nDefault value is 15 seconds.",
         )
 
         if platform.system() == "Windows":
@@ -1195,6 +1207,7 @@ class SettingWindow:
     def init_setting_once(self):
         # app
         self.cbtnInvoker(fJson.settingCache["keep_log"], self.cbtn_keep_log)
+        self.cbtnInvoker(fJson.settingCache["debug_realtime_record"], self.cbtn_debug_realtime_record)
         self.cbtnInvoker(fJson.settingCache["debug_translate"], self.cbtn_debug_translate)
         self.cbtnInvoker(fJson.settingCache["verbose"], self.cbtn_verbose)
         self.cbtnInvoker(fJson.settingCache["checkUpdateOnStart"], self.cbtn_update_on_start)
@@ -1410,12 +1423,13 @@ class SettingWindow:
             return
 
         # verify first
-        if verify_model(model): # already downloaded
+        if verify_model(model):  # already downloaded
             btn.configure(text="Downloaded", state=tk.DISABLED)
             return
 
         # Download model
         try:
+
             def after_func():
                 btn.configure(text="Downloaded", state=tk.DISABLED)
 
@@ -1432,7 +1446,7 @@ class SettingWindow:
             return
 
         btn.configure(text="Download", command=lambda: self.modelDownload(model, btn), state=tk.NORMAL)
-        gClass.cancel_dl = True # Raise flag to stop
+        gClass.cancel_dl = True  # Raise flag to stop
 
     def modelBtnChecker(self, model: str, btn: ttk.Button) -> None:
         """
@@ -1495,7 +1509,9 @@ class SettingWindow:
 
         if Mbox(
             "Auto Threshold - Mic",
-            "After you press `yes` the program will record for 5 seconds and try to get the optimal threshold\n\nTry to keep the device silent to avoid inaccuracy\n\nSelected device: " + fJson.settingCache["mic"] + "\n\n*Press no to cancel",
+            "After you press `yes` the program will record for 5 seconds and try to get the optimal threshold\n\nTry to keep the device silent to avoid inaccuracy\n\nSelected device: "
+            + fJson.settingCache["mic"]
+            + "\n\n*Press no to cancel",
             3,
             self.root,
         ):
@@ -1505,7 +1521,6 @@ class SettingWindow:
 
             # show countdown window and wait for it to close
             CountdownWindow(self.root, 5, "Getting threshold...", "Getting threshold for mic")
-            
 
     def speakerAutoThreshold(self):
         """
@@ -1517,7 +1532,9 @@ class SettingWindow:
 
         if Mbox(
             "Auto Threshold - Speaker",
-            "After you press `yes` the program will record for 5 seconds and try to get the optimal threshold\n\nTry to keep the device silent to avoid inaccuracy\n\nSelected device: " + fJson.settingCache["speaker"] + "\n\n*Press no to cancel",
+            "After you press `yes` the program will record for 5 seconds and try to get the optimal threshold\n\nTry to keep the device silent to avoid inaccuracy\n\nSelected device: "
+            + fJson.settingCache["speaker"]
+            + "\n\n*Press no to cancel",
             3,
             self.root,
         ):

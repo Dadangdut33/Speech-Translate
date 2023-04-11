@@ -5,20 +5,22 @@ import shlex
 import arabic_reshaper
 from tkinter import ttk
 from threading import Thread
-from multiprocessing import Queue
 from typing import Optional, List
 from ._path import dir_temp, dir_log, dir_export, dir_user
 from ._contants import SUBTITLE_PLACEHOLDER, RESHAPE_LANG_LIST
+from .utils.Json import SettingJsonHandler
 
 if platform.system() == "Windows":
+    from multiprocessing import Queue
     import pyaudiowpatch as pyaudio
 else:
+    from .utils.Custom_Queue import MyQueue as Queue  # to get qsize
     import pyaudio  # type: ignore
-
-from .utils.Json import SettingJsonHandler
 
 # ------------------ #
 fJson: SettingJsonHandler = SettingJsonHandler(os.path.join(dir_user, "setting.json"), dir_user, [dir_temp, dir_log, dir_export])
+
+
 # ------------------ #
 class Globals:
     """
@@ -31,6 +33,7 @@ class Globals:
         # Flags
         self.running: bool = True
         self.recording: bool = False
+        self.paused: bool = False
         self.transcribing: bool = False
         self.translating: bool = False
 
@@ -43,7 +46,7 @@ class Globals:
         self.dl_thread: Optional[Thread] = None
         self.cancel_dl: bool = False
 
-        self.cw = None # Console window
+        self.cw = None  # Console window
         # References to class
         self.tray = None
         """Tray app class"""
@@ -63,7 +66,9 @@ class Globals:
         # record stream
         self.stream: Optional[pyaudio.Stream] = None
         self.data_queue = Queue()
-        self.max_energy: int = 5000
+        self.current_energy: int = 0
+        self.current_rec_status = ""
+        self.auto_detected_lang = "~"
 
         # file process
         self.file_tced_counter: int = 0
@@ -155,8 +160,8 @@ class Globals:
         if fJson.settingCache["tb_ex_tc_max"] != 0 and len(currentText) > fJson.settingCache["tb_ex_tc_max"]:  # if not infinite and text is too long
             # remove words from the start with length of the new text
             # then add new text to the end
-            currentText = currentText[len(textToAppend) :]  
-            currentText += textToAppend 
+            currentText = currentText[len(textToAppend) :]
+            currentText += textToAppend
             textToAppend = currentText  # set new text
         else:
             textToAppend += ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))  # set new text

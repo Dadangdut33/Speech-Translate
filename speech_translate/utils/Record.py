@@ -6,6 +6,7 @@ import ast
 import shlex
 import numpy
 import tkinter as tk
+import time as t
 from tkinter import ttk, filedialog
 from textwrap import wrap
 from datetime import datetime, timedelta
@@ -25,10 +26,19 @@ else:
 from speech_translate._path import app_icon
 from speech_translate.Globals import dir_temp, fJson, gClass, dir_export
 from speech_translate.Logging import logger
+from speech_translate.components.custom.BoldLabel import LabelTitleText
 from speech_translate.components.custom.MBox import Mbox
 
-from .Helper import nativeNotify, startFile, getFileNameOnlyFromPath 
-from .Helper_Whisper import get_temperature, convert_str_options_to_dict, modelSelectDict, whisper_result_to_srt, srt_whisper_to_txt_format, srt_whisper_to_txt_format_stamps, txt_to_srt_whisper_format_stamps, append_dot_en
+from .Helper import nativeNotify, startFile, getFileNameOnlyFromPath
+from .Helper_Whisper import (
+    get_temperature,
+    convert_str_options_to_dict,
+    whisper_result_to_srt,
+    srt_whisper_to_txt_format,
+    srt_whisper_to_txt_format_stamps,
+    txt_to_srt_whisper_format_stamps,
+    append_dot_en,
+)
 from .Translator import google_tl, libre_tl, memory_tl
 
 
@@ -64,8 +74,9 @@ def getDefaultOutputDevice():
         wasapi_info = p.get_host_api_info_by_type(pyaudio.paWASAPI)
         default_device = p.get_device_info_by_index(wasapi_info["defaultOutputDevice"])  # type: ignore
         sucess = True
-    except OSError:
-        print("Looks like WASAPI is not available on the system.")
+    except OSError as e:
+        logger.error("Looks like WASAPI is not available on the system.")
+        logger.exception(e)
         sucess = False
     finally:
         p.terminate()
@@ -240,7 +251,7 @@ def rec_realTime(
     sample_rate = int(fJson.settingCache["sample_rate"])
     chunk_size = int(fJson.settingCache["chunk_size"])
     max_sentences = int(fJson.settingCache["max_sentences"])
-    max_int16 = 2**15
+    max_int16 = 2**15  # bit depth of 16 bit audio (32768)
     separator = ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))
 
     compression_ratio_threshold = fJson.settingCache["compression_ratio_threshold"]
@@ -351,8 +362,128 @@ def rec_realTime(
 
     logger.debug(f"Record Session Started")
 
+    # window to show progress
+    master = gClass.mw.root
+    root = tk.Toplevel(master)
+    root.title("Recording")
+    root.transient(master)
+    root.geometry("450x200")
+    root.protocol("WM_DELETE_WINDOW", lambda: master.state("iconic"))  # minimize window when click close button
+    root.geometry("+{}+{}".format(master.winfo_rootx() + 50, master.winfo_rooty() + 50))
+    try:
+        root.iconbitmap(app_icon)
+    except:
+        pass
+
+    timerStart = time()
+    paused = False
+    audio_length_in_seconds = 0
+    gClass.current_rec_status = f"▶️ Recording"
+    gClass.auto_detected_lang = "~"
+    language = f"{lang_source} → {lang_target}" if translate else lang_source
+
+    def stop_recording():
+        gClass.recording = False  # only set flag to false because cleanup is handled directly down below
+        btn_stop.config(state="disabled", text="Stopping...")  # disable btn
+        btn_pause.config(state="disabled")
+
+    def toggle_pause():
+        nonlocal paused
+        paused = not paused
+        if paused:
+            btn_pause.config(text="Resume")
+            root.title(f"Recording {rec_type} (Paused)")
+            gClass.current_rec_status = f"⏸️ Paused"
+            update_status_lbl()
+        else:
+            btn_pause.config(text="Pause")
+            root.title(f"Recording {rec_type}")
+            update_modal_ui()
+
+    def update_status_lbl():
+        lbl_status.config(text=gClass.current_rec_status)
+
+    def update_modal_ui():
+        nonlocal timerStart, paused
+        if gClass.recording:
+            if not paused:
+                timer = time() - timerStart
+                timer = t.strftime("%H:%M:%S", t.gmtime(timer))
+                data_queue_size = gClass.data_queue.qsize() * chunk_size / 1024  # approx buffer size in kb
+
+                lbl_timer.config(text=f"REC: {timer} | {language if not auto else language.replace('auto detect', f'auto detect ({gClass.auto_detected_lang})')}")
+                lbl_buffer.set_text(f"{round(audio_length_in_seconds, 2)}/{round(max_record_time, 2)} sec ({round(data_queue_size, 2)} kb)")
+                progress_buffer["value"] = audio_length_in_seconds / max_record_time * 100  # update progress / buffer percentage
+                update_status_lbl()
+
+                root.after(1000, update_modal_ui)
+
+    # widgets
+    frame_lbl = ttk.Frame(root)
+    frame_lbl.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5, expand=True)
+
+    frame_lbl_1 = ttk.Frame(frame_lbl)
+    frame_lbl_1.pack(side=tk.TOP, fill=tk.X)
+
+    frame_lbl_2 = ttk.Frame(frame_lbl)
+    frame_lbl_2.pack(side=tk.TOP, fill=tk.X)
+
+    frame_lbl_3 = ttk.Frame(frame_lbl)
+    frame_lbl_3.pack(side=tk.TOP, fill=tk.X)
+
+    frame_lbl_4 = ttk.Frame(frame_lbl)
+    frame_lbl_4.pack(side=tk.TOP, fill=tk.X)
+
+    frame_lbl_5 = ttk.Frame(frame_lbl)
+    frame_lbl_5.pack(side=tk.TOP, fill=tk.X)
+
+    frame_lbl_6 = ttk.Frame(frame_lbl)
+    frame_lbl_6.pack(side=tk.TOP, fill=tk.X)
+
+    lbl_device = LabelTitleText(frame_lbl_1, "Device: ", device)
+    lbl_device.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+
+    lbl_sample_rate = LabelTitleText(frame_lbl_2, "Sample Rate: ", sample_rate)
+    lbl_sample_rate.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+
+    lbl_channels = LabelTitleText(frame_lbl_2, "Channels: ", num_of_channels)
+    lbl_channels.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+
+    lbl_chunk_size = LabelTitleText(frame_lbl_2, "Chunk Size: ", chunk_size)
+    lbl_chunk_size.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+
+    lbl_buffer = LabelTitleText(frame_lbl_3, "Buffer: ", f"0/{round(max_record_time, 2)} sec")
+    lbl_buffer.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+
+    progress_buffer = ttk.Progressbar(frame_lbl_4, orient=tk.HORIZONTAL, length=200, mode="determinate")
+    progress_buffer.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5, expand=True)
+
+    lbl_timer = ttk.Label(frame_lbl_5, text=f"REC: 00:00:00 | {language}")
+    lbl_timer.pack(
+        side=tk.LEFT,
+        fill=tk.X,
+        padx=5,
+        pady=5,
+    )
+
+    lbl_status = ttk.Label(frame_lbl_6, text="▶️ Recording")
+    lbl_status.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+
+    frame_btn = ttk.Frame(root)
+    frame_btn.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5, expand=True)
+
+    btn_pause = ttk.Button(frame_btn, text="Pause", command=toggle_pause)
+    btn_pause.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5, expand=True)
+
+    btn_stop = ttk.Button(frame_btn, text="Stop", command=stop_recording, style="Accent.TButton")
+    btn_stop.pack(side=tk.RIGHT, fill=tk.X, padx=5, pady=5, expand=True)
+
+    update_modal_ui()
     # transcribing thread
     while gClass.recording:
+        if paused:
+            continue
+
         if not gClass.data_queue.empty():
             now = datetime.utcnow()
             # Set next_transcribe_time for the first time.
@@ -385,7 +516,8 @@ def rec_realTime(
                 audio = wav_reader.readframes(samples)
                 wav_reader.close()
 
-                logger.info(f"Processing Audio")
+                if fJson.settingCache["debug_realtime_record"] == 1:
+                    logger.info(f"Processing Audio")
                 if num_of_channels > 1:
                     # If not mono, the fast method does not work so we have to resort to using the old, a little slower, but working method
                     # which is to save the audio file and read it directly to the whisper model
@@ -396,8 +528,9 @@ def rec_realTime(
                     timeNow = time()
                     with open(audio_target, "wb") as f:
                         f.write(wav_file.getvalue())  # write it
-                    timeTaken = time() - timeNow
-                    logger.debug(f"File Write Time: {timeTaken}")
+
+                    if fJson.settingCache["debug_realtime_record"] == 1:
+                        logger.debug(f"File Write Time: {time() - timeNow}")
 
                     # delete the oldest file if the temp list is too long
                     if len(tempList) > fJson.settingCache["max_temp"] and not fJson.settingCache["keep_temp"]:
@@ -410,7 +543,11 @@ def rec_realTime(
                     audio_as_np_float32 = audio_as_np_int16.astype(numpy.float32)
                     audio_target = audio_as_np_float32 / max_int16  # normalized as Numpy array
 
-                logger.info(f"Transcribing")
+                # Transcribe the audio
+                if fJson.settingCache["debug_realtime_record"] == 1:
+                    logger.info(f"Transcribing")
+
+                gClass.current_rec_status = "▶️ Recording ⟳ Transcribing"
                 result = model.transcribe(
                     audio_target,
                     language=lang_source if not auto else None,
@@ -424,6 +561,7 @@ def rec_realTime(
                     **whisper_extra_args,
                 )
                 text = result["text"].strip()  # type: ignore
+                gClass.auto_detected_lang = result["language"]  # type: ignore
 
                 if len(text) > 0 and text != prev_tc_text:
                     prev_tc_text = text
@@ -431,11 +569,13 @@ def rec_realTime(
                         # this works like this:
                         # clear the textbox first, then insert the text. The text inserted is a continuation of the previous text.
                         # the longer it is the clearer the transcribed text will be, because of more context.
-                        logger.info(f"New transcribed text")
-                        if fJson.settingCache["verbose"]:
-                            logger.debug(verboseWhisperLogging(result))
-                        else:
-                            logger.debug(f"{text}")
+                        if fJson.settingCache["debug_realtime_record"] == 1:
+                            logger.info(f"New transcribed text")
+                            if fJson.settingCache["verbose"]:
+                                logger.debug(verboseWhisperLogging(result))
+                            else:
+                                logger.debug(f"{text}")
+
                         gClass.clearMwTc()
                         gClass.clearExTc()
                         toExTc = ""
@@ -451,6 +591,7 @@ def rec_realTime(
                         gClass.insertExTbTc(toExTc)
 
                     if translate:
+                        gClass.current_rec_status = "▶️ Recording ⟳ Translating"
                         if whisperEngine:
                             tlThread = threading.Thread(
                                 target=whisper_realtime_tl,
@@ -476,7 +617,9 @@ def rec_realTime(
 
                 # break up the buffer If we've reached max recording time
                 audio_length_in_seconds = samples / float(sample_rate)
-                logger.debug(f"Audio length: {audio_length_in_seconds}")
+                if fJson.settingCache["debug_realtime_record"] == 1:
+                    logger.debug(f"Audio length: {audio_length_in_seconds}")
+
                 if audio_length_in_seconds > max_record_time:
                     last_sample = bytes()
 
@@ -490,25 +633,34 @@ def rec_realTime(
                         if len(sentences_tl) >= max_sentences:
                             sentences_tl.pop(0)
 
+                gClass.current_rec_status = "▶️ Recording"  # reset status
+
         sleep(0.1)
     else:
+        logger.debug(f"Record Session ended")
+
+        gClass.current_rec_status = "⚠️ Stopping stream"
+        update_status_lbl()
         logger.info("-" * 50)
         logger.info("Stopping stream")
         gClass.stream.stop_stream()
         gClass.stream.close()
-        logger.info("Stream stopped and closed")
 
-        logger.info("-" * 50)
+        gClass.current_rec_status = "⚠️ Terminating pyaudio"
+        update_status_lbl()
         logger.info("Terminating pyaudio")
         p.terminate()
-        logger.info("Pyaudio terminated")
 
         # empty the queue
+        gClass.current_rec_status = "⚠️ Emptying queue"
+        update_status_lbl()
+        logger.info("Emptying queue")
         while not gClass.data_queue.empty():
             gClass.data_queue.get()
 
         if num_of_channels > 1 and not fJson.settingCache["keep_temp"]:
-            logger.info("-" * 50)
+            gClass.current_rec_status = "⚠️ Cleaning up audioFiles"
+            update_status_lbl()
             logger.info("Cleaning up audioFiles")
             for audio in tempList:
                 try:
@@ -517,26 +669,32 @@ def rec_realTime(
                     pass
             logger.info("Done!")
 
+        gClass.current_rec_status = "⏹️ Stopped"
+        update_status_lbl()
+
         if speaker:
             gClass.mw.after_speaker_rec_stop()
         else:
             gClass.mw.after_mic_rec_stop()
+
+        root.destroy()
 
 
 def realtime_recording_thread(chunk_size: int, rec_type: Literal["mic", "speaker"]):
     """Record Audio From stream buffer and save it to a queue"""
     assert gClass.stream is not None
     while gClass.recording:  # Record in a thread at a fast rate.
-        data = gClass.stream.read(chunk_size)
-        energy = audioop.rms(data, 2)
+        if gClass.paused:
+            sleep(0.1)
+            continue
 
-        if fJson.settingCache["debug_energy"]:
-            logger.debug(f"Energy: {energy}")
+        data = gClass.stream.read(chunk_size)
+        gClass.current_energy = audioop.rms(data, 2)
 
         # store chunks of audio in queue
         if not fJson.settingCache["enable_threshold"]:  # record regardless of energy
             gClass.data_queue.put(data)
-        elif energy > fJson.settingCache[f"{rec_type}_energy_threshold"] and fJson.settingCache["enable_threshold"]:  # only record if energy is above threshold
+        elif fJson.settingCache["enable_threshold"] and gClass.current_energy > fJson.settingCache[f"{rec_type}_energy_threshold"]:  # only record if energy is above threshold
             gClass.data_queue.put(data)
 
 
@@ -558,40 +716,48 @@ def whisper_realtime_tl(
     gClass.enableTranslating()
 
     global prev_tl_text, sentences_tl
-    separator = ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))
+    try:
+        separator = ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))
 
-    result = model.transcribe(
-        audio_normalised,
-        language=lang_source if not auto else None,
-        task="translate",
-        temperature=temperature,
-        compression_ratio_threshold=compression_ratio_threshold,
-        logprob_threshold=logprob_threshold,
-        no_speech_threshold=no_speech_threshold,
-        condition_on_previous_text=condition_on_previous_text,
-        initial_prompt=initial_prompt,
-        **whisper_extra_args,
-    )
-    text = result["text"].strip()  # type: ignore
+        result = model.transcribe(
+            audio_normalised,
+            language=lang_source if not auto else None,
+            task="translate",
+            temperature=temperature,
+            compression_ratio_threshold=compression_ratio_threshold,
+            logprob_threshold=logprob_threshold,
+            no_speech_threshold=no_speech_threshold,
+            condition_on_previous_text=condition_on_previous_text,
+            initial_prompt=initial_prompt,
+            **whisper_extra_args,
+        )
+        text = result["text"].strip()  # type: ignore
+        gClass.auto_detected_lang = result["language"]  # type: ignore
 
-    if len(text) > 0 and text != prev_tl_text:
-        prev_tl_text = text
-        # this works like this:
-        # clear the textbox first, then insert the text. The text inserted is a continuation of the previous text.
-        # the longer it is the clearer the transcribed text will be, because of more context.
-        gClass.clearMwTl()
-        gClass.clearExTl()
-        toExTb = ""
+        if len(text) > 0 and text != prev_tl_text:
+            prev_tl_text = text
+            # this works like this:
+            # clear the textbox first, then insert the text. The text inserted is a continuation of the previous text.
+            # the longer it is the clearer the transcribed text will be, because of more context.
+            gClass.clearMwTl()
+            gClass.clearExTl()
+            toExTb = ""
 
-        # insert previous sentences if there are any
-        for sentence in sentences_tl:
-            gClass.insertMwTbTl(sentence + separator)
-            toExTb += sentence + separator
+            # insert previous sentences if there are any
+            for sentence in sentences_tl:
+                gClass.insertMwTbTl(sentence + separator)
+                toExTb += sentence + separator
 
-        # insert the current sentence after previous sentences
-        gClass.insertMwTbTl(text + separator)
-        toExTb += text + separator
-        gClass.insertExTbTl(toExTb)
+            # insert the current sentence after previous sentences
+            gClass.insertMwTbTl(text + separator)
+            toExTb += text + separator
+            gClass.insertExTbTl(toExTb)
+
+    except Exception as e:
+        logger.exception(e)
+        nativeNotify("Error: translating failed", str(e))
+    finally:
+        gClass.disableTranslating()  # flag processing as done
 
 
 def realtime_tl(text: str, lang_source: str, lang_target: str, engine: Literal["Google", "LibreTranslate", "MyMemoryTranslator"]):
@@ -604,14 +770,16 @@ def realtime_tl(text: str, lang_source: str, lang_target: str, engine: Literal["
         separator = ast.literal_eval(shlex.quote(fJson.settingCache["separate_with"]))
         result_Tl = ""
         debug_log = fJson.settingCache["debug_translate"]
-    
+
         if engine == "Google":
             success, result_Tl = google_tl(text, lang_source, lang_target, debug_log)
             if not success:
                 nativeNotify("Error: translation with google failed", result_Tl)
 
         elif engine == "LibreTranslate":
-            success, result_Tl = libre_tl(text, lang_source, lang_target, fJson.settingCache["libre_https"], fJson.settingCache["libre_host"], fJson.settingCache["libre_port"], fJson.settingCache["libre_api_key"], debug_log)
+            success, result_Tl = libre_tl(
+                text, lang_source, lang_target, fJson.settingCache["libre_https"], fJson.settingCache["libre_host"], fJson.settingCache["libre_port"], fJson.settingCache["libre_api_key"], debug_log
+            )
             if not success:
                 nativeNotify("Error: translation with libre failed", result_Tl)
 
@@ -646,10 +814,11 @@ def realtime_tl(text: str, lang_source: str, lang_target: str, engine: Literal["
     finally:
         gClass.disableTranslating()  # flag processing as done
 
+
 # --------------------------------------------------------------------------------------------------------------------------------------
 # run in threaded environment with queue and exception to cancel
 def cancellable_tl(
-    toTranslate:  str,
+    toTranslate: str,
     lang_source: str,
     lang_target: str,
     modelName: str,
@@ -751,7 +920,7 @@ def cancellable_tl(
                 return
 
             # if whisper, sended text (toTranslate) is the audio file path
-            resultsTxt = result_Tl_whisper["text"].strip() # type: ignore 
+            resultsTxt = result_Tl_whisper["text"].strip()  # type: ignore
 
             if len(resultsTxt) > 0:
                 gClass.file_tled_counter += 1
@@ -789,7 +958,9 @@ def cancellable_tl(
 
                 elif engine == "LibreTranslate":
                     logger.debug("Translating with libre translate")
-                    success, result = libre_tl(toTranslate, lang_source, lang_target, fJson.settingCache["libre_https"], fJson.settingCache["libre_host"], fJson.settingCache["libre_port"], fJson.settingCache["libre_api_key"], debug_log)
+                    success, result = libre_tl(
+                        toTranslate, lang_source, lang_target, fJson.settingCache["libre_https"], fJson.settingCache["libre_host"], fJson.settingCache["libre_port"], fJson.settingCache["libre_api_key"], debug_log
+                    )
                     if not success:
                         nativeNotify("Error: translation with libre failed", result)
 
@@ -923,7 +1094,7 @@ def cancellable_tc(
             sleep(0.1)
 
         result_Tc = gClass.data_queue.get()
-        
+
         # export to file
         audioNameOnly = getFileNameOnlyFromPath(audio_name)
         audioNameOnly = audioNameOnly[:100]  # limit length of file name to 100 characters
@@ -954,15 +1125,15 @@ def cancellable_tc(
             # send result as srt if not using whisper because it will be send to translation API. If using whisper translation will be done using whisper model
             toTranslate = whisper_result_to_srt(result_Tc) if engine != "Whisper" else audio_name
             translateThread = threading.Thread(
-                target=cancellable_tl, 
+                target=cancellable_tl,
                 args=[
-                    toTranslate,  
-                    lang_source, 
-                    lang_target, 
-                    modelName, 
-                    engine, 
-                    auto, 
-                    saveName, 
+                    toTranslate,
+                    lang_source,
+                    lang_target,
+                    modelName,
+                    engine,
+                    auto,
+                    saveName,
                     temperature,
                     compression_ratio_threshold,
                     logprob_threshold,
@@ -970,12 +1141,12 @@ def cancellable_tc(
                     condition_on_previous_text,
                     initial_prompt,
                     whisper_extra_args,
-                ], 
+                ],
                 daemon=True,
-            ) 
+            )
 
             translateThread.start()  # Start translation in a new thread to prevent blocking
-        
+
     except Exception as e:
         if str(e) == "Cancelled":
             logger.info("Transcribing cancelled")
@@ -986,7 +1157,8 @@ def cancellable_tc(
         gClass.disableTranscribing()
         gClass.mw.stop_loadBar()
 
-def file_input(files: List[str], modelKey: str, langSource: str, langTarget: str, transcribe: bool, translate: bool, engine: str) -> None:
+
+def file_input(files: List[str], modelKey: str, lang_source: str, lang_target: str, transcribe: bool, translate: bool, engine: str) -> None:
     """Function to transcribe and translate from audio/video files.
 
     Args
@@ -995,9 +1167,9 @@ def file_input(files: List[str], modelKey: str, langSource: str, langTarget: str
         The path to the audio/video file.
     modelKey (str)
         The key of the model in modelSelectDict as the selected model to use
-    langSource (str)
+    lang_source (str)
         The language of the input.
-    langTarget (str)
+    lang_target (str)
         The language to translate to.
     transcibe (bool)
         Whether to transcribe the audio.
@@ -1015,8 +1187,8 @@ def file_input(files: List[str], modelKey: str, langSource: str, langTarget: str
     gClass.file_tced_counter = 0
     gClass.file_tled_counter = 0
 
-    src_english = langSource == "english"
-    auto = langSource == "auto detect"
+    src_english = lang_source == "english"
+    auto = lang_source == "auto detect"
     whisperEngine = engine == "Whisper"
     modelName = append_dot_en(modelKey, src_english)
 
@@ -1058,12 +1230,16 @@ def file_input(files: List[str], modelKey: str, langSource: str, langTarget: str
     root.title("File Import Progress")
     root.transient(master)
     root.geometry("450x225")
-    root.protocol("WM_DELETE_WINDOW", lambda: master.state("iconic")) # minimize window when click close button
+    root.protocol("WM_DELETE_WINDOW", lambda: master.state("iconic"))  # minimize window when click close button
     root.geometry("+{}+{}".format(master.winfo_rootx() + 50, master.winfo_rooty() + 50))
     try:
         root.iconbitmap(app_icon)
     except:
         pass
+
+    timerStart = time()
+    taskname = "Transcribe & Translate" if transcribe and translate else "Transcribe" if transcribe else "Translate"
+    language = f"from {lang_source} to {lang_target}" if translate else lang_source
 
     def add_to_files():
         nonlocal files
@@ -1072,19 +1248,22 @@ def file_input(files: List[str], modelKey: str, langSource: str, langTarget: str
             filetypes=(("Audio files", "*.wav *.mp3 *.ogg *.flac *.aac *.wma *.m4a"), ("Video files", "*.mp4 *.mkv *.avi *.mov"), ("All files", "*.*")),
         )
 
-        # if still recording and user select files
+        # if still recording / processing file and user select / add files
         if gClass.recording and len(to_add) > 0:
+            if transcribe:
+                current_file_counter = gClass.file_tced_counter
+            else:
+                current_file_counter = gClass.file_tled_counter
             files.extend(list(to_add))
-            lbl_files.config(text=f"Files: {len(files)}")
+            lbl_files.set_text(text=f"{current_file_counter}/{len(files)}")
 
     def cancel():
-        # confirm 
+        # confirm
         if Mbox("Cancel confirmation", "Are you sure you want to cancel file process?", 3, master):
             assert gClass.mw is not None
             gClass.mw.from_file_stop()
 
-    timerStart = time()
-    def update_progress_ui():
+    def update_modal_ui():
         nonlocal timerStart
         if gClass.recording:
             if transcribe:
@@ -1092,23 +1271,23 @@ def file_input(files: List[str], modelKey: str, langSource: str, langTarget: str
             else:
                 current_file_counter = gClass.file_tled_counter
 
-            lbl_files.config(text=f"Files: {current_file_counter}/{len(files)}")
-            lbl_elapsed.config(text=f"Elapsed: {round(time() - timerStart)}s")
-            
+            lbl_files.set_text(text=f"{current_file_counter}/{len(files)}")
+            lbl_elapsed.set_text(text=f"{round(time() - timerStart)}s")
+
             if current_file_counter > 0:
-                lbl_files.config(text=f"Files: {current_file_counter}/{len(files)} ({getFileNameOnlyFromPath(files[current_file_counter - 1])})")
+                lbl_files.set_text(text=f"{current_file_counter}/{len(files)} ({getFileNameOnlyFromPath(files[current_file_counter - 1])})")
             else:
-                lbl_files.config(text=f"Files: {current_file_counter}/{len(files)} ({getFileNameOnlyFromPath(files[current_file_counter])})")
-            
+                lbl_files.set_text(text=f"{current_file_counter}/{len(files)} ({getFileNameOnlyFromPath(files[current_file_counter])})")
+
             if transcribe:
-                lbl_tced.config(text=f"Transcribed: {gClass.file_tced_counter}")
+                lbl_tced.set_text(text=f"{gClass.file_tced_counter}")
             if translate:
-                lbl_tled.config(text=f"Translated: {gClass.file_tled_counter}")
+                lbl_tled.set_text(text=f"{gClass.file_tled_counter}")
 
-            # update progressbar 
-            progress_bar["value"] = current_file_counter / len(files) * 100 # update the progress bar based on percentage
+            # update progressbar
+            progress_bar["value"] = current_file_counter / len(files) * 100  # update the progress bar based on percentage
 
-            root.after(1000, update_progress_ui)
+            root.after(1000, update_modal_ui)
 
     # widgets
     frame_lbl = ttk.Frame(root)
@@ -1138,23 +1317,22 @@ def file_input(files: List[str], modelKey: str, langSource: str, langTarget: str
     frame_btn_2 = ttk.Frame(frame_btn)
     frame_btn_2.pack(side=tk.TOP, fill=tk.X, expand=True)
 
-    taskname = "Transcribe & Translate" if transcribe and translate else "Transcribe" if transcribe else "Translate"
-    lbl_task_name = ttk.Label(frame_lbl_1, text="Task: " + taskname + f" from {langSource} to {langTarget} with {modelName} model")
+    lbl_task_name = ttk.Label(frame_lbl_1, text="Task: " + taskname + f" {language} with {modelName} model")
     lbl_task_name.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
 
-    lbl_files = ttk.Label(frame_lbl_2, text=f"Files: {len(files)} ({getFileNameOnlyFromPath(files[0])}))")
+    lbl_files = LabelTitleText(frame_lbl_2, "Files: ", f"{len(files)}")
     lbl_files.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
 
-    lbl_tced = ttk.Label(frame_lbl_3, text=f"Transcribed: {gClass.file_tced_counter}")
+    lbl_tced = LabelTitleText(frame_lbl_3, "Transcribed: ", f"{gClass.file_tced_counter}")
     lbl_tced.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
 
-    lbl_tled = ttk.Label(frame_lbl_3, text=f"Translated: {gClass.file_tled_counter}")
+    lbl_tled = LabelTitleText(frame_lbl_3, "Translated: ", f"{gClass.file_tled_counter}")
     lbl_tled.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
 
-    lbl_elapsed = ttk.Label(frame_lbl_4, text=f"Elapsed: {round(time() - timerStart, 2)}s")
+    lbl_elapsed = LabelTitleText(frame_lbl_4, "Elapsed: ", f"{round(time() - timerStart, 2)}s")
     lbl_elapsed.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
 
-    progress_bar = ttk.Progressbar(frame_lbl_5, orient=tk.HORIZONTAL, length=300, mode='determinate')
+    progress_bar = ttk.Progressbar(frame_lbl_5, orient=tk.HORIZONTAL, length=300, mode="determinate")
     progress_bar.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5, expand=True)
 
     btn_add = ttk.Button(frame_btn_1, text="Add", command=add_to_files)
@@ -1163,7 +1341,7 @@ def file_input(files: List[str], modelKey: str, langSource: str, langTarget: str
     btn_cancel = ttk.Button(frame_btn_1, text="Cancel", command=cancel, style="Accent.TButton")
     btn_cancel.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5, expand=True)
 
-    update_progress_ui()
+    update_modal_ui()
     for file in files:
         if not gClass.recording:  # if cancel button is pressed
             return
@@ -1176,8 +1354,8 @@ def file_input(files: List[str], modelKey: str, langSource: str, langTarget: str
                 target=cancellable_tl,
                 args=[
                     file,
-                    langSource,
-                    langTarget,
+                    lang_source,
+                    lang_target,
                     modelName,
                     engine,
                     auto,
@@ -1199,8 +1377,8 @@ def file_input(files: List[str], modelKey: str, langSource: str, langTarget: str
                 target=cancellable_tc,
                 args=[
                     file,
-                    langSource,
-                    langTarget,
+                    lang_source,
+                    lang_target,
                     modelName,
                     auto,
                     transcribe,
@@ -1222,7 +1400,6 @@ def file_input(files: List[str], modelKey: str, langSource: str, langTarget: str
         procThread.join()
         logger.debug(f"Finished process for {file} in {round(time() - start, 2)}s")
 
-
     # destroy progress window
     if root.winfo_exists():
         root.after(1000, root.destroy)
@@ -1233,7 +1410,13 @@ def file_input(files: List[str], modelKey: str, langSource: str, langTarget: str
         if fJson.settingCache["auto_open_dir_export"]:
             startFile(export_to)
 
-        resultMsg = f"Transcribed {gClass.file_tced_counter} file(s) and Translated {gClass.file_tled_counter} file(s)" if transcribe and translate else f"Transcribed {gClass.file_tced_counter} file(s)" if transcribe else f"Translated {gClass.file_tled_counter} file(s)"    
+        resultMsg = (
+            f"Transcribed {gClass.file_tced_counter} file(s) and Translated {gClass.file_tled_counter} file(s)"
+            if transcribe and translate
+            else f"Transcribed {gClass.file_tced_counter} file(s)"
+            if transcribe
+            else f"Translated {gClass.file_tled_counter} file(s)"
+        )
         Mbox(f"File {taskname} Done", resultMsg, 0)
 
     # turn off loadbar

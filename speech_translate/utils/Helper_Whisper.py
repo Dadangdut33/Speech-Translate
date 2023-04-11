@@ -16,6 +16,7 @@ def append_dot_en(modelKey: str, src_english: bool):
     src_english: bool
         If the source language is english
     """
+    logger.info("Checking model name")
     logger.debug(f"modelKey: {modelKey}, src_english: {src_english}")
     modelName = modelSelectDict[modelKey]
     if "large" not in modelName and src_english:

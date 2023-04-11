@@ -42,17 +42,19 @@ try:
     import ctypes
     import win32.lib.win32con as win32con
     import win32gui
-    kernel32 = ctypes.WinDLL('kernel32')
-    user32 = ctypes.WinDLL('user32')
 
-    hWnd = kernel32.GetConsoleWindow() 
+    kernel32 = ctypes.WinDLL("kernel32")
+    user32 = ctypes.WinDLL("user32")
+
+    hWnd = kernel32.GetConsoleWindow()
     win32gui.ShowWindow(hWnd, win32con.SW_HIDE)
     logger.info("Console window hidden. If it is not hidden (only minimized), try changing your default windows terminal to windows cmd.")
-    gClass.cw = hWnd # type: ignore
+    gClass.cw = hWnd  # type: ignore
 except Exception as e:
     logger.debug("Ignore this error if not running on Windows OR if not run directly from terminal (e.g. run from IDE)")
     logger.exception(e)
     pass
+
 
 class AppTray:
     """
@@ -141,7 +143,7 @@ class MainWindow:
         # Styles
         self.style = ttk.Style()
         gClass.style = self.style
-        
+
         init_theme()
         gClass.native_theme = get_current_theme()  # get first theme before changing
         gClass.theme_lists = list(get_theme_list())
@@ -505,9 +507,9 @@ class MainWindow:
             return
 
         if not self.console_opened:
-            win32gui.ShowWindow(gClass.cw, win32con.SW_SHOW) 
+            win32gui.ShowWindow(gClass.cw, win32con.SW_SHOW)
         else:
-            win32gui.ShowWindow(gClass.cw, win32con.SW_HIDE) 
+            win32gui.ShowWindow(gClass.cw, win32con.SW_HIDE)
 
         self.console_opened = not self.console_opened
         logger.debug(f"Console toggled, now {'opened' if self.console_opened else 'closed'}")
@@ -820,20 +822,23 @@ class MainWindow:
         if not Mbox("Cancel confirmation", "Are you sure you want to cancel downloading?", 3, self.root):
             return
 
-        gClass.cancel_dl = True # Raise flag to stop
+        gClass.cancel_dl = True  # Raise flag to stop
 
     def after_model_dl(self, taskname, task):
         # ask if user wants to continue using the model
         if Mbox("Model is now Ready!", f"Continue task? ({taskname})", 3, self.root):
             task()
 
-    def destroy_transient_toplevel(self, name):
+    def destroy_transient_toplevel(self, name, similar=False):
         for child in self.root.winfo_children():
             if isinstance(child, tk.Toplevel):
                 if child.title() == name:
                     child.destroy()
                     break
-        
+                if similar and name in child.title():
+                    child.destroy()
+                    break
+
     # ------------------ Rec ------------------
     # From mic
     def mic_rec(self):
@@ -907,7 +912,7 @@ class MainWindow:
                 self.root,
             )
             return
-            
+
         if gClass.dl_thread and gClass.dl_thread.is_alive():
             Mbox("Please wait! A model is being downloaded", "A Model is still being downloaded! Please wait until it finishes first!", 1)
             return
@@ -1038,6 +1043,7 @@ class MainWindow:
 
 
 if __name__ == "__main__":
+    print("test")
     # https://docs.python.org/3/library/multiprocessing.html#multiprocessing.freeze_support
     freeze_support()  # Fix For multiprocessing spawning new window for building exe
 

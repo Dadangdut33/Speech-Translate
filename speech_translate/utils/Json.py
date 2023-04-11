@@ -20,7 +20,6 @@ default_setting = {
     "verbose": False,
     "hide_console_window_on_start": False,
     "separate_with": "\\n",
-    "realtime_mode": True,
     "mic": "",
     "speaker": "",
     "theme": "sv-dark" if darkdetect.isDark() else "sv-light",
@@ -35,6 +34,7 @@ default_setting = {
     "log_level": "DEBUG",  # INFO DEBUG WARNING ERROR
     "auto_scroll_log": True,
     "auto_refresh_log": True,
+    "debug_realtime_record": False,
     "debug_translate": False,
     # ------------------ #
     # Tl Settings
@@ -68,7 +68,7 @@ default_setting = {
     "logprob_threshold": -1.0,
     "no_speech_threshold": 0.6,
     "condition_on_previous_text": True,
-    "initial_prompt": "", 
+    "initial_prompt": "",
     # ------------------ #
     # Textboxes
     "tb_mw_tc_max": 0,
