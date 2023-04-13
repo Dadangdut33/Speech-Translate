@@ -11,7 +11,7 @@ from speech_translate._contants import APP_NAME, PREVIEW_WORDS
 from speech_translate.Globals import fJson, gClass, dir_log, dir_temp, dir_export
 from speech_translate.Logging import logger, current_log
 from speech_translate.utils.DownloadModel import verify_model, download_model, get_default_download_root
-from speech_translate.utils.Helper import startFile
+from speech_translate.utils.Helper import startFile, cbtnInvoker
 from speech_translate.utils.Helper_Whisper import convert_str_options_to_dict, get_temperature
 from speech_translate.utils.Record import getDeviceAverageThreshold
 from speech_translate.utils.Style import set_ui_style
@@ -1197,22 +1197,15 @@ class SettingWindow:
             if isinstance(widget, tk.Frame) or isinstance(widget, ttk.Frame) or isinstance(widget, tk.LabelFrame):
                 widget.bind("<Button-1>", lambda event: self.root.focus_set())  # type: ignore
 
-    def cbtnInvoker(self, settingVal: bool, widget: ttk.Checkbutton):
-        if settingVal:
-            widget.invoke()
-        else:
-            widget.invoke()
-            widget.invoke()
-
     def init_setting_once(self):
         # app
-        self.cbtnInvoker(fJson.settingCache["keep_log"], self.cbtn_keep_log)
-        self.cbtnInvoker(fJson.settingCache["debug_realtime_record"], self.cbtn_debug_realtime_record)
-        self.cbtnInvoker(fJson.settingCache["debug_translate"], self.cbtn_debug_translate)
-        self.cbtnInvoker(fJson.settingCache["verbose"], self.cbtn_verbose)
-        self.cbtnInvoker(fJson.settingCache["checkUpdateOnStart"], self.cbtn_update_on_start)
-        self.cbtnInvoker(fJson.settingCache["supress_hidden_to_tray"], self.cbtn_supress_hidden_to_tray)
-        self.cbtnInvoker(fJson.settingCache["auto_open_dir_export"], self.cbtn_auto_open_export)
+        cbtnInvoker(fJson.settingCache["keep_log"], self.cbtn_keep_log)
+        cbtnInvoker(fJson.settingCache["debug_realtime_record"], self.cbtn_debug_realtime_record)
+        cbtnInvoker(fJson.settingCache["debug_translate"], self.cbtn_debug_translate)
+        cbtnInvoker(fJson.settingCache["verbose"], self.cbtn_verbose)
+        cbtnInvoker(fJson.settingCache["checkUpdateOnStart"], self.cbtn_update_on_start)
+        cbtnInvoker(fJson.settingCache["supress_hidden_to_tray"], self.cbtn_supress_hidden_to_tray)
+        cbtnInvoker(fJson.settingCache["auto_open_dir_export"], self.cbtn_auto_open_export)
         if fJson.settingCache["dir_export"] == "auto":
             self.default_export_path()
         else:
@@ -1232,15 +1225,15 @@ class SettingWindow:
         self.spn_sample_rate.set(fJson.settingCache["sample_rate"])
         self.spn_chunk_size.set(fJson.settingCache["chunk_size"])
         self.spn_tc_rate.set(fJson.settingCache["transcribe_rate"])
-        self.cbtnInvoker(fJson.settingCache["auto_sample_rate"], self.cbtn_auto_sample_rate)
-        self.cbtnInvoker(fJson.settingCache["auto_channels_amount"], self.cbtn_auto_channels_amount)
-        self.cbtnInvoker(fJson.settingCache["keep_temp"], self.cbtn_keep_temp)
-        self.cbtnInvoker(fJson.settingCache["enable_threshold"], self.cbtn_enable_threshold)
-        self.cbtnInvoker(fJson.settingCache["debug_energy"], self.cbtn_debug_energy)
+        cbtnInvoker(fJson.settingCache["auto_sample_rate"], self.cbtn_auto_sample_rate)
+        cbtnInvoker(fJson.settingCache["auto_channels_amount"], self.cbtn_auto_channels_amount)
+        cbtnInvoker(fJson.settingCache["keep_temp"], self.cbtn_keep_temp)
+        cbtnInvoker(fJson.settingCache["enable_threshold"], self.cbtn_enable_threshold)
+        cbtnInvoker(fJson.settingCache["debug_energy"], self.cbtn_debug_energy)
         self.spn_threshold_mic.set(fJson.settingCache["mic_energy_threshold"])
 
         # whisper settings
-        self.cbtnInvoker(fJson.settingCache["condition_on_previous_text"], self.cbtn_condition_on_previous_text)
+        cbtnInvoker(fJson.settingCache["condition_on_previous_text"], self.cbtn_condition_on_previous_text)
         self.spn_compression_ratio_threshold.set(fJson.settingCache["compression_ratio_threshold"])
         self.spn_logprob_threshold.set(fJson.settingCache["logprob_threshold"])
         self.spn_no_speech_threshold.set(fJson.settingCache["no_speech_threshold"])
@@ -1258,14 +1251,14 @@ class SettingWindow:
         self.entry_libre_host.insert(0, fJson.settingCache["libre_host"])
         self.entry_libre_port.delete(0, tk.END)
         self.entry_libre_port.insert(0, fJson.settingCache["libre_port"])
-        self.cbtnInvoker(fJson.settingCache["libre_https"], self.cbtn_libre_https)
+        cbtnInvoker(fJson.settingCache["libre_https"], self.cbtn_libre_https)
 
         # tb
         self.init_tb_settings(fJson.settingCache)
-        self.cbtnInvoker(fJson.settingCache["tb_mw_tc_font_bold"], self.cbtn_mw_tc_font_bold)
-        self.cbtnInvoker(fJson.settingCache["tb_mw_tl_font_bold"], self.cbtn_mw_tl_font_bold)
-        self.cbtnInvoker(fJson.settingCache["tb_ex_tc_font_bold"], self.cbtn_ex_tc_font_bold)
-        self.cbtnInvoker(fJson.settingCache["tb_ex_tl_font_bold"], self.cbtn_ex_tl_font_bold)
+        cbtnInvoker(fJson.settingCache["tb_mw_tc_font_bold"], self.cbtn_mw_tc_font_bold)
+        cbtnInvoker(fJson.settingCache["tb_mw_tl_font_bold"], self.cbtn_mw_tl_font_bold)
+        cbtnInvoker(fJson.settingCache["tb_ex_tc_font_bold"], self.cbtn_ex_tc_font_bold)
+        cbtnInvoker(fJson.settingCache["tb_ex_tl_font_bold"], self.cbtn_ex_tl_font_bold)
 
         if platform.system() == "Windows":
             self.spn_buffer_speaker.set(fJson.settingCache["speaker_maxBuffer"])

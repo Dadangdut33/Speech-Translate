@@ -886,6 +886,7 @@ class MainWindow:
             logger.exception(e)
             self.errorNotif(str(e))
             self.mic_rec_stop()
+            self.after_mic_rec_stop()
 
     def mic_rec_stop(self):
         logger.info("Recording Mic Stopped")
@@ -957,6 +958,7 @@ class MainWindow:
             logger.exception(e)
             self.errorNotif(str(e))
             self.speaker_rec_stop()
+            self.after_speaker_rec_stop()
 
     def speaker_rec_stop(self):
         logger.info("Recording PC Stopped")
@@ -1026,7 +1028,7 @@ class MainWindow:
             self.errorNotif(str(e))
             self.from_file_stop()
 
-    def from_file_stop(self, prompt=False):
+    def from_file_stop(self, prompt=False, notify=True):
         if prompt:
             if not Mbox("Confirm", "Are you sure you want to cancel the file transcribe/translate process?", 3, self.root):
                 return
@@ -1037,7 +1039,8 @@ class MainWindow:
         gClass.disableTranslating()
         self.destroy_transient_toplevel("File Import Progress")
 
-        Mbox("Cancelled", f"Cancelled file import processing\n\nTranscribed {gClass.file_tced_counter} and translated {gClass.file_tled_counter} file", 0, self.root)
+        if notify:
+            Mbox("Cancelled", f"Cancelled file import processing\n\nTranscribed {gClass.file_tced_counter} and translated {gClass.file_tled_counter} file", 0, self.root)
 
         self.loadBar.stop()
         self.loadBar.config(mode="determinate")
@@ -1046,7 +1049,6 @@ class MainWindow:
 
 
 if __name__ == "__main__":
-    print("test")
     # https://docs.python.org/3/library/multiprocessing.html#multiprocessing.freeze_support
     freeze_support()  # Fix For multiprocessing spawning new window for building exe
 

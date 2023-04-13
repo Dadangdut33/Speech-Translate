@@ -2,11 +2,13 @@ import os
 import subprocess
 import webbrowser
 
+from tkinter import ttk
 from typing import Dict
 from notifypy import Notify, exceptions
 from speech_translate.Logging import logger
 from speech_translate._path import app_icon, app_icon_missing
 from speech_translate._contants import APP_NAME
+
 
 def upFirstCase(string: str):
     return string[0].upper() + string[1:]
@@ -14,6 +16,14 @@ def upFirstCase(string: str):
 
 def get_similar_keys(_dict: Dict, key: str):
     return [k for k in _dict.keys() if key.lower() in k.lower()]
+
+
+def cbtnInvoker(settingVal: bool, widget: ttk.Checkbutton):
+    if settingVal:
+        widget.invoke()
+    else:
+        widget.invoke()
+        widget.invoke()
 
 
 def startFile(filename: str):
@@ -62,6 +72,7 @@ def nativeNotify(title: str, message: str):
             pass
 
     notification.send()
+
 
 def no_connection_notify(
     customTitle: str = "No Internet Connection",
