@@ -40,7 +40,7 @@ if not in_virtualenv():
 
 options = [
     "Main.py",
-    "-c", # console window. Console window cannot be hidden because it will cause error on whisper transformer logging 
+    "-c",  # console window. Console window cannot be hidden because it will cause error on whisper transformer logging
     "--clean",
     "--noconfirm",
     "--additional-hooks-dir=./_pyinstaller_hooks",
@@ -118,4 +118,10 @@ for file in os.listdir(output_folder):
 # open folder
 print(">> Opening output folder")
 output_folder = os.path.abspath(output_folder)
-os.startfile(output_folder)
+try:
+    os.startfile(output_folder)
+except Exception:
+    # linux
+    import subprocess
+
+    subprocess.call(["xdg-open", output_folder])
