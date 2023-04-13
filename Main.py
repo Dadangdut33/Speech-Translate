@@ -298,7 +298,7 @@ class MainWindow:
             wrapLength=400,
         )
 
-        self.cb_mic = ttk.Combobox(self.f3_leftRow1, values=getInputDevices(), state="readonly", width=70)
+        self.cb_mic = ttk.Combobox(self.f3_leftRow1, values=[], state="readonly", width=70)
         self.cb_mic.bind("<<ComboboxSelected>>", lambda _: fJson.savePartialSetting("mic", self.cb_mic.get()))
         self.cb_mic.pack(side=tk.LEFT, padx=5, pady=0, ipady=0)
         CreateToolTip(
@@ -322,7 +322,7 @@ class MainWindow:
             wrapLength=400,
         )
 
-        self.cb_speaker = ttk.Combobox(self.f3_leftRow2, values=getOutputDevices(), state="readonly", width=70)
+        self.cb_speaker = ttk.Combobox(self.f3_leftRow2, values=[], state="readonly", width=70)
         self.cb_speaker.bind("<<ComboboxSelected>>", lambda _: fJson.savePartialSetting("speaker", self.cb_speaker.get()))
         self.cb_speaker.pack(side=tk.LEFT, padx=5, pady=0, ipady=0)
         CreateToolTip(
@@ -538,10 +538,13 @@ class MainWindow:
         # update on start
         self.cb_engine_change()
         self.cb_mode_change()
-        self.cb_mic_init()
+        self.cb_input_device_init()
 
     # mic
-    def cb_mic_init(self):
+    def cb_input_device_init(self):
+        self.cb_mic["values"] = getInputDevices()
+        self.cb_speaker["values"] = getOutputDevices()
+
         if fJson.settingCache["mic"] not in self.cb_mic["values"]:
             self.label_microphone_Rclick()
         else:
@@ -1047,7 +1050,7 @@ if __name__ == "__main__":
     # https://docs.python.org/3/library/multiprocessing.html#multiprocessing.freeze_support
     freeze_support()  # Fix For multiprocessing spawning new window for building exe
 
-    logger.info("Booting up...")
+    logger.info(f"Booting up | Version: {__version__}")
     # --- GUI ---
     tray = AppTray()  # Start tray app in the background
     main = MainWindow()

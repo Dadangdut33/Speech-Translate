@@ -43,22 +43,36 @@ from .Translator import google_tl, libre_tl, memory_tl
 
 
 def getInputDevices():
-    devices = sd.query_devices()
-    devices = [device for device in devices if device["max_input_channels"] > 0]  # type: ignore # Filter out devices that are not input devices
-    devices = [f"{device['name']}, {sd.query_hostapis(device['hostapi'])['name']}" for device in devices]  # type: ignore # Map the name
-    return devices
+    devices = []
+    try:
+        devices = sd.query_devices()
+        devices = [device for device in devices if device["max_input_channels"] > 0]  # type: ignore # Filter out devices that are not input devices
+        devices = [f"{device['name']}, {sd.query_hostapis(device['hostapi'])['name']}" for device in devices]  # type: ignore # Map the name
+    except Exception as e:
+        logger.error("Something went wrong while trying to get the input devices (mic).")
+        logger.exception(e)
+        devices = ["[ERROR] Check the terminal/log for more information."]
+    finally:
+        return devices
 
 
 def getOutputDevices():
-    p = pyaudio.PyAudio()
+    devices = []
+    try:
+        p = pyaudio.PyAudio()
 
-    devices = p.get_device_count()
-    devices = [p.get_device_info_by_index(i) for i in range(devices)]
-    devices = [device for device in devices if device["maxOutputChannels"] > 0]  # type: ignore # Filter out devices that are not output devices
-    devices = [f"{device['name']}, {sd.query_hostapis(device['hostApi'])['name']} [ID: {device['index']}]" for device in devices]  # type: ignore  # Map the name
+        devices = p.get_device_count()
+        devices = [p.get_device_info_by_index(i) for i in range(devices)]
+        devices = [device for device in devices if device["maxOutputChannels"] > 0]  # type: ignore # Filter out devices that are not output devices
+        devices = [f"{device['name']}, {sd.query_hostapis(device['hostApi'])['name']} [ID: {device['index']}]" for device in devices]  # type: ignore  # Map the name
 
-    p.terminate()
-    return devices
+        p.terminate()
+    except Exception as e:
+        logger.error("Something went wrong while trying to get the output devices (speaker).")
+        logger.exception(e)
+        devices = ["[ERROR] Check the terminal/log for more information."]
+    finally:
+        return devices
 
 
 def getDefaultInputDevice():
