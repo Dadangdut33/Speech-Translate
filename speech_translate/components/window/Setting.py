@@ -105,6 +105,15 @@ class SettingWindow:
         )
         self.cbtn_supress_hidden_to_tray.pack(side=tk.LEFT, padx=5, pady=5)
 
+        self.cbtn_supress_device_warning = ttk.Checkbutton(
+            self.f_application_1,
+            text="Supress device warning",
+            command=lambda: fJson.savePartialSetting("supress_device_warning", self.cbtn_supress_device_warning.instate(["selected"])),
+            style="Switch.TCheckbutton",
+        )
+        self.cbtn_supress_device_warning.pack(side=tk.LEFT, padx=5, pady=5)
+        CreateToolTip(self.cbtn_supress_device_warning, "Supress warning notification that usually shows up when no input device is detected.")
+
         self.lbl_notice_theme = ttk.Label(self.f_application_1, text="— Might need to reload the app for the changes to take effect.")
         self.lbl_notice_theme.pack(side=tk.LEFT, padx=5, pady=5)
 
@@ -208,25 +217,25 @@ class SettingWindow:
         self.entry_log_location_value.bind("<Button-3>", lambda e: self.promptDeleteLog())
         CreateToolTip(self.entry_log_location_value, "Location of log file.\n\n- LClick to open the folder.\n- RClick to delete all log files.")
 
-        self.cbtn_verbose = ttk.Checkbutton(self.f_logging_2, text="Verbose Logging for Whisper", command=lambda: fJson.savePartialSetting("verbose", self.cbtn_verbose.instate(["selected"])), style="Switch.TCheckbutton")
+        self.cbtn_verbose = ttk.Checkbutton(self.f_logging_2, text="Verbose logging for whisper", command=lambda: fJson.savePartialSetting("verbose", self.cbtn_verbose.instate(["selected"])), style="Switch.TCheckbutton")
         self.cbtn_verbose.pack(side=tk.LEFT, padx=5)
 
-        self.cbtn_keep_log = ttk.Checkbutton(self.f_logging_3, text="Keep Log Files", command=lambda: fJson.savePartialSetting("keep_log", self.cbtn_keep_log.instate(["selected"])), style="Switch.TCheckbutton")
+        self.cbtn_keep_log = ttk.Checkbutton(self.f_logging_3, text="Keep log files", command=lambda: fJson.savePartialSetting("keep_log", self.cbtn_keep_log.instate(["selected"])), style="Switch.TCheckbutton")
         self.cbtn_keep_log.pack(side=tk.LEFT, padx=5)
 
-        self.lbl_loglevel = ttk.Label(self.f_logging_3, text="— Log Level")
+        self.lbl_loglevel = ttk.Label(self.f_logging_3, text="— Log level")
         self.lbl_loglevel.pack(side=tk.LEFT, padx=(0, 5))
 
         self.cb_log_level = ttk.Combobox(self.f_logging_3, values=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], state="readonly")
         self.cb_log_level.pack(side=tk.LEFT, padx=0)
 
         self.cbtn_debug_realtime_record = ttk.Checkbutton(
-            self.f_logging_4, text="Debug Realtime Record", command=lambda: fJson.savePartialSetting("debug_realtime_record", self.cbtn_debug_realtime_record.instate(["selected"])), style="Switch.TCheckbutton"
+            self.f_logging_4, text="Debug realtime record", command=lambda: fJson.savePartialSetting("debug_realtime_record", self.cbtn_debug_realtime_record.instate(["selected"])), style="Switch.TCheckbutton"
         )
         self.cbtn_debug_realtime_record.pack(side=tk.LEFT, padx=5, pady=(0, 5))
 
         self.cbtn_debug_translate = ttk.Checkbutton(
-            self.f_logging_4, text="Debug Translate", command=lambda: fJson.savePartialSetting("debug_translate", self.cbtn_debug_translate.instate(["selected"])), style="Switch.TCheckbutton"
+            self.f_logging_4, text="Debug translate", command=lambda: fJson.savePartialSetting("debug_translate", self.cbtn_debug_translate.instate(["selected"])), style="Switch.TCheckbutton"
         )
         self.cbtn_debug_translate.pack(side=tk.LEFT, padx=5, pady=(0, 5))
 
@@ -392,7 +401,7 @@ class SettingWindow:
         self.entry_separate_text_with.bind("<KeyRelease>", lambda e: fJson.savePartialSetting("separate_with", self.entry_separate_text_with.get()))
         CreateToolTip(self.entry_separate_text_with, "Set the separator for text that is transcribed or translated.\n\nDefault value \\n", wrapLength=400)
 
-        self.lbl_max_temp = ttk.Label(self.f_tc_result_2, text="Max sentences", width=18)
+        self.lbl_max_temp = ttk.Label(self.f_tc_result_2, text="Max Sentences", width=18)
         self.lbl_max_temp.pack(side=tk.LEFT, padx=5)
         CreateToolTip(
             self.lbl_max_temp,
@@ -409,7 +418,7 @@ class SettingWindow:
             "Set max number of sentences kept between each buffer reset.\n\nOne sentence equals one max buffer. So if max buffer is 30 seconds, the words that are in those 30 seconds is the sentence.\n\nDefault value is 5.",
         )
 
-        self.lbl_max_temp = ttk.Label(self.f_tc_result_2, text="Max temp files", width=18)
+        self.lbl_max_temp = ttk.Label(self.f_tc_result_2, text="Max Temp Files", width=18)
         self.lbl_max_temp.pack(side=tk.LEFT, padx=5)
         CreateToolTip(self.lbl_max_temp, "Set max number of temporary files kept when recording from device that is not mono.\n\nDefault value is 200.")
 
@@ -432,7 +441,7 @@ class SettingWindow:
         self.spn_sample_rate.pack(side=tk.LEFT, padx=5)
         CreateToolTip(self.spn_sample_rate, "Set the sample rate for the audio recording. \n\nDefault value is 16000.")
 
-        self.lbl_chunk_size = ttk.Label(self.f_tc_params_1, text="Chunk size", width=18)
+        self.lbl_chunk_size = ttk.Label(self.f_tc_params_1, text="Chunk Size", width=18)
         self.lbl_chunk_size.pack(side=tk.LEFT, padx=5)
         CreateToolTip(self.lbl_chunk_size, "Set the chunk size for the audio recording. \n\nDefault value is 1024.")
 
@@ -443,7 +452,7 @@ class SettingWindow:
         self.spn_chunk_size.pack(side=tk.LEFT, padx=5)
         CreateToolTip(self.spn_chunk_size, "Set the chunk size for the audio recording. \n\nDefault value is 1024.")
 
-        self.lbl_tc_rate = ttk.Label(self.f_tc_params_1, text="Transcribe rate (ms)", width=18)
+        self.lbl_tc_rate = ttk.Label(self.f_tc_params_1, text="Transcribe Rate (ms)", width=18)
         self.lbl_tc_rate.pack(side=tk.LEFT, padx=5)
         CreateToolTip(self.lbl_tc_rate, "Set the transcribe rate or the time between each transcribe check. \n\nThe lower the value, the more resource it will use.\n\nDefault value is 500ms.")
 
@@ -738,7 +747,7 @@ class SettingWindow:
         CreateToolTip(self.btn_verify_temperature, "Verify temperature input.")
 
         rng = random.randint(0, 10000)
-        self.lbl_extra_whisper_args = ttk.Label(self.f_extra_whisper_args_4, text="Extra Whisper Args", width=18, cursor="hand2")
+        self.lbl_extra_whisper_args = ttk.Label(self.f_extra_whisper_args_4, text="Extra whisper args", width=18, cursor="hand2")
         self.lbl_extra_whisper_args.pack(side=tk.LEFT, padx=5)
         self.lbl_extra_whisper_args.bind("<Button-1>", lambda e: Mbox_InfoTb(rng, self.root, "Whisper Args", hint))
         CreateToolTip(self.lbl_extra_whisper_args, "Click to see the available arguments.")
@@ -1205,6 +1214,7 @@ class SettingWindow:
         cbtnInvoker(fJson.settingCache["verbose"], self.cbtn_verbose)
         cbtnInvoker(fJson.settingCache["checkUpdateOnStart"], self.cbtn_update_on_start)
         cbtnInvoker(fJson.settingCache["supress_hidden_to_tray"], self.cbtn_supress_hidden_to_tray)
+        cbtnInvoker(fJson.settingCache["supress_device_warning"], self.cbtn_supress_device_warning)
         cbtnInvoker(fJson.settingCache["auto_open_dir_export"], self.cbtn_auto_open_export)
         if fJson.settingCache["dir_export"] == "auto":
             self.default_export_path()

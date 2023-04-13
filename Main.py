@@ -563,16 +563,20 @@ class MainWindow:
 
     def label_microphone_Rclick(self, _event=None):
         self.label_microphone_Lclick()  # update list
-        # set default mic
-        defaultMic = getDefaultInputDevice()
-        if defaultMic:
-            self.cb_mic.set(defaultMic["name"] + ", " + sd.query_hostapis(defaultMic["hostapi"])["name"])  # type: ignore
+        success, default_device = getDefaultInputDevice()
+        if not success:
+            if not ["supress_device_warning"]:
+                self.errorNotif(str(default_device))
+            return
+
+        if default_device:
+            self.cb_mic.set(default_device["name"] + ", " + sd.query_hostapis(default_device["hostapi"])["name"])  # type: ignore
             fJson.savePartialSetting("mic", self.cb_mic.get())
             # verify if the current mic is still available
             if self.cb_mic.get() not in self.cb_mic["values"]:
                 self.cb_mic.current(0)
         else:
-            self.errorNotif("No default speaker found")
+            self.errorNotif("No default mic found")
 
     # speaker
     def label_speaker_Lclick(self, _event=None):
@@ -583,14 +587,14 @@ class MainWindow:
 
     def label_speaker_Rclick(self, _event=None):
         self.label_speaker_Lclick()  # update list
-        # set default speaker
-        success, defaultSpeaker = getDefaultOutputDevice()
+        success, default_device = getDefaultOutputDevice()
         if not success:
-            self.errorNotif(str(defaultSpeaker))
+            if not ["supress_device_warning"]:
+                self.errorNotif(str(default_device))
             return
 
-        if defaultSpeaker:
-            self.cb_speaker.set(f"{defaultSpeaker['name']}, {sd.query_hostapis(defaultSpeaker['hostApi'])['name']} [ID: {defaultSpeaker['index']}]")  # type: ignore
+        if default_device:
+            self.cb_speaker.set(f"{default_device['name']}, {sd.query_hostapis(default_device['hostApi'])['name']} [ID: {default_device['index']}]")  # type: ignore
             fJson.savePartialSetting("speaker", self.cb_speaker.get())
             # verify if the current speaker is still available
             if self.cb_speaker.get() not in self.cb_speaker["values"]:

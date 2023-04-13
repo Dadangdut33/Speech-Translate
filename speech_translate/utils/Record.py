@@ -48,6 +48,10 @@ def getInputDevices():
         devices = sd.query_devices()
         devices = [device for device in devices if device["max_input_channels"] > 0]  # type: ignore # Filter out devices that are not input devices
         devices = [f"{device['name']}, {sd.query_hostapis(device['hostapi'])['name']}" for device in devices]  # type: ignore # Map the name
+
+        # check if input empty or not
+        if len(devices) == 0:
+            devices = ["[ERROR] No input devices found."]
     except Exception as e:
         logger.error("Something went wrong while trying to get the input devices (mic).")
         logger.exception(e)
@@ -67,6 +71,10 @@ def getOutputDevices():
         devices = [f"{device['name']}, {sd.query_hostapis(device['hostApi'])['name']} [ID: {device['index']}]" for device in devices]  # type: ignore  # Map the name
 
         p.terminate()
+
+        # check if input empty or not
+        if len(devices) == 0:
+            devices = ["[ERROR] No ouput devices (speaker) found."]
     except Exception as e:
         logger.error("Something went wrong while trying to get the output devices (speaker).")
         logger.exception(e)
@@ -76,7 +84,22 @@ def getOutputDevices():
 
 
 def getDefaultInputDevice():
-    return sd.query_devices(kind="input")
+    sucess = False
+    default_device = None
+    try:
+        default_device = sd.query_devices(kind="input")
+        sucess = True
+    except Exception as e:
+        if "Error querying device -1" in str(e):
+            logger.warning("No input device found.")
+            logger.exception(e)
+            default_device = "No input device found."
+        else:
+            logger.error("Something went wrong while trying to get the default input device (mic).")
+            logger.exception(e)
+            default_device = str(e)
+    finally:
+        return sucess, default_device
 
 
 def getDefaultOutputDevice():
@@ -91,7 +114,7 @@ def getDefaultOutputDevice():
     except OSError as e:
         logger.error("Looks like WASAPI is not available on the system.")
         logger.exception(e)
-        sucess = False
+        default_device = "Looks like WASAPI is not available on the system."
     finally:
         p.terminate()
         return sucess, default_device

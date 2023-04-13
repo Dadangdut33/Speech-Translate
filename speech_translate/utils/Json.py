@@ -26,6 +26,7 @@ default_setting = {
     "dir_export": "auto",
     "auto_open_dir_export": True,
     "supress_hidden_to_tray": False,
+    "supress_device_warning": False,
     "mw_size": "1200x400",
     "sw_size": "1000x580",
     # ------------------ #
