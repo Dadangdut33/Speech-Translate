@@ -89,19 +89,16 @@ brew install ffmpeg
   2. Install/extract the downloaded file
   3. Run the program
   
-* Install as module (experimental - I haven't tested it yet):
+* Install as module (not working yet):
   * From the latest commit: 
   
-    ```bash
-    pip install -U git+https://github.com/Dadangdut33/Speech-Translate.git 
-    ```
+    To be added
 
   * Pypi: 
 
     To be added
 
   You can then run the program by typing `speech-translate` in your terminal/console.
-
 
 
 # General Usage
