@@ -1,16 +1,20 @@
-deep_translator==1.10.1
+deep-translator==1.10.1
 notify-py==0.3.42
-pillow==9.4.0
-pywin32==305; platform_system == "Windows"
+pillow==9.5.0
+pywin32==306; platform_system == "Windows"
 PyAudioWPatch==0.2.12.5; platform_system == "Windows"
 PyAudio==0.2.13; platform_system != "Windows"
 pystray==0.19.4
-requests==2.28.1
-scipy==1.9.3
+requests==2.28.2
+scipy==1.10.1 
 sounddevice==0.4.6
 soundfile==0.11.0
 darkdetect==0.8.0
-pyinstaller==5.9.0
 arabic-reshaper==3.0.0
-git+https://github.com/openai/whisper.git 
-git+https://github.com/linto-ai/whisper-timestamped.git
+--find-links https://download.pytorch.org/whl/cu118; platform_system == "Windows"
+--find-links https://download.pytorch.org/whl/cu118; platform_system == "linux"
+torch
+torchvision
+torchaudio
+openai-whisper==20230314
+stable-ts==2.4.1

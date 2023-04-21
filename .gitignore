@@ -22,4 +22,6 @@ export/
 
 # created when building
 LICENSE.txt 
+requirements_temp.txt
 *.spec
+SpeechTranslate.egg-info/
