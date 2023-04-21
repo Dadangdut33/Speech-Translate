@@ -486,7 +486,7 @@ class SettingWindow:
         )
 
         self.cbtn_keep_temp = ttk.Checkbutton(
-            self.f_tc_params_2, text="Keep temp files", command=lambda: fJson.savePartialSetting("keep_temp_files", self.cbtn_keep_temp.instate(["selected"])), style="Switch.TCheckbutton"
+            self.f_tc_params_2, text="Keep temp files", command=lambda: fJson.savePartialSetting("keep_temp", self.cbtn_keep_temp.instate(["selected"])), style="Switch.TCheckbutton"
         )
         self.cbtn_keep_temp.pack(side=tk.LEFT, padx=5)
         CreateToolTip(self.cbtn_keep_temp, "If checked, will not delete temporary audio file that might be created by the program. \n\nDefault value is false/unchecked.")

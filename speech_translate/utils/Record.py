@@ -377,7 +377,6 @@ def rec_realTime(
             # speaker will automatically use the max sample rate and channels, because it won't work if not set like this
             num_of_channels = int(device_detail["maxInputChannels"])
             sample_rate = int(device_detail["defaultSampleRate"])
-            logger.debug(f"Sample Rate {sample_rate} | channels {num_of_channels}")
         else:
             # get the device id from sounddevice module
             device_id = sd.query_devices(device, "input")["index"]  # type: ignore
@@ -392,6 +391,7 @@ def rec_realTime(
 
         logger.debug(f"Device: ({device_detail['index']}) {device_detail['name']}")
         logger.debug(device_detail)
+        logger.debug(f"Sample Rate {sample_rate} | channels {num_of_channels} | chunk size {chunk_size}")
 
         rec_type = "speaker" if speaker else "mic"
         gClass.stream = p.open(format=pyaudio.paInt16, channels=num_of_channels, rate=sample_rate, input=True, frames_per_buffer=chunk_size, input_device_index=int(device_detail["index"]))
