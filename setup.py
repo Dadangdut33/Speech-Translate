@@ -38,7 +38,11 @@ setup(
         "speech_translate.components.window",
         "speech_translate.assets",
         "speech_translate.theme",
+        "speech_translate.theme.skip",
+        "speech_translate.theme.sv",
+        "speech_translate.theme.sv.resource",
     ],
+    # i honestly don't know if package_data works or not. it does not seem to work so i use the __init__.py method but i'll just leave it here
     package_data={
         "speech_translate.assets": ["*"],
         "speech_translate.theme": ["*"],
