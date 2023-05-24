@@ -15,10 +15,9 @@ def read_me():
 def install_requires():
     with open("requirements.txt", "r", encoding="utf-8") as f:
         req = f.read().splitlines()
-        # filter --index-url and --extra-index-url
-        req = [r for r in req if not r.startswith("--")]
         return req
-
+    
+print(install_requires())
 
 setup(
     name="SpeechTranslate",
@@ -37,15 +36,14 @@ setup(
         "speech_translate.components.abstract",
         "speech_translate.components.custom",
         "speech_translate.components.window",
-        "assets",
-        "theme",
+        "speech_translate.assets",
+        "speech_translate.theme",
     ],
     package_data={
-        "assets": ["*"],
-        "theme": ["*"],
+        "speech_translate.assets": ["*"],
+        "speech_translate.theme": ["*"],
     },
     install_requires=install_requires(),
-    dependency_links=["https://download.pytorch.org/whl/cu118; platform_system == 'Windows'", "https://download.pytorch.org/whl/cu118; platform_system == 'linux'"],
     entry_points={
         "console_scripts": [
             "speech-translate=speech_translate.__main__:main",

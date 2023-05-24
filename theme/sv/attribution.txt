@@ -1,2 +1,0 @@
-This was originally taken from https://github.com/rdbende/Sun-Valley-ttk-theme/
-Modified it a little to make the ui smaller and more compact.

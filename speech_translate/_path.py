@@ -1,7 +1,7 @@
 import os
 
 # Paths
-dir_project: str = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
+dir_project: str = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 dir_user: str = os.path.abspath(os.path.join(dir_project, "user"))
 dir_theme: str = os.path.abspath(os.path.join(dir_project, "theme"))
 dir_setting: str = os.path.abspath(os.path.join(dir_project, "setting"))

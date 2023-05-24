@@ -4,6 +4,7 @@ import time
 import platform
 import threading
 import tkinter as tk
+import torch
 from tkinter import ttk, filedialog
 from typing import Literal
 
@@ -38,6 +39,9 @@ from .utils.Record import getInputDevices, getOutputDevices, getDefaultOutputDev
 
 # Terminal window hide/showing
 try:
+    if platform.system() != "Windows":
+        raise Exception("Console window is not hidden automatically because Not running on Windows")
+
     import ctypes
     import win32.lib.win32con as win32con
     import win32gui
@@ -66,6 +70,7 @@ class AppTray:
         self.menu_items = None  # type: ignore
         gClass.tray = self  # type: ignore
         self.create_tray()
+        logger.info("Tray created")
 
     # -- Tray icon
     def create_image(self, width, height, color1, color2):
@@ -541,31 +546,64 @@ class MainWindow:
 
     # mic
     def cb_input_device_init(self):
+        """
+        Initialize input device combobox
+
+        Will check previous options and set to default if not available.
+        If default is not available, will show a warning.
+        """
         self.cb_mic["values"] = getInputDevices()
         self.cb_speaker["values"] = getOutputDevices()
 
+        # if the previous mic is not available, set to default
         if fJson.settingCache["mic"] not in self.cb_mic["values"]:
             self.label_microphone_Rclick()
         else:
+            # verify if atleast one mic is available
+            success, default_device = getDefaultInputDevice()
+            if not success:
+                if not ["supress_device_warning"]:
+                    self.errorNotif(str(default_device))
+                
+                self.cb_mic.set("[ERROR] No default mic found")
+                return
+
             self.cb_mic.set(fJson.settingCache["mic"])
 
+        # same
         if fJson.settingCache["speaker"] not in self.cb_speaker["values"]:
             self.label_speaker_Rclick()
         else:
+            success, default_device = getDefaultOutputDevice()
+            if not success:
+                if not ["supress_device_warning"]:
+                    self.errorNotif(str(default_device))
+                
+                self.cb_mic.set("[ERROR] No default mic found")
+                return
+
             self.cb_speaker.set(fJson.settingCache["speaker"])
 
     def label_microphone_Lclick(self, _event=None):
+        """
+        Refresh microphone list
+        """
         self.cb_mic["values"] = getInputDevices()
         # verify if the current mic is still available
         if self.cb_mic.get() not in self.cb_mic["values"]:
             self.cb_mic.current(0)
 
     def label_microphone_Rclick(self, _event=None):
+        """
+        Set microphone to default. Show warning error if no default mic found.
+        """
         self.label_microphone_Lclick()  # update list
         success, default_device = getDefaultInputDevice()
         if not success:
             if not ["supress_device_warning"]:
                 self.errorNotif(str(default_device))
+            
+            self.cb_mic.set("[ERROR] No default mic found")
             return
 
         if default_device:
@@ -579,17 +617,25 @@ class MainWindow:
 
     # speaker
     def label_speaker_Lclick(self, _event=None):
+        """
+        Refresh speaker list
+        """
         self.cb_speaker["values"] = getOutputDevices()
         # verify if the current speaker is still available
         if self.cb_speaker.get() not in self.cb_speaker["values"]:
             self.cb_speaker.current(0)
 
     def label_speaker_Rclick(self, _event=None):
+        """
+        Set speaker to default. Show warning error if no default speaker found.
+        """
         self.label_speaker_Lclick()  # update list
         success, default_device = getDefaultOutputDevice()
         if not success:
             if not ["supress_device_warning"]:
                 self.errorNotif(str(default_device))
+
+            self.cb_speaker.set("[ERROR] No default speaker found")
             return
 
         if default_device:
@@ -601,13 +647,14 @@ class MainWindow:
         else:
             self.errorNotif("No default speaker found")
 
-    # cb engine change
     def cb_engine_change(self, _event=None):
-        # save
         fJson.savePartialSetting("tl_engine", self.cb_engine.get())
         self.cb_lang_update()
 
     def cb_lang_update(self):
+        """
+        update the target cb list with checks
+        """
         # update the target cb list
         self.cb_targetLang["values"] = engine_select_target_dict[self.cb_engine.get()]
 
@@ -1050,9 +1097,41 @@ class MainWindow:
         self.btn_import_file.config(text="Import From File (Video/Audio)", command=self.from_file)
         self.enable_interactions()
 
+def get_gpu_info():
+    result = ""
+    try:
+        gpu_count = torch.cuda.device_count()
+        if gpu_count == 0:
+            result = "No GPU detected"
+        elif gpu_count == 1:
+            result = torch.cuda.get_device_name(0)
+        else:
+            result = f"{gpu_count} GPUs detected"
+    except Exception as e:
+        logger.exception(e)
+        result = "Failed to detect GPU"
+    finally:
+        return result
+    
+def check_cuda_and_gpu():
+    result = ""
+    try:
+        if not torch.cuda.is_available():
+            result = "CUDA is not available! Using CPU instead"
+        else:
+            count = torch.cuda.device_count()
+            gpus = [torch.cuda.get_device_name(i) for i in range(count)]
+            result = f"Using {count} GPU(s): {', '.join(gpus)}"
+    except Exception as e:
+        logger.exception(e)
+        result = "Failed to detect GPU"
+    finally:
+        return result
 
 def main():
-    logger.info(f"Booting up | Version: {__version__}")
+    logger.info(f"App Version: {__version__}")
+    logger.info(f"OS: {platform.system()} {platform.release()} {platform.version()} | CPU: {platform.processor()}")
+    logger.info(f"GPU: {get_gpu_info()} | CUDA: {check_cuda_and_gpu()}")
     # --- GUI ---
     AppTray()  # Start tray app in the background
     main = MainWindow()

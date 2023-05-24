@@ -89,14 +89,22 @@ brew install ffmpeg
   2. Install/extract the downloaded file
   3. Run the program
   
-* Install as module (not working yet):
+* Install as module:
   * From the latest commit: 
   
-    To be added
+    with **GPU** support: 
 
-  * Pypi: 
+    `pip install -U git+https://github.com/Dadangdut33/Speech-Translate.git --extra-index-url https://download.pytorch.org/whl/cu118`
 
-    To be added
+    **CPU** only:
+
+    `pip install -U git+https://github.com/Dadangdut33/Speech-Translate.git`
+
+    **Notes:**
+
+    -  This will install the latest commit from the main branch. You can also install from a specific branch or commit by adding `@branch_name` or `@commit_hash` at the end of the url.
+    -  The --extra-index-url here might not be up to date, so you can check the latest version of pytorch [here](https://pytorch.org/get-started/locally/). You can also check the available version of pytorch [here](https://download.pytorch.org/whl/torch_stable.html).
+    -  You can also clone the repo and install it locally by running `pip install -e .` in the project directory. (Don't forget to add `--extra-index-url` if you want to install with GPU support)
 
   You can then run the program by typing `speech-translate` in your terminal/console.
 
@@ -140,16 +148,16 @@ brew install ffmpeg
 
 1. Create your virtual environment by running `python -m venv venv`
 2. Activate your virtual environment by running `source venv/bin/activate`
-3. Install all the dependencies needed by running the [`devSetup.py`](./devSetup.py) located in **root directory** or install the packages yourself by running `pip install -r requirements.txt`
+3. Install all the dependencies needed by running the [`devSetup.py`](./devSetup.py) located in **root directory** or install the packages yourself by running `pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu118` if you are using GPU or `pip install -r requirements.txt` if you are using CPU.
 4. Make sure to have ffmpeg installed and added to your PATH
 5. Get to root directory and Run the script by typing `python Main.py`
 
 ## Using GPU
 
 > **Note** \
-> This process could be handled automatically by running [devSetup.py](./devSetup.py)
+> The `--extra-index-url` here might not be up to date, so you can check the latest version of pytorch [here](https://pytorch.org/get-started/locally/). You can also check the available version of pytorch [here](https://download.pytorch.org/whl/torch_stable.html).
 
-To use GPU you first need to uninstall `torch` then you can go to [pytorch official website](https://pytorch.org/) to install the correct version of `pytorch` with GPU compatibily for your system.
+Make sure that you add `--extra-index-url https://download.pytorch.org/whl/cu118` when installing the dependencies if you want to use GPU for pytorch.
 
 ## Running the app
 

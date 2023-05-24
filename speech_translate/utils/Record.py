@@ -91,7 +91,7 @@ def getDefaultInputDevice():
         sucess = True
     except Exception as e:
         if "Error querying device -1" in str(e):
-            logger.warning("No input device found.")
+            logger.warning("No input device found. Ignore this if you dont have a mic. Err details below:")
             logger.exception(e)
             default_device = "No input device found."
         else:

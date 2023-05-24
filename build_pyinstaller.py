@@ -1,5 +1,5 @@
 """
-Pyinstaller script to move stuff, rename, and also make a clean output folder
+Pyinstaller script to move stuff, rename, and also make a cleaner output folder
 """
 
 import os, shutil, sys
@@ -15,7 +15,7 @@ def run_makespec(filenames, **opts):
     for p in temppaths:
         pathex.extend(p.split(os.pathsep))
 
-    import PyInstaller.building.makespec
+    import PyInstaller.building.makespec # type: ignore
 
     spec_file = PyInstaller.building.makespec.main(filenames, **opts)
     return spec_file
@@ -45,9 +45,9 @@ options = [
     "--noconfirm",
     "--additional-hooks-dir=./_pyinstaller_hooks",
     "--runtime-hook=./_pyinstaller_hooks/add_lib.py",
-    "--icon=./assets/icon.ico",
-    "--add-data=./theme;theme",
-    "--add-data=./assets;assets",
+    "--icon=./speech_translate/assets/icon.ico",
+    "--add-data=./speech_translate/theme;speech_translate/theme",
+    "--add-data=./speech_translate/assets;speech_translate/assets",
     "--add-data=./LICENSE.txt;.",
     f"--add-data={get_env_name()}/Lib/site-packages/whisper/assets;whisper/assets/",
     "--copy-metadata=tqdm",
