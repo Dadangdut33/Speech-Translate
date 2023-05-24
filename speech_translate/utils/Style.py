@@ -92,7 +92,10 @@ def set_theme(theme: str):
     if theme not in real_theme_list:
         raise Exception("not a valid theme name: {}".format(theme))
 
-    get_root().tk.call("set_theme", theme)
+    try:
+        get_root().tk.call("set_theme", theme)
+    except TclError as e:
+        logger.exception(e)
 
 
 stylename_map = {

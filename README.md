@@ -100,6 +100,8 @@ brew install ffmpeg
 
     `pip install -U git+https://github.com/Dadangdut33/Speech-Translate.git`
 
+    If you are updating from an older version, you can add `--upgrade --no-deps --force-reinstall` at the end of the command.
+
     **Notes:**
 
     -  This will install the latest commit from the main branch. You can also install from a specific branch or commit by adding `@branch_name` or `@commit_hash` at the end of the url.
