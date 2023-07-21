@@ -32,7 +32,7 @@ class SettingWindow:
         self.root = tk.Toplevel(master)
 
         self.root.title(APP_NAME + " | Settings")
-        self.root.geometry(sj.settingCache["sw_size"])
+        self.root.geometry(sj.cache["sw_size"])
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.root.wm_attributes("-topmost", False)  # Default False
 
@@ -1102,7 +1102,7 @@ class SettingWindow:
             height=5,
             width=27,
             wrap=tk.WORD,
-            font=(sj.settingCache["tb_mw_tc_font"], sj.settingCache["tb_mw_tc_font_size"], "bold" if sj.settingCache["tb_mw_tc_font_bold"] else "normal"),
+            font=(sj.cache["tb_mw_tc_font"], sj.cache["tb_mw_tc_font_size"], "bold" if sj.cache["tb_mw_tc_font_bold"] else "normal"),
         )
         self.tb_preview_1.bind("<Key>", "break")
         self.tb_preview_1.insert("end", "TC Main window:\n" + PREVIEW_WORDS)
@@ -1113,7 +1113,7 @@ class SettingWindow:
             height=5,
             width=27,
             wrap=tk.WORD,
-            font=(sj.settingCache["tb_mw_tl_font"], sj.settingCache["tb_mw_tl_font_size"], "bold" if sj.settingCache["tb_mw_tl_font_bold"] else "normal"),
+            font=(sj.cache["tb_mw_tl_font"], sj.cache["tb_mw_tl_font_size"], "bold" if sj.cache["tb_mw_tl_font_bold"] else "normal"),
         )
         self.tb_preview_2.bind("<Key>", "break")
         self.tb_preview_2.insert("end", "TL Main window:\n" + PREVIEW_WORDS)
@@ -1124,9 +1124,9 @@ class SettingWindow:
             height=5,
             width=27,
             wrap=tk.WORD,
-            font=(sj.settingCache["tb_ex_tc_font"], sj.settingCache["tb_ex_tc_font_size"], "bold" if sj.settingCache["tb_ex_tc_font_bold"] else "normal"),
-            foreground=sj.settingCache["tb_ex_tc_font_color"],
-            background=sj.settingCache["tb_ex_tc_bg_color"],
+            font=(sj.cache["tb_ex_tc_font"], sj.cache["tb_ex_tc_font_size"], "bold" if sj.cache["tb_ex_tc_font_bold"] else "normal"),
+            foreground=sj.cache["tb_ex_tc_font_color"],
+            background=sj.cache["tb_ex_tc_bg_color"],
         )
         self.tb_preview_3.bind("<Key>", "break")
         self.tb_preview_3.insert("end", "TC Subtitle window:\n" + PREVIEW_WORDS)
@@ -1137,9 +1137,9 @@ class SettingWindow:
             height=5,
             width=27,
             wrap=tk.WORD,
-            font=(sj.settingCache["tb_ex_tl_font"], sj.settingCache["tb_ex_tl_font_size"], "bold" if sj.settingCache["tb_ex_tl_font_bold"] else "normal"),
-            foreground=sj.settingCache["tb_ex_tl_font_color"],
-            background=sj.settingCache["tb_ex_tl_bg_color"],
+            font=(sj.cache["tb_ex_tl_font"], sj.cache["tb_ex_tl_font_size"], "bold" if sj.cache["tb_ex_tl_font_bold"] else "normal"),
+            foreground=sj.cache["tb_ex_tl_font_color"],
+            background=sj.cache["tb_ex_tl_bg_color"],
         )
         self.tb_preview_4.bind("<Key>", "break")
         self.tb_preview_4.insert("end", "TL Subtitle window:\n" + PREVIEW_WORDS)
@@ -1200,73 +1200,73 @@ class SettingWindow:
                 widget.bind("<Button-1>", lambda event: self.root.focus_set())  # type: ignore
 
     def init_setting_once(self):
-        logger.setLevel(sj.settingCache["log_level"])
+        logger.setLevel(sj.cache["log_level"])
         # app
-        cbtnInvoker(sj.settingCache["keep_log"], self.cbtn_keep_log)
-        cbtnInvoker(sj.settingCache["debug_realtime_record"], self.cbtn_debug_realtime_record)
-        cbtnInvoker(sj.settingCache["debug_translate"], self.cbtn_debug_translate)
-        cbtnInvoker(sj.settingCache["verbose"], self.cbtn_verbose)
-        cbtnInvoker(sj.settingCache["checkUpdateOnStart"], self.cbtn_update_on_start)
-        cbtnInvoker(sj.settingCache["supress_hidden_to_tray"], self.cbtn_supress_hidden_to_tray)
-        cbtnInvoker(sj.settingCache["supress_device_warning"], self.cbtn_supress_device_warning)
-        cbtnInvoker(sj.settingCache["auto_open_dir_export"], self.cbtn_auto_open_export)
-        if sj.settingCache["dir_export"] == "auto":
+        cbtnInvoker(sj.cache["keep_log"], self.cbtn_keep_log)
+        cbtnInvoker(sj.cache["debug_realtime_record"], self.cbtn_debug_realtime_record)
+        cbtnInvoker(sj.cache["debug_translate"], self.cbtn_debug_translate)
+        cbtnInvoker(sj.cache["verbose"], self.cbtn_verbose)
+        cbtnInvoker(sj.cache["checkUpdateOnStart"], self.cbtn_update_on_start)
+        cbtnInvoker(sj.cache["supress_hidden_to_tray"], self.cbtn_supress_hidden_to_tray)
+        cbtnInvoker(sj.cache["supress_device_warning"], self.cbtn_supress_device_warning)
+        cbtnInvoker(sj.cache["auto_open_dir_export"], self.cbtn_auto_open_export)
+        if sj.cache["dir_export"] == "auto":
             self.default_export_path()
         else:
             self.entry_export.configure(state="normal")
-            self.entry_export.insert(0, sj.settingCache["dir_export"])
+            self.entry_export.insert(0, sj.cache["dir_export"])
             self.entry_export.configure(state="readonly")
 
-        self.cb_log_level.set(sj.settingCache["log_level"])
+        self.cb_log_level.set(sj.cache["log_level"])
         self.fill_theme()
 
         # tc
         self.entry_separate_text_with.delete(0, "end")
-        self.entry_separate_text_with.insert(0, sj.settingCache["separate_with"])
-        self.spn_buffer_mic.set(sj.settingCache["mic_maxBuffer"])
-        self.spn_max_sentences.set(sj.settingCache["max_sentences"])
-        self.spn_max_temp.set(sj.settingCache["max_temp"])
-        self.spn_sample_rate.set(sj.settingCache["sample_rate"])
-        self.spn_chunk_size.set(sj.settingCache["chunk_size"])
-        self.spn_tc_rate.set(sj.settingCache["transcribe_rate"])
-        cbtnInvoker(sj.settingCache["auto_sample_rate"], self.cbtn_auto_sample_rate)
-        cbtnInvoker(sj.settingCache["auto_channels_amount"], self.cbtn_auto_channels_amount)
-        cbtnInvoker(sj.settingCache["keep_temp"], self.cbtn_keep_temp)
-        cbtnInvoker(sj.settingCache["enable_threshold"], self.cbtn_enable_threshold)
-        cbtnInvoker(sj.settingCache["debug_energy"], self.cbtn_debug_energy)
-        self.spn_threshold_mic.set(sj.settingCache["mic_energy_threshold"])
+        self.entry_separate_text_with.insert(0, sj.cache["separate_with"])
+        self.spn_buffer_mic.set(sj.cache["mic_maxBuffer"])
+        self.spn_max_sentences.set(sj.cache["max_sentences"])
+        self.spn_max_temp.set(sj.cache["max_temp"])
+        self.spn_sample_rate.set(sj.cache["sample_rate"])
+        self.spn_chunk_size.set(sj.cache["chunk_size"])
+        self.spn_tc_rate.set(sj.cache["transcribe_rate"])
+        cbtnInvoker(sj.cache["auto_sample_rate"], self.cbtn_auto_sample_rate)
+        cbtnInvoker(sj.cache["auto_channels_amount"], self.cbtn_auto_channels_amount)
+        cbtnInvoker(sj.cache["keep_temp"], self.cbtn_keep_temp)
+        cbtnInvoker(sj.cache["enable_threshold"], self.cbtn_enable_threshold)
+        cbtnInvoker(sj.cache["debug_energy"], self.cbtn_debug_energy)
+        self.spn_threshold_mic.set(sj.cache["mic_energy_threshold"])
 
         # whisper settings
-        cbtnInvoker(sj.settingCache["condition_on_previous_text"], self.cbtn_condition_on_previous_text)
-        self.spn_compression_ratio_threshold.set(sj.settingCache["compression_ratio_threshold"])
-        self.spn_logprob_threshold.set(sj.settingCache["logprob_threshold"])
-        self.spn_no_speech_threshold.set(sj.settingCache["no_speech_threshold"])
+        cbtnInvoker(sj.cache["condition_on_previous_text"], self.cbtn_condition_on_previous_text)
+        self.spn_compression_ratio_threshold.set(sj.cache["compression_ratio_threshold"])
+        self.spn_logprob_threshold.set(sj.cache["logprob_threshold"])
+        self.spn_no_speech_threshold.set(sj.cache["no_speech_threshold"])
         self.entry_initial_prompt.delete(0, "end")
-        self.entry_initial_prompt.insert(0, sj.settingCache["initial_prompt"])
+        self.entry_initial_prompt.insert(0, sj.cache["initial_prompt"])
         self.entry_temperature.delete(0, "end")
-        self.entry_temperature.insert(0, sj.settingCache["temperature"])
+        self.entry_temperature.insert(0, sj.cache["temperature"])
         self.entry_whisper_extra_args.delete(0, "end")
-        self.entry_whisper_extra_args.insert(0, sj.settingCache["whisper_extra_args"])
+        self.entry_whisper_extra_args.insert(0, sj.cache["whisper_extra_args"])
 
         # tl
         self.entry_libre_key.delete(0, "end")
-        self.entry_libre_key.insert(0, sj.settingCache["libre_api_key"])
+        self.entry_libre_key.insert(0, sj.cache["libre_api_key"])
         self.entry_libre_host.delete(0, "end")
-        self.entry_libre_host.insert(0, sj.settingCache["libre_host"])
+        self.entry_libre_host.insert(0, sj.cache["libre_host"])
         self.entry_libre_port.delete(0, "end")
-        self.entry_libre_port.insert(0, sj.settingCache["libre_port"])
-        cbtnInvoker(sj.settingCache["libre_https"], self.cbtn_libre_https)
+        self.entry_libre_port.insert(0, sj.cache["libre_port"])
+        cbtnInvoker(sj.cache["libre_https"], self.cbtn_libre_https)
 
         # tb
-        self.init_tb_settings(sj.settingCache)
-        cbtnInvoker(sj.settingCache["tb_mw_tc_font_bold"], self.cbtn_mw_tc_font_bold)
-        cbtnInvoker(sj.settingCache["tb_mw_tl_font_bold"], self.cbtn_mw_tl_font_bold)
-        cbtnInvoker(sj.settingCache["tb_ex_tc_font_bold"], self.cbtn_ex_tc_font_bold)
-        cbtnInvoker(sj.settingCache["tb_ex_tl_font_bold"], self.cbtn_ex_tl_font_bold)
+        self.init_tb_settings(sj.cache)
+        cbtnInvoker(sj.cache["tb_mw_tc_font_bold"], self.cbtn_mw_tc_font_bold)
+        cbtnInvoker(sj.cache["tb_mw_tl_font_bold"], self.cbtn_mw_tl_font_bold)
+        cbtnInvoker(sj.cache["tb_ex_tc_font_bold"], self.cbtn_ex_tc_font_bold)
+        cbtnInvoker(sj.cache["tb_ex_tl_font_bold"], self.cbtn_ex_tl_font_bold)
 
         if platform.system() == "Windows":
-            self.spn_buffer_speaker.set(sj.settingCache["speaker_maxBuffer"])
-            self.spn_threshold_speaker.set(sj.settingCache["speaker_energy_threshold"])
+            self.spn_buffer_speaker.set(sj.cache["speaker_maxBuffer"])
+            self.spn_threshold_speaker.set(sj.cache["speaker_energy_threshold"])
 
     def tb_delete(self):
         self.entry_ex_tc_font_color.delete(0, "end")
@@ -1384,11 +1384,11 @@ class SettingWindow:
                     logger.warning("Reason " + str(e))
 
     def deleteLogOnStart(self):
-        if not sj.settingCache["keep_log"]:
+        if not sj.cache["keep_log"]:
             self.deleteTheLog()
 
     def deleteTempOnStart(self):
-        if not sj.settingCache["keep_temp"]:
+        if not sj.cache["keep_temp"]:
             self.deleteTemp()
 
     def promptDeleteLog(self):
@@ -1507,7 +1507,7 @@ class SettingWindow:
         if mbox(
             "Auto Threshold - Mic",
             "After you press `yes` the program will record for 5 seconds and try to get the optimal threshold\n\nTry to keep the device silent to avoid inaccuracy\n\nSelected device: "
-            + sj.settingCache["mic"]
+            + sj.cache["mic"]
             + "\n\n*Press no to cancel",
             3,
             self.root,
@@ -1530,7 +1530,7 @@ class SettingWindow:
         if mbox(
             "Auto Threshold - Speaker",
             "After you press `yes` the program will record for 5 seconds and try to get the optimal threshold\n\nTry to keep the device silent to avoid inaccuracy\n\nSelected device: "
-            + sj.settingCache["speaker"]
+            + sj.cache["speaker"]
             + "\n\n*Press no to cancel",
             3,
             self.root,
@@ -1544,8 +1544,8 @@ class SettingWindow:
 
     def fill_theme(self):
         self.cb_theme["values"] = gc.theme_lists
-        self.cb_theme.set(sj.settingCache["theme"])
-        self.initial_theme = sj.settingCache["theme"]
+        self.cb_theme.set(sj.cache["theme"])
+        self.initial_theme = sj.cache["theme"]
         self.entry_theme.pack_forget()
         self.btn_theme_add.pack_forget()
         self.lbl_notice_theme.pack_forget()
@@ -1623,9 +1623,9 @@ class SettingWindow:
     def clear_export(self):
         if mbox("Clear Export Folder", "Are you sure you want to clear the export folder?", 3, self.root):
             # get all the files in the export folder
-            files = os.listdir(sj.settingCache["dir_export"])
+            files = os.listdir(sj.cache["dir_export"])
             for file in files:
-                os.remove(os.path.join(sj.settingCache["dir_export"], file))
+                os.remove(os.path.join(sj.cache["dir_export"], file))
 
     def verifyWhisperArgs(self):
         # get the values

@@ -1,5 +1,4 @@
 import os
-import sys
 import time
 import platform
 import threading
@@ -134,7 +133,7 @@ class MainWindow:
         self.root = tk.Tk()
 
         self.root.title(APP_NAME)
-        self.root.geometry(sj.settingCache["mw_size"])
+        self.root.geometry(sj.cache["mw_size"])
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.root.wm_attributes("-topmost", False)  # Default False
 
@@ -163,7 +162,7 @@ class MainWindow:
         logger.debug(f"Available Theme to use: {gc.theme_lists}")
         gc.theme_lists.insert(len(gc.theme_lists), "custom")
 
-        set_ui_style(sj.settingCache["theme"])
+        set_ui_style(sj.cache["theme"])
 
         # ------------------ Frames ------------------
         self.f1_toolbar = ttk.Frame(self.root)
@@ -251,7 +250,7 @@ class MainWindow:
             height=5,
             width=25,
             relief="flat",
-            font=(sj.settingCache["tb_mw_tc_font"], sj.settingCache["tb_mw_tc_font_size"]),
+            font=(sj.cache["tb_mw_tc_font"], sj.cache["tb_mw_tc_font_size"]),
         )
         self.tb_transcribed.bind("<Key>", tb_copy_only)
         self.tb_transcribed.pack(side="left", fill="both", expand=True, padx=1, pady=1)
@@ -269,7 +268,7 @@ class MainWindow:
             height=5,
             width=25,
             relief="flat",
-            font=(sj.settingCache["tb_mw_tl_font"], sj.settingCache["tb_mw_tl_font_size"]),
+            font=(sj.cache["tb_mw_tl_font"], sj.cache["tb_mw_tl_font_size"]),
         )
         self.tb_translated.bind("<Key>", tb_copy_only)
         self.tb_translated.pack(fill="both", expand=True, padx=1, pady=1)
@@ -471,7 +470,7 @@ class MainWindow:
         self.save_win_size()
 
         # Only show notification once
-        if not self.notified_hidden and not sj.settingCache["supress_hidden_to_tray"]:
+        if not self.notified_hidden and not sj.cache["supress_hidden_to_tray"]:
             nativeNotify("Hidden to tray", "The app is still running in the background.")
             self.notified_hidden = True
 
@@ -530,11 +529,11 @@ class MainWindow:
 
     # on start
     def onInit(self):
-        self.cb_mode.set(sj.settingCache["mode"])
-        self.cb_model.set({v: k for k, v in modelSelectDict.items()}[sj.settingCache["model"]])
-        self.cb_sourceLang.set(sj.settingCache["sourceLang"])
-        self.cb_targetLang.set(sj.settingCache["targetLang"])
-        self.cb_engine.set(sj.settingCache["tl_engine"])
+        self.cb_mode.set(sj.cache["mode"])
+        self.cb_model.set({v: k for k, v in modelSelectDict.items()}[sj.cache["model"]])
+        self.cb_sourceLang.set(sj.cache["sourceLang"])
+        self.cb_targetLang.set(sj.cache["targetLang"])
+        self.cb_engine.set(sj.cache["tl_engine"])
 
         # update on start
         self.cb_engine_change()
@@ -553,7 +552,7 @@ class MainWindow:
         self.cb_speaker["values"] = getOutputDevices()
 
         # if the previous mic is not available, set to default
-        if sj.settingCache["mic"] not in self.cb_mic["values"]:
+        if sj.cache["mic"] not in self.cb_mic["values"]:
             self.label_microphone_Rclick()
         else:
             # verify if atleast one mic is available
@@ -565,10 +564,10 @@ class MainWindow:
                 self.cb_mic.set("[ERROR] No default mic found")
                 return
 
-            self.cb_mic.set(sj.settingCache["mic"])
+            self.cb_mic.set(sj.cache["mic"])
 
         # same
-        if sj.settingCache["speaker"] not in self.cb_speaker["values"]:
+        if sj.cache["speaker"] not in self.cb_speaker["values"]:
             self.label_speaker_Rclick()
         else:
             success, default_device = getDefaultOutputDevice()
@@ -579,7 +578,7 @@ class MainWindow:
                 self.cb_mic.set("[ERROR] No default mic found")
                 return
 
-            self.cb_speaker.set(sj.settingCache["speaker"])
+            self.cb_speaker.set(sj.cache["speaker"])
 
     def label_microphone_Lclick(self, _event=None):
         """
@@ -1124,17 +1123,3 @@ def check_cuda_and_gpu():
         result = "Failed to detect GPU"
     finally:
         return result
-
-def start():
-    logger.info(f"App Version: {__version__}")
-    logger.info(f"OS: {platform.system()} {platform.release()} {platform.version()} | CPU: {platform.processor()}")
-    logger.info(f"GPU: {get_gpu_info()} | CUDA: {check_cuda_and_gpu()}")
-    # --- GUI ---
-    AppTray()  # Start tray app in the background
-    main = MainWindow()
-    TcsWindow(main.root)
-    TlsWindow(main.root)
-    SettingWindow(main.root)
-    LogWindow(main.root)
-    AboutWindow(main.root)
-    main.root.mainloop()  # Start main app

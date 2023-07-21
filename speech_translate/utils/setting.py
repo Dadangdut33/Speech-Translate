@@ -113,10 +113,10 @@ class SettingJson:
     """
 
     def __init__(self, settingPath: str, settingDir: str, checkdirs: List[str]):
-        self.settingCache = {}
-        self.settingPath = settingPath
-        self.settingDir = settingDir
-        self.createDirectoryIfNotExist(self.settingDir)  # setting dir
+        self.cache = {}
+        self.path = settingPath
+        self.dir = settingDir
+        self.createDirectoryIfNotExist(self.dir)  # setting dir
         for checkdir in checkdirs:
             self.createDirectoryIfNotExist(checkdir)
         self.createDefaultSettingIfNotExist()  # setting file
@@ -124,11 +124,11 @@ class SettingJson:
         # Load setting
         success, msg, data = self.loadSetting()
         if success:
-            self.settingCache = data
+            self.cache = data
             # verify loaded setting
             success, msg, data = self.verifyLoadedSetting(data)
             if not success:
-                self.settingCache = default_setting
+                self.cache = default_setting
                 notification = Notify()
                 notification.application_name = "Speech Translate"
                 notification.title = "Error: Verifying setting file"
@@ -137,11 +137,11 @@ class SettingJson:
                 logger.warning("Error verifying setting file: " + msg)
 
             # verify setting version
-            if self.settingCache["version"] != __setting_version__:
+            if self.cache["version"] != __setting_version__:
                 # save old one as backup
-                self.saveOldSetting(self.settingCache)
-                self.settingCache = default_setting  # load default
-                self.saveSetting(self.settingCache)  # save
+                self.saveOldSetting(self.cache)
+                self.cache = default_setting  # load default
+                self.saveSetting(self.cache)  # save
                 # notify
                 notification = Notify()
                 notification.application_name = "Speech Translate"
@@ -150,9 +150,9 @@ class SettingJson:
                 notification.send()
                 logger.warning("Setting file is outdated. Setting has been reverted to default setting. You can find your old setting in the user folder.")
         else:
-            self.settingCache = default_setting
+            self.cache = default_setting
             logger.error("Error loading setting file: " + msg)
-            mbox("Error", "Error: Loading setting file. " + self.settingPath + "\nReason: " + msg, 2)
+            mbox("Error", "Error: Loading setting file. " + self.path + "\nReason: " + msg, 2)
 
     def createDirectoryIfNotExist(self, path: str):
         """
@@ -168,7 +168,7 @@ class SettingJson:
         """
         Create default json file if it doesn't exist
         """
-        path = self.settingPath
+        path = self.path
         try:
             if not os.path.exists(path):
                 with open(path, "w", encoding="utf-8") as f:
@@ -184,10 +184,10 @@ class SettingJson:
         success: bool = False
         msg: str = ""
         try:
-            with open(self.settingPath, "w", encoding="utf-8") as f:
+            with open(self.path, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=4)
             success = True
-            self.settingCache = data
+            self.cache = data
         except Exception as e:
             msg = str(e)
         finally:
@@ -200,7 +200,7 @@ class SettingJson:
         success: bool = False
         msg: str = ""
         try:
-            with open(self.settingPath.replace("setting.json", f"setting_old_{data['version']}.json"), "w", encoding="utf-8") as f:
+            with open(self.path.replace("setting.json", f"setting_old_{data['version']}.json"), "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=4)
             success = True
         except Exception as e:
@@ -212,8 +212,8 @@ class SettingJson:
         """
         Save only a part of the setting
         """
-        self.settingCache[key] = value
-        success, msg = self.saveSetting(self.settingCache)
+        self.cache[key] = value
+        success, msg = self.saveSetting(self.cache)
 
         if not success:
             notification = Notify()
@@ -231,7 +231,7 @@ class SettingJson:
         msg: str = ""
         data: dict = {}
         try:
-            with open(self.settingPath, "r", encoding="utf-8") as f:
+            with open(self.path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             success = True
         except Exception as e:
@@ -261,4 +261,4 @@ class SettingJson:
         """
         Get setting value
         """
-        return self.settingCache
+        return self.cache

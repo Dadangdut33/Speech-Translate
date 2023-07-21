@@ -166,7 +166,7 @@ def getDeviceAverageThreshold(deviceType: Literal["mic", "speaker"], duration: i
     p = pyaudio.PyAudio()
 
     if deviceType == "speaker":
-        device = sj.settingCache["speaker"]
+        device = sj.cache["speaker"]
 
         # get the device id in [ID: x]
         device_id = device.split("[ID: ")[1]  # first get the id bracket
@@ -193,20 +193,20 @@ def getDeviceAverageThreshold(deviceType: Literal["mic", "speaker"], duration: i
         sample_rate = int(device_detail["defaultSampleRate"])
         logger.debug(f"Sample Rate {sample_rate} | channels {num_of_channels}")
     else:
-        device = sj.settingCache["mic"]
+        device = sj.cache["mic"]
 
         # get the device id from sounddevice module
         device_id = sd.query_devices(device, "input")["index"]  # type: ignore
         device_detail = p.get_device_info_by_index(int(device_id))  # Get device detail
         num_of_channels = 1
 
-        sample_rate = sj.settingCache["sample_rate"]
+        sample_rate = sj.cache["sample_rate"]
         num_of_channels = 1
 
         # check if user set auto for sample rate and channels
-        if sj.settingCache["auto_sample_rate"]:
+        if sj.cache["auto_sample_rate"]:
             sample_rate = int(device_detail["defaultSampleRate"])
-        if sj.settingCache["auto_channels_amount"]:
+        if sj.cache["auto_channels_amount"]:
             num_of_channels = int(device_detail["maxInputChannels"])
 
     logger.debug(f"Device: ({device_detail['index']}) {device_detail['name']}")
@@ -220,7 +220,7 @@ def getDeviceAverageThreshold(deviceType: Literal["mic", "speaker"], duration: i
         data += in_data
         return (in_data, pyaudio.paContinue)
 
-    chunk_size = sj.settingCache["chunk_size"]
+    chunk_size = sj.cache["chunk_size"]
     stream = p.open(format=pyaudio.paInt16, channels=num_of_channels, rate=sample_rate, input=True, frames_per_buffer=chunk_size, input_device_index=int(device_detail["index"]), stream_callback=callback)
 
     stream.start_stream()
@@ -287,19 +287,19 @@ def record_realtime(
         modelName = append_dot_en(modelKey, src_english)
 
         # read from settings
-        sample_rate = int(sj.settingCache["sample_rate"])
-        chunk_size = int(sj.settingCache["chunk_size"])
-        max_sentences = int(sj.settingCache["max_sentences"])
+        sample_rate = int(sj.cache["sample_rate"])
+        chunk_size = int(sj.cache["chunk_size"])
+        max_sentences = int(sj.cache["max_sentences"])
         max_int16 = 2**15  # bit depth of 16 bit audio (32768)
-        separator = ast.literal_eval(shlex.quote(sj.settingCache["separate_with"]))
+        separator = ast.literal_eval(shlex.quote(sj.cache["separate_with"]))
 
-        compression_ratio_threshold = sj.settingCache["compression_ratio_threshold"]
-        logprob_threshold = sj.settingCache["logprob_threshold"]
-        no_speech_threshold = sj.settingCache["no_speech_threshold"]
-        condition_on_previous_text = sj.settingCache["condition_on_previous_text"]
-        initial_prompt = sj.settingCache["initial_prompt"]
-        temperature = sj.settingCache["temperature"]
-        whisper_extra_args = sj.settingCache["whisper_extra_args"]
+        compression_ratio_threshold = sj.cache["compression_ratio_threshold"]
+        logprob_threshold = sj.cache["logprob_threshold"]
+        no_speech_threshold = sj.cache["no_speech_threshold"]
+        condition_on_previous_text = sj.cache["condition_on_previous_text"]
+        initial_prompt = sj.cache["initial_prompt"]
+        temperature = sj.cache["temperature"]
+        whisper_extra_args = sj.cache["whisper_extra_args"]
 
         success, data = get_temperature(temperature)
         if not success:
@@ -312,7 +312,7 @@ def record_realtime(
             raise Exception("temperature must be a floating point number")
 
         # parse whisper_extra_args
-        success, data = convert_str_options_to_dict(sj.settingCache["whisper_extra_args"])
+        success, data = convert_str_options_to_dict(sj.cache["whisper_extra_args"])
         if not success:
             raise Exception(data)
         else:
@@ -332,8 +332,8 @@ def record_realtime(
         prev_tl_text = ""
         next_transcribe_time = None
         last_sample = bytes()
-        transcribe_rate = timedelta(seconds=sj.settingCache["transcribe_rate"] / 1000)
-        max_record_time = int(sj.settingCache["speaker_maxBuffer"]) if speaker else int(sj.settingCache["mic_maxBuffer"])
+        transcribe_rate = timedelta(seconds=sj.cache["transcribe_rate"] / 1000)
+        max_record_time = int(sj.cache["speaker_maxBuffer"]) if speaker else int(sj.cache["mic_maxBuffer"])
         task = "translate" if whisperEngine and translate and not transcribe else "transcribe"  # if only translate to english using whisper engine
 
         # load model
@@ -387,9 +387,9 @@ def record_realtime(
             num_of_channels = 1
 
             # check if user set auto for sample rate and channels
-            if sj.settingCache["auto_sample_rate"]:
+            if sj.cache["auto_sample_rate"]:
                 sample_rate = int(device_detail["defaultSampleRate"])
-            if sj.settingCache["auto_channels_amount"]:
+            if sj.cache["auto_channels_amount"]:
                 num_of_channels = int(device_detail["maxInputChannels"])
 
         logger.debug(f"Device: ({device_detail['index']}) {device_detail['name']}")
@@ -556,7 +556,7 @@ def record_realtime(
                     audio = wav_reader.readframes(samples)
                     wav_reader.close()
 
-                    if sj.settingCache["debug_realtime_record"] == 1:
+                    if sj.cache["debug_realtime_record"] == 1:
                         logger.info(f"Processing Audio")
                     if num_of_channels > 1:
                         # If not mono, the fast method does not work so we have to resort to using the old, a little slower, but working method
@@ -569,11 +569,11 @@ def record_realtime(
                         with open(audio_target, "wb") as f:
                             f.write(wav_file.getvalue())  # write it
 
-                        if sj.settingCache["debug_realtime_record"] == 1:
+                        if sj.cache["debug_realtime_record"] == 1:
                             logger.debug(f"File Write Time: {time() - timeNow}")
 
                         # delete the oldest file if the temp list is too long
-                        if len(tempList) > sj.settingCache["max_temp"] and not sj.settingCache["keep_temp"]:
+                        if len(tempList) > sj.cache["max_temp"] and not sj.cache["keep_temp"]:
                             os.remove(tempList[0])
                             tempList.pop(0)
                     else:
@@ -584,7 +584,7 @@ def record_realtime(
                         audio_target = audio_as_np_float32 / max_int16  # normalized as Numpy array
 
                     # Transcribe the audio
-                    if sj.settingCache["debug_realtime_record"] == 1:
+                    if sj.cache["debug_realtime_record"] == 1:
                         logger.info(f"Transcribing")
 
                     gc.current_rec_status = "▶️ Recording ⟳ Transcribing"
@@ -611,9 +611,9 @@ def record_realtime(
                             # this works like this:
                             # clear the textbox first, then insert the text. The text inserted is a continuation of the previous text.
                             # the longer it is the clearer the transcribed text will be, because of more context.
-                            if sj.settingCache["debug_realtime_record"] == 1:
+                            if sj.cache["debug_realtime_record"] == 1:
                                 logger.info(f"New transcribed text")
-                                if sj.settingCache["verbose"]:
+                                if sj.cache["verbose"]:
                                     logger.debug(verboseWhisperLogging(result))
                                 else:
                                     logger.debug(f"{text}")
@@ -659,7 +659,7 @@ def record_realtime(
 
                     # break up the buffer If we've reached max recording time
                     audio_length_in_seconds = samples / float(sample_rate)
-                    if sj.settingCache["debug_realtime_record"] == 1:
+                    if sj.cache["debug_realtime_record"] == 1:
                         logger.debug(f"Audio length: {audio_length_in_seconds}")
 
                     if audio_length_in_seconds > max_record_time:
@@ -700,7 +700,7 @@ def record_realtime(
             while not gc.data_queue.empty():
                 gc.data_queue.get()
 
-            if num_of_channels > 1 and not sj.settingCache["keep_temp"]:
+            if num_of_channels > 1 and not sj.cache["keep_temp"]:
                 gc.current_rec_status = "⚠️ Cleaning up audioFiles"
                 update_status_lbl()
                 logger.info("Cleaning up audioFiles")
@@ -745,9 +745,9 @@ def realtime_recording_thread(chunk_size: int, rec_type: Literal["mic", "speaker
         gc.current_energy = audioop.rms(data, 2)
 
         # store chunks of audio in queue
-        if not sj.settingCache["enable_threshold"]:  # record regardless of energy
+        if not sj.cache["enable_threshold"]:  # record regardless of energy
             gc.data_queue.put(data)
-        elif sj.settingCache["enable_threshold"] and gc.current_energy > sj.settingCache[f"{rec_type}_energy_threshold"]:  # only record if energy is above threshold
+        elif sj.cache["enable_threshold"] and gc.current_energy > sj.cache[f"{rec_type}_energy_threshold"]:  # only record if energy is above threshold
             gc.data_queue.put(data)
 
 
@@ -770,7 +770,7 @@ def whisper_realtime_tl(
 
     global prev_tl_text, sentences_tl
     try:
-        separator = ast.literal_eval(shlex.quote(sj.settingCache["separate_with"]))
+        separator = ast.literal_eval(shlex.quote(sj.cache["separate_with"]))
 
         result = model.transcribe(
             audio_normalised,
@@ -820,9 +820,9 @@ def realtime_tl(text: str, lang_source: str, lang_target: str, engine: Literal["
 
     try:
         global prev_tl_text, sentences_tl
-        separator = ast.literal_eval(shlex.quote(sj.settingCache["separate_with"]))
+        separator = ast.literal_eval(shlex.quote(sj.cache["separate_with"]))
         result_Tl = ""
-        debug_log = sj.settingCache["debug_translate"]
+        debug_log = sj.cache["debug_translate"]
 
         if engine == "Google":
             success, result_Tl = google_tl(text, lang_source, lang_target, debug_log)
@@ -831,7 +831,7 @@ def realtime_tl(text: str, lang_source: str, lang_target: str, engine: Literal["
 
         elif engine == "LibreTranslate":
             success, result_Tl = libre_tl(
-                text, lang_source, lang_target, sj.settingCache["libre_https"], sj.settingCache["libre_host"], sj.settingCache["libre_port"], sj.settingCache["libre_api_key"], debug_log
+                text, lang_source, lang_target, sj.cache["libre_https"], sj.cache["libre_host"], sj.cache["libre_port"], sj.cache["libre_api_key"], debug_log
             )
             if not success:
                 nativeNotify("Error: translation with libre failed", result_Tl)
@@ -922,8 +922,8 @@ def cancellable_tl(
     logger.debug(f"Translating...")
 
     try:
-        separator = ast.literal_eval(shlex.quote(sj.settingCache["separate_with"]))
-        export_to = dir_export if sj.settingCache["dir_export"] == "auto" else sj.settingCache["dir_export"]
+        separator = ast.literal_eval(shlex.quote(sj.cache["separate_with"]))
+        export_to = dir_export if sj.cache["dir_export"] == "auto" else sj.cache["dir_export"]
         if engine == "Whisper":
             try:
                 # verify audio file exists
@@ -999,7 +999,7 @@ def cancellable_tl(
                 toTranslates_txt.append(toTranslate)
                 timestamps.append(timestamp)
             result_Tl = []
-            debug_log = sj.settingCache["debug_translate"]
+            debug_log = sj.cache["debug_translate"]
 
             # translate each part
             for toTranslate, timestamp in zip(toTranslates_txt, timestamps):
@@ -1012,7 +1012,7 @@ def cancellable_tl(
                 elif engine == "LibreTranslate":
                     logger.debug("Translating with libre translate")
                     success, result = libre_tl(
-                        toTranslate, lang_source, lang_target, sj.settingCache["libre_https"], sj.settingCache["libre_host"], sj.settingCache["libre_port"], sj.settingCache["libre_api_key"], debug_log
+                        toTranslate, lang_source, lang_target, sj.cache["libre_https"], sj.cache["libre_host"], sj.cache["libre_port"], sj.cache["libre_api_key"], debug_log
                     )
                     if not success:
                         nativeNotify("Error: translation with libre failed", result)
@@ -1106,7 +1106,7 @@ def cancellable_tc(
     gc.enableTranscribing()
     gc.mw.start_loadBar()
     result_Tc = ""
-    separator = ast.literal_eval(shlex.quote(sj.settingCache["separate_with"]))
+    separator = ast.literal_eval(shlex.quote(sj.cache["separate_with"]))
 
     # Transcribe
     logger.info("-" * 50)
@@ -1152,7 +1152,7 @@ def cancellable_tc(
         audioNameOnly = getFileNameOnlyFromPath(audio_name)
         audioNameOnly = audioNameOnly[:100]  # limit length of file name to 100 characters
         saveName = datetime.now().strftime("%Y-%m-%d %H_%M_%S_%f") + " " + audioNameOnly
-        export_to = dir_export if sj.settingCache["dir_export"] == "auto" else sj.settingCache["dir_export"]
+        export_to = dir_export if sj.cache["dir_export"] == "auto" else sj.cache["dir_export"]
 
         # export if transcribe mode is on
         if transcribe:
@@ -1246,13 +1246,13 @@ def file_input(files: List[str], modelKey: str, lang_source: str, lang_target: s
         whisperEngine = engine == "Whisper"
         modelName = append_dot_en(modelKey, src_english)
 
-        compression_ratio_threshold = sj.settingCache["compression_ratio_threshold"]
-        logprob_threshold = sj.settingCache["logprob_threshold"]
-        no_speech_threshold = sj.settingCache["no_speech_threshold"]
-        condition_on_previous_text = sj.settingCache["condition_on_previous_text"]
-        initial_prompt = sj.settingCache["initial_prompt"]
-        temperature = sj.settingCache["temperature"]
-        whisper_extra_args = sj.settingCache["whisper_extra_args"]
+        compression_ratio_threshold = sj.cache["compression_ratio_threshold"]
+        logprob_threshold = sj.cache["logprob_threshold"]
+        no_speech_threshold = sj.cache["no_speech_threshold"]
+        condition_on_previous_text = sj.cache["condition_on_previous_text"]
+        initial_prompt = sj.cache["initial_prompt"]
+        temperature = sj.cache["temperature"]
+        whisper_extra_args = sj.cache["whisper_extra_args"]
 
         success, data = get_temperature(temperature)
         if not success:
@@ -1264,7 +1264,7 @@ def file_input(files: List[str], modelKey: str, lang_source: str, lang_target: s
         if isinstance(temperature, str):
             raise Exception("temperature must be a floating point number")
 
-        success, data = convert_str_options_to_dict(sj.settingCache["whisper_extra_args"])
+        success, data = convert_str_options_to_dict(sj.cache["whisper_extra_args"])
         if not success:
             raise Exception(data)
         else:
@@ -1394,7 +1394,7 @@ def file_input(files: List[str], modelKey: str, lang_source: str, lang_target: s
 
         cbtn_open_folder = ttk.Checkbutton(frame_lbl_6, text="Open folder after process", command=lambda: sj.savePartialSetting("auto_open_dir_export", cbtn_open_folder.instate(["selected"])))
         cbtn_open_folder.pack(side="left", fill="x", padx=5, pady=5)
-        cbtnInvoker(sj.settingCache["auto_open_dir_export"], cbtn_open_folder)
+        cbtnInvoker(sj.cache["auto_open_dir_export"], cbtn_open_folder)
 
         btn_add = ttk.Button(frame_btn_1, text="Add", command=add_to_files)
         btn_add.pack(side="left", fill="x", padx=5, pady=5, expand=True)
@@ -1468,9 +1468,9 @@ def file_input(files: List[str], modelKey: str, lang_source: str, lang_target: s
 
         logger.info(f"End process (FILE) [Total time: {time() - startProc:.2f}s]")
         # open folder
-        export_to = dir_export if sj.settingCache["dir_export"] == "auto" else sj.settingCache["dir_export"]
+        export_to = dir_export if sj.cache["dir_export"] == "auto" else sj.cache["dir_export"]
         if gc.file_tced_counter > 0 or gc.file_tled_counter > 0:
-            if sj.settingCache["auto_open_dir_export"]:
+            if sj.cache["auto_open_dir_export"]:
                 startFile(export_to)
 
             resultMsg = (

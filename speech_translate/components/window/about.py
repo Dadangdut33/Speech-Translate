@@ -96,7 +96,7 @@ class AboutWindow:
 
     # check update on start
     def onInit(self):
-        if sj.settingCache["checkUpdateOnStart"]:
+        if sj.cache["checkUpdateOnStart"]:
             logger.info("Checking for update on start")
             self.checkingOnStart = True
             self.check_for_update()

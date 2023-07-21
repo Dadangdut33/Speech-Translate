@@ -81,18 +81,18 @@ brew install ffmpeg
 
 # Download & Installation
 
-> **Note** \
+> [!Important]
 > Make sure that you have installed [FFmpeg](https://ffmpeg.org/) and added it to the PATH environment variable. [See here](#user-requirements) for more info
 
-* Install the prebuilt binary:
+## From Prebuilt binary:
   1. Download the [latest release](https://github.com/Dadangdut33/Speech-Translate/releases/latest) (There are 2 versions, CPU and GPU)
   2. Install/extract the downloaded file
   3. Run the program
   
-* Install as module:
-  * From the latest commit: 
+## As module:
+  - From the latest commit: 
   
-    with **GPU** (Cuda compatible) support: 
+    with **GPU (Cuda compatible)** support: 
 
     `pip install -U git+https://github.com/Dadangdut33/Speech-Translate.git --extra-index-url https://download.pytorch.org/whl/cu118`
 
@@ -104,23 +104,26 @@ brew install ffmpeg
 
     **Notes:**
 
-    -  This will install the latest commit from the main branch. You can also install from a specific branch or commit by adding `@branch_name` or `@commit_hash` at the end of the url. Example: `pip install -U git+https://github.com/Dadangdut33/Speech-Translate.git@dev --extra-index-url https://download.pytorch.org/whl/cu118`
-    -  The --extra-index-url shown here might not always be up to date, so you can check the latest version of pytorch [here](https://pytorch.org/get-started/locally/). You can also check the available version of pytorch [here](https://download.pytorch.org/whl/torch_stable.html).
+    -  This will install the latest commit from the main branch. You can also install from a specific branch or commit by adding `@branch_name` or `@commit_hash` at the end of the url. Example:
+```pip install -U git+https://github.com/Dadangdut33/Speech-Translate.git@dev --extra-index-url https://download.pytorch.org/whl/cu118```
+
+    - The --extra-index-url shown here might not always be up to date, so you can check the latest version of pytorch [here](https://pytorch.org/get-started/locally/). You can also check the available version of pytorch [here](https://download.pytorch.org/whl/torch_stable.html).
     -  You can also clone the repo and install it locally by running `pip install -e .` in the project directory. (Don't forget to add `--extra-index-url` if you want to install with GPU support)
 
-  You can then run the program by typing `speech-translate` in your terminal/console.
-
+    You can then run the program by typing `speech-translate` in your terminal/console.
 
 # General Usage
 
-* Realtime Record:
+- Realtime Record:
+
   1. Set user setting
   2. Select model, mode, and language
   3. Click the record from mic / system button
   4. Open the subtitle window
   5. Stop record
 
-* File import:
+- File import:
+
   1. Set user setting
   2. Select model, mode, and language
   3. Click the import file button
@@ -137,15 +140,15 @@ brew install ffmpeg
 
 <h1 align="center">- Development -</h1>
 
-> **Warning** \
+> [!Warning]
 > As of right now (4th of November 2022) I guess pytorch is not compatible with python 3.11 so you can't use python 3.11. I tried with 3.11 but it doesn't work so i rollback to python 3.10.9.
 
-> **Note** \
+> [!Note]
 > Ignore all this if you are using the prebuilt/compiled version.
 
 ## Setup
 
-> **Note** \
+> [!Note]
 > It is recommended to create a virtual environment, but it is not required.
 
 1. Create your virtual environment by running `python -m venv venv`
@@ -156,8 +159,8 @@ brew install ffmpeg
 
 ## Using GPU
 
-> **Note** \
-> The `--extra-index-url` here might not be up to date, so you can check the latest version of pytorch [here](https://pytorch.org/get-started/locally/). You can also check the available version of pytorch [here](https://download.pytorch.org/whl/torch_stable.html).
+> [!Note]
+> The `--extra-index-url` here might not always be up to date, so you can check the latest version of pytorch [here](https://pytorch.org/get-started/locally/). You can also check the available version of pytorch [here](https://download.pytorch.org/whl/torch_stable.html).
 
 Make sure that you add `--extra-index-url https://download.pytorch.org/whl/cu118` when installing the dependencies if you want to use GPU for pytorch.
 

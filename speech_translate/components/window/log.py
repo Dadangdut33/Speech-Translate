@@ -79,13 +79,13 @@ class LogWindow:
             pass
 
     def onInit(self):
-        if sj.settingCache["auto_scroll_log"]:
+        if sj.cache["auto_scroll_log"]:
             self.cbtn_auto_scroll.invoke()
         else:
             self.cbtn_auto_scroll.invoke()
             self.cbtn_auto_scroll.invoke()
 
-        if sj.settingCache["auto_refresh_log"]:
+        if sj.cache["auto_refresh_log"]:
             self.cbtn_auto_refresh.invoke()
         else:
             self.cbtn_auto_refresh.invoke()
@@ -118,7 +118,7 @@ class LogWindow:
         self.thread_refresh.start()
 
     def update_periodically(self):
-        while self.isOpen and sj.settingCache["auto_refresh_log"]:
+        while self.isOpen and sj.cache["auto_refresh_log"]:
             self.updateLog()
 
             time.sleep(1)
@@ -132,7 +132,7 @@ class LogWindow:
             content = f"Log file not found | {os.path.join(dir_log, current_log)}"
 
         if len(prev_content) != len(content):
-            if sj.settingCache["auto_scroll_log"]:
+            if sj.cache["auto_scroll_log"]:
                 self.tbLogger.delete(1.0, "end")
                 self.tbLogger.insert("end", content)
                 self.tbLogger.see("end")  # scroll to the bottom

@@ -111,7 +111,7 @@ class GlobalClass:
         assert self.mw is not None
         currentText = self.getMwTextTc()
         # Main window textbox
-        if sj.settingCache["tb_mw_tc_max"] != 0 and len(currentText) > sj.settingCache["tb_mw_tc_max"]:  # if not infinite and text too long
+        if sj.cache["tb_mw_tc_max"] != 0 and len(currentText) > sj.cache["tb_mw_tc_max"]:  # if not infinite and text too long
             # remove words from the start with length of the new text
             # then add new text to the end
             currentText = currentText[len(textToAppend) :]
@@ -119,7 +119,7 @@ class GlobalClass:
             textToAppend = currentText
             self.mw.tb_transcribed.delete("1.0", "end")
 
-        if sj.settingCache["sourceLang"].lower() in RESHAPE_LANG_LIST:
+        if sj.cache["sourceLang"].lower() in RESHAPE_LANG_LIST:
             textToAppend = arabic_reshaper.reshape(textToAppend)
 
         self.mw.tb_transcribed.insert("end", textToAppend)
@@ -137,7 +137,7 @@ class GlobalClass:
         assert self.mw is not None
         currentText = self.getMwTextTl()
         # Main window textbox
-        if sj.settingCache["tb_mw_tl_max"] != 0 and len(currentText) > sj.settingCache["tb_mw_tl_max"]:  # if not infinite and text is too long
+        if sj.cache["tb_mw_tl_max"] != 0 and len(currentText) > sj.cache["tb_mw_tl_max"]:  # if not infinite and text is too long
             # remove words from the start with length of the new text
             # then add new text to the end
             currentText = currentText[len(textToAppend) :]
@@ -145,7 +145,7 @@ class GlobalClass:
             textToAppend = currentText
             self.mw.tb_translated.delete("1.0", "end")
 
-        if sj.settingCache["sourceLang"].lower() in RESHAPE_LANG_LIST:
+        if sj.cache["sourceLang"].lower() in RESHAPE_LANG_LIST:
             textToAppend = arabic_reshaper.reshape(textToAppend)
 
         self.mw.tb_translated.insert("end", textToAppend)
@@ -164,16 +164,16 @@ class GlobalClass:
         currentText = self.ex_tcw.labelText.cget("text").strip()
         textToAppend = textToAppend.strip()
         # Main window textbox
-        if sj.settingCache["tb_ex_tc_max"] != 0 and len(currentText) > sj.settingCache["tb_ex_tc_max"]:  # if not infinite and text is too long
+        if sj.cache["tb_ex_tc_max"] != 0 and len(currentText) > sj.cache["tb_ex_tc_max"]:  # if not infinite and text is too long
             # remove words from the start with length of the new text
             # then add new text to the end
             currentText = currentText[len(textToAppend) :]
             currentText += textToAppend
             textToAppend = currentText  # set new text
         else:
-            textToAppend += ast.literal_eval(shlex.quote(sj.settingCache["separate_with"]))  # set new text
+            textToAppend += ast.literal_eval(shlex.quote(sj.cache["separate_with"]))  # set new text
 
-        if sj.settingCache["sourceLang"].lower() in RESHAPE_LANG_LIST:
+        if sj.cache["sourceLang"].lower() in RESHAPE_LANG_LIST:
             textToAppend = arabic_reshaper.reshape(textToAppend)
 
         self.ex_tcw.labelText.config(text=textToAppend)
@@ -192,14 +192,14 @@ class GlobalClass:
         currentText = self.ex_tlw.labelText.cget("text").strip()
         textToAppend = textToAppend.strip()
         # Main window textbox
-        if sj.settingCache["tb_ex_tl_max"] != 0 and len(currentText) > sj.settingCache["tb_ex_tl_max"]:  # if not infinite and text is too long
+        if sj.cache["tb_ex_tl_max"] != 0 and len(currentText) > sj.cache["tb_ex_tl_max"]:  # if not infinite and text is too long
             currentText = currentText[len(textToAppend) :]  # remove words from the start with length of the new text
             currentText += textToAppend  # add new text to the end
             textToAppend = currentText  # set new text
         else:
-            textToAppend += ast.literal_eval(shlex.quote(sj.settingCache["separate_with"]))  # set new text
+            textToAppend += ast.literal_eval(shlex.quote(sj.cache["separate_with"]))  # set new text
 
-        if sj.settingCache["sourceLang"].lower() in RESHAPE_LANG_LIST:
+        if sj.cache["sourceLang"].lower() in RESHAPE_LANG_LIST:
             textToAppend = arabic_reshaper.reshape(textToAppend)
 
         self.ex_tlw.labelText.config(text=textToAppend)

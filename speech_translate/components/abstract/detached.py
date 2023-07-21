@@ -42,7 +42,7 @@ class AbstractDetachedSubtitleWindow:
 
         # Window option
         assert gc.style is not None
-        gc.style.configure("TranslatedSub.TFrame", background=sj.settingCache[f"ex_{winType}_bg"])
+        gc.style.configure("TranslatedSub.TFrame", background=sj.cache[f"ex_{winType}_bg"])
 
         # Top frame
         self.frame_1 = ttk.Frame(self.root, style="TranslatedSub.TFrame")
@@ -51,9 +51,9 @@ class AbstractDetachedSubtitleWindow:
 
         self.labelText = tk.Label(
             self.frame_1,
-            font=(sj.settingCache[f"tb_ex_{winType}_font"], sj.settingCache[f"tb_ex_{winType}_font_size"], "bold" if sj.settingCache[f"tb_ex_{winType}_font_bold"] else "normal"),
-            fg=sj.settingCache[f"tb_ex_{winType}_font_color"],
-            bg=sj.settingCache[f"tb_ex_{winType}_bg_color"],
+            font=(sj.cache[f"tb_ex_{winType}_font"], sj.cache[f"tb_ex_{winType}_font_size"], "bold" if sj.cache[f"tb_ex_{winType}_font_bold"] else "normal"),
+            fg=sj.cache[f"tb_ex_{winType}_font_color"],
+            bg=sj.cache[f"tb_ex_{winType}_bg_color"],
             wraplength=600,
             justify="left",
             text=SUBTITLE_PLACEHOLDER # This is to prevent the label from being too small
@@ -71,7 +71,7 @@ class AbstractDetachedSubtitleWindow:
         self.menuDropdown.add_separator()
         self.menuDropdown.add_checkbutton(label="Hide Title bar", command=lambda: self.toggle_title_bar(fromKeyBind=False), onvalue=1, offvalue=0, variable=self.no_title_bar, accelerator="Alt + T")
         if platform.system() == "Windows":
-            self.click_through.set(int(sj.settingCache[f"ex_{winType}_click_through"]))
+            self.click_through.set(int(sj.cache[f"ex_{winType}_click_through"]))
             self.menuDropdown.add_checkbutton(label="Click Through/Transparent", command=lambda: self.toggle_click_through(fromKeyBind=False), onvalue=1, offvalue=0, variable=self.click_through, accelerator="Alt + S")
             self.toggle_click_through(fromKeyBind=False, onInit=True)
         self.menuDropdown.add_checkbutton(label="Always On Top", command=lambda: self.toggle_always_on_top(fromKeyBind=False), onvalue=1, offvalue=0, variable=self.always_on_top, accelerator="Alt + O")
@@ -84,13 +84,13 @@ class AbstractDetachedSubtitleWindow:
         self.menuDropdown.add_command(label="Keyboard Shortcut Keys", command=lambda: self.show_shortcut_keys())
 
         # init settings
-        self.always_on_top.set(int(sj.settingCache[f"ex_{winType}_always_on_top"]))
+        self.always_on_top.set(int(sj.cache[f"ex_{winType}_always_on_top"]))
         self.toggle_always_on_top(fromKeyBind=False, onInit=True)
 
-        self.no_title_bar.set(int(sj.settingCache[f"ex_{winType}_no_title_bar"]))
+        self.no_title_bar.set(int(sj.cache[f"ex_{winType}_no_title_bar"]))
         self.toggle_title_bar(fromKeyBind=False, onInit=True)
 
-        self.no_tooltip.set(int(sj.settingCache[f"ex_{winType}_no_tooltip"]))
+        self.no_tooltip.set(int(sj.cache[f"ex_{winType}_no_tooltip"]))
         self.toggle_tooltip(fromKeyBind=False, onInit=True)
 
         # ------------------------------------------------------------------------
@@ -215,7 +215,7 @@ class AbstractDetachedSubtitleWindow:
             sj.savePartialSetting(f"ex_{self.winType}_click_through", self.click_through.get())
 
         if self.click_through.get() == 1:
-            self.root.wm_attributes("-transparentcolor", sj.settingCache[f"ex_{self.winType}_bg"])
+            self.root.wm_attributes("-transparentcolor", sj.cache[f"ex_{self.winType}_bg"])
         else:
             self.root.wm_attributes("-transparentcolor", "")
         
