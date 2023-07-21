@@ -56,6 +56,7 @@ options = [
     "--copy-metadata=packaging",
     "--copy-metadata=filelock",
     "--copy-metadata=numpy",
+    "--copy-metadata=tokenizers",
     "--exclude-module=pyinstaller",
 ]
 

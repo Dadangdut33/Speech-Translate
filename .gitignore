@@ -9,6 +9,7 @@ venvcpu/
 ENV/
 env.bak/
 venv.bak/
+venvtest/
 
 # Project specific
 user/

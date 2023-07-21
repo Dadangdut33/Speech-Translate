@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="https://github.com/Dadangdut33/Speech-Translate/blob/master/assets/icon.png?raw=true" width="250px" alt="Speech Translate Logo">
+    <img src="https://github.com/Dadangdut33/Speech-Translate/blob/master/speech_translate/assets/icon.png?raw=true" width="250px" alt="Speech Translate Logo">
 </p>
 
 <h1 align="center">Speech Translate</h1>
@@ -42,15 +42,15 @@ A speech transcription and translation application using whisper AI model.
 - <details open>
     <summary>Preview</summary>
     <p align="center">
-      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/assets/1.png" width="700" alt="Speech Translate Looks">
-      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/assets/2.png" width="700" alt="Setting transcription">
-      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/assets/3.png" width="700" alt="Setting textbox">
-      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/assets/4.png" width="700" alt="About window">
-      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/assets/5.png" alt="Detached window preview">
+      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/1.png" width="700" alt="Speech Translate Looks">
+      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/2.png" width="700" alt="Setting transcription">
+      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/3.png" width="700" alt="Setting textbox">
+      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/4.png" width="700" alt="About window">
+      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/5.png" alt="Detached window preview">
       Detached window preview
-      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/assets/6.png" alt="Transcribe mode on detached window (English)">
+      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/6.png" alt="Transcribe mode on detached window (English)">
       Transcribe mode on detached window (English)
-      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/assets/7.png" alt="Translate mode on detached window (English to Indonesia)">
+      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/7.png" alt="Translate mode on detached window (English to Indonesia)">
       Translate mode on detached window (English to Indonesia)
     </p>
   </details>
@@ -92,7 +92,7 @@ brew install ffmpeg
 * Install as module:
   * From the latest commit: 
   
-    with **GPU** support: 
+    with **GPU** (Cuda compatible) support: 
 
     `pip install -U git+https://github.com/Dadangdut33/Speech-Translate.git --extra-index-url https://download.pytorch.org/whl/cu118`
 
@@ -104,8 +104,8 @@ brew install ffmpeg
 
     **Notes:**
 
-    -  This will install the latest commit from the main branch. You can also install from a specific branch or commit by adding `@branch_name` or `@commit_hash` at the end of the url.
-    -  The --extra-index-url here might not be up to date, so you can check the latest version of pytorch [here](https://pytorch.org/get-started/locally/). You can also check the available version of pytorch [here](https://download.pytorch.org/whl/torch_stable.html).
+    -  This will install the latest commit from the main branch. You can also install from a specific branch or commit by adding `@branch_name` or `@commit_hash` at the end of the url. Example: `pip install -U git+https://github.com/Dadangdut33/Speech-Translate.git@dev --extra-index-url https://download.pytorch.org/whl/cu118`
+    -  The --extra-index-url shown here might not always be up to date, so you can check the latest version of pytorch [here](https://pytorch.org/get-started/locally/). You can also check the available version of pytorch [here](https://download.pytorch.org/whl/torch_stable.html).
     -  You can also clone the repo and install it locally by running `pip install -e .` in the project directory. (Don't forget to add `--extra-index-url` if you want to install with GPU support)
 
   You can then run the program by typing `speech-translate` in your terminal/console.
@@ -116,9 +116,9 @@ brew install ffmpeg
 * Realtime Record:
   1. Set user setting
   2. Select model, mode, and language
-  3. Click the record button
-  4. Stop record
-  5. (Optionally) export the result to a file
+  3. Click the record from mic / system button
+  4. Open the subtitle window
+  5. Stop record
 
 * File import:
   1. Set user setting
