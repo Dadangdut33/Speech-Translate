@@ -69,7 +69,7 @@ def google_tl(text: str, from_lang: str, to_lang: str, debug_log: bool = False):
 
     # --- Translate ---
     try:
-        if TlCon.GoogleTranslator is None:  # type: ignore
+        if TlCon.GoogleTranslator is None:
             try:
                 from deep_translator import GoogleTranslator
 
@@ -78,7 +78,7 @@ def google_tl(text: str, from_lang: str, to_lang: str, debug_log: bool = False):
                 no_connection_notify()
                 return is_Success, "Error: Not connected to internet"
 
-        result = TlCon.GoogleTranslator(source=from_LanguageCode_Google, target=to_LanguageCode_Google).translate(text.strip())  # type: ignore
+        result = TlCon.GoogleTranslator(source=from_LanguageCode_Google, target=to_LanguageCode_Google).translate(text.strip())
         is_Success = True
     except Exception as e:
         logger.exception(str(e))

@@ -79,7 +79,7 @@ class AboutWindow:
         self.okBtn.pack(padx=5, pady=5, side="right")
 
         # ------------------------------
-        gc.about = self  # type: ignore
+        gc.about = self
         self.checking = False
         self.checkingOnStart = False
         self.checkedGet = None

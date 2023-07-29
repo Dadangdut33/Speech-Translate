@@ -51,7 +51,7 @@ try:
     hWnd = kernel32.GetConsoleWindow()
     win32gui.ShowWindow(hWnd, win32con.SW_HIDE)
     logger.info("Console window hidden. If it is not hidden (only minimized), try changing your default windows terminal to windows cmd.")
-    gc.cw = hWnd  # type: ignore
+    gc.cw = hWnd
 except Exception as e:
     logger.debug("Ignore this error if not running on Windows OR if not run directly from terminal (e.g. run from IDE)")
     logger.exception(e)
@@ -67,7 +67,7 @@ class AppTray:
         self.icon: icon = None  # type: ignore
         self.menu: menu = None  # type: ignore
         self.menu_items = None  # type: ignore
-        gc.tray = self  # type: ignore
+        gc.tray = self  
         self.create_tray()
         logger.info("Tray created")
 
@@ -141,7 +141,7 @@ class MainWindow:
         self.always_on_top: bool = False
         self.notified_hidden: bool = False
         self.console_opened: bool = False
-        gc.mw = self  # type: ignore
+        gc.mw = self
 
         # Styles
         self.style = ttk.Style()

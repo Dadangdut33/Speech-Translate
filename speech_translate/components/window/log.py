@@ -26,7 +26,7 @@ class LogWindow:
         self.isOpen = False
         self.stay_on_top = False
         self.thread_refresh = None
-        gc.lw = self  # type: ignore
+        gc.lw = self 
 
         # Frames
         self.f_1 = ttk.Frame(self.root)

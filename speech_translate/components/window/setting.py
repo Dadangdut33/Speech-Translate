@@ -447,15 +447,14 @@ class SettingWindow:
 
         self.lbl_tc_rate = ttk.Label(self.f_tc_params_1, text="Transcribe Rate (ms)", width=18)
         self.lbl_tc_rate.pack(side="left", padx=5)
-        CreateToolTip(self.lbl_tc_rate, "Set the transcribe rate or the time between each transcribe check. \n\nThe lower the value, the more resource it will use.\n\nDefault value is 500ms.")
 
         self.spn_tc_rate = ttk.Spinbox(
-            self.f_tc_params_1, from_=100, to=1000, validate="key", validatecommand=(self.root.register(self.number_only), "%P"), command=lambda: sj.savePartialSetting("transcribe_rate", int(self.spn_tc_rate.get()))
+            self.f_tc_params_1, from_=1, to=1000, validate="key", validatecommand=(self.root.register(self.number_only), "%P"), command=lambda: sj.savePartialSetting("transcribe_rate", int(self.spn_tc_rate.get()))
         )
 
-        self.spn_tc_rate.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_tc_rate, 100, 1000, lambda: sj.savePartialSetting("transcribe_rate", int(self.spn_tc_rate.get()))))
+        self.spn_tc_rate.bind("<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_tc_rate, 1, 1000, lambda: sj.savePartialSetting("transcribe_rate", int(self.spn_tc_rate.get()))))
         self.spn_tc_rate.pack(side="left", padx=5)
-        CreateToolTip(self.spn_tc_rate, "Set the transcribe rate or the time between each transcribe check. \n\nThe lower the value, the more resource it will use.\n\nDefault value is 500ms.")
+        createMultipleTooltips([self.spn_tc_rate, self.lbl_tc_rate],  "Set the transcribe rate or the time between each transcribe check. \n\nFor more real time experience you can lower it more. The lower the value, the more resource it will use.\n\nIf you lower the transcribe rate, you should also lower the max buffer for a better experience.\n\nDefault value is 300ms.", wrapLength=350)
 
         # 2
         self.cbtn_auto_sample_rate = ttk.Checkbutton(
@@ -493,13 +492,13 @@ class SettingWindow:
 
         self.lbl_hint_buffer = ttk.Label(self.f_buffer_1, text="❓")
         self.lbl_hint_buffer.pack(side="right", padx=5)
-        CreateToolTip(self.lbl_hint_buffer, "Max buffer is the maximum continous recording time. After it is reached buffer will be reset.")
+        CreateToolTip(self.lbl_hint_buffer, "Max buffer is the maximum continous recording time. After it is reached buffer will be reset.\n\nTips: Lower the buffer if your transcribe rate is low for a faster and more accurate result.")
 
         self.lbl_buffer_mic = ttk.Label(self.f_buffer_1, text="Mic", width=18)
         self.lbl_buffer_mic.pack(side="left", padx=5)
         CreateToolTip(
             self.lbl_buffer_mic,
-            "Set the max buffer (in seconds) for microphone input.\n\nThe longer the buffer, the more time it will take to transcribe the audio. Not recommended to have very long buffer on low end PC.\n\nDefault value is 20 seconds.",
+            "Set the max buffer (in seconds) for microphone input.\n\nThe longer the buffer, the more time it will take to transcribe the audio. Not recommended to have very long buffer on low end PC.\n\nDefault value is 10 seconds.",
         )
 
         self.spn_buffer_mic = ttk.Spinbox(
@@ -517,7 +516,7 @@ class SettingWindow:
         self.spn_buffer_mic.pack(side="left", padx=5)
         CreateToolTip(
             self.spn_buffer_mic,
-            "Set the max buffer (in seconds) for microphone input.\n\nThe longer the buffer, the more time it will take to transcribe the audio. Not recommended to have very long buffer on low end PC.\n\nDefault value is 15 seconds.",
+            "Set the max buffer (in seconds) for microphone input.\n\nThe longer the buffer, the more time it will take to transcribe the audio. Not recommended to have very long buffer on low end PC.\n\nDefault value is 10 seconds.",
         )
 
         if platform.system() == "Windows":
@@ -1147,7 +1146,7 @@ class SettingWindow:
 
         # ------------------ Variables ------------------
         # Flags
-        gc.sw = self  # type: ignore Add self to global class
+        gc.sw = self  # Add self to global class
 
         # ------------------ Functions ------------------
         self.on_close()  # hide window on start

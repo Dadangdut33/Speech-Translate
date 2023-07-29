@@ -48,13 +48,13 @@ default_setting = {
     "libre_https": True,
     # ------------------ #
     # Record settings
-    "mic_maxBuffer": 15,
+    "mic_maxBuffer": 10,
     "speaker_maxBuffer": 10,
     "mic_energy_threshold": 5000,
     "speaker_energy_threshold": 5000,
     "enable_threshold": False,
     "debug_energy": False,
-    "transcribe_rate": 500,
+    "transcribe_rate": 300,
     "sample_rate": 16000,
     "chunk_size": 1024,
     "max_sentences": 5,

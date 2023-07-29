@@ -235,7 +235,7 @@ def getDeviceAverageThreshold(deviceType: Literal["mic", "speaker"], duration: i
     p.terminate()
 
     # get average threshold
-    avg_threshold = audioop.rms(data, 2)  # type: ignore
+    avg_threshold = audioop.rms(data, 2)
 
     logger.debug(f"Average threshold: {avg_threshold}")
 
@@ -600,7 +600,6 @@ def record_realtime(
                         initial_prompt=initial_prompt,
                         **whisper_extra_args,
                     )
-                    logger.debug(result)
 
                     text = result["text"].strip()  # type: ignore
                     gc.auto_detected_lang = result["language"]  # type: ignore
@@ -841,7 +840,7 @@ def realtime_tl(text: str, lang_source: str, lang_target: str, engine: Literal["
             if not success:
                 nativeNotify("Error: translation with mymemory failed", str(result_Tl))
 
-        result_Tl = result_Tl.strip()  # type: ignore
+        result_Tl = result_Tl.strip()
         if len(result_Tl) > 0 and result_Tl != prev_tl_text:
             prev_tl_text = result_Tl
             # this works like this:
@@ -973,7 +972,7 @@ def cancellable_tl(
                 return
 
             # if whisper, sended text (toTranslate) is the audio file path
-            resultsTxt = result_Tl_whisper["text"].strip()  # type: ignore
+            resultsTxt = result_Tl_whisper["text"].strip()
 
             if len(resultsTxt) > 0:
                 gc.file_tled_counter += 1
@@ -1030,7 +1029,7 @@ def cancellable_tl(
             for i, results in enumerate(result_Tl):
                 resultSrt = results
                 # format it back to txt
-                resultTxt = srt_whisper_to_txt_format(resultSrt)  # type: ignore
+                resultTxt = srt_whisper_to_txt_format(resultSrt)
 
                 if len(resultSrt) > 0:
                     gc.file_tled_counter += 1
@@ -1040,7 +1039,7 @@ def cancellable_tl(
                         f.write(resultTxt)
 
                     with open(os.path.join(export_to, f"{saveNameWithPart}_translated.srt"), "w", encoding="utf-8") as f:
-                        f.write(resultSrt)  # type: ignore
+                        f.write(resultSrt)
 
                     gc.insertMwTbTl(f"Translated {saveNameWithPart} and saved to .txt and .srt" + separator)
                 else:
@@ -1156,7 +1155,7 @@ def cancellable_tc(
 
         # export if transcribe mode is on
         if transcribe:
-            resultTxt = result_Tc["text"].strip()  # type: ignore
+            resultTxt = result_Tc["text"].strip()
 
             if len(resultTxt) > 0:
                 gc.file_tced_counter += 1
@@ -1276,7 +1275,7 @@ def file_input(files: List[str], modelKey: str, lang_source: str, lang_target: s
 
         # update button text
         assert gc.mw is not None
-        gc.mw.btn_import_file.config(text="Cancel")  # type: ignore
+        gc.mw.btn_import_file.config(text="Cancel")
 
         # window to show progress
         master = gc.mw.root
