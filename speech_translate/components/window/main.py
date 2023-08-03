@@ -4,6 +4,7 @@ import platform
 import threading
 import tkinter as tk
 import torch
+import signal  # Import the signal module to handle Ctrl+C
 from tkinter import ttk, filedialog
 from typing import Literal
 
@@ -57,6 +58,13 @@ except Exception as e:
     logger.exception(e)
     pass
 
+
+# Function to handle Ctrl+C and exit just like clicking the exit button
+def signal_handler(sig, frame):
+    logger.info("Received Ctrl+C, exiting...")
+    gc.running = False
+
+signal.signal(signal.SIGINT, signal_handler)  # Register the signal handler for Ctrl+C
 
 class AppTray:
     """
@@ -120,7 +128,6 @@ class AppTray:
     # -- Exit app by flagging runing false to stop main loop
     def exit_app(self):
         gc.running = False
-
 
 class MainWindow:
     """

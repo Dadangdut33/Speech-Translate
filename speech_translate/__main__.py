@@ -14,6 +14,7 @@ def main():
     logger.info(f"App Version: {__version__}")
     logger.info(f"OS: {platform.system()} {platform.release()} {platform.version()} | CPU: {platform.processor()}")
     logger.info(f"GPU: {get_gpu_info()} | CUDA: {check_cuda_and_gpu()}")
+    
     # --- GUI ---
     AppTray()  # Start tray app in the background
     main = MainWindow()

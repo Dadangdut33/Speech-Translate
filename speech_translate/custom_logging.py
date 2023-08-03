@@ -25,15 +25,16 @@ class StreamFormatter(logging.Formatter):
     blue = "\x1b[34;20m"
     reset = "\x1b[0m"
     timeFormat = blue + "%(asctime)s " + reset
-    textFormat = "%(levelname)-7s - %(message)s"
+    levelFormat = yellow + "%(levelname)-7s - " + reset
+    textFormat = "%(message)s"
     fileLineFormat = green + " (%(filename)s:%(lineno)d) [%(threadName)s]" + reset
 
     FORMATS = {
-        logging.DEBUG: timeFormat + bold + bright_magenta + textFormat + reset + fileLineFormat,
-        logging.INFO: timeFormat + white + textFormat + reset + fileLineFormat,
-        logging.WARNING: timeFormat + yellow + textFormat + reset + fileLineFormat,
-        logging.ERROR: timeFormat + red + textFormat + reset + fileLineFormat,
-        logging.CRITICAL: timeFormat + bold_red + textFormat + reset + fileLineFormat,
+        logging.DEBUG: timeFormat + levelFormat + bold + bright_magenta + textFormat + reset + fileLineFormat,
+        logging.INFO: timeFormat + levelFormat + white + textFormat + reset + fileLineFormat,
+        logging.WARNING: timeFormat + levelFormat + yellow + textFormat + reset + fileLineFormat,
+        logging.ERROR: timeFormat + levelFormat + red + textFormat + reset + fileLineFormat,
+        logging.CRITICAL: timeFormat + levelFormat + bold_red + textFormat + reset + fileLineFormat,
     }
 
     def format(self, record):
