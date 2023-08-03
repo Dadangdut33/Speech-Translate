@@ -1491,7 +1491,10 @@ class SettingWindow:
     def get_the_threshold(self, device: Literal["mic", "speaker"]) -> None:
         self.getting_threshold = True
         threshold = getDeviceAverageThreshold(device)
-        self.spn_threshold_mic.set(str(int(threshold)))
+        if device == "mic":
+            self.spn_threshold_mic.set(str(int(threshold)))
+        elif device == "speaker":
+            self.spn_threshold_speaker.set(str(int(threshold)))
         sj.savePartialSetting("mic_energy_threshold" if device == "mic" else "speaker_energy_threshold", threshold)
         self.getting_threshold = False
 

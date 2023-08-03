@@ -3,6 +3,7 @@ import platform
 import ast
 import shlex
 import arabic_reshaper
+from bidi.algorithm import get_display
 from tkinter import ttk
 from threading import Thread
 from typing import Optional, List, TYPE_CHECKING
@@ -10,7 +11,26 @@ from ._path import dir_temp, dir_log, dir_export, dir_user
 from ._contants import SUBTITLE_PLACEHOLDER, RESHAPE_LANG_LIST
 from .utils.setting import SettingJson
 
-if TYPE_CHECKING: # Forward declaration for type hinting
+# Disabling tqdm globally by Defining a custom dummy class that suppresses tqdm's behavior
+import tqdm
+class DummyTqdm:
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        pass
+
+    def update(self, n=1):
+        pass
+
+# Monkey-patch tqdm with the DummyTqdm class
+tqdm.tqdm = DummyTqdm
+
+# Forward declaration for type hinting
+if TYPE_CHECKING: 
     from .components.window.main import MainWindow, AppTray
     from .components.window.setting import SettingWindow  
     from .components.window.about import AboutWindow  
@@ -22,13 +42,12 @@ if platform.system() == "Windows":
     from multiprocessing import Queue
     import pyaudiowpatch as pyaudio
 else:
-    from .utils.custom_queue import MyQueue as Queue  # to get qsize
+    from .utils.custom_queue import MyQueue as Queue  # to get qsize on platform other than windows
     import pyaudio  # type: ignore
 
 # ------------------ #
 sj: SettingJson = SettingJson(os.path.join(dir_user, "setting.json"), dir_user, [dir_temp, dir_log, dir_export])
 
-# ------------------ #
 class GlobalClass:
     """
     Class containing all the static variables for the UI. It also contains some methods for the stuff to works.
@@ -99,7 +118,7 @@ class GlobalClass:
     def disableTranslating(self):
         self.translating = False
 
-    def insertMwTbTc(self, textToAppend: str):
+    def insertMwTbTc(self, textToAppend: str, detected_lang: str):
         """Insert text to transcribed textbox. Will also check if the text is too long and will truncate it if it is.
         Separator should be added in the arguments (already in textToAppend)
 
@@ -119,13 +138,13 @@ class GlobalClass:
             textToAppend = currentText
             self.mw.tb_transcribed.delete("1.0", "end")
 
-        if sj.cache["sourceLang"].lower() in RESHAPE_LANG_LIST:
-            textToAppend = arabic_reshaper.reshape(textToAppend)
+        if detected_lang.lower() in RESHAPE_LANG_LIST:
+            textToAppend =  str(get_display(arabic_reshaper.reshape(textToAppend)))
 
         self.mw.tb_transcribed.insert("end", textToAppend)
         self.mw.tb_transcribed.see("end")
 
-    def insertMwTbTl(self, textToAppend: str):
+    def insertMwTbTl(self, textToAppend: str, detected_lang: str):
         """Insert text to translated textbox. Will also check if the text is too long and will truncate it if it is.
         Separator should be added in the arguments (already in textToAppend)
 
@@ -145,13 +164,13 @@ class GlobalClass:
             textToAppend = currentText
             self.mw.tb_translated.delete("1.0", "end")
 
-        if sj.cache["sourceLang"].lower() in RESHAPE_LANG_LIST:
-            textToAppend = arabic_reshaper.reshape(textToAppend)
+        if detected_lang.lower() in RESHAPE_LANG_LIST:
+            textToAppend = str(get_display(arabic_reshaper.reshape(textToAppend)))
 
         self.mw.tb_translated.insert("end", textToAppend)
         self.mw.tb_translated.see("end")
 
-    def insertExTbTc(self, textToAppend: str):
+    def insertExTbTc(self, textToAppend: str, detected_lang: str):
         """Insert text to detached transcribed textbox. Will also check if the text is too long and will truncate it if it is.
         Separator is added here.
 
@@ -173,13 +192,13 @@ class GlobalClass:
         else:
             textToAppend += ast.literal_eval(shlex.quote(sj.cache["separate_with"]))  # set new text
 
-        if sj.cache["sourceLang"].lower() in RESHAPE_LANG_LIST:
-            textToAppend = arabic_reshaper.reshape(textToAppend)
+        if detected_lang.lower() in RESHAPE_LANG_LIST:
+            textToAppend = str(get_display(arabic_reshaper.reshape(textToAppend)))
 
         self.ex_tcw.labelText.config(text=textToAppend)
         self.ex_tcw.check_height_resize()
 
-    def insertExTbTl(self, textToAppend: str):
+    def insertExTbTl(self, textToAppend: str, detected_lang: str):
         """Insert text to detached translated textbox. Will also check if the text is too long and will truncate it if it is.
         Separator is added here.
 
@@ -199,8 +218,8 @@ class GlobalClass:
         else:
             textToAppend += ast.literal_eval(shlex.quote(sj.cache["separate_with"]))  # set new text
 
-        if sj.cache["sourceLang"].lower() in RESHAPE_LANG_LIST:
-            textToAppend = arabic_reshaper.reshape(textToAppend)
+        if detected_lang.lower() in RESHAPE_LANG_LIST:
+            textToAppend = str(get_display(arabic_reshaper.reshape(textToAppend)))
 
         self.ex_tlw.labelText.config(text=textToAppend)
         self.ex_tlw.check_height_resize()

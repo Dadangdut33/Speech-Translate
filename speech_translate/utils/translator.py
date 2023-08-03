@@ -7,11 +7,10 @@ from .language import google_lang, libre_lang, myMemory_lang
 
 # Import the translator
 try:
-    from deep_translator import GoogleTranslator, MyMemoryTranslator, PonsTranslator
+    from deep_translator import GoogleTranslator, MyMemoryTranslator
 except Exception as e:
     GoogleTranslator = None
     MyMemoryTranslator = None
-    PonsTranslator = None
     if "HTTPSConnectionPool" in str(e):
         no_connection_notify()
     else:
@@ -26,16 +25,14 @@ class TranslationConnection:
     ----------
         GoogleTranslator (function): Google Translate
         MyMemoryTranslator (function): MyMemoryTranslator
-        PonsTranslator (function): PonsTranslator
     """
 
-    def __init__(self, GoogleTranslator, MyMemoryTranslator, PonsTranslator):
+    def __init__(self, GoogleTranslator, MyMemoryTranslator):
         self.GoogleTranslator = GoogleTranslator
         self.MyMemoryTranslator = MyMemoryTranslator
-        self.PonsTranslator = PonsTranslator
 
 
-TlCon = TranslationConnection(GoogleTranslator, MyMemoryTranslator, PonsTranslator)
+TlCon = TranslationConnection(GoogleTranslator, MyMemoryTranslator)
 
 
 def google_tl(text: str, from_lang: str, to_lang: str, debug_log: bool = False):

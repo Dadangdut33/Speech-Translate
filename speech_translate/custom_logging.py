@@ -18,7 +18,7 @@ class StreamFormatter(logging.Formatter):
     bold = "\033[1m"
     green = "\u001b[32;1m"
     white = "\u001b[37m"
-    cyan = "\u001b[46m"
+    bright_magenta = "\x1b[95m"
     yellow = "\x1b[33;20m"
     red = "\x1b[31;20m"
     bold_red = "\x1b[31;1m"
@@ -29,7 +29,7 @@ class StreamFormatter(logging.Formatter):
     fileLineFormat = green + " (%(filename)s:%(lineno)d) [%(threadName)s]" + reset
 
     FORMATS = {
-        logging.DEBUG: timeFormat + cyan + textFormat + reset + fileLineFormat,
+        logging.DEBUG: timeFormat + bold + bright_magenta + textFormat + reset + fileLineFormat,
         logging.INFO: timeFormat + white + textFormat + reset + fileLineFormat,
         logging.WARNING: timeFormat + yellow + textFormat + reset + fileLineFormat,
         logging.ERROR: timeFormat + red + textFormat + reset + fileLineFormat,
