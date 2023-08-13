@@ -144,7 +144,7 @@ class CreateToolTipOnText:
 
         self.scrollbar = ttk.Scrollbar(self.f_1, orient=tk.VERTICAL, command=self.tb.yview)
         self.scrollbar.pack(fill="y", side="right")
-        self.tb.config(yscrollcommand=self.scrollbar.set)
+        self.tb.configure(yscrollcommand=self.scrollbar.set)
 
     def hidetip(self):
         tw = self.root

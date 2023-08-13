@@ -35,7 +35,7 @@ class MBoxText:
 
         self.scrollbar = ttk.Scrollbar(self.f_1, orient=tk.VERTICAL, command=self.tb.yview)
         self.scrollbar.pack(fill="y", side="right")
-        self.tb.config(yscrollcommand=self.scrollbar.set)
+        self.tb.configure(yscrollcommand=self.scrollbar.set)
 
         self.btn = ttk.Button(self.f_2, text="OK", command=self.on_close)
         self.btn.pack(fill="both", expand=True, side="right", padx=5, pady=5)

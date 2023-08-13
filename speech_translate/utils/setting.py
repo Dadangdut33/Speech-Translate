@@ -15,19 +15,22 @@ default_setting = {
     "checkUpdateOnStart": True,
     # ------------------ #
     # App settings
-    "mode": "Transcribe",
+    "transcribe": True,
+    "translate": True,
+    "input": "mic", # mic, speaker
     "model": "tiny",
     "verbose": False,
     "hide_console_window_on_start": False,
     "separate_with": "\\n",
     "mic": "",
     "speaker": "",
+    "hostAPI": "",
     "theme": "sv-dark" if darkdetect.isDark() else "sv-light",
     "dir_export": "auto",
     "auto_open_dir_export": True,
     "supress_hidden_to_tray": False,
     "supress_device_warning": False,
-    "mw_size": "1200x400",
+    "mw_size": "950x400",
     "sw_size": "1000x580",
     # ------------------ #
     # logging

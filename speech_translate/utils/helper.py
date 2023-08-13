@@ -3,7 +3,7 @@ import subprocess
 import webbrowser
 
 from tkinter import colorchooser, ttk
-from typing import Dict
+from typing import Dict, Union
 from notifypy import Notify, exceptions
 from speech_translate.custom_logging import logger
 from speech_translate._path import app_icon, app_icon_missing
@@ -18,7 +18,7 @@ def get_similar_keys(_dict: Dict, key: str):
     return [k for k in _dict.keys() if key.lower() in k.lower()]
 
 
-def cbtnInvoker(settingVal: bool, widget: ttk.Checkbutton):
+def cbtnInvoker(settingVal: bool, widget: Union[ttk.Checkbutton, ttk.Radiobutton]):
     if settingVal:
         widget.invoke()
     else:

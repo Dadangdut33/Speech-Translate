@@ -6,9 +6,7 @@ import tkinter as tk
 import torch
 import signal  # Import the signal module to handle Ctrl+C
 from tkinter import ttk, filedialog
-from typing import Literal
-
-import sounddevice as sd
+from typing import Literal, Dict
 
 from PIL import Image, ImageDraw
 from pystray import Icon as icon
@@ -21,21 +19,16 @@ from speech_translate._contants import APP_NAME
 from speech_translate.globals import sj, gc
 from speech_translate.custom_logging import logger
 
-from speech_translate.components.window.about import AboutWindow
-from speech_translate.components.window.log import LogWindow
-from speech_translate.components.window.setting import SettingWindow
-from speech_translate.components.window.transcribed import TcsWindow
-from speech_translate.components.window.translated import TlsWindow
 from speech_translate.components.custom.message import mbox
 from speech_translate.components.custom.tooltip import CreateToolTip
 
 from speech_translate.utils.model_download import verify_model, download_model
-from speech_translate.utils.helper import tb_copy_only, nativeNotify
+from speech_translate.utils.helper import cbtnInvoker, tb_copy_only, nativeNotify
 from speech_translate.utils.style import set_ui_style, init_theme, get_theme_list, get_current_theme
 from speech_translate.utils.helper import upFirstCase, startFile
 from speech_translate.utils.helper_whisper import append_dot_en, modelKeys, modelSelectDict
 from speech_translate.utils.language import engine_select_source_dict, engine_select_target_dict, whisper_compatible
-from speech_translate.utils.record import getInputDevices, getOutputDevices, getDefaultOutputDevice, getDefaultInputDevice, file_input, record_realtime
+from speech_translate.utils.record import get_input_devices, get_output_devices, get_host_apis, get_default_output_device, get_default_input_device, get_default_host_api, file_input, record_realtime
 
 # Terminal window hide/showing
 try:
@@ -190,14 +183,6 @@ class MainWindow:
 
         # ------------------ Elements ------------------
         # -- f1_toolbar
-        # mode
-        self.lbl_mode = ttk.Label(self.f1_toolbar, text="Mode:")
-        self.lbl_mode.pack(side="left", fill="x", padx=5, pady=5, expand=False)
-
-        self.cb_mode = ttk.Combobox(self.f1_toolbar, values=["Transcribe", "Translate", "Transcribe & Translate"], state="readonly")
-        self.cb_mode.pack(side="left", fill="x", padx=5, pady=5, expand=False)
-        self.cb_mode.bind("<<ComboboxSelected>>", self.cb_mode_change)
-
         # model
         self.lbl_model = ttk.Label(self.f1_toolbar, text="Model:")
         self.lbl_model.pack(side="left", fill="x", padx=5, pady=5, expand=False)
@@ -214,11 +199,11 @@ class MainWindow:
         self.cb_model.bind("<<ComboboxSelected>>", lambda _: sj.savePartialSetting("model", modelSelectDict[self.cb_model.get()]))
 
         # engine
-        self.lbl_engine = ttk.Label(self.f1_toolbar, text="TL Engine:")
+        self.lbl_engine = ttk.Label(self.f1_toolbar, text="Translate:")
         self.lbl_engine.pack(side="left", fill="x", padx=5, pady=5, expand=False)
 
         self.cb_engine = ttk.Combobox(self.f1_toolbar, values=["Whisper", "Google", "LibreTranslate", "MyMemoryTranslator"], state="readonly")
-        self.cb_engine.pack(side="left", fill="x", padx=5, pady=5, expand=False)
+        self.cb_engine.pack(side="left", fill="x", padx=5, pady=5, expand=True)
         self.cb_engine.bind("<<ComboboxSelected>>", self.cb_engine_change)
 
         # from
@@ -226,7 +211,7 @@ class MainWindow:
         self.lbl_source.pack(side="left", padx=5, pady=5)
 
         self.cb_sourceLang = ttk.Combobox(self.f1_toolbar, values=engine_select_source_dict["Whisper"], state="readonly")  # initial value
-        self.cb_sourceLang.pack(side="left", padx=5, pady=5)
+        self.cb_sourceLang.pack(side="left", padx=5, pady=5, fill="x", expand=True)
         self.cb_sourceLang.bind("<<ComboboxSelected>>", lambda _: sj.savePartialSetting("sourceLang", self.cb_sourceLang.get()))
 
         # to
@@ -234,7 +219,7 @@ class MainWindow:
         self.lbl_to.pack(side="left", padx=5, pady=5)
 
         self.cb_targetLang = ttk.Combobox(self.f1_toolbar, values=[upFirstCase(x) for x in whisper_compatible], state="readonly")  # initial value
-        self.cb_targetLang.pack(side="left", padx=5, pady=5)
+        self.cb_targetLang.pack(side="left", padx=5, pady=5, fill="x", expand=True)
         self.cb_targetLang.bind("<<ComboboxSelected>>", lambda _: sj.savePartialSetting("targetLang", self.cb_targetLang.get()))
 
         # swap
@@ -242,7 +227,7 @@ class MainWindow:
         self.btn_swap.pack(side="left", padx=5, pady=5)
 
         # clear
-        self.btn_clear = ttk.Button(self.f1_toolbar, text="Clear", command=self.tb_clear)
+        self.btn_clear = ttk.Button(self.f1_toolbar, text="Clear", command=self.tb_clear, style="Accent.TButton")
         self.btn_clear.pack(side="left", padx=5, pady=5)
 
         # -- f2_textBox
@@ -261,8 +246,8 @@ class MainWindow:
         )
         self.tb_transcribed.bind("<Key>", tb_copy_only)
         self.tb_transcribed.pack(side="left", fill="both", expand=True, padx=1, pady=1)
-        self.tb_transcribed.config(yscrollcommand=self.sb_transcribed.set)
-        self.sb_transcribed.config(command=self.tb_transcribed.yview)
+        self.tb_transcribed.configure(yscrollcommand=self.sb_transcribed.set)
+        self.sb_transcribed.configure(command=self.tb_transcribed.yview)
 
         self.tb_translated_bg = tk.Frame(self.f2_textBox, bg="#7E7E7E")
         self.tb_translated_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
@@ -279,96 +264,152 @@ class MainWindow:
         )
         self.tb_translated.bind("<Key>", tb_copy_only)
         self.tb_translated.pack(fill="both", expand=True, padx=1, pady=1)
-        self.tb_translated.config(yscrollcommand=self.sb_translated.set)
-        self.sb_translated.config(command=self.tb_translated.yview)
+        self.tb_translated.configure(yscrollcommand=self.sb_translated.set)
+        self.sb_translated.configure(command=self.tb_translated.yview)
 
         # -- f3_toolbar
-        self.f3_frameLeft = ttk.Frame(self.f3_toolbar)
-        self.f3_frameLeft.pack(side="left", fill="x", expand=True)
+        self.f3_1 = ttk.Frame(self.f3_toolbar)
+        self.f3_1.pack(side="left", fill="x", expand=True)
+        self.f3_1.bind("<Button-1>", lambda event: self.root.focus_set())
 
-        self.f3_leftRow1 = ttk.Frame(self.f3_frameLeft)
-        self.f3_leftRow1.pack(side="top", fill="x", expand=True)
+        self.f3_1_row1 = ttk.Frame(self.f3_1)
+        self.f3_1_row1.pack(side="top", fill="x")
+        self.f3_1_row1.bind("<Button-1>", lambda event: self.root.focus_set())
 
-        self.f3_leftRow2 = ttk.Frame(self.f3_frameLeft)
-        self.f3_leftRow2.pack(side="top", fill="x", expand=True)
+        self.f3_1_row2 = ttk.Frame(self.f3_1)
+        self.f3_1_row2.pack(side="top", fill="x")
+        self.f3_1_row2.bind("<Button-1>", lambda event: self.root.focus_set())
 
-        self.f3_frameRight = ttk.Frame(self.f3_toolbar)
-        self.f3_frameRight.pack(side="right", fill="x", expand=True)
+        self.f3_1_row3 = ttk.Frame(self.f3_1)
+        self.f3_1_row3.pack(side="top", fill="x")
+        self.f3_1_row3.bind("<Button-1>", lambda event: self.root.focus_set())
 
-        self.label_mic = ttk.Label(self.f3_leftRow1, text="Microphone:", font="TkDefaultFont 9 bold", width=10, cursor="hand2")
-        self.label_mic.pack(side="left", padx=5, pady=0, ipady=0)
-        self.label_mic.bind("<Button-1>", self.label_microphone_Lclick)
-        self.label_mic.bind("<Button-3>", self.label_microphone_Rclick)
-        CreateToolTip(
-            self.label_mic,
-            """Speaker to record microphone. Action available:
-        \r[-] Left click to refresh\n[-] Right click to set to default device
-        \r**NOTES**:\nFormat of the device is {device name, hostAPI}
-        \rThere are many hostAPI for your device and it is recommended to follow the default value, other than that it might not work or crash the app.""",
-            wrapLength=400,
-        )
+        # -- hostAPI
+        self.lbl_hostAPI = ttk.Label(self.f3_1_row1, text="HostAPI:", font="TkDefaultFont 9 bold", width=10, cursor="question_arrow")
+        self.lbl_hostAPI.pack(side="left", padx=5, pady=0, ipady=0)
+        CreateToolTip(self.lbl_hostAPI, "HostAPI for the input device. There are many hostAPI for your device and it is recommended to follow the default value, other than that it might not work or crash the app.", wrapLength=350)
 
-        self.cb_mic = ttk.Combobox(self.f3_leftRow1, values=[], state="readonly", width=70)
+        self.cb_hostAPI = ttk.Combobox(self.f3_1_row1, values=[], state="readonly")
+        self.cb_hostAPI.bind("<<ComboboxSelected>>", lambda _: sj.savePartialSetting("hostAPI", self.cb_hostAPI.get()) or self.hostAPI_change())
+        self.cb_hostAPI.pack(side="left", padx=5, pady=0, ipady=0, expand=True, fill="x")
+
+        self.btn_hostAPI = ttk.Button(self.f3_1_row1, text="⚙",  width=3, command=lambda: self.popup_menu(self.menu_hostAPI)) 
+        self.btn_hostAPI.pack(side="left", padx=5, pady=0, ipady=0)
+
+        self.menu_hostAPI = self.input_device_menu("hostAPI")
+
+        # -- mic
+        self.lbl_mic = ttk.Label(self.f3_1_row2, text="Microphone:", font="TkDefaultFont 9 bold", width=10, cursor="question_arrow")
+        self.lbl_mic.pack(side="left", padx=5, pady=0, ipady=0)
+        CreateToolTip(self.lbl_mic, "Microphone for the input device.")
+
+        self.cb_mic = ttk.Combobox(self.f3_1_row2, values=[], state="readonly")
         self.cb_mic.bind("<<ComboboxSelected>>", lambda _: sj.savePartialSetting("mic", self.cb_mic.get()))
-        self.cb_mic.pack(side="left", padx=5, pady=0, ipady=0)
-        CreateToolTip(
-            self.cb_mic,
-            """**NOTES**:\nFormat of the device is {device name, hostAPI}
-        \rThere are many hostAPI for your device and it is recommended to follow the default value, other than that it might not work or crash the app.
-        \rTo set default value you can right click on the label in the left""",
-            wrapLength=400,
-        )
+        self.cb_mic.pack(side="left", padx=5, pady=0, ipady=0, expand=True, fill="x")
 
-        self.label_speaker = ttk.Label(self.f3_leftRow2, text="Speaker:", font="TkDefaultFont 9 bold", width=10, cursor="hand2")
-        self.label_speaker.pack(side="left", padx=5, pady=0, ipady=0)
-        self.label_speaker.bind("<Button-1>", self.label_speaker_Lclick)
-        self.label_speaker.bind("<Button-3>", self.label_speaker_Rclick)
-        CreateToolTip(
-            self.label_speaker,
-            """Speaker to record system audio. Action available:
-        \r[-] Left click to refresh\n[-] Right click to set to default device
-        \r**NOTES**:\nFormat of the device is {device name, hostAPI [ID: x]}
-        \rThere are many hostAPI for your device and it is recommended to follow the default value, other than that it might not work or crash the app.""",
-            wrapLength=400,
-        )
+        self.btn_mic = ttk.Button(self.f3_1_row2, text="⚙",  width=3, command=lambda: self.popup_menu(self.menu_mic)) 
+        self.btn_mic.pack(side="left", padx=5, pady=0, ipady=0)
 
-        self.cb_speaker = ttk.Combobox(self.f3_leftRow2, values=[], state="readonly", width=70)
+        self.menu_mic = self.input_device_menu("mic")
+
+        # -- speaker
+        self.lbl_speaker = ttk.Label(self.f3_1_row3, text="Speaker:", font="TkDefaultFont 9 bold", width=10, cursor="question_arrow")
+        self.lbl_speaker.pack(side="left", padx=5, pady=0, ipady=0)
+        CreateToolTip(self.lbl_speaker, "Speaker to record the system audio")
+
+        self.cb_speaker = ttk.Combobox(self.f3_1_row3, values=[], state="readonly")
         self.cb_speaker.bind("<<ComboboxSelected>>", lambda _: sj.savePartialSetting("speaker", self.cb_speaker.get()))
-        self.cb_speaker.pack(side="left", padx=5, pady=0, ipady=0)
-        CreateToolTip(
-            self.cb_speaker,
-            """**NOTES**:\nFormat of the device is {device name, hostAPI [ID: x]}
-        \rThere are many hostAPI for your device and it is recommended to follow the default value, other than that it might not work or crash the app.
-        \rTo set default value you can right click on the label in the left.""",
-            wrapLength=400,
-        )
+        self.cb_speaker.pack(side="left", padx=5, pady=0, ipady=0, expand=True, fill="x")
 
-        self.sep_btn_f3 = ttk.Separator(self.f3_leftRow1, orient="vertical")
-        self.sep_btn_f3.pack(side="left", fill="y", pady=0, ipady=0)
+        self.btn_speaker = ttk.Button(self.f3_1_row3, text="⚙",  width=3, command=lambda: self.popup_menu(self.menu_speaker))
+        self.btn_speaker.pack(side="left", padx=5, pady=0, ipady=0)
 
-        self.sep_btn_f3 = ttk.Separator(self.f3_leftRow2, orient="vertical")
-        self.sep_btn_f3.pack(side="left", fill="y", pady=0, ipady=0)
+        self.menu_speaker = self.input_device_menu("speaker")
 
-        self.btn_record_mic = ttk.Button(self.f3_frameRight, text="Record From Mic", command=self.mic_rec)
-        self.btn_record_mic.pack(side="right", padx=5, pady=5)
-        CreateToolTip(self.btn_record_mic, "Record sound from selected microphone device")
+        # -- separator
+        self.sep_btn_f3R1 = ttk.Separator(self.f3_1_row1, orient="vertical")
+        self.sep_btn_f3R1.pack(side="left", fill="y", pady=0, ipady=0)
 
-        self.btn_record_speaker = ttk.Button(self.f3_frameRight, text="Record PC Sound", command=self.speaker_rec)
-        self.btn_record_speaker.pack(side="right", padx=5, pady=5)
-        CreateToolTip(self.btn_record_speaker, "Record sound from selected speaker device ")
+        self.sep_btn_f3R2 = ttk.Separator(self.f3_1_row2, orient="vertical")
+        self.sep_btn_f3R2.pack(side="left", fill="y", pady=0, ipady=0)
 
-        self.btn_import_file = ttk.Button(self.f3_frameRight, text="Import file (Audio/Video)", command=self.from_file)
+        self.sep_btn_f3R3 = ttk.Separator(self.f3_1_row3, orient="vertical")
+        self.sep_btn_f3R3.pack(side="left", fill="y", pady=0, ipady=0)
+
+        # ------
+        self.f3_2 = ttk.Frame(self.f3_toolbar)
+        self.f3_2.pack(side="left", fill="x")
+
+        self.f3_2_row1 = ttk.Frame(self.f3_2)
+        self.f3_2_row1.pack(side="top", fill="x")
+
+        self.f3_2_row2 = ttk.Frame(self.f3_2)
+        self.f3_2_row2.pack(side="top", fill="x")
+
+        self.f3_2_row3 = ttk.Frame(self.f3_2)
+        self.f3_2_row3.pack(side="top", fill="x")
+
+        self.lbl_task = ttk.Label(self.f3_2_row1, text="Task:", font="TkDefaultFont 9 bold", width=10)
+        self.lbl_task.pack(side="left", padx=5, pady=5, ipady=0)
+
+        self.checkbox_task_transcribe = ttk.Checkbutton(self.f3_2_row2, text="Transcribe", width=10, command=lambda: self.mode_change() or sj.savePartialSetting("transcribe", "selected" in self.checkbox_task_transcribe.state()))
+        self.checkbox_task_transcribe.pack(side="left", padx=5, pady=2.5, ipady=0)
+
+        self.checkbox_task_translate = ttk.Checkbutton(self.f3_2_row3, text="Translate", width=10, command=lambda: self.mode_change() or sj.savePartialSetting("translate", "selected" in self.checkbox_task_translate.state()))
+        self.checkbox_task_translate.pack(side="left", padx=5, pady=2.5, ipady=0)
+
+        # ------
+        self.f3_3 = ttk.Frame(self.f3_toolbar)
+        self.f3_3.pack(side="left", fill="x")
+
+        self.f3_3_row1 = ttk.Frame(self.f3_3)
+        self.f3_3_row1.pack(side="top", fill="x")
+
+        self.f3_3_row2 = ttk.Frame(self.f3_3)
+        self.f3_3_row2.pack(side="top", fill="x")
+
+        self.f3_3_row3 = ttk.Frame(self.f3_3)
+        self.f3_3_row3.pack(side="top", fill="x")
+
+        self.lbl_temp = ttk.Label(self.f3_3_row1, text="Input:", font="TkDefaultFont 9 bold", width=10)
+        self.lbl_temp.pack(side="left", padx=5, pady=5, ipady=0)
+
+        self.radio_mic = ttk.Radiobutton(self.f3_3_row2, text="Microphone", value="mic", width=12, command=lambda: sj.savePartialSetting("input", "mic"))
+        self.radio_mic.pack(side="left", padx=5, pady=2.5, ipady=0)
+
+        self.radio_speaker = ttk.Radiobutton(self.f3_3_row3, text="Speaker", value="speaker", width=12, command=lambda: sj.savePartialSetting("input", "speaker"))
+        self.radio_speaker.pack(side="left", padx=5, pady=2.5, ipady=0)
+
+        # ------
+        self.f3_4 = ttk.Frame(self.f3_toolbar)
+        self.f3_4.pack(side="left", fill="x")
+
+        self.f3_4_row1 = ttk.Frame(self.f3_4)
+        self.f3_4_row1.pack(side="top", fill="x")
+
+        self.f3_4_row2 = ttk.Frame(self.f3_4)
+        self.f3_4_row2.pack(side="top", fill="x")
+
+        self.btn_record = ttk.Button(self.f3_4_row1, text="Record", command=self.rec)
+        self.btn_record.pack(side="right", padx=5, pady=5)
+        CreateToolTip(self.btn_record, "Record sound from selected input device and process it according to set task")
+
+        self.btn_import_file = ttk.Button(self.f3_4_row2, text="Import file", command=self.import_file)
         self.btn_import_file.pack(side="right", padx=5, pady=5)
         CreateToolTip(self.btn_import_file, "Transcribe/Translate from a file (video or audio)")
 
-        # separator
-        self.sep_btns_f3 = ttk.Separator(self.f3_frameRight, orient="vertical")
-        self.sep_btns_f3.pack(side="right", fill="y", padx=5, pady=5)
-
         # export button
-        self.btn_export = ttk.Button(self.f3_frameRight, text="Export Results", command=self.export_result)
+        self.btn_copy = ttk.Button(self.f3_4_row1, text="Copy", command=lambda: self.popup_menu(self.menu_copy))
+        self.btn_copy.pack(side="right", padx=5, pady=5)
+        CreateToolTip(self.btn_copy, "Copy the text to clipboard", wrapLength=250)
+
+        self.menu_copy = tk.Menu(self.root, tearoff=0)
+        self.menu_copy.add_command(label="Copy transcribed text", command=lambda: self.copy_tb("transcribed"))
+        self.menu_copy.add_command(label="Copy translated text", command=lambda: self.copy_tb("translated"))
+        
+        self.btn_export = ttk.Button(self.f3_4_row2, text="Export", command=self.export_result)
         self.btn_export.pack(side="right", padx=5, pady=5)
-        CreateToolTip(self.btn_export, "Export results to a file (txt)\nYou can also customize the export format\n\nFor srt export with timestamps please use import file.", wrapLength=250)
+        CreateToolTip(self.btn_export, "Export results to a file (txt)\n\nFor srt export with timestamps please use import file.", wrapLength=250)
 
         # -- f4_statusbar
         # load bar
@@ -400,7 +441,7 @@ class MainWindow:
         self.fm_help.add_command(label="About", command=self.open_about, accelerator="F1")
         self.menubar.add_cascade(label="Help", menu=self.fm_help)
 
-        self.root.config(menu=self.menubar)
+        self.root.configure(menu=self.menubar)
 
         # ------------------ Bind keys ------------------
         self.root.bind("<F1>", self.open_about)
@@ -428,6 +469,15 @@ class MainWindow:
         h = self.root.winfo_height()
         if w > 600 and h > 300:
             sj.savePartialSetting("mw_size", f"{w}x{h}")
+
+    def popup_menu(self, menu):
+        """
+        Display popup menu
+        """
+        try:
+            menu.tk_popup(self.root.winfo_pointerx(), self.root.winfo_pointery(), 0)
+        finally:
+            menu.grab_release()
 
     # Quit the app
     def quit_app(self):
@@ -534,17 +584,40 @@ class MainWindow:
     def errorNotif(self, err: str):
         nativeNotify("Unexpected Error!", err)
 
+    def copy_tb(self, theType: Literal["transcribed", "translated"]):
+        tb_dict = {
+            "transcribed": self.tb_transcribed,
+            "translated": self.tb_translated
+        }
+
+        self.root.clipboard_clear()
+        self.root.clipboard_append(tb_dict[theType].get("1.0", "end"))
+        self.root.update()
+
+        self.btn_copy.configure(text="Copied!")
+
+        # reset after 1 second
+        self.root.after(1000, lambda: self.btn_copy.configure(text="Copy"))
+
     # on start
     def onInit(self):
-        self.cb_mode.set(sj.cache["mode"])
         self.cb_model.set({v: k for k, v in modelSelectDict.items()}[sj.cache["model"]])
         self.cb_sourceLang.set(sj.cache["sourceLang"])
         self.cb_targetLang.set(sj.cache["targetLang"])
         self.cb_engine.set(sj.cache["tl_engine"])
+        cbtnInvoker(sj.cache["transcribe"], self.checkbox_task_transcribe)
+        cbtnInvoker(sj.cache["translate"], self.checkbox_task_translate)
+        if sj.cache["input"] == "mic":
+            cbtnInvoker(True, self.radio_mic)
+        elif sj.cache["input"] == "speaker":
+            cbtnInvoker(True, self.radio_speaker)
+
+        if platform.system() != "Windows":
+            self.radio_speaker.configure(state="disabled")
 
         # update on start
         self.cb_engine_change()
-        self.cb_mode_change()
+        self.mode_change()
         self.cb_input_device_init()
 
     # mic
@@ -555,100 +628,232 @@ class MainWindow:
         Will check previous options and set to default if not available.
         If default is not available, will show a warning.
         """
-        self.cb_mic["values"] = getInputDevices()
-        self.cb_speaker["values"] = getOutputDevices()
+        success, host_detail = get_default_host_api()
+        if success:
+            assert isinstance(host_detail, Dict)
+            defaultHost = str(host_detail["name"])
+        else:
+            defaultHost = "" 
+
+        self.cb_hostAPI["values"] = get_host_apis()
+        self.cb_mic["values"] = get_input_devices(defaultHost)
+        self.cb_speaker["values"] = get_output_devices(defaultHost)
+
+        # Setting previous options
+        if sj.cache["hostAPI"] not in self.cb_hostAPI["values"]:
+            self.hostAPI_set_default(onInit=True)
+        else:
+            self.cb_hostAPI.set(sj.cache["hostAPI"])
 
         # if the previous mic is not available, set to default
         if sj.cache["mic"] not in self.cb_mic["values"]:
-            self.label_microphone_Rclick()
+            self.mic_set_default()
         else:
-            # verify if atleast one mic is available
-            success, default_device = getDefaultInputDevice()
-            if not success:
-                if not ["supress_device_warning"]:
-                    self.errorNotif(str(default_device))
-                
-                self.cb_mic.set("[ERROR] No default mic found")
-                return
-
             self.cb_mic.set(sj.cache["mic"])
 
-        # same
+        # If the previous speaker is not available, set to default
         if sj.cache["speaker"] not in self.cb_speaker["values"]:
-            self.label_speaker_Rclick()
+            self.speaker_set_default()
         else:
-            success, default_device = getDefaultOutputDevice()
-            if not success:
-                if not ["supress_device_warning"]:
-                    self.errorNotif(str(default_device))
-                
-                self.cb_mic.set("[ERROR] No default mic found")
-                return
-
             self.cb_speaker.set(sj.cache["speaker"])
 
-    def label_microphone_Lclick(self, _event=None):
+    def input_device_menu(self, theType: Literal["hostAPI", "mic", "speaker"]):
         """
-        Refresh microphone list
+        Return a menu for input device combobox
+
+        Args:
+            theType (Literal["hostAPI", "mic", "speaker"]): The type of the combobox
+
+        Returns:
+            List[str]: A list of menu items
         """
-        self.cb_mic["values"] = getInputDevices()
-        # verify if the current mic is still available
+        refreshDict = {
+            "hostAPI": self.hostAPI_refresh,
+            "mic": self.mic_refresh,
+            "speaker": self.speaker_refresh,
+        }
+
+        setDefaultDict = {
+            "hostAPI": self.hostAPI_set_default,
+            "mic": self.mic_set_default,
+            "speaker": self.speaker_set_default,
+        }
+
+        getDefaultDict = {
+            "hostAPI": get_default_host_api,
+            "mic": get_default_input_device,
+            "speaker": get_default_output_device,
+        }
+
+        menu = tk.Menu(self.btn_hostAPI, tearoff=0)
+        menu.add_command(label="Refresh", command=refreshDict[theType])
+        menu.add_command(label="Set to default", command=setDefaultDict[theType])
+
+        success, default_host = getDefaultDict[theType]()
+        if success:
+            assert isinstance(default_host, Dict)
+            menu.add_separator()
+            menu.add_command(label=f"Default: {default_host['name']}", state=tk.DISABLED)
+
+        return menu
+
+    def hostAPI_change(self, _event=None):
+        """
+        Change hostAPI combobox
+
+        Will try to keep the previous mic and speaker if available.
+        If not available, will try to get the default device (which may not match because of the difference in hostAPI).
+        """
+        self.cb_mic["values"] = get_input_devices(self.cb_hostAPI.get())
+        self.cb_speaker["values"] = get_output_devices(self.cb_hostAPI.get())
+
+        # Search mic
+        prevName = self.cb_mic.get().split("|")[1].strip()
+        found, index = False, 0
+        for i, name in enumerate(self.cb_mic["values"]):
+            if prevName in name:
+                found, index = True, i
+                break
+        if found:
+            self.cb_mic.current(index)
+        else:
+            self.mic_set_default()
+
+        # Search speaker
+        prevName = self.cb_speaker.get().split("|")[1].strip()
+        found, index = False, 0
+        for i, name in enumerate(self.cb_speaker["values"]):
+            if prevName in name:
+                found, index = True, i
+                break
+        if found:
+            self.cb_speaker.current(index)
+        else:
+            self.speaker_set_default()
+
+    def hostAPI_refresh(self, _event=None):
+        """
+        Refresh hostAPI list and check whether the current hostAPI is still available.
+        """
+        self.cb_hostAPI["values"] = get_host_apis()
+        # verify if the current hostAPI is still available
+        if self.cb_hostAPI.get() not in self.cb_hostAPI["values"]:
+            self.cb_hostAPI.current(0)
+
+        self.menu_hostAPI = self.input_device_menu("hostAPI")
+
+    def hostAPI_set_default(self, _event=None, onInit = False):
+        """
+        Set hostAPI to default. Will update the list first. 
+        -> Show warning error if no default hostAPI found
+        -> Set to default hostAPI if found, but will set to the first hostAPI if the default hostAPI is not available
+        """
+        self.hostAPI_refresh()  # update list
+        success, default_host = get_default_host_api()
+        if not success:
+            if not ["supress_device_warning"]:
+                self.errorNotif(str(default_host))
+            
+            self.cb_hostAPI.set("[ERROR] Getting default hostAPI failed")
+        else:
+            assert isinstance(default_host, Dict)
+            if default_host["name"] not in self.cb_hostAPI["values"]:
+                logger.warning(f"Default hostAPI {default_host['name']} not found, set to {self.cb_hostAPI['values'][0]}")
+                if not ["supress_device_warning"]:
+                    self.errorNotif(f"Default hostAPI {default_host['name']} not found, set to {self.cb_hostAPI['values'][0]}")
+                self.cb_hostAPI.current(0)
+            else:
+                self.cb_hostAPI.set(default_host["name"])
+            sj.savePartialSetting("hostAPI", self.cb_hostAPI.get())
+
+        # update the mic and speaker combobox
+        if not onInit:
+            self.hostAPI_change()
+
+    # mic
+    def mic_refresh(self, _event=None):
+        """
+        Refresh microphone list while also checking if the device is still available.
+        """
+        self.cb_mic["values"] = get_input_devices(self.cb_hostAPI.get())
         if self.cb_mic.get() not in self.cb_mic["values"]:
             self.cb_mic.current(0)
 
-    def label_microphone_Rclick(self, _event=None):
+        self.menu_mic = self.input_device_menu("mic")
+
+    def mic_set_default(self, _event=None):
         """
-        Set microphone to default. Show warning error if no default mic found.
+        Set microphone to default. Will update the list first. 
+        -> Show warning error if no default mic found
+        -> Will search from the currently updated list and set it to the first mic if the default mic is not available
         """
-        self.label_microphone_Lclick()  # update list
-        success, default_device = getDefaultInputDevice()
+        self.mic_refresh()  # update list
+        success, default_device = get_default_input_device()
         if not success:
             if not ["supress_device_warning"]:
                 self.errorNotif(str(default_device))
             
             self.cb_mic.set("[ERROR] No default mic found")
-            return
-
-        if default_device:
-            self.cb_mic.set(default_device["name"] + ", " + sd.query_hostapis(default_device["hostapi"])["name"])  # type: ignore
-            sj.savePartialSetting("mic", self.cb_mic.get())
-            # verify if the current mic is still available
-            if self.cb_mic.get() not in self.cb_mic["values"]:
-                self.cb_mic.current(0)
         else:
-            self.errorNotif("No default mic found")
+            assert isinstance(default_device, Dict)
+            found = False
+            index = 0
+            for i, name in enumerate(self.cb_mic['values']):
+                if default_device["name"] in name:
+                    found = True
+                    index = i
+                    break
+
+            if not found:
+                logger.warning(f"Default mic {default_device['name']} not found, set to {self.cb_mic['values'][0]}")
+                if not ["supress_device_warning"]:
+                    self.errorNotif(f"Default mic {default_device['name']} not found, set to {self.cb_mic['values'][0]}")
+                self.cb_mic.current(0)
+            else:
+                self.cb_mic.set(self.cb_mic['values'][index])
+            sj.savePartialSetting("mic", self.cb_mic.get())
 
     # speaker
-    def label_speaker_Lclick(self, _event=None):
+    def speaker_refresh(self, _event=None):
         """
-        Refresh speaker list
+        Refresh speaker list while also checking if the device is still available.
         """
-        self.cb_speaker["values"] = getOutputDevices()
-        # verify if the current speaker is still available
+        self.cb_speaker["values"] = get_output_devices(self.cb_hostAPI.get())
         if self.cb_speaker.get() not in self.cb_speaker["values"]:
             self.cb_speaker.current(0)
 
-    def label_speaker_Rclick(self, _event=None):
+        self.menu_speaker = self.input_device_menu("speaker")
+
+    def speaker_set_default(self, _event=None):
         """
-        Set speaker to default. Show warning error if no default speaker found.
+        Set speaker to default.  Will update the list first.
+        -> If fail to get speaker, show warning error. 
         """
-        self.label_speaker_Lclick()  # update list
-        success, default_device = getDefaultOutputDevice()
+        self.speaker_refresh()  # update list
+        success, default_device = get_default_output_device()
+
         if not success:
             if not ["supress_device_warning"]:
                 self.errorNotif(str(default_device))
-
+            
             self.cb_speaker.set("[ERROR] No default speaker found")
-            return
-
-        if default_device:
-            self.cb_speaker.set(f"{default_device['name']}, {sd.query_hostapis(default_device['hostApi'])['name']} [ID: {default_device['index']}]")  # type: ignore
-            sj.savePartialSetting("speaker", self.cb_speaker.get())
-            # verify if the current speaker is still available
-            if self.cb_speaker.get() not in self.cb_speaker["values"]:
-                self.cb_speaker.current(0)
         else:
-            self.errorNotif("No default speaker found")
+            assert isinstance(default_device, Dict)
+            found = False
+            index = 0
+            for i, name in enumerate(self.cb_speaker['values']):
+                if default_device["name"] in name:
+                    found = True
+                    index = i
+                    break
+            if not found:
+                logger.warning(f"Default speaker {default_device['name']} not found, set to {self.cb_speaker['values'][0]}")
+                if not ["supress_device_warning"]:
+                    self.errorNotif(f"Default speaker {default_device['name']} not found, set to {self.cb_speaker['values'][0]}")
+                self.cb_speaker.current(0)
+            else:
+                self.cb_speaker.set(self.cb_speaker['values'][index])
+            sj.savePartialSetting("speaker", self.cb_speaker.get())
 
     def cb_engine_change(self, _event=None):
         sj.savePartialSetting("tl_engine", self.cb_engine.get())
@@ -662,8 +867,7 @@ class MainWindow:
         self.cb_targetLang["values"] = engine_select_target_dict[self.cb_engine.get()]
 
         # update source only if mode is not transcribe only
-        mode = self.cb_mode.get()
-        if mode != "Transcribe":
+        if "selected" in self.checkbox_task_translate.state():
             self.cb_sourceLang["values"] = engine_select_source_dict[self.cb_engine.get()]
 
         # check if the target lang is not in the new list
@@ -701,114 +905,110 @@ class MainWindow:
         self.cb_sourceLang.set(tmpTarget)
         self.cb_targetLang.set(tmpSource)
 
+        if self.cb_targetLang.get() == "Auto detect":
+            self.cb_targetLang.current(0)
+
         # save
         sj.savePartialSetting("sourceLang", self.cb_sourceLang.get())
         sj.savePartialSetting("targetLang", self.cb_targetLang.get())
 
         # swap text only if mode is transcribe and translate
-        if self.cb_mode.current() == 2:
+        if "selected" in self.checkbox_task_transcribe.state() and "selected" in self.checkbox_task_translate.state():
             self.tb_swap_content()
 
     # change mode
-    def cb_mode_change(self, _event=None):
-        # get index of cb mode
-        index = self.cb_mode.current()
+    def mode_change(self, _event=None):
+        if "selected" in self.checkbox_task_transcribe.state() and "selected" in self.checkbox_task_translate.state():
+            self.tb_translated_bg.pack_forget()
+            self.tb_translated.pack_forget()
 
-        if index == 0:  # transcribe only
+            self.tb_transcribed_bg.pack_forget()
+            self.tb_transcribed.pack_forget()
+
+            self.tb_transcribed_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+            self.tb_transcribed.pack(fill="both", expand=True, padx=1, pady=1)
+
+            self.tb_translated_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+            self.tb_translated.pack(fill="both", expand=True, padx=1, pady=1)
+
+            self.cb_sourceLang.configure(state="readonly")
+            self.cb_targetLang.configure(state="readonly")
+            self.cb_lang_update()
+
+        elif "selected" in self.checkbox_task_transcribe.state() and not "selected" in self.checkbox_task_translate.state():
             self.tb_transcribed_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
             self.tb_transcribed.pack(fill="both", expand=True, padx=1, pady=1)
 
             self.tb_translated_bg.pack_forget()
             self.tb_translated.pack_forget()
 
-            self.cb_sourceLang.config(state="readonly")
-            self.cb_targetLang.config(state="disabled")
+            self.cb_sourceLang.configure(state="readonly")
+            self.cb_targetLang.configure(state="disabled")
+
+            self.cb_engine.configure(state="readonly")
 
             # reset source lang selection
             self.cb_sourceLang["values"] = engine_select_source_dict["Whisper"]
-        elif index == 1:  # translate only
+
+        elif "selected" in  self.checkbox_task_translate.state() and not "selected" in self.checkbox_task_transcribe.state():
             self.tb_transcribed_bg.pack_forget()
             self.tb_transcribed.pack_forget()
 
             self.tb_translated_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
             self.tb_translated.pack(fill="both", expand=True, padx=1, pady=1)
 
-            self.cb_sourceLang.config(state="readonly")
-            self.cb_targetLang.config(state="readonly")
+            self.cb_sourceLang.configure(state="readonly")
+            self.cb_targetLang.configure(state="readonly")
             self.cb_lang_update()
-
-        elif index == 2:  # transcribe and translate
-            self.tb_translated_bg.pack_forget()
-            self.tb_translated.pack_forget()
-
-            self.tb_transcribed_bg.pack_forget()
-            self.tb_transcribed.pack_forget()
-
-            self.tb_transcribed_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
-            self.tb_transcribed.pack(fill="both", expand=True, padx=1, pady=1)
-
-            self.tb_translated_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
-            self.tb_translated.pack(fill="both", expand=True, padx=1, pady=1)
-
-            self.cb_sourceLang.config(state="readonly")
-            self.cb_targetLang.config(state="readonly")
-            self.cb_lang_update()
-
-        # save
-        sj.savePartialSetting("mode", self.cb_mode.get())
 
     def disable_interactions(self):
-        self.cb_mode.config(state="disabled")
-        self.cb_model.config(state="disabled")
-        self.cb_engine.config(state="disabled")
-        self.cb_sourceLang.config(state="disabled")
-        self.cb_targetLang.config(state="disabled")
-        self.cb_mic.config(state="disabled")
-        self.cb_speaker.config(state="disabled")
-        self.btn_swap.config(state="disabled")
-        self.btn_record_mic.config(state="disabled")
-        self.btn_record_speaker.config(state="disabled")
-        self.btn_import_file.config(state="disabled")
+        self.checkbox_task_transcribe.configure(state="disabled")
+        self.checkbox_task_translate.configure(state="disabled")
+        self.cb_model.configure(state="disabled")
+        self.cb_engine.configure(state="disabled")
+        self.cb_sourceLang.configure(state="disabled")
+        self.cb_targetLang.configure(state="disabled")
+        self.cb_mic.configure(state="disabled")
+        self.cb_speaker.configure(state="disabled")
+        self.btn_swap.configure(state="disabled")
+        self.btn_record.configure(state="disabled")
+        self.btn_import_file.configure(state="disabled")
 
     def enable_interactions(self):
-        self.cb_mode.config(state="readonly")
-        self.cb_model.config(state="readonly")
-        self.cb_engine.config(state="readonly")
-        self.cb_sourceLang.config(state="readonly")
-        if self.cb_mode.current() == 0:
-            self.cb_targetLang.config(state="disabled")
+        self.checkbox_task_transcribe.configure(state="normal")
+        self.checkbox_task_translate.configure(state="normal")
+        self.cb_model.configure(state="readonly")
+        self.cb_engine.configure(state="readonly")
+        self.cb_sourceLang.configure(state="readonly")
+        if "selected" in self.checkbox_task_translate.state() and not "selected" in self.checkbox_task_transcribe.state():
+            self.cb_targetLang.configure(state="disabled")
         else:
-            self.cb_targetLang.config(state="readonly")
-        self.cb_mic.config(state="readonly")
-        self.cb_speaker.config(state="readonly")
-        self.btn_swap.config(state="normal")
-        self.btn_record_mic.config(state="normal")
-        self.btn_record_speaker.config(state="normal")
-        self.btn_import_file.config(state="normal")
+            self.cb_targetLang.configure(state="readonly")
+        self.cb_mic.configure(state="readonly")
+        self.cb_speaker.configure(state="readonly")
+        self.btn_swap.configure(state="normal")
+        self.btn_record.configure(state="normal")
+        self.btn_import_file.configure(state="normal")
 
     def start_loadBar(self):
-        self.loadBar.config(mode="indeterminate")
+        self.loadBar.configure(mode="indeterminate")
         self.loadBar.start()
 
-    def stop_loadBar(self, rec_type: Literal["mic", "pc", "file", None] = None):
+    def stop_loadBar(self, rec_type: Literal["mic", "speaker", "file", None] = None):
         self.loadBar.stop()
-        self.loadBar.config(mode="determinate")
+        self.loadBar.configure(mode="determinate")
 
         # **change text only**, the function is already set before in the rec function
-        if rec_type == "mic":
+        if rec_type == "mic" or rec_type == "speaker":
             if not gc.recording:
                 return
-            self.btn_record_mic.config(text="Stop")
-        elif rec_type == "pc":
-            if not gc.recording:
-                return
-            self.btn_record_speaker.config(text="Stop")
+            self.btn_record.configure(text="Stop")
         elif rec_type == "file":
-            self.btn_import_file.config(text="Import From File (Video/Audio)", command=self.from_file)
+            self.btn_import_file.configure(text="Import", command=self.import_file)
             self.enable_interactions()
 
     def get_args(self):
-        return self.cb_mode.current(), self.cb_model.get(), self.cb_engine.get(), self.cb_sourceLang.get().lower(), self.cb_targetLang.get().lower(), self.cb_mic.get(), self.cb_speaker.get()
+        return "selected" in self.checkbox_task_transcribe.state(), "selected" in self.checkbox_task_translate.state(), self.cb_model.get(), self.cb_engine.get(), self.cb_sourceLang.get().lower(), self.cb_targetLang.get().lower(), self.cb_mic.get(), self.cb_speaker.get()
 
     # ------------------ Export ------------------
     def export_tc(self):
@@ -846,9 +1046,10 @@ class MainWindow:
         # open folder
         startFile(os.path.dirname(f.name))
 
+    # TODO: maybe save the result to memory first so we can export like when using file import?
     def export_result(self):
         # check based on mode
-        if self.cb_mode.current() == 0:  # transcribe only
+        if "selected" in self.checkbox_task_transcribe.state() and not "selected" in self.checkbox_task_translate.state():
             text = str(self.tb_transcribed.get(1.0, "end"))
 
             if len(text.strip()) == 0:
@@ -856,7 +1057,7 @@ class MainWindow:
                 return
 
             self.export_tc()
-        elif self.cb_mode.current() == 1:  # translate only
+        elif not "selected" in self.checkbox_task_transcribe.state() and "selected" in self.checkbox_task_translate.state():
             text = str(self.tb_translated.get(1.0, "end"))
 
             if len(text.strip()) == 0:
@@ -864,7 +1065,7 @@ class MainWindow:
                 return
 
             self.export_tl()
-        elif self.cb_mode.current() == 2:  # transcribe and translate
+        elif "selected" in self.checkbox_task_transcribe.state() and "selected" in self.checkbox_task_translate.state():
             text = str(self.tb_transcribed.get(1.0, "end"))
 
             if len(text.strip()) == 0:
@@ -896,70 +1097,9 @@ class MainWindow:
                     break
 
     # ------------------ Rec ------------------
-    # From mic
-    def mic_rec(self):
-        if gc.dl_thread and gc.dl_thread.is_alive():
-            mbox("Please wait! A model is being downloaded", "A Model is still being downloaded! Please wait until it finishes first!", 1)
-            return
-
-        # Checking args
-        mode, modelKey, engine, sourceLang, targetLang, mic, speaker = self.get_args()
-        if sourceLang == targetLang and mode == 2:
-            mbox("Invalid options!", "Source and target language cannot be the same", 2)
-            return
-
-        # check model first
-        modelName = append_dot_en(modelKey, sourceLang == "english")
-        if not verify_model(modelName):
-            if mbox("Model is not downloaded yet!", f"`{modelName}` Model not found! You will need to download it first!\n\nDo you want to download it now?", 3, self.root):
-                logger.info("Downloading model...")
-                try:
-                    gc.dl_thread = threading.Thread(target=download_model, args=(modelName, self.root, self.modelDownloadCancel, lambda: self.after_model_dl("mic record", self.mic_rec)), daemon=True)
-                    gc.dl_thread.start()
-                except Exception as e:
-                    logger.exception(e)
-                    self.errorNotif(str(e))
-            return
-
-        # ui changes
-        self.tb_clear()
-        self.start_loadBar()
-        self.disable_interactions()
-        self.btn_record_mic.config(text="Loading", command=self.mic_rec_stop, state="normal")
-
-        gc.enableRecording()  # Flag update    # Disable recording is by button input
-        transcribe = mode == 0 or mode == 2
-        translate = mode == 1 or mode == 2
-
-        # Start thread
-        try:
-            recMicThread = threading.Thread(target=record_realtime, args=(sourceLang, targetLang, engine, modelKey, mic, transcribe, translate), daemon=True)
-            recMicThread.start()
-        except Exception as e:
-            logger.exception(e)
-            self.errorNotif(str(e))
-            self.mic_rec_stop()
-            self.after_mic_rec_stop()
-
-    def mic_rec_stop(self):
-        logger.info("Recording Mic Stopped")
-        gc.disableRecording()
-
-        self.btn_record_mic.config(text="Stopping...", state="disabled")
-
-    def after_mic_rec_stop(self):
-        try:
-            self.loadBar.stop()
-            self.loadBar.config(mode="determinate")
-            self.btn_record_mic.config(text="Record From Mic", command=self.mic_rec)
-            self.enable_interactions()
-        except Exception as e:
-            logger.exception(e)
-
-    # From pc
-    def speaker_rec(self):
-        # check if on windows or not
-        if platform.system() != "Windows":
+    def rec(self):
+        is_speaker = "selected" in self.radio_speaker.state()
+        if is_speaker and platform.system() != "Windows": # double checking. Speaker input is only available on Windows
             mbox(
                 "Not available",
                 """This feature is only available on Windows. 
@@ -975,8 +1115,8 @@ class MainWindow:
             return
 
         # Checking args
-        mode, modelKey, engine, sourceLang, targetLang, mic, speaker = self.get_args()
-        if sourceLang == targetLang and mode == 2:
+        tc, tl, modelKey, engine, sourceLang, targetLang, mic, speaker = self.get_args()
+        if sourceLang == targetLang and (tc and tl):
             mbox("Invalid options!", "Source and target language cannot be the same", 2)
             return
 
@@ -986,7 +1126,7 @@ class MainWindow:
             if mbox("Model is not downloaded yet!", f"`{modelName}` Model not found! You will need to download it first!\n\nDo you want to download it now?", 3, self.root):
                 logger.info("Downloading model...")
                 try:
-                    gc.dl_thread = threading.Thread(target=download_model, args=(modelName, self.root, self.modelDownloadCancel, lambda: self.after_model_dl("speaker record", self.speaker_rec)), daemon=True)
+                    gc.dl_thread = threading.Thread(target=download_model, args=(modelName, self.root, self.modelDownloadCancel, lambda: self.after_model_dl("mic record", self.rec)), daemon=True)
                     gc.dl_thread.start()
                 except Exception as e:
                     logger.exception(e)
@@ -997,46 +1137,45 @@ class MainWindow:
         self.tb_clear()
         self.start_loadBar()
         self.disable_interactions()
-        self.btn_record_speaker.config(text="Loading", command=self.speaker_rec_stop, state="normal")
+        self.btn_record.configure(text="Loading", command=self.rec_stop, state="normal")
 
-        gc.enableRecording()  # Flag update
-        transcribe = mode == 0 or mode == 2
-        translate = mode == 1 or mode == 2
+        gc.enableRecording()  # Flag update    # Disable recording is by button input
 
         # Start thread
         try:
-            recPcThread = threading.Thread(target=record_realtime, args=(sourceLang, targetLang, engine, modelKey, speaker, transcribe, translate, True), daemon=True)
-            recPcThread.start()
+            device = mic if not is_speaker else speaker
+            recThread = threading.Thread(target=record_realtime, args=(sourceLang, targetLang, engine, modelKey, device, tc, tl, is_speaker), daemon=True)
+            recThread.start()
         except Exception as e:
             logger.exception(e)
             self.errorNotif(str(e))
-            self.speaker_rec_stop()
-            self.after_speaker_rec_stop()
+            self.rec_stop()
+            self.after_rec_stop()
 
-    def speaker_rec_stop(self):
-        logger.info("Recording PC Stopped")
+    def rec_stop(self):
+        logger.info("Recording Stopped")
         gc.disableRecording()
 
-        self.btn_record_speaker.config(text="Stopping...", state="disabled")
+        self.btn_record.configure(text="Stopping...", state="disabled")
 
-    def after_speaker_rec_stop(self):
+    def after_rec_stop(self):
         try:
             self.loadBar.stop()
-            self.loadBar.config(mode="determinate")
-            self.btn_record_speaker.config(text="Record PC Sound", command=self.speaker_rec)
+            self.loadBar.configure(mode="determinate")
+            self.btn_record.configure(text="Record", command=self.rec)
             self.enable_interactions()
         except Exception as e:
             logger.exception(e)
 
     # From file
-    def from_file(self):
+    def import_file(self):
         if gc.dl_thread and gc.dl_thread.is_alive():
             mbox("Please wait! A model is being downloaded", "A Model is still being downloaded! Please wait until it finishes first!", 1)
             return
 
         # Checking args
-        mode, modelKey, engine, sourceLang, targetLang, mic, speaker = self.get_args()
-        if sourceLang == targetLang and mode == 2:
+        tc, tl,  modelKey, engine, sourceLang, targetLang, mic, speaker = self.get_args()
+        if sourceLang == targetLang and (tc and tl):
             mbox("Invalid options!", "Source and target language cannot be the same", 2)
             return
 
@@ -1046,7 +1185,7 @@ class MainWindow:
             if mbox("Model is not downloaded yet!", f"`{modelName}` Model not found! You will need to download it first!\n\nDo you want to download it now?", 3, self.root):
                 logger.info("Downloading model...")
                 try:
-                    gc.dl_thread = threading.Thread(target=download_model, args=(modelName, self.root, self.modelDownloadCancel, lambda: self.after_model_dl("file import", self.from_file)), daemon=True)
+                    gc.dl_thread = threading.Thread(target=download_model, args=(modelName, self.root, self.modelDownloadCancel, lambda: self.after_model_dl("file import", self.import_file)), daemon=True)
                     gc.dl_thread.start()
                 except Exception as e:
                     logger.exception(e)
@@ -1066,15 +1205,13 @@ class MainWindow:
         self.tb_clear()
         self.start_loadBar()
         self.disable_interactions()
-        self.btn_import_file.config(text="Loading", command=lambda: self.from_file_stop(True), state="normal")
+        self.btn_import_file.configure(text="Loading", command=lambda: self.from_file_stop(True), state="normal")
 
         gc.enableRecording()  # Flag update
-        transcribe = mode == 0 or mode == 2
-        translate = mode == 1 or mode == 2
 
         # Start thread
         try:
-            recFileThread = threading.Thread(target=file_input, args=(list(files), modelKey, sourceLang, targetLang, transcribe, translate, engine), daemon=True)
+            recFileThread = threading.Thread(target=file_input, args=(list(files), modelKey, sourceLang, targetLang, tc, tl, engine), daemon=True)
             recFileThread.start()
         except Exception as e:
             logger.exception(e)
@@ -1096,8 +1233,8 @@ class MainWindow:
             mbox("Cancelled", f"Cancelled file import processing\n\nTranscribed {gc.file_tced_counter} and translated {gc.file_tled_counter} file", 0, self.root)
 
         self.loadBar.stop()
-        self.loadBar.config(mode="determinate")
-        self.btn_import_file.config(text="Import From File (Video/Audio)", command=self.from_file)
+        self.loadBar.configure(mode="determinate")
+        self.btn_import_file.configure(text="Import From File (Video/Audio)", command=self.import_file)
         self.enable_interactions()
 
 def get_gpu_info():

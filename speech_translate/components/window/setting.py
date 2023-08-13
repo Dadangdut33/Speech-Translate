@@ -928,11 +928,11 @@ class SettingWindow:
             to=120,
             validate="key",
             validatecommand=(self.root.register(self.number_only), "%P"),
-            command=lambda: sj.savePartialSetting("tb_mw_tl_font_size", int(self.spn_mw_tl_font_size.get()) or self.preview_changes_tb()),
+            command=lambda: sj.savePartialSetting("tb_mw_tl_font_size", int(self.spn_mw_tl_font_size.get())) or self.preview_changes_tb(),
             width=10,
         )
         self.spn_mw_tl_font_size.bind(
-            "<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_mw_tl_font_size, 3, 120, lambda: sj.savePartialSetting("tb_mw_tl_font_size", int(self.spn_mw_tl_font_size.get())) or self.preview_changes_tb())
+            "<KeyRelease>", lambda e: self.verifyMaxNumber(self.spn_mw_tl_font_size, 3, 120, lambda: sj.savePartialSetting("tb_mw_tl_font_size", int(self.spn_mw_tc_font_size.get()))) or self.preview_changes_tb()
         )
         self.spn_mw_tl_font_size.pack(side="left", padx=5, pady=5)
 
@@ -1089,7 +1089,7 @@ class SettingWindow:
         )
         self.entry_ex_tl_bg_color.bind("<Key>", lambda e: "break")
 
-        # PREVIEW'
+        # PREVIEW
         self.f_textbox_2 = ttk.Frame(self.ft_textbox)
         self.f_textbox_2.pack(side="top", fill="x", pady=5)
 
@@ -1307,7 +1307,7 @@ class SettingWindow:
         self.tb_preview_2.configure(font=(self.cb_mw_tl_font.get(), int(self.spn_mw_tl_font_size.get()), "bold" if self.cbtn_mw_tl_font_bold.instate(["selected"]) else "normal"))
 
         assert gc.ex_tcw is not None
-        gc.ex_tcw.labelText.configure(
+        gc.ex_tcw.lbl_text.configure(
             font=(self.cb_ex_tc_font.get(), int(self.spn_ex_tc_font_size.get()), "bold" if self.cbtn_ex_tc_font_bold.instate(["selected"]) else "normal"),
             foreground=self.entry_ex_tc_font_color.get(),
             background=self.entry_ex_tc_bg_color.get(),
@@ -1319,7 +1319,7 @@ class SettingWindow:
         )
 
         assert gc.ex_tlw is not None
-        gc.ex_tlw.labelText.configure(
+        gc.ex_tlw.lbl_text.configure(
             font=(self.cb_ex_tl_font.get(), int(self.spn_ex_tl_font_size.get()), "bold" if self.cbtn_ex_tl_font_bold.instate(["selected"]) else "normal"),
             foreground=self.entry_ex_tl_font_color.get(),
             background=self.entry_ex_tl_bg_color.get(),

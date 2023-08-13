@@ -180,7 +180,7 @@ class GlobalClass:
             Text to append
         """
         assert self.ex_tcw is not None
-        currentText = self.ex_tcw.labelText.cget("text").strip()
+        currentText = self.ex_tcw.lbl_text.cget("text").strip()
         textToAppend = textToAppend.strip()
         # Main window textbox
         if sj.cache["tb_ex_tc_max"] != 0 and len(currentText) > sj.cache["tb_ex_tc_max"]:  # if not infinite and text is too long
@@ -195,7 +195,7 @@ class GlobalClass:
         if detected_lang.lower() in RESHAPE_LANG_LIST:
             textToAppend = str(get_display(arabic_reshaper.reshape(textToAppend)))
 
-        self.ex_tcw.labelText.config(text=textToAppend)
+        self.ex_tcw.lbl_text.configure(text=textToAppend)
         self.ex_tcw.check_height_resize()
 
     def insertExTbTl(self, textToAppend: str, detected_lang: str):
@@ -208,7 +208,7 @@ class GlobalClass:
             Text to append
         """
         assert self.ex_tlw is not None
-        currentText = self.ex_tlw.labelText.cget("text").strip()
+        currentText = self.ex_tlw.lbl_text.cget("text").strip()
         textToAppend = textToAppend.strip()
         # Main window textbox
         if sj.cache["tb_ex_tl_max"] != 0 and len(currentText) > sj.cache["tb_ex_tl_max"]:  # if not infinite and text is too long
@@ -221,7 +221,7 @@ class GlobalClass:
         if detected_lang.lower() in RESHAPE_LANG_LIST:
             textToAppend = str(get_display(arabic_reshaper.reshape(textToAppend)))
 
-        self.ex_tlw.labelText.config(text=textToAppend)
+        self.ex_tlw.lbl_text.configure(text=textToAppend)
         self.ex_tlw.check_height_resize()
 
     def getMwTextTc(self) -> str:
@@ -242,11 +242,11 @@ class GlobalClass:
 
     def clearExTc(self):
         assert self.ex_tcw is not None
-        self.ex_tcw.labelText.config(text=SUBTITLE_PLACEHOLDER)
+        self.ex_tcw.lbl_text.configure(text=SUBTITLE_PLACEHOLDER)
 
     def clearExTl(self):
         assert self.ex_tlw is not None
-        self.ex_tlw.labelText.config(text=SUBTITLE_PLACEHOLDER)
+        self.ex_tlw.lbl_text.configure(text=SUBTITLE_PLACEHOLDER)
 
 
 # ------------------ #

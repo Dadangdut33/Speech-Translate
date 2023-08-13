@@ -49,7 +49,7 @@ class AbstractDetachedSubtitleWindow:
         self.frame_1.pack(side="top", fill="both", expand=True)
         self.fTooltip = CreateToolTip(self.frame_1, "Right click for interaction menu\n\nTips: You can drag the window by dragging from the label", wrapLength=400)
 
-        self.labelText = tk.Label(
+        self.lbl_text = tk.Label(
             self.frame_1,
             font=(sj.cache[f"tb_ex_{winType}_font"], sj.cache[f"tb_ex_{winType}_font_size"], "bold" if sj.cache[f"tb_ex_{winType}_font_bold"] else "normal"),
             fg=sj.cache[f"tb_ex_{winType}_font_color"],
@@ -58,7 +58,7 @@ class AbstractDetachedSubtitleWindow:
             justify="left",
             text=SUBTITLE_PLACEHOLDER # This is to prevent the label from being too small
         )
-        self.labelText.pack(side="top")
+        self.lbl_text.pack(side="top")
 
         self.menuDropdown = tk.Menu(self.root, tearoff=0)
 
@@ -114,9 +114,9 @@ class AbstractDetachedSubtitleWindow:
         self.frame_1.bind("<Configure>", lambda event: self.on_resize(event))
 
         # bind drag on label text
-        self.labelText.bind("<ButtonPress-1>", self.StartMove)
-        self.labelText.bind("<ButtonRelease-1>", self.StopMove)
-        self.labelText.bind("<B1-Motion>", self.OnMotion)
+        self.lbl_text.bind("<ButtonPress-1>", self.StartMove)
+        self.lbl_text.bind("<ButtonRelease-1>", self.StopMove)
+        self.lbl_text.bind("<B1-Motion>", self.OnMotion)
 
         # ------------------ Set Icon ------------------
         try:
@@ -130,7 +130,7 @@ class AbstractDetachedSubtitleWindow:
         """
         # update wraplength
         if event.width >= 300: # minimum width
-            self.labelText.config(wraplength=event.width)
+            self.lbl_text.configure(wraplength=event.width)
 
     def StartMove(self, event):
         self.x = event.x
@@ -141,16 +141,16 @@ class AbstractDetachedSubtitleWindow:
         self.y = None
 
     def OnMotion(self, event):
-        x = event.x_root - self.x - self.labelText.winfo_rootx() + self.labelText.winfo_rootx()
-        y = event.y_root - self.y - self.labelText.winfo_rooty() + self.labelText.winfo_rooty()
+        x = event.x_root - self.x - self.lbl_text.winfo_rootx() + self.lbl_text.winfo_rootx()
+        y = event.y_root - self.y - self.lbl_text.winfo_rooty() + self.lbl_text.winfo_rooty()
         self.root.geometry("+%s+%s" % (x, y))
 
     def check_height_resize(self):
         """
         Method to resize the window height if label text height is more than the window height.
         """
-        if self.labelText.winfo_height() > self.frame_1.winfo_height():
-            self.root.geometry(f"{self.root.winfo_width()}x{self.labelText.winfo_height()}")
+        if self.lbl_text.winfo_height() > self.frame_1.winfo_height():
+            self.root.geometry(f"{self.root.winfo_width()}x{self.lbl_text.winfo_height()}")
 
     def show_shortcut_keys(self):
         """
@@ -296,4 +296,4 @@ class AbstractDetachedSubtitleWindow:
         Method to copy the textbox content to clipboard.
         """
         self.root.clipboard_clear()
-        self.root.clipboard_append(self.labelText.cget("text").strip())
+        self.root.clipboard_append(self.lbl_text.cget("text").strip())

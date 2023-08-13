@@ -14,26 +14,7 @@ from datetime import datetime, timedelta
 from time import sleep, time
 from typing import Literal, List
 
-# import whisper
-import sys
-
-# Save a reference to the original sys.stdout
-original_stdout = sys.stdout
-# Replace sys.stdout with a dummy stream that does nothing
-class DummyStream:
-    def write(self, *args, **kwargs):
-        pass
-
-dummy_stream = DummyStream()
-sys.stdout = dummy_stream
-
-# Now you can import and use the package without seeing tqdm's output
-import whisper_timestamped as whisper
-
-# Restore the original sys.stdout to enable printing in your GUI application
-sys.stdout = original_stdout
-
-import sounddevice as sd
+import whisper_timestamped as whisper # TODO: output result and config parameter
 import audioop
 import wave
 
@@ -61,12 +42,21 @@ from .helper_whisper import (
 from .translator import google_tl, libre_tl, memory_tl
 
 
-def getInputDevices():
+def get_input_devices(hostAPI: str):
+    """
+    Get the input devices (mic) from the specified hostAPI.
+    Format: [ID: {device['index']}] | {device['name']}
+    """
     devices = []
+    p = pyaudio.PyAudio()
     try:
-        devices = sd.query_devices()
-        devices = [device for device in devices if device["max_input_channels"] > 0]  # type: ignore # Filter out devices that are not input devices
-        devices = [f"{device['name']}, {sd.query_hostapis(device['hostapi'])['name']}" for device in devices]  # type: ignore # Map the name
+        for i in range(p.get_host_api_count()):
+            current_api_info = p.get_host_api_info_by_index(i)
+            if (hostAPI == current_api_info["name"]) or (hostAPI == ""): # if hostAPI is empty, get all devices. else, get only the devices from the specified hostAPI
+                for j in range(int(current_api_info["deviceCount"])):
+                    device = p.get_device_info_by_host_api_device_index(i, j) # get device info by host api device index
+                    if int(device["maxInputChannels"]) > 0:
+                        devices.append(f"[ID: {i},{j}] | {device['name']}") # j is the device index in the host api
 
         # check if input empty or not
         if len(devices) == 0:
@@ -76,20 +66,24 @@ def getInputDevices():
         logger.exception(e)
         devices = ["[ERROR] Check the terminal/log for more information."]
     finally:
+        p.terminate()
         return devices
 
-
-def getOutputDevices():
+def get_output_devices(hostAPI: str):
+    """
+    Get the output devices (speaker) from the specified hostAPI. 
+    Format: [ID: {device['index']}] | {device['name']}
+    """
     devices = []
+    p = pyaudio.PyAudio()
     try:
-        p = pyaudio.PyAudio()
-
-        devices = p.get_device_count()
-        devices = [p.get_device_info_by_index(i) for i in range(devices)]
-        devices = [device for device in devices if device["maxOutputChannels"] > 0]  # type: ignore # Filter out devices that are not output devices
-        devices = [f"{device['name']}, {sd.query_hostapis(device['hostApi'])['name']} [ID: {device['index']}]" for device in devices]  # type: ignore  # Map the name
-
-        p.terminate()
+        for i in range(p.get_host_api_count()):
+            current_api_info = p.get_host_api_info_by_index(i)
+            if (hostAPI == current_api_info["name"]) or (hostAPI == ""): # if hostAPI is empty, get all devices. else, get only the devices from the specified hostAPI
+                for j in range(int(current_api_info["deviceCount"])):
+                    device = p.get_device_info_by_host_api_device_index(i, j) # get device info by host api device index
+                    if int(device["maxOutputChannels"]) > 0:
+                        devices.append(f"[ID: {i},{j}] | {device['name']}") # j is the device index in the host api
 
         # check if input empty or not
         if len(devices) == 0:
@@ -99,14 +93,38 @@ def getOutputDevices():
         logger.exception(e)
         devices = ["[ERROR] Check the terminal/log for more information."]
     finally:
+        p.terminate()
         return devices
 
 
-def getDefaultInputDevice():
+def get_host_apis():
+    """
+    Get the host apis from the system.
+    """
+    apis = []
+    p = pyaudio.PyAudio()
+    try:
+        for i in range(p.get_host_api_count()):
+            current_api_info = p.get_host_api_info_by_index(i)
+            apis.append(f"{current_api_info['name']}")
+
+        # check if input empty or not
+        if len(apis) == 0:
+            apis = ["[ERROR] No host apis found."]
+    except Exception as e:
+        logger.error("Something went wrong while trying to get the host apis.")
+        logger.exception(e)
+        apis = ["[ERROR] Check the terminal/log for more information."]
+    finally:
+        p.terminate()
+        return apis
+
+def get_default_input_device():
+    p = pyaudio.PyAudio()
     sucess = False
     default_device = None
     try:
-        default_device = sd.query_devices(kind="input")
+        default_device = p.get_default_input_device_info()  
         sucess = True
     except Exception as e:
         if "Error querying device -1" in str(e):
@@ -118,10 +136,11 @@ def getDefaultInputDevice():
             logger.exception(e)
             default_device = str(e)
     finally:
+        p.terminate()
         return sucess, default_device
 
 
-def getDefaultOutputDevice():
+def get_default_output_device():
     p = pyaudio.PyAudio()
     sucess = False
     default_device = None
@@ -138,8 +157,22 @@ def getDefaultOutputDevice():
         p.terminate()
         return sucess, default_device
 
+def get_default_host_api():
+    p = pyaudio.PyAudio()
+    sucess = False
+    default_host_api = None
+    try:
+        default_host_api = p.get_default_host_api_info()
+        sucess = True
+    except OSError as e:
+        logger.error("Something went wrong while trying to get the default host api.")
+        logger.exception(e)
+        default_host_api = str(e)
+    finally:
+        p.terminate()
+        return sucess, default_host_api
 
-def verboseWhisperLogging(result):
+def whisper_verbose_log(result):
     """
     This will log the result of the whisper engine in a verbose way.
 
@@ -195,12 +228,14 @@ def getDeviceAverageThreshold(deviceType: Literal["mic", "speaker"], duration: i
     if deviceType == "speaker":
         device = sj.cache["speaker"]
 
-        # get the device id in [ID: x]
-        device_id = device.split("[ID: ")[1]  # first get the id bracket
-        device_id = device_id.split("]")[0]  # then get the id
+        # get the id in [ID: deviceIndex,hostIndex]
+        id = device.split("[ID: ")[1]  # first get the id bracket
+        id = id.split("]")[0]  # then get the id
+        deviceIndex = id.split(",")[0]  
+        hostIndex = id.split(",")[1]
 
         # Get device detail
-        device_detail = p.get_device_info_by_index(int(device_id))
+        device_detail = p.get_device_info_by_host_api_device_index(int(deviceIndex), int(hostIndex))
 
         if not device_detail["isLoopbackDevice"]:
             for loopback in p.get_loopback_device_info_generator():  # type: ignore
@@ -218,14 +253,17 @@ def getDeviceAverageThreshold(deviceType: Literal["mic", "speaker"], duration: i
         # speaker will automatically use the max sample rate and channels, because it won't work if not set like this
         num_of_channels = int(device_detail["maxInputChannels"])
         sample_rate = int(device_detail["defaultSampleRate"])
-        logger.debug(f"Sample Rate {sample_rate} | channels {num_of_channels}")
     else:
         device = sj.cache["mic"]
 
-        # get the device id from sounddevice module
-        device_id = sd.query_devices(device, "input")["index"]  # type: ignore
-        device_detail = p.get_device_info_by_index(int(device_id))  # Get device detail
-        num_of_channels = 1
+        # get the id in [ID: deviceIndex,hostIndex]
+        id = device.split("[ID: ")[1]  # first get the id bracket
+        id = id.split("]")[0]  # then get the id
+        deviceIndex = id.split(",")[0]  
+        hostIndex = id.split(",")[1]
+
+        # Get device detail
+        device_detail = p.get_device_info_by_host_api_device_index(int(deviceIndex), int(hostIndex))
 
         sample_rate = sj.cache["sample_rate"]
         num_of_channels = 1
@@ -235,8 +273,11 @@ def getDeviceAverageThreshold(deviceType: Literal["mic", "speaker"], duration: i
             sample_rate = int(device_detail["defaultSampleRate"])
         if sj.cache["auto_channels_amount"]:
             num_of_channels = int(device_detail["maxInputChannels"])
+            if num_of_channels == 0:
+                num_of_channels = 1
 
     logger.debug(f"Device: ({device_detail['index']}) {device_detail['name']}")
+    logger.debug(f"Sample Rate {sample_rate} | channels {num_of_channels}")
     logger.debug(device_detail)
 
     # get data from device using pyaudio
@@ -381,7 +422,7 @@ def record_realtime(
 
         # stop loadbar
         assert gc.mw is not None
-        gc.mw.stop_loadBar("mic" if not speaker else "pc")
+        gc.mw.stop_loadBar("mic" if not speaker else "speaker")
 
         # ----------------- Start recording -----------------
         logger.info("-" * 50)
@@ -397,12 +438,14 @@ def record_realtime(
         p = pyaudio.PyAudio()
 
         if speaker:
-            # get the device id in [ID: x]
-            device_id = device.split("[ID: ")[1]  # first get the id bracket
-            device_id = device_id.split("]")[0]  # then get the id
+            # get the id in [ID: deviceIndex,hostIndex]
+            id = device.split("[ID: ")[1]  # first get the id bracket
+            id = id.split("]")[0]  # then get the id
+            deviceIndex = id.split(",")[0]  
+            hostIndex = id.split(",")[1]
 
             # Get device detail
-            device_detail = p.get_device_info_by_index(int(device_id))
+            device_detail = p.get_device_info_by_host_api_device_index(int(deviceIndex), int(hostIndex))
 
             if not device_detail["isLoopbackDevice"]:
                 for loopback in p.get_loopback_device_info_generator():  # type: ignore
@@ -421,9 +464,14 @@ def record_realtime(
             num_of_channels = int(device_detail["maxInputChannels"])
             sample_rate = int(device_detail["defaultSampleRate"])
         else:
-            # get the device id from sounddevice module
-            device_id = sd.query_devices(device, "input")["index"]  # type: ignore
-            device_detail = p.get_device_info_by_index(int(device_id))  # Get device detail
+            # get the id in [ID: deviceIndex,hostIndex]
+            id = device.split("[ID: ")[1]  # first get the id bracket
+            id = id.split("]")[0]  # then get the id
+            deviceIndex = id.split(",")[0]  
+            hostIndex = id.split(",")[1]
+
+            # Get device detail
+            device_detail = p.get_device_info_by_host_api_device_index(int(deviceIndex), int(hostIndex))
             num_of_channels = 1
 
             # check if user set auto for sample rate and channels
@@ -431,9 +479,11 @@ def record_realtime(
                 sample_rate = int(device_detail["defaultSampleRate"])
             if sj.cache["auto_channels_amount"]:
                 num_of_channels = int(device_detail["maxInputChannels"])
+                if num_of_channels == 0:
+                    num_of_channels = 1
 
-        logger.debug(f"Device: ({device_detail['index']}) {device_detail['name']}")
         logger.debug(device_detail)
+        logger.debug(f"Device: ({device_detail['index']}) {device_detail['name']}")
         logger.debug(f"Sample Rate {sample_rate} | channels {num_of_channels} | chunk size {chunk_size}")
 
         rec_type = "speaker" if speaker else "mic"
@@ -471,24 +521,24 @@ def record_realtime(
 
         def stop_recording():
             gc.recording = False  # only set flag to false because cleanup is handled directly down below
-            btn_stop.config(state="disabled", text="Stopping...")  # disable btn
-            btn_pause.config(state="disabled")
+            btn_stop.configure(state="disabled", text="Stopping...")  # disable btn
+            btn_pause.configure(state="disabled")
 
         def toggle_pause():
             nonlocal paused
             paused = not paused
             if paused:
-                btn_pause.config(text="Resume")
+                btn_pause.configure(text="Resume")
                 root.title(f"Recording {rec_type} (Paused)")
                 gc.current_rec_status = f"⏸️ Paused"
                 update_status_lbl()
             else:
-                btn_pause.config(text="Pause")
+                btn_pause.configure(text="Pause")
                 root.title(f"Recording {rec_type}")
                 update_modal_ui()
 
         def update_status_lbl():
-            lbl_status.config(text=gc.current_rec_status)
+            lbl_status.configure(text=gc.current_rec_status)
 
         def update_modal_ui():
             nonlocal timerStart, paused
@@ -497,7 +547,7 @@ def record_realtime(
                     timer = t.strftime("%H:%M:%S", t.gmtime(time() - timerStart))
                     data_queue_size = gc.data_queue.qsize() * chunk_size / 1024  # approx buffer size in kb
 
-                    lbl_timer.config(text=f"REC: {timer} | {language if not auto else language.replace('auto detect', f'auto detect ({gc.auto_detected_lang})')}")
+                    lbl_timer.configure(text=f"REC: {timer} | {language if not auto else language.replace('auto detect', f'auto detect ({gc.auto_detected_lang})')}")
                     lbl_buffer.set_text(f"{round(audio_length_in_seconds, 2)}/{round(max_record_time, 2)} sec ({round(data_queue_size, 2)} kb)")
                     progress_buffer["value"] = audio_length_in_seconds / max_record_time * 100  # update progress / buffer percentage
                     update_status_lbl()
@@ -607,6 +657,7 @@ def record_realtime(
                     if sj.cache["debug_realtime_record"] == 1:
                         logger.info(f"Processing Audio")
 
+                    # TODO: FIX this make sure that the conversion is correct so we can use the fast method
                     if num_of_channels > 1:
                         # If not mono, the fast method does not work so we have to resort to using the old, a little slower, but working method
                         # which is to save the audio file and read it directly to the whisper model
@@ -661,7 +712,7 @@ def record_realtime(
                             if sj.cache["debug_realtime_record"] == 1:
                                 logger.info(f"New transcribed text")
                                 if sj.cache["verbose"]:
-                                    logger.debug(verboseWhisperLogging(result))
+                                    logger.debug(whisper_verbose_log(result))
                                 else:
                                     logger.debug(f"{text}")
 
@@ -767,11 +818,7 @@ def record_realtime(
 
             gc.current_rec_status = "⏹️ Stopped"
             update_status_lbl()
-
-            if speaker:
-                gc.mw.after_speaker_rec_stop()
-            else:
-                gc.mw.after_mic_rec_stop()
+            gc.mw.after_rec_stop()
 
             root.destroy()
     except Exception as e:
@@ -779,12 +826,8 @@ def record_realtime(
         logger.exception(e)
         assert gc.mw is not None
         mbox("Error in record session", f"{str(e)}", 2, gc.mw.root)
-        if speaker:
-            gc.mw.speaker_rec_stop()
-            gc.mw.after_speaker_rec_stop()
-        else:
-            gc.mw.mic_rec_stop()
-            gc.mw.after_mic_rec_stop()
+        gc.mw.rec_stop()
+        gc.mw.after_rec_stop()
 
 
 def realtime_recording_thread(chunk_size: int, rec_type: Literal["mic", "speaker"]):
@@ -848,7 +891,7 @@ def whisper_realtime_tl(
             if sj.cache["debug_realtime_record"] == 1:
                 logger.debug(f"New translated text (Whisper)")
                 if sj.cache["verbose"]:
-                    logger.debug(verboseWhisperLogging(result))
+                    logger.debug(whisper_verbose_log(result))
                 else:
                     logger.debug(f"{text}")
 
@@ -1341,7 +1384,7 @@ def file_input(files: List[str], modelKey: str, lang_source: str, lang_target: s
 
         # update button text
         assert gc.mw is not None
-        gc.mw.btn_import_file.config(text="Cancel")
+        gc.mw.btn_import_file.configure(text="Cancel")
 
         # window to show progress
         master = gc.mw.root

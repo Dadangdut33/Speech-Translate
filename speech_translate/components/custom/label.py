@@ -12,22 +12,22 @@ class LabelTitleText:
         self.text = text
         self.kwargs = kwargs
         self.label = ttk.Label(self.master, **self.kwargs)
-        self.label_title = ttk.Label(self.label, text=self.title, font=("TkDefaultFont 9 bold"))
-        self.label_text = ttk.Label(self.label, text=self.text)
-        self.label_title.pack(side="left")
-        self.label_text.pack(side="left")
+        self.lbl_title = ttk.Label(self.label, text=self.title, font=("TkDefaultFont 9 bold"))
+        self.lbl_text = ttk.Label(self.label, text=self.text)
+        self.lbl_title.pack(side="left")
+        self.lbl_text.pack(side="left")
 
     def pack(self, **kwargs):
         self.label.pack(**kwargs)
 
     def set_text(self, text):
-        self.label_text.config(text=text)
+        self.lbl_text.configure(text=text)
 
     def set_title(self, title):
-        self.label_title.config(text=title)
+        self.lbl_title.configure(text=title)
 
     def set_title_font(self, font):
-        self.label_title.config(font=font)
+        self.lbl_title.configure(font=font)
 
     def set_text_font(self, font):
-        self.label_text.config(font=font)
+        self.lbl_text.configure(font=font)
