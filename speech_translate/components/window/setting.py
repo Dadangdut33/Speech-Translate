@@ -21,7 +21,7 @@ from speech_translate.components.custom.message import mbox, MBoxText
 from speech_translate.components.custom.tooltip import CreateToolTip, createMultipleTooltips, CreateToolTipOnText
 
 
-
+#TODO: proxies, whisper option, custom filename, custom model directory
 
 class SettingWindow:
     """
@@ -650,7 +650,7 @@ class SettingWindow:
         \rDefault value is true/checked""",
         )
 
-        self.lbl_compression_ratio_threshold = ttk.Label(self.f_extra_whisper_args_2, text="Compression threshold", width=18)
+        self.lbl_compression_ratio_threshold = ttk.Label(self.f_extra_whisper_args_2, text="Compression threshold", width=21)
         self.lbl_compression_ratio_threshold.pack(side="left", padx=5)
 
         self.spn_compression_ratio_threshold = ttk.Spinbox(
@@ -672,7 +672,7 @@ class SettingWindow:
             [self.lbl_compression_ratio_threshold, self.spn_compression_ratio_threshold], "Compression ratio threshold.\n\nIf the gzip compression ratio is above this value, treat as failed.\n\nDefault value is 2.4"
         )
 
-        self.lbl_logprob_threshold = ttk.Label(self.f_extra_whisper_args_2, text="Logprob threshold", width=18)
+        self.lbl_logprob_threshold = ttk.Label(self.f_extra_whisper_args_2, text="Logprob threshold", width=21)
         self.lbl_logprob_threshold.pack(side="left", padx=5)
 
         self.spn_logprob_threshold = ttk.Spinbox(
@@ -692,7 +692,7 @@ class SettingWindow:
         self.spn_logprob_threshold.pack(side="left", padx=5)
         createMultipleTooltips([self.lbl_logprob_threshold, self.spn_logprob_threshold], "If the average log probability over sampled tokens is below this value, treat as failed.\n\nDefault value is -1.0")
 
-        self.lbl_no_speech_threshold = ttk.Label(self.f_extra_whisper_args_2, text="No speech threshold", width=18)
+        self.lbl_no_speech_threshold = ttk.Label(self.f_extra_whisper_args_2, text="No speech threshold", width=21)
         self.lbl_no_speech_threshold.pack(side="left", padx=5)
 
         self.spn_no_speech_threshold = ttk.Spinbox(
@@ -715,7 +715,7 @@ class SettingWindow:
         \rover sampled tokens is below `logprob_threshold`, consider the segment as silent.\n\nDefault value is 0.6""",
         )
 
-        self.lbl_initial_prompt = ttk.Label(self.f_extra_whisper_args_3, text="Initial prompt", width=18)
+        self.lbl_initial_prompt = ttk.Label(self.f_extra_whisper_args_3, text="Initial prompt", width=21)
         self.lbl_initial_prompt.pack(side="left", padx=5)
 
         self.entry_initial_prompt = ttk.Entry(self.f_extra_whisper_args_3)
@@ -739,10 +739,8 @@ class SettingWindow:
         CreateToolTip(self.btn_verify_temperature, "Verify temperature input.")
 
         rng = random.randint(0, 10000)
-        self.lbl_extra_whisper_args = ttk.Label(self.f_extra_whisper_args_4, text="Extra whisper args", width=18, cursor="hand2")
+        self.lbl_extra_whisper_args = ttk.Label(self.f_extra_whisper_args_4, text="Extra parameter", width=21)
         self.lbl_extra_whisper_args.pack(side="left", padx=5)
-        self.lbl_extra_whisper_args.bind("<Button-1>", lambda e: MBoxText(rng, self.root, "Whisper Args", hint))
-        CreateToolTip(self.lbl_extra_whisper_args, "Click to see the available arguments.")
 
         self.entry_whisper_extra_args = ttk.Entry(self.f_extra_whisper_args_4)
         self.entry_whisper_extra_args.pack(side="left", fill="x", expand=True, padx=5)
@@ -791,6 +789,10 @@ class SettingWindow:
             f"\nfp16: bool\n--fp16 true"
         )
         CreateToolTipOnText(self.entry_whisper_extra_args, hint, geometry="700x250")
+
+        self.btn_help = ttk.Button(self.f_extra_whisper_args_4, text="❔", command=lambda: MBoxText(rng, self.root, "Whisper Args", hint), width=5)
+        self.btn_help.pack(side="left", padx=5)
+        CreateToolTip(self.btn_help, "Click to see the available arguments.")
 
         self.btn_verify = ttk.Button(self.f_extra_whisper_args_4, text="Verify", command=lambda: self.verifyWhisperArgs())
         self.btn_verify.pack(side="left", padx=5)

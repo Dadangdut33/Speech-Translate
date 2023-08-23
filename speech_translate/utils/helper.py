@@ -84,8 +84,20 @@ def no_connection_notify(
     nativeNotify(customTitle, customMessage)
 
 
-def getFileNameOnlyFromPath(path: str):
-    return path.split("/")[-1]
+def getFileNameOnlyFromPath(filename: str):
+    """
+    Extracts the name of the file only from a given filename, considering
+    the last dot as the separator.
+
+    Parameters:
+    filename (str): The filename, which may contain multiple dots with / as the path separator.
+
+    Returns:
+    str: The file name without the dot.
+    """
+    filename = filename.split("/")[-1] # Get the last part of the path
+    filename = filename.rsplit(".", 1)[0] # Split the filename at the last dot
+    return filename
 
 
 def tb_copy_only(event):

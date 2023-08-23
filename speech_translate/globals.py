@@ -5,7 +5,7 @@ import shlex
 import arabic_reshaper
 from bidi.algorithm import get_display
 from tkinter import ttk
-from threading import Thread
+from threading import Thread, Lock
 from typing import Optional, List, TYPE_CHECKING
 from ._path import dir_temp, dir_log, dir_export, dir_user
 from ._contants import SUBTITLE_PLACEHOLDER, RESHAPE_LANG_LIST
@@ -95,6 +95,7 @@ class GlobalClass:
         self.current_energy: int = 0
         self.current_rec_status = ""
         self.auto_detected_lang = "~"
+        self.tc_lock: Optional[Lock] = None
 
         # file process
         self.file_tced_counter: int = 0

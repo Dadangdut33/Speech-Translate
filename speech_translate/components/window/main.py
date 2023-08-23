@@ -964,31 +964,31 @@ class MainWindow:
     def disable_interactions(self):
         self.checkbox_task_transcribe.configure(state="disabled")
         self.checkbox_task_translate.configure(state="disabled")
-        self.cb_model.configure(state="disabled")
-        self.cb_engine.configure(state="disabled")
-        self.cb_sourceLang.configure(state="disabled")
-        self.cb_targetLang.configure(state="disabled")
         self.cb_mic.configure(state="disabled")
         self.cb_speaker.configure(state="disabled")
         self.btn_swap.configure(state="disabled")
         self.btn_record.configure(state="disabled")
         self.btn_import_file.configure(state="disabled")
+        self.cb_model.configure(state="disabled")
+        self.cb_engine.configure(state="disabled")
+        self.cb_sourceLang.configure(state="disabled")
+        self.cb_targetLang.configure(state="disabled")
 
     def enable_interactions(self):
         self.checkbox_task_transcribe.configure(state="normal")
         self.checkbox_task_translate.configure(state="normal")
-        self.cb_model.configure(state="readonly")
-        self.cb_engine.configure(state="readonly")
-        self.cb_sourceLang.configure(state="readonly")
-        if "selected" in self.checkbox_task_translate.state() and not "selected" in self.checkbox_task_transcribe.state():
-            self.cb_targetLang.configure(state="disabled")
-        else:
-            self.cb_targetLang.configure(state="readonly")
         self.cb_mic.configure(state="readonly")
         self.cb_speaker.configure(state="readonly")
         self.btn_swap.configure(state="normal")
         self.btn_record.configure(state="normal")
         self.btn_import_file.configure(state="normal")
+        self.cb_model.configure(state="readonly")
+        self.cb_engine.configure(state="readonly")
+        self.cb_sourceLang.configure(state="readonly")
+        if not "selected" in self.checkbox_task_translate.state():
+            self.cb_targetLang.configure(state="disabled")
+        else:
+            self.cb_targetLang.configure(state="readonly")
 
     def start_loadBar(self):
         self.loadBar.configure(mode="indeterminate")
@@ -1195,7 +1195,7 @@ class MainWindow:
         # get file
         files = filedialog.askopenfilenames(
             title="Select a file",
-            filetypes=(("Audio files", "*.wav *.mp3 *.ogg *.flac *.aac *.wma *.m4a"), ("Video files", "*.mp4 *.mkv *.avi *.mov"), ("All files", "*.*")),
+            filetypes=(("Audio files", "*.wav *.mp3 *.ogg *.flac *.aac *.wma *.m4a"), ("Video files", "*.mp4 *.mkv *.avi *.mov *.webm"), ("All files", "*.*")),
         )
 
         if len(files) == 0:
@@ -1234,7 +1234,7 @@ class MainWindow:
 
         self.loadBar.stop()
         self.loadBar.configure(mode="determinate")
-        self.btn_import_file.configure(text="Import From File (Video/Audio)", command=self.import_file)
+        self.btn_import_file.configure(text="Import file", command=self.import_file)
         self.enable_interactions()
 
 def get_gpu_info():

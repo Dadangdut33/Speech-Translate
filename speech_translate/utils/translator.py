@@ -1,4 +1,5 @@
 import requests
+from typing import Dict, Optional
 from speech_translate.custom_logging import logger
 from .helper import get_similar_keys, no_connection_notify
 from .language import google_lang, libre_lang, myMemory_lang
@@ -35,7 +36,7 @@ class TranslationConnection:
 TlCon = TranslationConnection(GoogleTranslator, MyMemoryTranslator)
 
 
-def google_tl(text: str, from_lang: str, to_lang: str, debug_log: bool = False):
+def google_tl(text: str, from_lang: str, to_lang: str, proxies: Optional[Dict] = None, debug_log: bool = False):
     """Translate Using Google Translate
 
     Args
@@ -75,7 +76,7 @@ def google_tl(text: str, from_lang: str, to_lang: str, debug_log: bool = False):
                 no_connection_notify()
                 return is_Success, "Error: Not connected to internet"
 
-        result = TlCon.GoogleTranslator(source=from_LanguageCode_Google, target=to_LanguageCode_Google).translate(text.strip())
+        result = TlCon.GoogleTranslator(source=from_LanguageCode_Google, target=to_LanguageCode_Google, proxies=proxies).translate(text.strip())
         is_Success = True
     except Exception as e:
         logger.exception(str(e))
@@ -88,7 +89,7 @@ def google_tl(text: str, from_lang: str, to_lang: str, debug_log: bool = False):
         return is_Success, result
 
 
-def memory_tl(text: str, from_lang: str, to_lang: str, debug_log: bool = False):
+def memory_tl(text: str, from_lang: str, to_lang: str, proxies: Optional[Dict] = None, debug_log: bool = False):
     """Translate Using MyMemoryTranslator
     
     Args
@@ -127,7 +128,7 @@ def memory_tl(text: str, from_lang: str, to_lang: str, debug_log: bool = False):
                 no_connection_notify()
                 return is_Success, "Error: Not connected to internet"
 
-        result = str(TlCon.MyMemoryTranslator(source=from_LanguageCode_Memory, target=to_LanguageCode_Memory).translate(text.strip()))
+        result = str(TlCon.MyMemoryTranslator(source=from_LanguageCode_Memory, target=to_LanguageCode_Memory, proxies=proxies).translate(text.strip()))
         is_Success = True
     except Exception as e:
         logger.exception(str(e))
@@ -141,7 +142,7 @@ def memory_tl(text: str, from_lang: str, to_lang: str, debug_log: bool = False):
 
 
 # LibreTranslator
-def libre_tl(text: str, from_lang: str, to_lang: str, https: bool = False, host: str = "libretranslate.de", port: str = "", apiKeys: str = "", debug_log: bool = False):
+def libre_tl(text: str, from_lang: str, to_lang: str, https: bool = False, host: str = "libretranslate.de", port: str = "", apiKeys: str = "", proxies: Optional[Dict] = None, debug_log: bool = False):
     """Translate Using LibreTranslate
 
     Args
@@ -183,7 +184,7 @@ def libre_tl(text: str, from_lang: str, to_lang: str, https: bool = False, host:
         else:
             adr = httpStr + "://" + host + "/translate"
 
-        response = requests.post(adr, json=request).json()
+        response = requests.post(adr, json=request, proxies=proxies).json()
         if "error" in response:
             result = response["error"]
         else:

@@ -26,12 +26,16 @@ default_setting = {
     "speaker": "",
     "hostAPI": "",
     "theme": "sv-dark" if darkdetect.isDark() else "sv-light",
-    "dir_export": "auto",
-    "auto_open_dir_export": True,
     "supress_hidden_to_tray": False,
     "supress_device_warning": False,
     "mw_size": "950x400",
     "sw_size": "1000x580",
+    "dir_model": "",
+    "dir_export": "auto",
+    "auto_open_dir_export": True,
+    "export_format": "%Y-%m-%d %H_%M {file}_{task}", # {file} {task} {task-short} {lang_source} {lang_target} {model} {engine}
+    "file_slice_start": "", # empty will be read as None
+    "file_slice_end": "", # empty will be read as None
     # ------------------ #
     # logging
     "keep_log": False,
@@ -45,6 +49,8 @@ default_setting = {
     "sourceLang": "Auto Detect",
     "targetLang": "Indonesian",
     "tl_engine": "Google",
+    "http_proxy": "",
+    "https_proxy": "",
     "libre_api_key": "",
     "libre_host": "translate.argosopentech.com",
     "libre_port": "",
