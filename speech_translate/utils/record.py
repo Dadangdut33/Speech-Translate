@@ -29,7 +29,7 @@ from speech_translate.custom_logging import logger
 from speech_translate.components.custom.label import LabelTitleText
 from speech_translate.components.custom.message import mbox
 
-from .helper import cbtnInvoker, nativeNotify, startFile, getFileNameOnlyFromPath
+from .helper import cbtn_invoker, nativeNotify, start_file, filename_only
 from .helper_whisper import (
     get_temperature,
     convert_str_options_to_dict,
@@ -52,11 +52,13 @@ def get_input_devices(hostAPI: str):
     try:
         for i in range(p.get_host_api_count()):
             current_api_info = p.get_host_api_info_by_index(i)
-            if (hostAPI == current_api_info["name"]) or (hostAPI == ""): # if hostAPI is empty, get all devices. else, get only the devices from the specified hostAPI
+            if (hostAPI == current_api_info["name"]) or (
+                hostAPI == ""
+            ):  # if hostAPI is empty, get all devices. else, get only the devices from the specified hostAPI
                 for j in range(int(current_api_info["deviceCount"])):
-                    device = p.get_device_info_by_host_api_device_index(i, j) # get device info by host api device index
+                    device = p.get_device_info_by_host_api_device_index(i, j)  # get device info by host api device index
                     if int(device["maxInputChannels"]) > 0:
-                        devices.append(f"[ID: {i},{j}] | {device['name']}") # j is the device index in the host api
+                        devices.append(f"[ID: {i},{j}] | {device['name']}")  # j is the device index in the host api
 
         # check if input empty or not
         if len(devices) == 0:
@@ -69,9 +71,10 @@ def get_input_devices(hostAPI: str):
         p.terminate()
         return devices
 
+
 def get_output_devices(hostAPI: str):
     """
-    Get the output devices (speaker) from the specified hostAPI. 
+    Get the output devices (speaker) from the specified hostAPI.
     Format: [ID: {device['index']}] | {device['name']}
     """
     devices = []
@@ -79,11 +82,13 @@ def get_output_devices(hostAPI: str):
     try:
         for i in range(p.get_host_api_count()):
             current_api_info = p.get_host_api_info_by_index(i)
-            if (hostAPI == current_api_info["name"]) or (hostAPI == ""): # if hostAPI is empty, get all devices. else, get only the devices from the specified hostAPI
+            if (hostAPI == current_api_info["name"]) or (
+                hostAPI == ""
+            ):  # if hostAPI is empty, get all devices. else, get only the devices from the specified hostAPI
                 for j in range(int(current_api_info["deviceCount"])):
-                    device = p.get_device_info_by_host_api_device_index(i, j) # get device info by host api device index
+                    device = p.get_device_info_by_host_api_device_index(i, j)  # get device info by host api device index
                     if int(device["maxOutputChannels"]) > 0:
-                        devices.append(f"[ID: {i},{j}] | {device['name']}") # j is the device index in the host api
+                        devices.append(f"[ID: {i},{j}] | {device['name']}")  # j is the device index in the host api
 
         # check if input empty or not
         if len(devices) == 0:
@@ -119,12 +124,13 @@ def get_host_apis():
         p.terminate()
         return apis
 
+
 def get_default_input_device():
     p = pyaudio.PyAudio()
     sucess = False
     default_device = None
     try:
-        default_device = p.get_default_input_device_info()  
+        default_device = p.get_default_input_device_info()
         sucess = True
     except Exception as e:
         if "Error querying device -1" in str(e):
@@ -157,6 +163,7 @@ def get_default_output_device():
         p.terminate()
         return sucess, default_device
 
+
 def get_default_host_api():
     p = pyaudio.PyAudio()
     sucess = False
@@ -171,6 +178,7 @@ def get_default_host_api():
     finally:
         p.terminate()
         return sucess, default_host_api
+
 
 def whisper_verbose_log(result):
     """
@@ -206,6 +214,7 @@ def whisper_verbose_log(result):
             logger.debug(f"End: {words['end']}")
             logger.debug(f"Confidence: {words['confidence']}")
 
+
 # --------------------------------------------------------------------------------------------------------------------------------------
 def getDeviceAverageThreshold(deviceType: Literal["mic", "speaker"], duration: int = 5) -> float:
     """
@@ -231,7 +240,7 @@ def getDeviceAverageThreshold(deviceType: Literal["mic", "speaker"], duration: i
         # get the id in [ID: deviceIndex,hostIndex]
         id = device.split("[ID: ")[1]  # first get the id bracket
         id = id.split("]")[0]  # then get the id
-        deviceIndex = id.split(",")[0]  
+        deviceIndex = id.split(",")[0]
         hostIndex = id.split(",")[1]
 
         # Get device detail
@@ -259,7 +268,7 @@ def getDeviceAverageThreshold(deviceType: Literal["mic", "speaker"], duration: i
         # get the id in [ID: deviceIndex,hostIndex]
         id = device.split("[ID: ")[1]  # first get the id bracket
         id = id.split("]")[0]  # then get the id
-        deviceIndex = id.split(",")[0]  
+        deviceIndex = id.split(",")[0]
         hostIndex = id.split(",")[1]
 
         # Get device detail
@@ -271,7 +280,7 @@ def getDeviceAverageThreshold(deviceType: Literal["mic", "speaker"], duration: i
         # check if user set auto for sample rate and channels
         if sj.cache["auto_sample_rate"]:
             sample_rate = int(device_detail["defaultSampleRate"])
-        if sj.cache["auto_channels_amount"]:
+        if sj.cache["auto_channels_value"]:
             num_of_channels = int(device_detail["maxInputChannels"])
             if num_of_channels == 0:
                 num_of_channels = 1
@@ -289,12 +298,15 @@ def getDeviceAverageThreshold(deviceType: Literal["mic", "speaker"], duration: i
         return (in_data, pyaudio.paContinue)
 
     chunk_size = sj.cache["chunk_size"]
-    stream = p.open(format=pyaudio.paInt16, # 16 bit audio
-                    channels=num_of_channels, 
-                    rate=sample_rate, input=True, 
-                    frames_per_buffer=chunk_size, 
-                    input_device_index=int(device_detail["index"]), 
-                    stream_callback=callback)
+    stream = p.open(
+        format=pyaudio.paInt16,  # 16 bit audio
+        channels=num_of_channels,
+        rate=sample_rate,
+        input=True,
+        frames_per_buffer=chunk_size,
+        input_device_index=int(device_detail["index"]),
+        stream_callback=callback,
+    )
 
     stream.start_stream()
 
@@ -309,7 +321,7 @@ def getDeviceAverageThreshold(deviceType: Literal["mic", "speaker"], duration: i
 
     # get average threshold
     # we use rms to get the "loudness" of the audio
-    avg_threshold = audioop.rms(data, 2) + 200 # add 200 to make sure it is above average
+    avg_threshold = audioop.rms(data, 2) + 200  # add 200 to make sure it is above average
 
     # Set the reference level based on the maximum amplitude for 16-bit audio
     reference = 32767
@@ -432,14 +444,15 @@ def record_realtime(
         root.iconbitmap(app_icon)
     except:
         pass
-    
+
     try:
         src_english = lang_source == "english"
         auto = lang_source == "auto detect"
         whisperEngine = engine == "Whisper"
         modelName = append_dot_en(modelKey, src_english)
 
-        if transcribe and whisperEngine: # cannot transcribe concurrently. Will need to wait for the previous transcribe to finish
+        # cannot transcribe concurrently. Will need to wait for the previous transcribe to finish
+        if transcribe and whisperEngine:
             gc.tc_lock = threading.Lock()
 
         # read from settings
@@ -479,7 +492,6 @@ def record_realtime(
         # assert whisper_extra_args is an object
         if not isinstance(whisper_args, dict):
             raise Exception("whisper_extra_args must be an object")
-            
 
         # recording session init
         global prev_tl_text, sentences_tl
@@ -491,8 +503,9 @@ def record_realtime(
         next_transcribe_time = None
         last_sample = bytes()
         transcribe_rate = timedelta(seconds=sj.cache["transcribe_rate"] / 1000)
-        max_record_time = int(sj.cache["speaker_maxBuffer"]) if speaker else int(sj.cache["mic_maxBuffer"])
-        task = "translate" if whisperEngine and translate and not transcribe else "transcribe"  # if only translate to english using whisper engine
+        max_record_time = int(sj.cache["max_buffer_speaker"]) if speaker else int(sj.cache["max_buffer_mic"])
+        # if only translate to english using whisper engine
+        task = "translate" if whisperEngine and translate and not transcribe else "transcribe"
 
         # load model
         model: whisper.Whisper = whisper.load_model(modelName)
@@ -517,7 +530,7 @@ def record_realtime(
             # get the id in [ID: deviceIndex,hostIndex]
             id = device.split("[ID: ")[1]  # first get the id bracket
             id = id.split("]")[0]  # then get the id
-            deviceIndex = id.split(",")[0]  
+            deviceIndex = id.split(",")[0]
             hostIndex = id.split(",")[1]
 
             # Get device detail
@@ -543,7 +556,7 @@ def record_realtime(
             # get the id in [ID: deviceIndex,hostIndex]
             id = device.split("[ID: ")[1]  # first get the id bracket
             id = id.split("]")[0]  # then get the id
-            deviceIndex = id.split(",")[0]  
+            deviceIndex = id.split(",")[0]
             hostIndex = id.split(",")[1]
 
             # Get device detail
@@ -553,7 +566,7 @@ def record_realtime(
             # check if user set auto for sample rate and channels
             if sj.cache["auto_sample_rate"]:
                 sample_rate = int(device_detail["defaultSampleRate"])
-            if sj.cache["auto_channels_amount"]:
+            if sj.cache["auto_channels_value"]:
                 num_of_channels = int(device_detail["maxInputChannels"])
                 if num_of_channels == 0:
                     num_of_channels = 1
@@ -563,12 +576,14 @@ def record_realtime(
         logger.debug(f"Sample Rate {sample_rate} | channels {num_of_channels} | chunk size {chunk_size}")
 
         rec_type = "speaker" if speaker else "mic"
-        gc.stream = p.open(format=pyaudio.paInt16,  # 16 bit audio
-                           channels=num_of_channels, 
-                           rate=sample_rate, 
-                           input=True, 
-                           frames_per_buffer=chunk_size, 
-                           input_device_index=int(device_detail["index"]))
+        gc.stream = p.open(
+            format=pyaudio.paInt16,  # 16 bit audio
+            channels=num_of_channels,
+            rate=sample_rate,
+            input=True,
+            frames_per_buffer=chunk_size,
+            input_device_index=int(device_detail["index"]),
+        )
         record_thread = threading.Thread(target=realtime_recording_thread, args=[chunk_size, rec_type], daemon=True)
         record_thread.start()
 
@@ -613,9 +628,14 @@ def record_realtime(
                     timer = t.strftime("%H:%M:%S", t.gmtime(time() - timerStart))
                     data_queue_size = gc.data_queue.qsize() * chunk_size / 1024  # approx buffer size in kb
 
-                    lbl_timer.configure(text=f"REC: {timer} | {language if not auto else language.replace('auto detect', f'auto detect ({gc.auto_detected_lang})')}")
-                    lbl_buffer.set_text(f"{round(audio_length_in_seconds, 2)}/{round(max_record_time, 2)} sec ({round(data_queue_size, 2)} kb)")
-                    progress_buffer["value"] = audio_length_in_seconds / max_record_time * 100  # update progress / buffer percentage
+                    lbl_timer.configure(
+                        text=f"REC: {timer} | {language if not auto else language.replace('auto detect', f'auto detect ({gc.auto_detected_lang})')}"
+                    )
+                    lbl_buffer.set_text(
+                        f"{round(audio_length_in_seconds, 2)}/{round(max_record_time, 2)} sec ({round(data_queue_size, 2)} kb)"
+                    )
+                    # update progress / buffer percentage
+                    progress_buffer["value"] = audio_length_in_seconds / max_record_time * 100
                     update_status_lbl()
 
                     root.after(1000, update_modal_ui)
@@ -642,7 +662,7 @@ def record_realtime(
                 if not next_transcribe_time:
                     next_transcribe_time = now + transcribe_rate
 
-                # Run transcription based on transcribe rate that is set by user. The more delay it have the more it will reduces stress on the GPU / CPU (if using cpu). 
+                # Run transcription based on transcribe rate that is set by user. The more delay it have the more it will reduces stress on the GPU / CPU (if using cpu).
                 # Transcriptions will be more accurate as they go because they will have more audio context to work with (Limit on the audio context or buffer is set in the setting).
                 if now > next_transcribe_time:
                     next_transcribe_time = now + transcribe_rate
@@ -694,6 +714,10 @@ def record_realtime(
                     else:
                         # Convert the wave data straight to a numpy array for the model.
                         # https://stackoverflow.com/a/62298670
+
+                        # get audio format and bit depth
+                        audio_format = p.get_format_from_width(wav_reader.getsampwidth())
+
                         audio_as_np_int16 = numpy.frombuffer(audio, dtype=numpy.int16)
                         audio_as_np_float32 = audio_as_np_int16.astype(numpy.float32)
                         audio_target = audio_as_np_float32 / max_int16  # normalized as Numpy array
@@ -770,7 +794,9 @@ def record_realtime(
                                 tlThread.start()
                             # Using translation API
                             else:
-                                tlThread = threading.Thread(target=realtime_tl, args=[text, lang_source, lang_target, engine], daemon=True)
+                                tlThread = threading.Thread(
+                                    target=realtime_tl, args=[text, lang_source, lang_target, engine], daemon=True
+                                )
                                 tlThread.start()
 
                     # break up the buffer If we've reached max recording time
@@ -831,7 +857,7 @@ def record_realtime(
             update_status_lbl()
             gc.mw.after_rec_stop()
             if root.winfo_exists():
-                root.destroy() # close if not destroyed
+                root.destroy()  # close if not destroyed
     except Exception as e:
         logger.error(f"Error in record session")
         logger.exception(e)
@@ -840,7 +866,7 @@ def record_realtime(
         gc.mw.rec_stop()
         gc.mw.after_rec_stop()
         if root.winfo_exists():
-            root.destroy() # close if not destroyed
+            root.destroy()  # close if not destroyed
 
 
 def realtime_recording_thread(chunk_size: int, rec_type: Literal["mic", "speaker"]):
@@ -854,10 +880,15 @@ def realtime_recording_thread(chunk_size: int, rec_type: Literal["mic", "speaker
         data = gc.stream.read(chunk_size)
         gc.current_energy = audioop.rms(data, 2)
 
+        if sj.cache["debug_energy"]:
+            logger.debug(f"energy: {gc.current_energy}")
+
         # store chunks of audio in queue
         if not sj.cache["enable_threshold"]:  # record regardless of energy
             gc.data_queue.put(data)
-        elif sj.cache["enable_threshold"] and gc.current_energy > sj.cache[f"{rec_type}_energy_threshold"]:  # only record if energy is above threshold
+        elif (
+            sj.cache["enable_threshold"] and gc.current_energy > sj.cache[f"{rec_type}_energy_threshold"]
+        ):  # only record if energy is above threshold
             gc.data_queue.put(data)
 
 
@@ -923,7 +954,9 @@ def whisper_realtime_tl(
         gc.disableTranslating()  # flag processing as done
 
 
-def realtime_tl(text: str, lang_source: str, lang_target: str, engine: Literal["Google", "LibreTranslate", "MyMemoryTranslator"]):
+def realtime_tl(
+    text: str, lang_source: str, lang_target: str, engine: Literal["Google", "LibreTranslate", "MyMemoryTranslator"]
+):
     """Translate the result of realtime_recording_thread using translation API"""
     assert gc.mw is not None
     gc.enableTranslating()
@@ -941,7 +974,14 @@ def realtime_tl(text: str, lang_source: str, lang_target: str, engine: Literal["
 
         elif engine == "LibreTranslate":
             success, result_Tl = libre_tl(
-                text, lang_source, lang_target, sj.cache["libre_https"], sj.cache["libre_host"], sj.cache["libre_port"], sj.cache["libre_api_key"], debug_log
+                text,
+                lang_source,
+                lang_target,
+                sj.cache["libre_https"],
+                sj.cache["libre_host"],
+                sj.cache["libre_port"],
+                sj.cache["libre_api_key"],
+                debug_log,
             )
             if not success:
                 nativeNotify("Error: translation with libre failed", result_Tl)
@@ -1087,9 +1127,14 @@ def cancellable_tl(
                 with open(os.path.join(export_to, f"{save_name}.srt"), "w", encoding="utf-8") as f:
                     f.write(resultSrt)
 
-                gc.insertMwTbTl(f"translated {save_name} and saved to .txt and .srt" + separator, str(result_Tl_whisper["language"]))
+                gc.insertMwTbTl(
+                    f"translated {save_name} and saved to .txt and .srt" + separator, str(result_Tl_whisper["language"])
+                )
             else:
-                gc.insertMwTbTl(f"Fail to save file {save_name}. It is empty (no text get from transcription)" + separator, str(result_Tl_whisper["language"]))
+                gc.insertMwTbTl(
+                    f"Fail to save file {save_name}. It is empty (no text get from transcription)" + separator,
+                    str(result_Tl_whisper["language"]),
+                )
                 logger.warning("Translated Text is empty")
         else:
             # limit to 5000 characters
@@ -1108,7 +1153,7 @@ def cancellable_tl(
 
                 if sj.cache["proxy_http"] != "":
                     proxies["http"] = sj.cache["proxy_http"]
-                
+
                 if sj.cache["proxy_https"] != "":
                     proxies["https"] = sj.cache["proxy_https"]
             else:
@@ -1125,7 +1170,15 @@ def cancellable_tl(
                 elif engine == "LibreTranslate":
                     logger.debug("Translating with libre translate")
                     success, result = libre_tl(
-                        query, lang_source, lang_target, sj.cache["libre_https"], sj.cache["libre_host"], sj.cache["libre_port"], sj.cache["libre_api_key"], proxies, debug_log
+                        query,
+                        lang_source,
+                        lang_target,
+                        sj.cache["libre_https"],
+                        sj.cache["libre_host"],
+                        sj.cache["libre_port"],
+                        sj.cache["libre_api_key"],
+                        proxies,
+                        debug_log,
                     )
                     if not success:
                         nativeNotify("Error: translation with libre failed", result)
@@ -1142,7 +1195,7 @@ def cancellable_tl(
             for i, results in enumerate(result_Tl):
                 # sended text (toTranslate parameter) is sended in srt format so the result that we got from translation is as srt
                 resultSrt = results
-                resultTxt = srt_whisper_to_txt_format(resultSrt) # format it back to txt
+                resultTxt = srt_whisper_to_txt_format(resultSrt)  # format it back to txt
 
                 if len(resultSrt) > 0:
                     gc.file_tled_counter += 1
@@ -1156,7 +1209,11 @@ def cancellable_tl(
 
                     gc.insertMwTbTl(f"Translated {save_name_part} and saved to .txt and .srt" + separator, lang_target)
                 else:
-                    gc.insertMwTbTl(f"Translated file {save_name} is empty (no text get from transcription) so it's not saved" + separator, lang_target)
+                    gc.insertMwTbTl(
+                        f"Translated file {save_name} is empty (no text get from transcription) so it's not saved"
+                        + separator,
+                        lang_target,
+                    )
                     logger.warning("Translated Text is empty")
 
     except Exception as e:
@@ -1255,7 +1312,7 @@ def cancellable_tc(
         result_Tc = gc.data_queue.get()
 
         # export to file
-        audioNameOnly = getFileNameOnlyFromPath(audio_name)
+        audioNameOnly = filename_only(audio_name)
         audioNameOnly = audioNameOnly[:100]  # limit length of file name to 100 characters
         export_to = dir_export if sj.cache["dir_export"] == "auto" else sj.cache["dir_export"]
 
@@ -1273,9 +1330,16 @@ def cancellable_tc(
                 with open(os.path.join(export_to, f"{save_name}.srt"), "w", encoding="utf-8") as f:
                     f.write(resultSrt)
 
-                gc.insertMwTbTc(f"Transcribed File {audioNameOnly} saved to {save_name} .txt and .srt" + separator, str(result_Tc["language"]))
+                gc.insertMwTbTc(
+                    f"Transcribed File {audioNameOnly} saved to {save_name} .txt and .srt" + separator,
+                    str(result_Tc["language"]),
+                )
             else:
-                gc.insertMwTbTc(f"Transcribed File {audioNameOnly} is empty (no text get from transcription) so it's not saved" + separator, str(result_Tc["language"]))
+                gc.insertMwTbTc(
+                    f"Transcribed File {audioNameOnly} is empty (no text get from transcription) so it's not saved"
+                    + separator,
+                    str(result_Tc["language"]),
+                )
                 logger.warning("Transcribed Text is empty")
 
         # start translation thread if translate mode is on
@@ -1310,7 +1374,9 @@ def cancellable_tc(
         gc.mw.stop_loadBar()
 
 
-def file_input(files: List[str], modelKey: str, lang_source: str, lang_target: str, transcribe: bool, translate: bool, engine: str) -> None:
+def file_input(
+    files: List[str], modelKey: str, lang_source: str, lang_target: str, transcribe: bool, translate: bool, engine: str
+) -> None:
     """Function to transcribe and translate from audio/video files.
 
     Args
@@ -1397,7 +1463,12 @@ def file_input(files: List[str], modelKey: str, lang_source: str, lang_target: s
     progress_bar = ttk.Progressbar(frame_lbl_5, orient="horizontal", length=300, mode="determinate")
     progress_bar.pack(side="left", fill="x", padx=5, pady=5, expand=True)
 
-    cbtn_open_folder = ttk.Checkbutton(frame_lbl_6, text="Open folder after process", state="disabled", command=lambda: sj.savePartialSetting("auto_open_dir_export", cbtn_open_folder.instate(["selected"])))
+    cbtn_open_folder = ttk.Checkbutton(
+        frame_lbl_6,
+        text="Open folder after process",
+        state="disabled",
+        command=lambda: sj.save_key("auto_open_dir_export", cbtn_open_folder.instate(["selected"])),
+    )
     cbtn_open_folder.pack(side="left", fill="x", padx=5, pady=5)
 
     btn_add = ttk.Button(frame_btn_1, text="Add", state="disabled")
@@ -1420,7 +1491,9 @@ def file_input(files: List[str], modelKey: str, lang_source: str, lang_target: s
         temperature = sj.cache["temperature"]
         whisper_args = sj.cache["whisper_extra_args"]
         export_format: str = sj.cache["export_format"]
-        file_slice_start: Union[None, int] = None if sj.cache["file_slice_start"] == "" else int(sj.cache["file_slice_start"]) 
+        file_slice_start: Union[None, int] = (
+            None if sj.cache["file_slice_start"] == "" else int(sj.cache["file_slice_start"])
+        )
         file_slice_end: Union[None, int] = None if sj.cache["file_slice_end"] == "" else int(sj.cache["file_slice_end"])
 
         success, data = get_temperature(temperature)
@@ -1452,7 +1525,7 @@ def file_input(files: List[str], modelKey: str, lang_source: str, lang_target: s
 
         # update button text
         gc.mw.btn_import_file.configure(text="Cancel")
-        
+
         timerStart = time()
         taskname = "Transcribe & Translate" if transcribe and translate else "Transcribe" if transcribe else "Translate"
         language = f"from {lang_source} to {lang_target}" if translate else lang_source
@@ -1461,7 +1534,11 @@ def file_input(files: List[str], modelKey: str, lang_source: str, lang_target: s
             nonlocal files
             to_add = filedialog.askopenfilenames(
                 title="Select a file",
-                filetypes=(("Audio files", "*.wav *.mp3 *.ogg *.flac *.aac *.wma *.m4a"), ("Video files", "*.mp4 *.mkv *.avi *.mov *.webm"), ("All files", "*.*")),
+                filetypes=(
+                    ("Audio files", "*.wav *.mp3 *.ogg *.flac *.aac *.wma *.m4a"),
+                    ("Video files", "*.mp4 *.mkv *.avi *.mov *.webm"),
+                    ("All files", "*.*"),
+                ),
             )
 
             # if still recording / processing file and user select / add files
@@ -1491,9 +1568,13 @@ def file_input(files: List[str], modelKey: str, lang_source: str, lang_target: s
                 lbl_elapsed.set_text(text=f"{t.strftime('%H:%M:%S', t.gmtime(time() - timerStart))}")
 
                 if current_file_counter > 0:
-                    lbl_files.set_text(text=f"{current_file_counter}/{len(files)} ({getFileNameOnlyFromPath(files[current_file_counter - 1])})")
+                    lbl_files.set_text(
+                        text=f"{current_file_counter}/{len(files)} ({filename_only(files[current_file_counter - 1])})"
+                    )
                 else:
-                    lbl_files.set_text(text=f"{current_file_counter}/{len(files)} ({getFileNameOnlyFromPath(files[current_file_counter])})")
+                    lbl_files.set_text(
+                        text=f"{current_file_counter}/{len(files)} ({filename_only(files[current_file_counter])})"
+                    )
 
                 if transcribe:
                     lbl_tced.set_text(text=f"{gc.file_tced_counter}")
@@ -1501,15 +1582,17 @@ def file_input(files: List[str], modelKey: str, lang_source: str, lang_target: s
                     lbl_tled.set_text(text=f"{gc.file_tled_counter}")
 
                 # update progressbar
-                progress_bar["value"] = current_file_counter / len(files) * 100  # update the progress bar based on percentage
+                progress_bar["value"] = (
+                    current_file_counter / len(files) * 100
+                )  # update the progress bar based on percentage
 
                 root.after(1000, update_modal_ui)
 
         # widgets
         lbl_task_name.configure(text="Task: " + taskname + f" {language} with {model_name} model")
-        lbl_elapsed.set_text( f"{round(time() - timerStart, 2)}s")
+        lbl_elapsed.set_text(f"{round(time() - timerStart, 2)}s")
         cbtn_open_folder.configure(state="normal")
-        cbtnInvoker(sj.cache["auto_open_dir_export"], cbtn_open_folder)
+        cbtn_invoker(sj.cache["auto_open_dir_export"], cbtn_open_folder)
         btn_add.configure(state="normal", command=add_to_files)
         btn_cancel.configure(state="normal", command=cancel)
 
@@ -1520,11 +1603,11 @@ def file_input(files: List[str], modelKey: str, lang_source: str, lang_target: s
                 return
 
             # Proccess it
-            file_name = getFileNameOnlyFromPath(file)
+            file_name = filename_only(file)
             save_name = datetime.now().strftime(export_format)
             save_name = save_name.replace("{file}", file_name[file_slice_start:file_slice_end])
-            save_name = save_name.replace("{lang_source}", lang_source)
-            save_name = save_name.replace("{lang_target}", lang_target)
+            save_name = save_name.replace("{lang-source}", lang_source)
+            save_name = save_name.replace("{lang-target}", lang_target)
             save_name = save_name.replace("{model}", model_name)
             save_name = save_name.replace("{engine}", engine)
 
@@ -1567,7 +1650,7 @@ def file_input(files: List[str], modelKey: str, lang_source: str, lang_target: s
             start = time()
             logger.debug(f"Starting process for {file}")
             proc_thread.start()
-            proc_thread.join() # wait for thread to finish until continue to next file
+            proc_thread.join()  # wait for thread to finish until continue to next file
             logger.debug(f"Finished process for {file} in {round(time() - start, 2)}s")
 
         # destroy progress window
@@ -1579,7 +1662,7 @@ def file_input(files: List[str], modelKey: str, lang_source: str, lang_target: s
         export_to = dir_export if sj.cache["dir_export"] == "auto" else sj.cache["dir_export"]
         if gc.file_tced_counter > 0 or gc.file_tled_counter > 0:
             if sj.cache["auto_open_dir_export"]:
-                startFile(export_to)
+                start_file(export_to)
 
             resultMsg = (
                 f"Transcribed {gc.file_tced_counter} file(s) and Translated {gc.file_tled_counter} file(s)"
@@ -1599,6 +1682,6 @@ def file_input(files: List[str], modelKey: str, lang_source: str, lang_target: s
         assert gc.mw is not None
         mbox("Error occured while processing file(s)", f"{str(e)}", 2, gc.mw.root)
         gc.mw.from_file_stop(prompt=False, notify=False)
-        
+
         if root.winfo_exists():
-            root.after(1000, root.destroy) # destroy progress window
+            root.after(1000, root.destroy)  # destroy progress window

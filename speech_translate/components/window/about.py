@@ -12,7 +12,7 @@ from speech_translate._path import app_icon
 from speech_translate._contants import APP_NAME
 from speech_translate.globals import gc, sj
 from speech_translate.utils.helper import OpenUrl, nativeNotify
-from speech_translate.components.custom.tooltip import CreateToolTip
+from speech_translate.components.custom.tooltip import tk_tooltip
 
 
 # Classes
@@ -44,39 +44,48 @@ class AboutWindow:
 
         # Top frame
         try:  # Try catch the logo so if logo not found it can still run
-            self.canvasImg = tk.Canvas(self.f_top, width=100, height=100)
-            self.canvasImg.pack(side="top", padx=5, pady=5)
+            self.canvas_img = tk.Canvas(self.f_top, width=100, height=100)
+            self.canvas_img.pack(side="top", padx=5, pady=5)
             self.imgObj = Image.open(app_icon.replace(".ico", ".png"))
             self.imgObj = self.imgObj.resize((100, 100), Image.ANTIALIAS)
 
             self.img = ImageTk.PhotoImage(self.imgObj)
-            self.canvasImg.create_image(2, 50, anchor=tk.W, image=self.img)
+            self.canvas_img.create_image(2, 50, anchor=tk.W, image=self.img)
         except Exception:
             self.logoNotFoud = ttk.Label(self.f_top, text="Fail To Load Logo, Logo not found", foreground="red")
             self.logoNotFoud.pack(side="top", padx=5, pady=5)
             self.root.geometry("375x325")
 
-        self.titleLabel = ttk.Label(self.f_top, text="Speech Translate", font=("Helvetica", 12, "bold"), style="BrighterTFrameBg.TLabel")
-        self.titleLabel.pack(padx=5, pady=2, side="top")
+        self.lbl_title = ttk.Label(self.f_top, text="Speech Translate", font=("Helvetica", 12, "bold"), style="BrighterTFrameBg.TLabel")
+        self.lbl_title.pack(padx=5, pady=2, side="top")
 
-        self.contentLabel = ttk.Label(self.f_top, text="An open source Speech Transcription and Translation tool.\nMade using Whisper OpenAI and some translation API.", style="BrighterTFrameBg.TLabel")
-        self.contentLabel.pack(padx=5, pady=0, side="top")
+        self.lbl_content = ttk.Label(self.f_top, text="An open source Speech Transcription and Translation tool.\nMade using Whisper OpenAI and some translation API.", style="BrighterTFrameBg.TLabel")
+        self.lbl_content.pack(padx=5, pady=0, side="top")
 
         # Label for version
-        self.versionLabel = ttk.Label(self.f_bot_l, text=f"Version: {__version__}", font=("Segoe UI", 8))
-        self.versionLabel.pack(padx=5, pady=2, ipadx=0, side="left")
+        self.f_bot_l_1 = ttk.Frame(self.f_bot_l, style="Bottom.TFrame")
+        self.f_bot_l_1.pack(side="top", fill="both", expand=True)
 
-        self.checkUpdateLabelText = "Click to check for update"
-        self.checkUpdateLabelFg = "blue"
-        self.checkUpdateLabelFunc = self.check_for_update
-        self.checkUpdateLabel = ttk.Label(self.f_bot_l, text=self.checkUpdateLabelText, foreground=self.checkUpdateLabelFg, font=("Segoe UI", 8), cursor="hand2")
-        self.checkUpdateLabel.pack(padx=5, pady=0, side="left")
-        self.checkUpdateLabel.bind("<Button-1>", self.checkUpdateLabelFunc)
-        self.tooltipCheckUpdate = CreateToolTip(self.checkUpdateLabel, "Click to check for update")
+        self.f_bot_l_2 = ttk.Frame(self.f_bot_l, style="Bottom.TFrame")
+        self.f_bot_l_2.pack(side="top", fill="both", expand=True)
+
+        self.lbl_version = ttk.Label(self.f_bot_l_1, text=f"Version: {__version__}", font=("Segoe UI", 8))
+        self.lbl_version.pack(padx=5, pady=2, ipadx=0, side="left")
+
+        self.update_text = "Click to check for update"
+        self.update_fg = "blue"
+        self.update_func = self.check_for_update
+        self.lbl_check_update = ttk.Label(self.f_bot_l_1, text=self.update_text, foreground=self.update_fg, font=("Segoe UI", 8), cursor="hand2")
+        self.lbl_check_update.pack(padx=5, pady=0, side="left")
+        self.lbl_check_update.bind("<Button-1>", self.update_func)
+        self.tooltip_check_update = tk_tooltip(self.lbl_check_update, "Click to check for update")
+
+        self.lbl_cuda = ttk.Label(self.f_bot_l_2, text="CUDA: " + gc.cuda)
+        self.lbl_cuda.pack(padx=5, pady=2, ipadx=0, side="left")
 
         # Button
-        self.okBtn = ttk.Button(self.f_bot_r, text="Ok", command=self.on_closing, width=10, style="Accent.TButton")
-        self.okBtn.pack(padx=5, pady=5, side="right")
+        self.btn_ok = ttk.Button(self.f_bot_r, text="Ok", command=self.on_closing, width=10, style="Accent.TButton")
+        self.btn_ok.pack(padx=5, pady=5, side="right")
 
         # ------------------------------
         gc.about = self
@@ -117,10 +126,10 @@ class AboutWindow:
             return
 
         self.checking = True
-        self.checkUpdateLabelText = "Checking..."
-        self.checkUpdateLabelFg = "black"
-        self.tooltipCheckUpdate.text = "Checking... Please wait"
-        self.checkUpdateLabel.configure(text=self.checkUpdateLabelText, foreground=self.checkUpdateLabelFg)
+        self.update_text = "Checking..."
+        self.update_fg = "black"
+        self.tooltip_check_update.text = "Checking... Please wait"
+        self.lbl_check_update.configure(text=self.update_text, foreground=self.update_fg)
         self.root.update()
         logger.info("Checking for update...")
 
@@ -136,28 +145,28 @@ class AboutWindow:
                 latest_version = str(data["tag_name"])
                 if __version__ < latest_version:
                     logger.info(f"New version found: {latest_version}")
-                    self.checkUpdateLabelText = "New version available"
-                    self.checkUpdateLabelFg = "blue"
-                    self.checkUpdateLabelFunc = self.open_dl_link
-                    self.tooltipCheckUpdate.text = "Click to go to the latest release page"
+                    self.update_text = "New version available"
+                    self.update_fg = "blue"
+                    self.update_func = self.open_dl_link
+                    self.tooltip_check_update.text = "Click to go to the latest release page"
                     nativeNotify("New version available", "Visit the repository to download the latest update")
                 else:
                     logger.info("No update available")
-                    self.checkUpdateLabelText = "You are using the latest version"
-                    self.checkUpdateLabelFg = "green"
-                    self.checkUpdateLabelFunc = self.check_for_update
-                    self.tooltipCheckUpdate.text = "Up to date"
+                    self.update_text = "You are using the latest version"
+                    self.update_fg = "green"
+                    self.update_func = self.check_for_update
+                    self.tooltip_check_update.text = "Up to date"
             else:
                 logger.warning("Failed to check for update")
-                self.checkUpdateLabelText = "Fail to check for update!"
-                self.checkUpdateLabelFg = "red"
-                self.checkUpdateLabelFunc = self.check_for_update
-                self.tooltipCheckUpdate.text = "Click to try again"
+                self.update_text = "Fail to check for update!"
+                self.update_fg = "red"
+                self.update_func = self.check_for_update
+                self.tooltip_check_update.text = "Click to try again"
                 if not self.checkingOnStart:  # suppress error if checking on start
                     nativeNotify("Fail to check for update!", "Click to try again")
 
-            self.checkUpdateLabel.configure(text=self.checkUpdateLabelText, foreground=self.checkUpdateLabelFg)
-            self.checkUpdateLabel.bind("<Button-1>", self.checkUpdateLabelFunc)
+            self.lbl_check_update.configure(text=self.update_text, foreground=self.update_fg)
+            self.lbl_check_update.bind("<Button-1>", self.update_func)
 
             self.checking = False
         except Exception as e:

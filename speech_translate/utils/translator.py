@@ -5,7 +5,6 @@ from .helper import get_similar_keys, no_connection_notify
 from .language import google_lang, libre_lang, myMemory_lang
 
 
-
 # Import the translator
 try:
     from deep_translator import GoogleTranslator, MyMemoryTranslator
@@ -21,7 +20,7 @@ except Exception as e:
 
 class TranslationConnection:
     """Translate Connections
-    
+
     Attributes
     ----------
         GoogleTranslator (function): Google Translate
@@ -76,7 +75,9 @@ def google_tl(text: str, from_lang: str, to_lang: str, proxies: Optional[Dict] =
                 no_connection_notify()
                 return is_Success, "Error: Not connected to internet"
 
-        result = TlCon.GoogleTranslator(source=from_LanguageCode_Google, target=to_LanguageCode_Google, proxies=proxies).translate(text.strip())
+        result = TlCon.GoogleTranslator(
+            source=from_LanguageCode_Google, target=to_LanguageCode_Google, proxies=proxies
+        ).translate(text.strip())
         is_Success = True
     except Exception as e:
         logger.exception(str(e))
@@ -91,14 +92,14 @@ def google_tl(text: str, from_lang: str, to_lang: str, proxies: Optional[Dict] =
 
 def memory_tl(text: str, from_lang: str, to_lang: str, proxies: Optional[Dict] = None, debug_log: bool = False):
     """Translate Using MyMemoryTranslator
-    
+
     Args
     ----
         text (str): Text to translate
         from_lang (str): Language From
         to_lang (str): Language to translate
         debug_log (bool, optional): Debug Log. Defaults to False.
-    
+
     Returns
     -------
         is_Success: Success or not
@@ -128,7 +129,11 @@ def memory_tl(text: str, from_lang: str, to_lang: str, proxies: Optional[Dict] =
                 no_connection_notify()
                 return is_Success, "Error: Not connected to internet"
 
-        result = str(TlCon.MyMemoryTranslator(source=from_LanguageCode_Memory, target=to_LanguageCode_Memory, proxies=proxies).translate(text.strip()))
+        result = str(
+            TlCon.MyMemoryTranslator(
+                source=from_LanguageCode_Memory, target=to_LanguageCode_Memory, proxies=proxies
+            ).translate(text.strip())
+        )
         is_Success = True
     except Exception as e:
         logger.exception(str(e))
@@ -142,7 +147,17 @@ def memory_tl(text: str, from_lang: str, to_lang: str, proxies: Optional[Dict] =
 
 
 # LibreTranslator
-def libre_tl(text: str, from_lang: str, to_lang: str, https: bool = False, host: str = "libretranslate.de", port: str = "", apiKeys: str = "", proxies: Optional[Dict] = None, debug_log: bool = False):
+def libre_tl(
+    text: str,
+    from_lang: str,
+    to_lang: str,
+    https: bool = False,
+    host: str = "libretranslate.de",
+    port: str = "",
+    apiKeys: str = "",
+    proxies: Optional[Dict] = None,
+    debug_log: bool = False,
+):
     """Translate Using LibreTranslate
 
     Args
@@ -155,7 +170,7 @@ def libre_tl(text: str, from_lang: str, to_lang: str, https: bool = False, host:
         port (str, optional): Port. Defaults to "".
         apiKeys (str, optional): API Keys. Defaults to "".
         debug_log (bool, optional): Debug Log. Defaults to False.
-    
+
     Returns
     -------
         is_Success: Success or not
@@ -176,7 +191,13 @@ def libre_tl(text: str, from_lang: str, to_lang: str, https: bool = False, host:
         return is_Success, "Error Language Code Undefined"
     # --- Translate ---
     try:
-        request = {"q": text, "source": from_LanguageCode_Libre, "target": to_LanguageCode_Libre, "format": "text", "api_key": apiKeys}
+        request = {
+            "q": text,
+            "source": from_LanguageCode_Libre,
+            "target": to_LanguageCode_Libre,
+            "format": "text",
+            "api_key": apiKeys,
+        }
         httpStr = "https" if https else "http"
 
         if port != "":

@@ -40,4 +40,4 @@ if __name__ == "__main__":
     print("Done!")
     print(f"Total time {time.time() - timeStart: .2f}")
     print("-" * 100)
-    print("IF PYTORCH version is not compatible with your system, please install it manually with direction located at https://pytorch.org/")
+    print("IF PYTORCH version is not compatible with your system, please install it manually following https://pytorch.org/")

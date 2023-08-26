@@ -1,18 +1,42 @@
-__all__ = ["CreateToolTip", "createMultipleTooltips", "CreateToolTipOnText"]
+__all__ = ["tk_tooltip", "Tooltip", "tk_tooltips", "CreateToolTipOnText"]
 
 import tkinter as tk
 from tkinter import ttk
 from typing import List, Union
-from speech_translate.utils.helper import tb_copy_only
 
 
-class CreateToolTip(object):
+def tb_copy_only(event):
+    key = event.keysym
+
+    # Allow
+    allowedEventState = [4, 8, 12]
+    if key.lower() in ["left", "right"]:  # Arrow left right
+        return
+    if event.state in allowedEventState and key.lower() == "a":  # Ctrl + a
+        return
+    if event.state in allowedEventState and key.lower() == "c":  # Ctrl + c
+        return
+
+    # If not allowed
+    return "break"
+
+
+class Tooltip(object):
     """
     create a tooltip for a given widget
     """
 
     # ----------------------------------------------------------------------
-    def __init__(self, widget, text="widget info", delay=250, wrapLength=180, opacity=1.0, always_on_top=True, center=False):
+    def __init__(
+        self,
+        widget,
+        text: str,
+        delay: int = 250,
+        wrapLength: int = 180,
+        opacity: float = 1.0,
+        always_on_top: bool = True,
+        center: bool = False,
+    ):
         self.waitTime = delay  # miliseconds
         self.wrapLength = wrapLength  # pixels
         self.widget = widget
@@ -66,7 +90,9 @@ class CreateToolTip(object):
 
         self.root.wm_geometry("+%d+%d" % (x, y))
 
-        label = tk.Label(self.root, text=self.text, justify="left", relief="solid", borderwidth=1, wraplength=self.wrapLength)
+        label = tk.Label(
+            self.root, text=self.text, justify="left", relief="solid", borderwidth=1, wraplength=self.wrapLength
+        )
         label.pack(ipadx=1)
 
     def hidetip(self):
@@ -76,16 +102,50 @@ class CreateToolTip(object):
             tw.destroy()
 
 
-def createMultipleTooltips(widgets: List[tk.Widget], text: str, delay: int = 250, wrapLength: int = 180, opacity: float = 1.0, always_on_top: bool = True, center: bool = False):
+def tk_tooltip(
+    widget: Union[tk.Widget, ttk.Widget],
+    text: str,
+    delay: int = 250,
+    wrapLength: int = 180,
+    opacity: float = 1.0,
+    always_on_top: bool = True,
+    center: bool = False,
+):
+    """
+    Create a tooltip for a given widget
+    """
+    return Tooltip(widget, text, delay, wrapLength, opacity, always_on_top, center)
+
+
+def tk_tooltips(
+    widgets: List[tk.Widget],
+    text: str,
+    delay: int = 250,
+    wrapLength: int = 180,
+    opacity: float = 1.0,
+    always_on_top: bool = True,
+    center: bool = False,
+):
     """
     Create multiple tooltips for a list of widgets
     """
+    tooltips = []
     for widget in widgets:
-        CreateToolTip(widget, text, delay, wrapLength, opacity, always_on_top, center)
+        tooltips.append(tk_tooltip(widget, text, delay, wrapLength, opacity, always_on_top, center))
+
+    return tooltips
 
 
 class CreateToolTipOnText:
-    def __init__(self, widget: Union[tk.Text, tk.Entry, ttk.Entry], text: str, delay=250, opacity=0.9, always_on_top=True, geometry=None):
+    def __init__(
+        self,
+        widget: Union[tk.Text, tk.Entry, ttk.Entry],
+        text: str,
+        delay=250,
+        opacity=0.9,
+        always_on_top=True,
+        geometry=None,
+    ):
         self.waitTime = delay  # miliseconds
         self.widget = widget
         self.text = text
@@ -139,8 +199,8 @@ class CreateToolTipOnText:
 
         self.tb = tk.Text(self.f_1, wrap=tk.WORD, font=("Arial", 10))
         self.tb.insert("end", self.text)
-        self.tb.pack(fill="both", expand=True, side="left")
         self.tb.bind("<Key>", lambda event: tb_copy_only(event))  # Disable textbox input
+        self.tb.pack(fill="both", expand=True, side="left")
 
         self.scrollbar = ttk.Scrollbar(self.f_1, orient=tk.VERTICAL, command=self.tb.yview)
         self.scrollbar.pack(fill="y", side="right")

@@ -15,7 +15,7 @@ def run_makespec(filenames, **opts):
     for p in temppaths:
         pathex.extend(p.split(os.pathsep))
 
-    import PyInstaller.building.makespec # type: ignore
+    import PyInstaller.building.makespec  # type: ignore
 
     spec_file = PyInstaller.building.makespec.main(filenames, **opts)
     return spec_file

@@ -1,4 +1,4 @@
-from .helper import upFirstCase
+from .helper import up_first_case
 
 # List of whisper languages
 whisper_compatible = [
@@ -336,9 +336,9 @@ myMemory_target.pop(0)
 
 engine_select_target_dict = {
     "Whisper": ["English"],
-    "Google": [upFirstCase(x) for x in gLang_target],
-    "LibreTranslate": [upFirstCase(x) for x in libre_target],
-    "MyMemoryTranslator": [upFirstCase(x) for x in myMemory_target],
+    "Google": [up_first_case(x) for x in gLang_target],
+    "LibreTranslate": [up_first_case(x) for x in libre_target],
+    "MyMemoryTranslator": [up_first_case(x) for x in myMemory_target],
 }
 
 # source engine
@@ -358,8 +358,8 @@ for lang in myMemory_whisper_compatible:
         myMemory_whisper_compatible.remove(lang)
 
 engine_select_source_dict = {
-    "Whisper": ["Auto detect"] + [upFirstCase(x) for x in whisper_compatible],
-    "Google": ["Auto detect"] + [upFirstCase(x) for x in google_whisper_compatible],
-    "LibreTranslate": ["Auto detect"] + [upFirstCase(x) for x in libre_whisper_compatible],
-    "MyMemoryTranslator": ["Auto detect"] + [upFirstCase(x) for x in myMemory_whisper_compatible],
+    "Whisper": ["Auto detect"] + [up_first_case(x) for x in whisper_compatible],
+    "Google": ["Auto detect"] + [up_first_case(x) for x in google_whisper_compatible],
+    "LibreTranslate": ["Auto detect"] + [up_first_case(x) for x in libre_whisper_compatible],
+    "MyMemoryTranslator": ["Auto detect"] + [up_first_case(x) for x in myMemory_whisper_compatible],
 }

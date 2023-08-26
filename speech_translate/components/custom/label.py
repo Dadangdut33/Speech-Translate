@@ -5,6 +5,7 @@
 import tkinter as tk
 from tkinter import ttk
 
+
 class LabelTitleText:
     def __init__(self, master, title, text, **kwargs):
         self.master = master

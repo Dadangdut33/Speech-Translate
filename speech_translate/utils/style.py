@@ -34,7 +34,7 @@ def set_ui_style(theme: str, root=None):
         mbox("Error", f"Failed to set `{theme}` theme, converting back to default native theme", 2, root)
         theme = gc.native_theme
         set_theme(theme)
-        sj.savePartialSetting("theme", theme)
+        sj.save_key("theme", theme)
 
     # -----------------------
     assert gc.style is not None
@@ -61,7 +61,9 @@ def get_root() -> tk.Tk:
 
 
 def init_theme():
-    dir_theme_list = [name for name in os.listdir(dir_theme) if os.path.isdir(os.path.join(dir_theme, name))]  # only if a dir
+    dir_theme_list = [
+        name for name in os.listdir(dir_theme) if os.path.isdir(os.path.join(dir_theme, name))
+    ]  # only if a dir
 
     # filter path list by making sure that the dir name contains .tcl with the same name as the dir
     dir_theme_list = [dir for dir in dir_theme_list if dir + ".tcl" in os.listdir(os.path.join(dir_theme, dir))]
@@ -97,6 +99,7 @@ def set_theme(theme: str):
     except TclError as e:
         logger.exception(e)
 
+
 # -----------------------------
 if __name__ == "__main__":
     """
@@ -130,7 +133,6 @@ if __name__ == "__main__":
         "Treeview": ttk.Treeview,
     }
 
-
     def iter_layout(layout, tab_amnt=0, elements=[]):
         """Recursively prints the layout children."""
         el_tabs = "  " * tab_amnt
@@ -150,7 +152,6 @@ if __name__ == "__main__":
             print(el_tabs + "{}{}".format("} // ", element))
 
         return elements
-
 
     def stylename_elements_options(stylename):
         """Function to expose the options of every element associated to a widget
@@ -190,7 +191,10 @@ if __name__ == "__main__":
                 print("{0:30} options: {1}".format(element, style.element_options(element)))
 
         except TclError:
-            print('_tkinter.TclError: "{0}" in function' "widget_elements_options({0}) is not a regonised stylename.".format(stylename))
+            print(
+                '_tkinter.TclError: "{0}" in function'
+                "widget_elements_options({0}) is not a regonised stylename.".format(stylename)
+            )
 
     def main():
         stylenameList = list(stylename_map.keys())

@@ -13,6 +13,8 @@ from .utils.setting import SettingJson
 
 # Disabling tqdm globally by Defining a custom dummy class that suppresses tqdm's behavior
 import tqdm
+
+
 class DummyTqdm:
     def __init__(self, *args, **kwargs):
         pass
@@ -26,14 +28,15 @@ class DummyTqdm:
     def update(self, n=1):
         pass
 
+
 # Monkey-patch tqdm with the DummyTqdm class
 tqdm.tqdm = DummyTqdm
 
 # Forward declaration for type hinting
-if TYPE_CHECKING: 
+if TYPE_CHECKING:
     from .components.window.main import MainWindow, AppTray
-    from .components.window.setting import SettingWindow  
-    from .components.window.about import AboutWindow  
+    from .components.window.setting import SettingWindow
+    from .components.window.about import AboutWindow
     from .components.window.log import LogWindow
     from .components.window.transcribed import TcsWindow
     from .components.window.translated import TlsWindow
@@ -48,6 +51,7 @@ else:
 # ------------------ #
 sj: SettingJson = SettingJson(os.path.join(dir_user, "setting.json"), dir_user, [dir_temp, dir_log, dir_export])
 
+
 class GlobalClass:
     """
     Class containing all the static variables for the UI. It also contains some methods for the stuff to works.
@@ -56,6 +60,8 @@ class GlobalClass:
     """
 
     def __init__(self):
+        self.cuda: str = ""
+
         # Flags
         self.running: bool = True
         self.recording: bool = False
@@ -131,7 +137,8 @@ class GlobalClass:
         assert self.mw is not None
         currentText = self.getMwTextTc()
         # Main window textbox
-        if sj.cache["tb_mw_tc_max"] != 0 and len(currentText) > sj.cache["tb_mw_tc_max"]:  # if not infinite and text too long
+        if sj.cache["tb_mw_tc_max"] != 0 and len(currentText) > sj.cache["tb_mw_tc_max"]:
+            # if not infinite and text too long
             # remove words from the start with length of the new text
             # then add new text to the end
             currentText = currentText[len(textToAppend) :]
@@ -140,7 +147,7 @@ class GlobalClass:
             self.mw.tb_transcribed.delete("1.0", "end")
 
         if detected_lang.lower() in RESHAPE_LANG_LIST:
-            textToAppend =  str(get_display(arabic_reshaper.reshape(textToAppend)))
+            textToAppend = str(get_display(arabic_reshaper.reshape(textToAppend)))
 
         self.mw.tb_transcribed.insert("end", textToAppend)
         self.mw.tb_transcribed.see("end")
@@ -157,7 +164,8 @@ class GlobalClass:
         assert self.mw is not None
         currentText = self.getMwTextTl()
         # Main window textbox
-        if sj.cache["tb_mw_tl_max"] != 0 and len(currentText) > sj.cache["tb_mw_tl_max"]:  # if not infinite and text is too long
+        if sj.cache["tb_mw_tl_max"] != 0 and len(currentText) > sj.cache["tb_mw_tl_max"]:
+            # if not infinite and text is too long
             # remove words from the start with length of the new text
             # then add new text to the end
             currentText = currentText[len(textToAppend) :]
@@ -184,7 +192,8 @@ class GlobalClass:
         currentText = self.ex_tcw.lbl_text.cget("text").strip()
         textToAppend = textToAppend.strip()
         # Main window textbox
-        if sj.cache["tb_ex_tc_max"] != 0 and len(currentText) > sj.cache["tb_ex_tc_max"]:  # if not infinite and text is too long
+        if sj.cache["tb_ex_tc_max"] != 0 and len(currentText) > sj.cache["tb_ex_tc_max"]:
+            # if not infinite and text is too long
             # remove words from the start with length of the new text
             # then add new text to the end
             currentText = currentText[len(textToAppend) :]
@@ -212,7 +221,8 @@ class GlobalClass:
         currentText = self.ex_tlw.lbl_text.cget("text").strip()
         textToAppend = textToAppend.strip()
         # Main window textbox
-        if sj.cache["tb_ex_tl_max"] != 0 and len(currentText) > sj.cache["tb_ex_tl_max"]:  # if not infinite and text is too long
+        if sj.cache["tb_ex_tl_max"] != 0 and len(currentText) > sj.cache["tb_ex_tl_max"]:
+            # if not infinite and text is too long
             currentText = currentText[len(textToAppend) :]  # remove words from the start with length of the new text
             currentText += textToAppend  # add new text to the end
             textToAppend = currentText  # set new text

@@ -9,7 +9,7 @@ from speech_translate._path import app_icon
 from speech_translate._contants import APP_NAME
 from speech_translate.globals import gc, sj
 from speech_translate.custom_logging import logger, current_log, dir_log, init_logging
-from speech_translate.utils.helper import startFile, tb_copy_only
+from speech_translate.utils.helper import start_file, tb_copy_only
 
 
 # Classes
@@ -26,7 +26,7 @@ class LogWindow:
         self.isOpen = False
         self.stay_on_top = False
         self.thread_refresh = None
-        gc.lw = self 
+        gc.lw = self
 
         # Frames
         self.f_1 = ttk.Frame(self.root)
@@ -44,7 +44,9 @@ class LogWindow:
         self.tbLogger.pack(side="left", fill="both", expand=True)
         self.tbLogger.configure(yscrollcommand=self.sbY.set)
         self.sbY.configure(command=self.tbLogger.yview)
-        self.tbLogger.bind("<Control-MouseWheel>", lambda event: self.increase_font_size() if event.delta > 0 else self.lower_font_size())  # bind scrollwheel to change font size
+        self.tbLogger.bind(
+            "<Control-MouseWheel>", lambda event: self.increase_font_size() if event.delta > 0 else self.lower_font_size()
+        )  # bind scrollwheel to change font size
 
         # Other stuff
         self.btn_clear = ttk.Button(self.f_bot, text="⚠ Clear", command=self.clearLog)
@@ -53,16 +55,28 @@ class LogWindow:
         self.btn_refresh = ttk.Button(self.f_bot, text="🔄 Refresh", command=lambda: self.updateLog)
         self.btn_refresh.pack(side="left", padx=5, pady=5)
 
-        self.btn_open_default_log = ttk.Button(self.f_bot, text="🗁 Open Log Folder", command=lambda: startFile(dir_log))
+        self.btn_open_default_log = ttk.Button(self.f_bot, text="🗁 Open Log Folder", command=lambda: start_file(dir_log))
         self.btn_open_default_log.pack(side="left", padx=5, pady=5)
 
-        self.cbtn_auto_scroll = ttk.Checkbutton(self.f_bot, text="Auto Scroll", command=lambda: sj.savePartialSetting("auto_scroll_log", self.cbtn_auto_scroll.instate(["selected"])), style="Switch.TCheckbutton")
+        self.cbtn_auto_scroll = ttk.Checkbutton(
+            self.f_bot,
+            text="Auto Scroll",
+            command=lambda: sj.save_key("auto_scroll_log", self.cbtn_auto_scroll.instate(["selected"])),
+            style="Switch.TCheckbutton",
+        )
         self.cbtn_auto_scroll.pack(side="left", padx=5, pady=5)
 
-        self.cbtn_auto_refresh = ttk.Checkbutton(self.f_bot, text="Auto Refresh", command=lambda: sj.savePartialSetting("auto_refresh_log", self.cbtn_auto_refresh.instate(["selected"])), style="Switch.TCheckbutton")
+        self.cbtn_auto_refresh = ttk.Checkbutton(
+            self.f_bot,
+            text="Auto Refresh",
+            command=lambda: sj.save_key("auto_refresh_log", self.cbtn_auto_refresh.instate(["selected"])),
+            style="Switch.TCheckbutton",
+        )
         self.cbtn_auto_refresh.pack(side="left", padx=5, pady=5)
 
-        self.cbtn_stay_on_top = ttk.Checkbutton(self.f_bot, text="Stay on Top", command=self.toggle_stay_on_top, style="Switch.TCheckbutton")
+        self.cbtn_stay_on_top = ttk.Checkbutton(
+            self.f_bot, text="Stay on Top", command=self.toggle_stay_on_top, style="Switch.TCheckbutton"
+        )
         self.cbtn_stay_on_top.pack(side="left", padx=5, pady=5)
 
         self.btn_close = ttk.Button(self.f_bot, text="Ok", command=self.on_closing, style="Accent.TButton")

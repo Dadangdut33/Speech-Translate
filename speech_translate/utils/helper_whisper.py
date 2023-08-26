@@ -1,16 +1,24 @@
 import re
 from speech_translate.custom_logging import logger
 
-modelSelectDict = {"Tiny (~32x speed)": "tiny", "Base (~16x speed)": "base", "Small (~6x speed)": "small", "Medium (~2x speed)": "medium", "Large (v1) (1x speed)": "large-v1", "Large (v2) (1x speed)": "large-v2"}
+modelSelectDict = {
+    "Tiny (~32x speed)": "tiny",
+    "Base (~16x speed)": "base",
+    "Small (~6x speed)": "small",
+    "Medium (~2x speed)": "medium",
+    "Large (v1) (1x speed)": "large-v1",
+    "Large (v2) (1x speed)": "large-v2",
+}
 modelKeys = list(modelSelectDict.keys())
 modelValues = list(modelSelectDict.values())
+
 
 def append_dot_en(modelKey: str, src_english: bool):
     """
     Append .en to model name if src_english is True and model is not large (large does not have english version)
 
     Parameters
-    ---
+    ----------
     modelKey: str
         The key of the model in modelSelectDict
     src_english: bool
@@ -25,11 +33,19 @@ def append_dot_en(modelKey: str, src_english: bool):
     logger.debug(f"modelName: {modelName}")
     return modelName
 
+
 def str_to_union_str_list_int(string):
     """
     Convert a string to a Union[str, List[int]] can also be use for iterable of int (in this case the iterable is a list)
-    :param string: string to convert
-    :return: Union[str, List[int]]
+
+    Parameters
+    ----------
+    string: str
+        string to convert
+
+    return
+    ------
+    Union[str, List[int]]
     """
     # If string is a list of int, convert to list of int
     if string[0] == "[" and string[-1] == "]":
@@ -45,8 +61,15 @@ def str_to_union_str_list_int(string):
 def str_to_bool(string: str):
     """
     Convert a string to a bool
-    :param string: string to convert
-    :return: bool
+
+    Parameters
+    ----------
+    string: str
+        string to convert
+
+    return
+    ------
+    bool
     """
     if string.lower() == "true":
         return True
@@ -54,6 +77,7 @@ def str_to_bool(string: str):
         return False
 
     raise ValueError(f"Cannot convert {string} to bool")
+
 
 def whisper_result_to_srt(result):
     """
@@ -94,6 +118,7 @@ def srt_whisper_to_txt_format(srt: str):
         text.append(line.strip())
     return "\n".join(text)
 
+
 def srt_whisper_to_txt_format_stamps(srt: str):
     """
     Convert SRT format to text format, and return stamps
@@ -111,13 +136,14 @@ def srt_whisper_to_txt_format_stamps(srt: str):
         text.append(line.strip())
     return "\n".join(text), stamps
 
-def txt_to_srt_whisper_format_stamps(txt: str, stamps:list[str]):
+
+def txt_to_srt_whisper_format_stamps(txt: str, stamps: list[str]):
     """
     Convert text format to SRT format, require list of stamps
     """
     srt = []
-    for idx,(line,stamp) in enumerate(zip(txt.splitlines(),stamps)):
-        srt.append(str(idx+1))
+    for idx, (line, stamp) in enumerate(zip(txt.splitlines(), stamps)):
+        srt.append(str(idx + 1))
         srt.append(stamp.strip())
         srt.append(line.strip())
         srt.append("")

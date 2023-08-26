@@ -3,6 +3,7 @@ import hashlib
 import os
 from speech_translate.components.custom.download import whisper_download_with_progress_gui
 
+
 # donwload function
 def download_model(model_name, root_win=None, cancel_func=None, after_func=None, download_root=None, in_memory=False):
     """Download a model from the official model repository
@@ -26,11 +27,13 @@ def download_model(model_name, root_win=None, cancel_func=None, after_func=None,
 
     if model_name not in whisper._MODELS:
         raise RuntimeError(f"Model {model_name} not found; available models = {whisper.available_models()}")
-    
+
     if root_win is None:
         return whisper._download(whisper._MODELS[model_name], download_root, in_memory)
     else:
-        return whisper_download_with_progress_gui(root_win, cancel_func, after_func, model_name, whisper._MODELS[model_name], download_root, in_memory)
+        return whisper_download_with_progress_gui(
+            root_win, cancel_func, after_func, model_name, whisper._MODELS[model_name], download_root, in_memory
+        )
 
 
 # check if model is already downloaded

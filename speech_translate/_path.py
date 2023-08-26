@@ -12,7 +12,7 @@ dir_export: str = os.path.abspath(os.path.join(dir_project, "export"))
 app_icon: str = os.path.abspath(os.path.join(dir_assets, "icon.ico"))
 
 # verify app_icon exist or not
-if not os.path.exists(app_icon): 
+if not os.path.exists(app_icon):
     app_icon_missing = True
 else:
     app_icon_missing = False

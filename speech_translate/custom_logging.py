@@ -13,6 +13,7 @@ if not os.path.exists(dir_log):
         print("Error: Cannot create log folder")
         print(e)
 
+
 # ------------------ #
 class StreamFormatter(logging.Formatter):
     bold = "\033[1m"

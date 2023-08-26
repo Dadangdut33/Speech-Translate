@@ -10,7 +10,9 @@ class CountdownWindow:
     """Countdown window"""
 
     # ----------------------------------------------------------------------
-    def __init__(self, master: Union[tk.Tk, tk.Toplevel], countdown: int, title: str, taskname: str, cancelFunc = None, geometry=None) -> None:
+    def __init__(
+        self, master: Union[tk.Tk, tk.Toplevel], countdown: int, title: str, taskname: str, cancelFunc=None, geometry=None
+    ) -> None:
         self.taskname = taskname
         self.master = master
         self.root = tk.Toplevel(master)
@@ -27,7 +29,7 @@ class CountdownWindow:
 
         self.mf = ttk.Frame(self.root)
         self.mf.pack(side="top", fill="both", padx=5, pady=5, expand=True)
-        
+
         self.lbl = ttk.Label(self.mf, text=f"Current Task: {taskname}\nTask will be done in: {countdown}")
         self.lbl.pack(side="top", fill="x", padx=5, pady=5, expand=True)
 

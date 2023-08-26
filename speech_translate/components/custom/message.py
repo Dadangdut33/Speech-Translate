@@ -3,12 +3,13 @@ from tkinter import ttk
 from tkinter import messagebox
 from typing import Literal, Union, Optional, List
 from speech_translate._path import app_icon
+from speech_translate.utils.helper import tb_copy_only
 
-opened: List[int] = []
+opened: List[str] = []
 
 
 class MBoxText:
-    def __init__(self, id: int, parent: Union[tk.Tk, tk.Toplevel], title: str, text: str, geometry=None) -> None:
+    def __init__(self, id: str, parent: Union[tk.Tk, tk.Toplevel], title: str, text: str, geometry=None) -> None:
         # Check if already opened
         for i in opened:
             if i == id:
@@ -27,10 +28,13 @@ class MBoxText:
 
         self.f_2 = ttk.Frame(self.root)
         self.f_2.pack(fill="both", expand=True, side="bottom", padx=5, pady=5)
-     
+
         self.tb = tk.Text(self.f_1, wrap=tk.WORD, font=("Arial", 10))
         self.tb.insert("end", text)
-        self.tb.bind("<Control-MouseWheel>", lambda event: self.increase_font_size() if event.delta > 0 else self.lower_font_size())  # bind scrollwheel to change font size
+        self.tb.bind(
+            "<Control-MouseWheel>", lambda event: self.increase_font_size() if event.delta > 0 else self.lower_font_size()
+        )  # bind scrollwheel to change font size
+        self.tb.bind("<Key>", lambda event: tb_copy_only(event))  # Disable textbox input
         self.tb.pack(fill="both", expand=True, side="left")
 
         self.scrollbar = ttk.Scrollbar(self.f_1, orient=tk.VERTICAL, command=self.tb.yview)
@@ -71,6 +75,7 @@ class MBoxText:
             self.root.destroy()
         except tk.TclError as e:
             pass
+
 
 def mbox(title: str, text: str, style: Literal[0, 1, 2, 3], parent: Optional[Union[tk.Tk, tk.Toplevel]] = None):
     """Message Box, made simpler

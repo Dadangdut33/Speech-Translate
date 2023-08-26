@@ -7,7 +7,7 @@ from speech_translate._path import app_icon
 from speech_translate._contants import SUBTITLE_PLACEHOLDER
 from speech_translate.globals import sj, gc
 from speech_translate.utils.beep import beep
-from speech_translate.components.custom.tooltip import CreateToolTip
+from speech_translate.components.custom.tooltip import tk_tooltip
 from speech_translate.components.custom.message import mbox
 
 
@@ -47,16 +47,24 @@ class AbstractDetachedSubtitleWindow:
         # Top frame
         self.frame_1 = ttk.Frame(self.root, style="TranslatedSub.TFrame")
         self.frame_1.pack(side="top", fill="both", expand=True)
-        self.fTooltip = CreateToolTip(self.frame_1, "Right click for interaction menu\n\nTips: You can drag the window by dragging from the label", wrapLength=400)
+        self.fTooltip = tk_tooltip(
+            self.frame_1,
+            "Right click for interaction menu\n\nTips: You can drag the window by dragging from the label",
+            wrapLength=400,
+        )
 
         self.lbl_text = tk.Label(
             self.frame_1,
-            font=(sj.cache[f"tb_ex_{winType}_font"], sj.cache[f"tb_ex_{winType}_font_size"], "bold" if sj.cache[f"tb_ex_{winType}_font_bold"] else "normal"),
+            font=(
+                sj.cache[f"tb_ex_{winType}_font"],
+                sj.cache[f"tb_ex_{winType}_font_size"],
+                "bold" if sj.cache[f"tb_ex_{winType}_font_bold"] else "normal",
+            ),
             fg=sj.cache[f"tb_ex_{winType}_font_color"],
             bg=sj.cache[f"tb_ex_{winType}_bg_color"],
             wraplength=600,
             justify="left",
-            text=SUBTITLE_PLACEHOLDER # This is to prevent the label from being too small
+            text=SUBTITLE_PLACEHOLDER,  # This is to prevent the label from being too small
         )
         self.lbl_text.pack(side="top")
 
@@ -69,17 +77,49 @@ class AbstractDetachedSubtitleWindow:
         self.menuDropdown.add_separator()
         self.menuDropdown.add_command(label="Copy", command=lambda: self.copy_tb_content(), accelerator="Alt + C")
         self.menuDropdown.add_separator()
-        self.menuDropdown.add_checkbutton(label="Hide Title bar", command=lambda: self.toggle_title_bar(fromKeyBind=False), onvalue=1, offvalue=0, variable=self.no_title_bar, accelerator="Alt + T")
+        self.menuDropdown.add_checkbutton(
+            label="Hide Title bar",
+            command=lambda: self.toggle_title_bar(fromKeyBind=False),
+            onvalue=1,
+            offvalue=0,
+            variable=self.no_title_bar,
+            accelerator="Alt + T",
+        )
         if platform.system() == "Windows":
             self.click_through.set(int(sj.cache[f"ex_{winType}_click_through"]))
-            self.menuDropdown.add_checkbutton(label="Click Through/Transparent", command=lambda: self.toggle_click_through(fromKeyBind=False), onvalue=1, offvalue=0, variable=self.click_through, accelerator="Alt + S")
+            self.menuDropdown.add_checkbutton(
+                label="Click Through/Transparent",
+                command=lambda: self.toggle_click_through(fromKeyBind=False),
+                onvalue=1,
+                offvalue=0,
+                variable=self.click_through,
+                accelerator="Alt + S",
+            )
             self.toggle_click_through(fromKeyBind=False, onInit=True)
-        self.menuDropdown.add_checkbutton(label="Always On Top", command=lambda: self.toggle_always_on_top(fromKeyBind=False), onvalue=1, offvalue=0, variable=self.always_on_top, accelerator="Alt + O")
+        self.menuDropdown.add_checkbutton(
+            label="Always On Top",
+            command=lambda: self.toggle_always_on_top(fromKeyBind=False),
+            onvalue=1,
+            offvalue=0,
+            variable=self.always_on_top,
+            accelerator="Alt + O",
+        )
         self.menuDropdown.add_separator()
-        self.menuDropdown.add_command(label="Increase Opacity by 0.1", command=lambda: self.increase_opacity(), accelerator="Alt + Mouse Wheel Up")
-        self.menuDropdown.add_command(label="Decrease Opacity by 0.1", command=lambda: self.decrease_opacity(), accelerator="Alt + Mouse Wheel Down")
+        self.menuDropdown.add_command(
+            label="Increase Opacity by 0.1", command=lambda: self.increase_opacity(), accelerator="Alt + Mouse Wheel Up"
+        )
+        self.menuDropdown.add_command(
+            label="Decrease Opacity by 0.1", command=lambda: self.decrease_opacity(), accelerator="Alt + Mouse Wheel Down"
+        )
         self.menuDropdown.add_separator()
-        self.menuDropdown.add_checkbutton(label="Hide Tooltip", command=lambda: self.toggle_tooltip(fromKeyBind=False), onvalue=1, offvalue=0, variable=self.no_tooltip, accelerator="Alt + X")
+        self.menuDropdown.add_checkbutton(
+            label="Hide Tooltip",
+            command=lambda: self.toggle_tooltip(fromKeyBind=False),
+            onvalue=1,
+            offvalue=0,
+            variable=self.no_tooltip,
+            accelerator="Alt + X",
+        )
         self.menuDropdown.add_separator()
         self.menuDropdown.add_command(label="Keyboard Shortcut Keys", command=lambda: self.show_shortcut_keys())
 
@@ -129,7 +169,7 @@ class AbstractDetachedSubtitleWindow:
         Method to resize the window.
         """
         # update wraplength
-        if event.width >= 300: # minimum width
+        if event.width >= 300:  # minimum width
             self.lbl_text.configure(wraplength=event.width)
 
     def StartMove(self, event):
@@ -174,7 +214,7 @@ class AbstractDetachedSubtitleWindow:
 
         if not onInit:
             beep()
-            sj.savePartialSetting(f"ex_{self.winType}_no_tooltip", self.no_tooltip.get())
+            sj.save_key(f"ex_{self.winType}_no_tooltip", self.no_tooltip.get())
 
         if self.no_tooltip.get() == 1:
             self.fTooltip.hidetip()
@@ -195,10 +235,10 @@ class AbstractDetachedSubtitleWindow:
 
         if not onInit:
             beep()
-            sj.savePartialSetting(f"ex_{self.winType}_no_title_bar", self.no_title_bar.get())
+            sj.save_key(f"ex_{self.winType}_no_title_bar", self.no_title_bar.get())
 
         self.root.overrideredirect(True if self.no_title_bar.get() == 1 else False)
-        
+
     def toggle_click_through(self, fromKeyBind=True, onInit=False):
         """
         Method to toggle click through. Only on windows.
@@ -212,13 +252,13 @@ class AbstractDetachedSubtitleWindow:
 
         if not onInit:
             beep()
-            sj.savePartialSetting(f"ex_{self.winType}_click_through", self.click_through.get())
+            sj.save_key(f"ex_{self.winType}_click_through", self.click_through.get())
 
         if self.click_through.get() == 1:
             self.root.wm_attributes("-transparentcolor", sj.cache[f"ex_{self.winType}_bg"])
         else:
             self.root.wm_attributes("-transparentcolor", "")
-        
+
     def toggle_always_on_top(self, fromKeyBind=True, onInit=False):
         """
         Method to toggle always on top.
@@ -230,7 +270,7 @@ class AbstractDetachedSubtitleWindow:
 
         if not onInit:
             beep()
-            sj.savePartialSetting(f"ex_{self.winType}_always_on_top", self.always_on_top.get())
+            sj.save_key(f"ex_{self.winType}_always_on_top", self.always_on_top.get())
 
         self.root.wm_attributes("-topmost", True if self.always_on_top.get() == 1 else False)
 

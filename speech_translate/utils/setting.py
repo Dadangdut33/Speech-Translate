@@ -17,7 +17,7 @@ default_setting = {
     # App settings
     "transcribe": True,
     "translate": True,
-    "input": "mic", # mic, speaker
+    "input": "mic",  # mic, speaker
     "model": "tiny",
     "verbose": False,
     "hide_console_window_on_start": False,
@@ -30,12 +30,13 @@ default_setting = {
     "supress_device_warning": False,
     "mw_size": "950x400",
     "sw_size": "1000x580",
-    "dir_model": "",
+    "dir_log": "auto",
+    "dir_model": "auto",
     "dir_export": "auto",
     "auto_open_dir_export": True,
-    "export_format": "%Y-%m-%d %H_%M {file}_{task}", # {file} {task} {task-short} {lang_source} {lang_target} {model} {engine}
-    "file_slice_start": "", # empty will be read as None
-    "file_slice_end": "", # empty will be read as None
+    "export_format": "%Y-%m-%d %H_%M {file}_{task}",  # {file} {task} {task-short} {lang-source} {lang-target} {model} {engine}
+    "file_slice_start": "",  # empty will be read as None
+    "file_slice_end": "",  # empty will be read as None
     # ------------------ #
     # logging
     "keep_log": False,
@@ -57,21 +58,31 @@ default_setting = {
     "libre_https": True,
     # ------------------ #
     # Record settings
-    "mic_maxBuffer": 10,
-    "speaker_maxBuffer": 10,
-    "mic_energy_threshold": 5000,
-    "speaker_energy_threshold": 5000,
-    "enable_threshold": False,
     "debug_energy": False,
-    "transcribe_rate": 300,
-    "sample_rate": 16000,
-    "chunk_size": 1024,
-    "max_sentences": 5,
     "max_temp": 200,
-    "auto_sample_rate": False,
-    "auto_channels_amount": False,
     "keep_temp": False,
-    # Whisper settings
+    # mic
+    "sample_rate_mic": 16000,
+    "channels_mic": 1,
+    "chunk_size_mic": 1024,
+    "auto_sample_rate_mic": True,
+    "auto_channels_mic": True,
+    "max_sentences_mic": 5,
+    "max_buffer_mic": 10,
+    "threshold_energy_mic": 5000,
+    "threshold_enable_mic": False,
+    # speaker
+    "sample_rate_speaker": 44100,
+    "channels_speaker": 2,
+    "chunk_size_speaker": 1024,
+    "auto_sample_rate_speaker": True,
+    "auto_channels_speaker": True,
+    "max_sentences_speaker": 5,
+    "max_buffer_speaker": 10,
+    "threshold_energy_speaker": 5000,
+    "threshold_enable_speaker": False,
+    # Transcribe settings
+    "transcribe_rate": 300,
     "whisper_extra_args": "",
     "temperature": "0.0, 0.2, 0.4, 0.6, 0.8, 1.0",
     "compression_ratio_threshold": 2.4,
@@ -148,16 +159,18 @@ class SettingJson:
             # verify setting version
             if self.cache["version"] != __setting_version__:
                 # save old one as backup
-                self.saveOldSetting(self.cache)
+                self.save_old_setting(self.cache)
                 self.cache = default_setting  # load default
-                self.saveSetting(self.cache)  # save
+                self.save(self.cache)  # save
                 # notify
                 notification = Notify()
                 notification.application_name = "Speech Translate"
                 notification.title = "Setting file is outdated"
                 notification.message = "Setting file is outdated. Setting has been reverted to default setting."
                 notification.send()
-                logger.warning("Setting file is outdated. Setting has been reverted to default setting. You can find your old setting in the user folder.")
+                logger.warning(
+                    "Setting file is outdated. Setting has been reverted to default setting. You can find your old setting in the user folder."
+                )
         else:
             self.cache = default_setting
             logger.error("Error loading setting file: " + msg)
@@ -186,7 +199,7 @@ class SettingJson:
             logger.exception(e)
             mbox("Error", "Error: Creating default setting file. " + path + "\nReason: " + str(e), 2)
 
-    def saveSetting(self, data: dict):
+    def save(self, data: dict):
         """
         Save json file
         """
@@ -202,14 +215,18 @@ class SettingJson:
         finally:
             return success, msg
 
-    def saveOldSetting(self, data: dict):
+    def save_old_setting(self, data: dict):
         """
         Save json file
         """
         success: bool = False
         msg: str = ""
         try:
-            with open(self.path.replace("setting.json", f"setting_old_{data['version']}.json"), "w", encoding="utf-8") as f:
+            with open(
+                self.path.replace("setting.json", f"setting_old_{data['version']}.json"),
+                "w",
+                encoding="utf-8",
+            ) as f:
                 json.dump(data, f, ensure_ascii=False, indent=4)
             success = True
         except Exception as e:
@@ -217,12 +234,18 @@ class SettingJson:
         finally:
             return success, msg
 
-    def savePartialSetting(self, key: str, value):
+    def save_key(self, key: str, value):
         """
         Save only a part of the setting
         """
+        if key not in self.cache:
+            logger.error("Error saving setting: " + key + " not in cache")
+            return
+        if self.cache[key] == value:  # if same value
+            return
+
         self.cache[key] = value
-        success, msg = self.saveSetting(self.cache)
+        success, msg = self.save(self.cache)
 
         if not success:
             notification = Notify()
