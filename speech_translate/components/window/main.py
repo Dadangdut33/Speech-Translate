@@ -22,6 +22,12 @@ from speech_translate.custom_logging import logger
 from speech_translate.components.custom.message import mbox
 from speech_translate.components.custom.tooltip import tk_tooltip
 
+from speech_translate.components.window.about import AboutWindow
+from speech_translate.components.window.log import LogWindow
+from speech_translate.components.window.setting import SettingWindow
+from speech_translate.components.window.transcribed import TcsWindow
+from speech_translate.components.window.translated import TlsWindow
+
 from speech_translate.utils.model_download import verify_model, download_model
 from speech_translate.utils.helper import cbtn_invoker, emoji_img, tb_copy_only, nativeNotify, popup_menu, windows_os_only
 from speech_translate.utils.style import set_ui_style, init_theme, get_theme_list, get_current_theme
@@ -171,9 +177,10 @@ class MainWindow:
         try:
             gc.theme_lists.remove("sv")
         except Exception:  # sv theme is not available
-            gc.theme_lists.remove("sv-dark")
-            gc.theme_lists.remove("sv-light")
+            gc.theme_lists.remove("sun-valley-dark")
+            gc.theme_lists.remove("sun-valley-light")
 
+        gc.theme_lists.remove(gc.native_theme)  # remove native theme from list
         gc.theme_lists.insert(0, gc.native_theme)  # add native theme to top of list
         logger.debug(f"Available Theme to use: {gc.theme_lists}")
         gc.theme_lists.insert(len(gc.theme_lists), "custom")
@@ -522,7 +529,7 @@ class MainWindow:
 
         # ------------------ on Start ------------------
         # Start polling
-        self.root.after(1000, self.isRunningPoll)
+        gc.running_after_id = self.root.after(1000, self.is_running_poll)
         self.onInit()
 
         # ------------------ Set Icon ------------------
@@ -541,18 +548,9 @@ class MainWindow:
         if w > 600 and h > 300:
             sj.save_key("mw_size", f"{w}x{h}")
 
-    # Quit the app
-    def quit_app(self):
-        # save window size
-        self.save_win_size()
-        gc.sw.save_win_size()  # type: ignore
-
-        if platform.system() == "Windows":
-            try:
-                if gc.cw:
-                    win32gui.ShowWindow(gc.cw, win32con.SW_SHOW)
-            except:
-                pass
+    def cleanup(self):
+        # cancel the is_running_poll
+        self.root.after_cancel(gc.running_after_id)
 
         gc.disableRecording()
         gc.disableTranscribing()
@@ -574,11 +572,43 @@ class MainWindow:
             logger.info("Killing download process...")
             gc.cancel_dl = True
 
+    # Quit the app
+    def quit_app(self):
+        # save window size
+        self.save_win_size()
+        gc.sw.save_win_size()  # type: ignore
+
+        if platform.system() == "Windows":
+            try:
+                if gc.cw:
+                    win32gui.ShowWindow(gc.cw, win32con.SW_SHOW)
+            except:
+                pass
+
+        self.cleanup()
         logger.info("Exiting...")
         try:
             os._exit(0)
         except SystemExit:
             logger.info("Exit successful")
+
+    def restart_app(self):
+        if gc.transcribing or gc.translating or gc.recording or (gc.dl_thread and gc.dl_thread.is_alive()):
+            # prompt
+            if not mbox(
+                "Restarting app...",
+                "There is a process still running, are you sure you want to restart the app?\n\nThis will stop the process and may cause data loss!",
+                3,
+            ):
+                return
+
+        # save window size
+        self.save_win_size()
+        gc.sw.save_win_size()  # type: ignore
+
+        self.cleanup()
+        logger.info("Restarting...")  # restart
+        main()
 
     # Show window
     def show_window(self):
@@ -596,11 +626,11 @@ class MainWindow:
         self.root.withdraw()
 
     # check if the app is running or not, to close the app from tray
-    def isRunningPoll(self):
+    def is_running_poll(self):
         if not gc.running:
             self.quit_app()
 
-        self.root.after(1000, self.isRunningPoll)
+        gc.running_after_id = self.root.after(1000, self.is_running_poll)
 
     # Toggle Stay on top
     def toggle_always_on_top(self):
@@ -1417,3 +1447,19 @@ def check_cuda_and_gpu():
         result = "CUDA fail to check! Failed to detect GPU"
     finally:
         return result
+
+
+def main():
+    logger.info(f"App Version: {__version__}")
+    logger.info(f"OS: {platform.system()} {platform.release()} {platform.version()} | CPU: {platform.processor()}")
+    logger.info(f"GPU: {get_gpu_info()} | CUDA: {check_cuda_and_gpu()}")
+
+    # --- GUI ---
+    AppTray()  # Start tray app in the background
+    main = MainWindow()
+    TcsWindow(main.root)
+    TlsWindow(main.root)
+    SettingWindow(main.root)
+    LogWindow(main.root)
+    AboutWindow(main.root)
+    main.root.mainloop()  # Start main app

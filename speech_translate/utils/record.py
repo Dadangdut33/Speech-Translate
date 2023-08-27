@@ -1,11 +1,11 @@
+import audioop
 import io
-import math
 import os
 import platform
 import threading
 import ast
 import shlex
-import numpy
+import numpy as np
 import tkinter as tk
 import time as t
 from tkinter import ttk, filedialog
@@ -15,7 +15,6 @@ from time import sleep, time
 from typing import Literal, List, Union, Dict
 
 import whisper_timestamped as whisper
-import audioop
 import wave
 
 if platform.system() == "Windows":
@@ -216,7 +215,7 @@ def whisper_verbose_log(result):
 
 
 # --------------------------------------------------------------------------------------------------------------------------------------
-def getDeviceAverageThreshold(deviceType: Literal["mic", "speaker"], duration: int = 5) -> float:
+def getDeviceAverageThreshold(deviceType: Literal["mic", "speaker"], duration: int = 5):
     """
     Function to get the average threshold of the device.
 
@@ -259,9 +258,16 @@ def getDeviceAverageThreshold(deviceType: Literal["mic", "speaker"], duration: i
                 # raise exception
                 raise Exception("Loopback device not found")
 
-        # speaker will automatically use the max sample rate and channels, because it won't work if not set like this
-        num_of_channels = int(device_detail["maxInputChannels"])
-        sample_rate = int(device_detail["defaultSampleRate"])
+        chunk_size = sj.cache["chunk_size_speaker"]
+        if sj.cache["auto_sample_rate_speaker"]:
+            sample_rate = int(device_detail["defaultSampleRate"])
+        else:
+            sample_rate = int(sj.cache["sample_rate_speaker"])
+
+        if sj.cache["auto_channels_speaker"]:
+            num_of_channels = int(device_detail["maxInputChannels"])
+        else:
+            num_of_channels = int(sj.cache["channels_speaker"])
     else:
         device = sj.cache["mic"]
 
@@ -274,30 +280,30 @@ def getDeviceAverageThreshold(deviceType: Literal["mic", "speaker"], duration: i
         # Get device detail
         device_detail = p.get_device_info_by_host_api_device_index(int(deviceIndex), int(hostIndex))
 
-        sample_rate = sj.cache["sample_rate"]
-        num_of_channels = 1
-
-        # check if user set auto for sample rate and channels
-        if sj.cache["auto_sample_rate"]:
+        chunk_size = sj.cache["chunk_size_mic"]
+        if sj.cache["auto_sample_rate_mic"]:
             sample_rate = int(device_detail["defaultSampleRate"])
-        if sj.cache["auto_channels_value"]:
+        else:
+            sample_rate = int(sj.cache["sample_rate_mic"])
+
+        if sj.cache["auto_channels_mic"]:
             num_of_channels = int(device_detail["maxInputChannels"])
-            if num_of_channels == 0:
-                num_of_channels = 1
+        else:
+            num_of_channels = int(sj.cache["channels_mic"])
 
     logger.debug(f"Device: ({device_detail['index']}) {device_detail['name']}")
     logger.debug(f"Sample Rate {sample_rate} | channels {num_of_channels}")
+    logger.debug("Actual device detail:")
     logger.debug(device_detail)
 
     # get data from device using pyaudio
-    data = b""
+    audio_data = b""
 
     def callback(in_data, frame_count, time_info, status):
-        nonlocal data
-        data += in_data
+        nonlocal audio_data
+        audio_data += in_data
         return (in_data, pyaudio.paContinue)
 
-    chunk_size = sj.cache["chunk_size"]
     stream = p.open(
         format=pyaudio.paInt16,  # 16 bit audio
         channels=num_of_channels,
@@ -308,32 +314,27 @@ def getDeviceAverageThreshold(deviceType: Literal["mic", "speaker"], duration: i
         stream_callback=callback,
     )
 
+    # start recording
     stream.start_stream()
 
-    while stream.is_active():
-        sleep(0.1)
-        if len(data) > sample_rate * duration * 2:
-            break
+    sleep(duration)  # wait for 5 seconds
 
-    stream.stop_stream()
+    stream.stop_stream()  # end
     stream.close()
     p.terminate()
 
-    # get average threshold
-    # we use rms to get the "loudness" of the audio
-    avg_threshold = audioop.rms(data, 2) + 200  # add 200 to make sure it is above average
+    # get average threshold using RMS
+    rms = audioop.rms(audio_data, 2) / 32767
+    if rms == 0.0:
+        logger.warning("RMS is exactly 0! Meaning no sound is detected at all.")
+        db = 0.0
+    else:
+        db = 20 * np.log10(rms)  # convert to db
 
-    # Set the reference level based on the maximum amplitude for 16-bit audio
-    reference = 32767
+    logger.debug(f"Average RMS Value: {rms:.2f}")
+    logger.debug(f"Average dB Value: {db:.2f}")
 
-    # Calculate the dB value
-    db = 20 * math.log10(avg_threshold / reference)
-
-    logger.debug(f"Average threshold energy: {avg_threshold}")
-    logger.debug(f"Average threshold in dB: {db}")
-
-    return avg_threshold
-
+    return db
 
 # --------------------------------------------------------------------------------------------------------------------------------------
 def record_realtime(
@@ -456,9 +457,6 @@ def record_realtime(
             gc.tc_lock = threading.Lock()
 
         # read from settings
-        sample_rate = int(sj.cache["sample_rate"])
-        chunk_size = int(sj.cache["chunk_size"])
-        max_sentences = int(sj.cache["max_sentences"])
         max_int16 = 2**15  # bit depth of 16 bit audio (32768)
         separator = ast.literal_eval(shlex.quote(sj.cache["separate_with"]))
 
@@ -513,7 +511,7 @@ def record_realtime(
         # stop loadbar
         gc.mw.stop_loadBar("mic" if not speaker else "speaker")
 
-        # ----------------- Start recording -----------------
+        # ----------------- Get device -----------------
         logger.info("-" * 50)
         logger.info(f"Task: {task}")
         logger.info(f"Modelname: {modelName}")
@@ -549,9 +547,17 @@ def record_realtime(
                     # raise exception
                     raise Exception("Loopback device not found")
 
-            # speaker will automatically use the max sample rate and channels, because it won't work if not set like this
-            num_of_channels = int(device_detail["maxInputChannels"])
-            sample_rate = int(device_detail["defaultSampleRate"])
+            max_sentences = int(sj.cache["max_sentences_speaker"])
+            chunk_size = sj.cache["chunk_size_speaker"]
+            if sj.cache["auto_sample_rate_speaker"]:
+                sample_rate = int(device_detail["defaultSampleRate"])
+            else:
+                sample_rate = int(sj.cache["sample_rate_speaker"])
+
+            if sj.cache["auto_channels_speaker"]:
+                num_of_channels = int(device_detail["maxInputChannels"])
+            else:
+                num_of_channels = int(sj.cache["channels_speaker"])
         else:
             # get the id in [ID: deviceIndex,hostIndex]
             id = device.split("[ID: ")[1]  # first get the id bracket
@@ -561,33 +567,18 @@ def record_realtime(
 
             # Get device detail
             device_detail = p.get_device_info_by_host_api_device_index(int(deviceIndex), int(hostIndex))
-            num_of_channels = 1
 
-            # check if user set auto for sample rate and channels
-            if sj.cache["auto_sample_rate"]:
+            max_sentences = int(sj.cache["max_sentences_mic"])
+            chunk_size = sj.cache["chunk_size_mic"]
+            if sj.cache["auto_sample_rate_mic"]:
                 sample_rate = int(device_detail["defaultSampleRate"])
-            if sj.cache["auto_channels_value"]:
+            else:
+                sample_rate = int(sj.cache["sample_rate_mic"])
+
+            if sj.cache["auto_channels_mic"]:
                 num_of_channels = int(device_detail["maxInputChannels"])
-                if num_of_channels == 0:
-                    num_of_channels = 1
-
-        logger.debug(device_detail)
-        logger.debug(f"Device: ({device_detail['index']}) {device_detail['name']}")
-        logger.debug(f"Sample Rate {sample_rate} | channels {num_of_channels} | chunk size {chunk_size}")
-
-        rec_type = "speaker" if speaker else "mic"
-        gc.stream = p.open(
-            format=pyaudio.paInt16,  # 16 bit audio
-            channels=num_of_channels,
-            rate=sample_rate,
-            input=True,
-            frames_per_buffer=chunk_size,
-            input_device_index=int(device_detail["index"]),
-        )
-        record_thread = threading.Thread(target=realtime_recording_thread, args=[chunk_size, rec_type], daemon=True)
-        record_thread.start()
-
-        logger.debug(f"Record Session Started")
+            else:
+                num_of_channels = int(sj.cache["channels_mic"])
 
         # ----------------- Start modal -----------------
         # window to show progress
@@ -649,6 +640,26 @@ def record_realtime(
         btn_pause.configure(state="normal", command=toggle_pause)
         btn_stop.configure(state="normal", command=stop_recording)
         update_modal_ui()
+
+        # ----------------- Start recording -----------------
+        logger.debug(f"Device: ({device_detail['index']}) {device_detail['name']}")
+        logger.debug(f"Sample Rate {sample_rate} | channels {num_of_channels} | chunk size {chunk_size}")
+        logger.debug("Actual device detail:")
+        logger.debug(device_detail)
+
+        rec_type = "speaker" if speaker else "mic"
+        gc.stream = p.open(
+            format=pyaudio.paInt16,  # 16 bit audio
+            channels=num_of_channels,
+            rate=sample_rate,
+            input=True,
+            frames_per_buffer=chunk_size,
+            input_device_index=int(device_detail["index"]),
+        )
+        record_thread = threading.Thread(target=realtime_recording_thread, args=[chunk_size, rec_type], daemon=True)
+        record_thread.start()
+
+        logger.debug(f"Record Session Started")
 
         # transcribing thread
         while gc.recording:
@@ -718,8 +729,8 @@ def record_realtime(
                         # get audio format and bit depth
                         audio_format = p.get_format_from_width(wav_reader.getsampwidth())
 
-                        audio_as_np_int16 = numpy.frombuffer(audio, dtype=numpy.int16)
-                        audio_as_np_float32 = audio_as_np_int16.astype(numpy.float32)
+                        audio_as_np_int16 = np.frombuffer(audio, dtype=np.int16)
+                        audio_as_np_float32 = audio_as_np_int16.astype(np.float32)
                         audio_target = audio_as_np_float32 / max_int16  # normalized as Numpy array
 
                     # DEBUG
@@ -878,18 +889,25 @@ def realtime_recording_thread(chunk_size: int, rec_type: Literal["mic", "speaker
             continue
 
         data = gc.stream.read(chunk_size)
-        gc.current_energy = audioop.rms(data, 2)
 
-        if sj.cache["debug_energy"]:
-            logger.debug(f"energy: {gc.current_energy}")
+        # if either debug_db or threshold_enable is enabled, then calculate current db
+        if sj.cache["debug_db"] or sj.cache[f"threshold_enable_{rec_type}"]:
+            rms = audioop.rms(data, 2) / 32767 # calculate rms
+            if rms == 0.0:
+                db = 0.0
+            else:
+                db = 20 * np.log10(rms)  # convert to db
+
+            gc.current_db = db
+
+        if sj.cache["debug_db"]:
+            logger.debug(f"DB: {gc.current_db}")
 
         # store chunks of audio in queue
-        if not sj.cache["enable_threshold"]:  # record regardless of energy
+        if not sj.cache[f"threshold_enable_{rec_type}"]:  # record regardless of energy
             gc.data_queue.put(data)
-        elif (
-            sj.cache["enable_threshold"] and gc.current_energy > sj.cache[f"{rec_type}_energy_threshold"]
-        ):  # only record if energy is above threshold
-            gc.data_queue.put(data)
+        elif sj.cache[f"threshold_enable_{rec_type}"] and gc.current_db > sj.cache[f"threshold_db_{rec_type}"]:
+            gc.data_queue.put(data)  # only record if energy is above threshold
 
 
 def whisper_realtime_tl(

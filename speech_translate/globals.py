@@ -61,6 +61,7 @@ class GlobalClass:
 
     def __init__(self):
         self.cuda: str = ""
+        self.running_after_id: str = ""
 
         # Flags
         self.running: bool = True
@@ -98,7 +99,7 @@ class GlobalClass:
         # record stream
         self.stream: Optional[pyaudio.Stream] = None
         self.data_queue = Queue()
-        self.current_energy: int = 0
+        self.current_db: float = 0.0
         self.current_rec_status = ""
         self.auto_detected_lang = "~"
         self.tc_lock: Optional[Lock] = None

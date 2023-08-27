@@ -19,7 +19,7 @@ from speech_translate._path import dir_theme
 from speech_translate.components.custom.message import mbox
 from tkinter import ttk, TclError
 
-theme_list = ["sv-light", "sv-dark"]
+theme_list = ["sun-valley-light", "sun-valley-dark"]
 
 
 def set_ui_style(theme: str, root=None):
@@ -60,6 +60,11 @@ def get_root() -> tk.Tk:
     return gc.mw.root
 
 
+def get_style() -> ttk.Style:
+    assert gc.style is not None
+    return gc.style
+
+
 def init_theme():
     dir_theme_list = [
         name for name in os.listdir(dir_theme) if os.path.isdir(os.path.join(dir_theme, name))
@@ -85,7 +90,13 @@ def get_current_theme() -> str:
 
 
 def get_theme_list():
-    return theme_list
+    real_theme_list = list(get_root().tk.call("ttk::style", "theme", "names"))
+
+    theme = theme_list.copy()
+    theme.extend(real_theme_list)
+    theme = list(dict.fromkeys(theme))  # remove dupe after extend
+
+    return theme
 
 
 def set_theme(theme: str):
@@ -95,6 +106,7 @@ def set_theme(theme: str):
         raise Exception("not a valid theme name: {}".format(theme))
 
     try:
+        get_style().theme_use(theme)
         get_root().tk.call("set_theme", theme)
     except TclError as e:
         logger.exception(e)
@@ -105,7 +117,6 @@ if __name__ == "__main__":
     """
     Debug get stylename options
     """
-
     stylename_map = {
         "TButton": ttk.Button,
         "TCheckbutton": ttk.Checkbutton,

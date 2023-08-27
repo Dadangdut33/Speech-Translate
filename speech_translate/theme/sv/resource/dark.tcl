@@ -3,15 +3,15 @@
 source [file join [file dirname [info script]] sprites_dark.tcl]
 
 namespace eval ttk::theme::sv_dark {
-	package provide ttk::theme::sv_dark 2.4
+	package provide ttk::theme::sv_dark 2.6
 
-	array set theme_colors {
-		-fg      "#fafafa"
-		-bg      "#1c1c1c"
-		-disfg   "#595959"
-		-selfg   "#ffffff"
-		-selbg   "#2f60d8"
-		-accent  "#57c8ff"
+	array set colors {
+    -fg      "#fafafa"
+    -bg      "#1c1c1c"
+    -disfg   "#595959"
+    -selfg   "#ffffff"
+    -selbg   "#2f60d8"
+    -accent  "#57c8ff"
 	}
 
 	proc load_images {imgfile} {
@@ -37,7 +37,7 @@ namespace eval ttk::theme::sv_dark {
 			}
 		}
 
-		ttk::style configure TButton -padding {1 1} -anchor center -foreground $theme_colors(-fg) -width -11
+		ttk::style configure TButton -padding {1 1} -anchor center -foreground $colors(-fg) -width -11
 		ttk::style map TButton -foreground [list disabled "#7a7a7a" pressed "#d0d0d0"]
 
 		ttk::style element create Button.button image \
@@ -214,7 +214,7 @@ namespace eval ttk::theme::sv_dark {
 			}
 		}
 
-		ttk::style configure Toggle.TButton -padding {1 1} -anchor center -foreground $theme_colors(-fg)
+		ttk::style configure Toggle.TButton -padding {1 1} -anchor center -foreground $colors(-fg)
 
 		ttk::style map Toggle.TButton -foreground \
 			[list {selected disabled} "#a5a5a5" \
@@ -269,7 +269,7 @@ namespace eval ttk::theme::sv_dark {
 
 		# ----------------------------------------------------------------------------------------
 		# Entry
-		ttk::style configure TEntry -foreground $theme_colors(-fg) -padding 0
+		ttk::style configure TEntry -foreground $colors(-fg) -padding 0
 		ttk::style map TEntry -foreground [list disabled "#757575" pressed "#cfcfcf"]
 
 		ttk::style element create Entry.field image \
@@ -292,16 +292,16 @@ namespace eval ttk::theme::sv_dark {
 			}
 		}
 
-		ttk::style configure TCombobox -foreground $theme_colors(-fg) -padding 0
+		ttk::style configure TCombobox -foreground $colors(-fg) -padding 0
 		ttk::style configure ComboboxPopdownFrame -borderwidth 1 -relief solid
 		ttk::style map TCombobox -foreground [list disabled "#757575" pressed "#cfcfcf"]
 
 		ttk::style map TCombobox -selectbackground [list \
-			{readonly hover} $theme_colors(-selbg) \
-			{readonly focus} $theme_colors(-selbg) \
+			{readonly hover} $colors(-selbg) \
+			{readonly focus} $colors(-selbg) \
 			] -selectforeground [list \
-				{readonly hover} $theme_colors(-selfg) \
-				{readonly focus} $theme_colors(-selfg) \
+				{readonly hover} $colors(-selfg) \
+				{readonly focus} $colors(-selfg) \
 			]
 
 
@@ -322,36 +322,30 @@ namespace eval ttk::theme::sv_dark {
 
 		ttk::style element create Combobox.arrow image $I(down) -sticky {}
 
-		ttk::style layout ComboboxPopdownFrame {
-			ComboboxPopdownFrame.background -sticky news -border 1 -children {
-				ComboboxPopdownFrame.padding -sticky news
-			}
-		}
-
 		# ----------------------------------------------------------------------------------------
 		# Spinbox
 		ttk::style layout TSpinbox {
-			Spinbox.field -side top -sticky nswe -children {
-				Spinbox.downarrow -side right -sticky ens
-				Spinbox.uparrow -side right -sticky ens
-				Spinbox.padding -sticky nswe -children {
-					Spinbox.textarea
-				}
-			}
+      Spinbox.field -side top -sticky we -children {
+        Spinbox.downarrow -side right -sticky ns
+        Spinbox.uparrow -side right -sticky ns
+        Spinbox.padding -sticky nswe -children {
+          Spinbox.textarea -sticky nsew
+        }
+      }
 		}
 
-		ttk::style configure TSpinbox -foreground $theme_colors(-fg) -padding 0
-		ttk::style map TSpinbox -foreground [list disabled "#757575" pressed "#cfcfcf"]
+		ttk::style configure TSpinbox -foreground $colors(-fg) -padding 0
+		ttk::style map TSpinbox -foreground [list disabled $colors(-disfg) pressed "#cfcfcf"]
 
 		ttk::style element create Spinbox.field image \
-			[list $I(textbox-rest) \
+		[list $I(textbox-rest) \
 			{focus hover !invalid} $I(textbox-focus) \
 			invalid $I(textbox-error) \
 			disabled $I(textbox-dis) \
 			focus $I(textbox-focus) \
 			{focus !invalid} $I(textbox-focus) \
 			hover $I(textbox-hover) \
-			] -border 5 -sticky nsew
+		] -border 5 -sticky nsew
 
 		ttk::style element create Spinbox.uparrow image $I(up) -width 16 -sticky {}
 		ttk::style element create Spinbox.downarrow image $I(down) -width 16 -sticky {}
@@ -451,7 +445,7 @@ namespace eval ttk::theme::sv_dark {
 		}
 
 		ttk::style configure TNotebook -padding 0
-		ttk::style configure TNotebook.Tab -focuscolor $theme_colors(-accent)
+		ttk::style configure TNotebook.Tab -focuscolor $colors(-accent)
 		ttk::style element create Notebook.border image $I(notebook-border) -border 5 -padding 3
 
 		ttk::style element create Notebook.tab image \
@@ -462,19 +456,20 @@ namespace eval ttk::theme::sv_dark {
 
 		# ----------------------------------------------------------------------------------------
 		# Treeview
+    ttk::style configure Heading -font SunValleyCaptionFont
 		ttk::style configure Treeview \
-			-background $theme_colors(-bg)
-		ttk::style map Treeview \
-			-background [list selected "#292929"] \
-			-foreground [list selected $theme_colors(-selfg)]
+			-background $colors(-bg) \
+      -rowheight [expr {[font metrics SunValleyBodyFont -linespace] + 3}] \
+      -font SunValleyBodyFont
+
+    ttk::style map Treeview -background {selected "#292929"} -foreground {selected $colors(-selfg)}
 
 		ttk::style element create Treeview.field image $I(card) -border 5 -width 0 -height 0
-
 		ttk::style element create Treeheading.cell image \
 			[list $I(heading-rest) \
 			pressed $I(heading-pressed) \
 			active $I(heading-hover)
-		] -border 5 -padding 15 -sticky nsew
+		] -border 5 -padding 14 -sticky nsew
 
 		ttk::style element create Treeitem.indicator image \
 			[list $I(right) \
@@ -484,6 +479,11 @@ namespace eval ttk::theme::sv_dark {
 
 		# ----------------------------------------------------------------------------------------
 		# Panedwindow
-		ttk::style configure Sash -lightcolor "#9e9e9e" -darkcolor "#9e9e9e" -bordercolor "#9e9e9e" -sashthickness 4 -gripcount 20
+    ttk::style configure Sash \
+      -lightcolor "#9e9e9e" \
+      -darkcolor "#9e9e9e" \
+      -bordercolor "#9e9e9e" \
+      -sashthickness 4 \
+      -gripcount 20
 	}
 }

@@ -1,11 +1,20 @@
 import platform
 import threading
 import tkinter as tk
+import numpy as np
 from tkinter import ttk
 from typing import Literal, Union
 
 from speech_translate.globals import sj
-from speech_translate.utils.helper import number_only, max_number, cbtn_invoker, emoji_img, windows_os_only
+from speech_translate.utils.helper import (
+    max_number_float,
+    number_only,
+    max_number,
+    cbtn_invoker,
+    emoji_img,
+    number_only_float,
+    windows_os_only,
+)
 from speech_translate.utils.record import getDeviceAverageThreshold
 
 from speech_translate.components.custom.countdown import CountdownWindow
@@ -21,6 +30,7 @@ class SettingRecord:
     def __init__(self, root: tk.Toplevel, master_frame: Union[ttk.Frame, tk.Frame]):
         self.root = root
         self.master = master_frame
+        self.getting_threshold = False
         self.help_emoji = emoji_img(16, "❔")
 
         # ------------------ Record  ------------------
@@ -436,18 +446,18 @@ class SettingRecord:
             from_=0,
             to=100000,
             validate="key",
-            validatecommand=(self.root.register(number_only), "%P"),
-            command=lambda: sj.save_key("threshold_energy_mic", int(self.spn_threshold_mic.get())),
+            validatecommand=(self.root.register(number_only_float), "%P"),
+            command=lambda: sj.save_key("threshold_db_mic", float(self.spn_threshold_mic.get())),
             width=12,
         )
         self.spn_threshold_mic.bind(
             "<KeyRelease>",
-            lambda e: max_number(
+            lambda e: max_number_float(
                 self.root,
                 self.spn_threshold_mic,
                 0,
                 100000,
-                lambda: sj.save_key("threshold_energy_mic", int(self.spn_threshold_mic.get())),
+                lambda: sj.save_key("threshold_db_mic", float(self.spn_threshold_mic.get())),
             ),
         )
         self.spn_threshold_mic.pack(side="left", padx=5)
@@ -571,20 +581,20 @@ class SettingRecord:
             from_=0,
             to=100000,
             validate="key",
-            validatecommand=(self.root.register(number_only), "%P"),
-            command=lambda: sj.save_key("threshold_energy_speaker", int(self.spn_threshold_speaker.get())),
+            validatecommand=(self.root.register(number_only_float), "%P"),
+            command=lambda: sj.save_key("threshold_db_speaker", float(self.spn_threshold_speaker.get())),
             width=12,
         )
         self.spn_threshold_speaker.bind(
             "<KeyRelease>",
-            lambda e: max_number(
+            lambda e: max_number_float(
                 self.root,
                 self.spn_threshold_speaker,
                 0,
                 100000,
                 lambda: sj.save_key(
-                    "threshold_energy_speaker",
-                    int(self.spn_threshold_speaker.get()),
+                    "threshold_db_speaker",
+                    float(self.spn_threshold_speaker.get()),
                 ),
             ),
         )
@@ -660,12 +670,12 @@ class SettingRecord:
 
         self.spn_buffer_mic.set(sj.cache["max_buffer_mic"])
         self.spn_max_sentences_mic.set(sj.cache["max_sentences_mic"])
-        self.spn_threshold_mic.set(sj.cache["threshold_energy_mic"])
+        self.spn_threshold_mic.set(sj.cache["threshold_db_mic"])
         cbtn_invoker(sj.cache["threshold_enable_mic"], self.cbtn_threshold_enable_mic)
 
         self.spn_buffer_speaker.set(sj.cache["max_buffer_speaker"])
         self.spn_max_sentences_speaker.set(sj.cache["max_sentences_speaker"])
-        self.spn_threshold_speaker.set(sj.cache["threshold_energy_speaker"])
+        self.spn_threshold_speaker.set(sj.cache["threshold_db_speaker"])
         cbtn_invoker(sj.cache["threshold_enable_speaker"], self.cbtn_threshold_enable_speaker)
 
         # result
@@ -717,15 +727,37 @@ class SettingRecord:
     def get_the_threshold(self, device: Literal["mic", "speaker"]) -> None:
         self.getting_threshold = True
         threshold = getDeviceAverageThreshold(device)
+        if np.isnan(threshold):
+            self.getting_threshold = False
+            # ask user to try again
+            if mbox(
+                "Error",
+                "Something went wrong while trying to get the threshold. Try again?",
+                3,
+                self.root,
+            ):
+                if device == "mic":
+                    self.mic_threshold()
+                elif device == "speaker":
+                    self.speaker_threshold()
+                return
+            return
+
         if device == "mic":
-            self.spn_threshold_mic.set(str(int(threshold)))
+            self.spn_threshold_mic.set(float(threshold))
         elif device == "speaker":
-            self.spn_threshold_speaker.set(str(int(threshold)))
-        sj.save_key(
-            "threshold_energy_mic" if device == "mic" else "threshold_energy_speaker",
-            threshold,
-        )
+            self.spn_threshold_speaker.set(float(threshold))
+
+        sj.save_key(f"threshold_db_{device}", float(threshold))
         self.getting_threshold = False
+
+    def mic_threshold(self):
+        # run in thread
+        thread = threading.Thread(target=self.get_the_threshold, args=("mic",), daemon=True)
+        thread.start()
+
+        # show countdown window and wait for it to close
+        CountdownWindow(self.root, 5, "Getting threshold...", "Getting threshold for mic")
 
     def mic_auto_threshold(self):
         """
@@ -748,12 +780,15 @@ class SettingRecord:
             3,
             self.root,
         ):
-            # run in thread
-            thread = threading.Thread(target=self.get_the_threshold, args=("mic",), daemon=True)
-            thread.start()
+            self.mic_threshold()
 
-            # show countdown window and wait for it to close
-            CountdownWindow(self.root, 5, "Getting threshold...", "Getting threshold for mic")
+    def speaker_threshold(self):
+        # run in thread
+        thread = threading.Thread(target=self.get_the_threshold, args=("speaker",), daemon=True)
+        thread.start()
+
+        # show countdown window and wait for it to close
+        CountdownWindow(self.root, 5, "Getting threshold...", "Getting threshold for speaker")
 
     def speaker_auto_threshold(self):
         """
@@ -784,9 +819,4 @@ class SettingRecord:
             3,
             self.root,
         ):
-            # run in thread
-            thread = threading.Thread(target=self.get_the_threshold, args=("speaker",), daemon=True)
-            thread.start()
-
-            # show countdown window and wait for it to close
-            CountdownWindow(self.root, 5, "Getting threshold...", "Getting threshold for speaker")
+            self.speaker_threshold()

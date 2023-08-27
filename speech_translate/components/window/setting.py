@@ -1,10 +1,7 @@
-import os
-import platform
 import threading
 import random
 import tkinter as tk
 from tkinter import ttk, font
-from typing import Literal
 
 from speech_translate._path import app_icon
 from speech_translate._contants import APP_NAME, PREVIEW_WORDS
@@ -12,12 +9,10 @@ from speech_translate.globals import sj, gc
 from speech_translate.utils.helper import chooseColor
 from speech_translate.utils.helper import cbtn_invoker
 from speech_translate.utils.helper_whisper import convert_str_options_to_dict, get_temperature
-from speech_translate.utils.record import getDeviceAverageThreshold
 
 from speech_translate.components.frame.setting_general import SettingGeneral
 from speech_translate.components.frame.setting_record import SettingRecord
 
-from speech_translate.components.custom.countdown import CountdownWindow
 from speech_translate.components.custom.message import mbox, MBoxText
 from speech_translate.components.custom.tooltip import tk_tooltip, tk_tooltip, CreateToolTipOnText, tk_tooltips
 
@@ -41,11 +36,6 @@ class SettingWindow:
         self.fonts = list(font.families())
         self.fonts.append("TKDefaultFont")
         self.fonts.sort()
-        self.initial_theme = ""
-        self.getting_threshold = False
-        self.model_checked = False
-        self.checkingModel = False
-        self.first_check = True
 
         # ------------------ Frames ------------------
         self.frame_top = tk.Frame(self.root)
@@ -843,7 +833,7 @@ class SettingWindow:
     def show(self):
         self.root.after(0, self.root.deiconify)
 
-        if not self.model_checked:
+        if not self.f_general.model_checked:
             threading.Thread(target=self.f_general.check_model_on_first_open, daemon=True).start()
 
     def bind_focus_on_frame_recursively(self, root_widget):

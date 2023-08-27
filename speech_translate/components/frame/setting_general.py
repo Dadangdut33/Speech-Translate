@@ -23,9 +23,13 @@ class SettingGeneral:
     def __init__(self, root: tk.Toplevel, master_frame: Union[ttk.Frame, tk.Frame]):
         self.root = root
         self.master = master_frame
+        self.initial_theme = ""
+        self.checkingModel = False
+        self.model_checked = False
+        self.first_check = True
         self.folder_emoji = emoji_img(13, " 📂")
         self.open_emoji = emoji_img(13, "     ↗️")
-        self.trash_emoji = emoji_img(13, " ❌")
+        self.trash_emoji = emoji_img(13, "     🗑️")
         self.reset_emoji = emoji_img(13, " 🔄")
         self.wrench_emoji = emoji_img(16, "     🛠️")
         self.question_emoji = emoji_img(16, "❔")
@@ -87,7 +91,7 @@ class SettingGeneral:
         tk_tooltips(
             [self.cb_theme, self.lbl_theme],
             "Set theme for app.\n\nThe topmost selection is your default tkinter os theme."
-            "To add custom theme you can read the readme.txt in the theme folder."
+            "\nTo add custom theme you can read the readme.txt in the theme folder."
             "\n\nMight need to reload the app for the changes to take effect.",
             wrapLength=500,
         )
@@ -360,18 +364,16 @@ class SettingGeneral:
             "Show some debugging process of the realtime record.\n\n" "Enabling will probably slow down the app.",
         )
 
-        self.cbtn_debug_energy = ttk.Checkbutton(
+        self.cbtn_debug_db = ttk.Checkbutton(
             self.f_logging_4,
-            text="Debug audio energy",
-            command=lambda: sj.save_key("debug_energy", self.cbtn_debug_energy.instate(["selected"])),
+            text="Debug audio db",
+            command=lambda: sj.save_key("debug_db", self.cbtn_debug_db.instate(["selected"])),
             style="Switch.TCheckbutton",
         )
-        self.cbtn_debug_energy.pack(side="left", padx=5, pady=(0, 5))
+        self.cbtn_debug_db.pack(side="left", padx=5, pady=(0, 5))
         tk_tooltip(
-            self.cbtn_debug_energy,
-            "Show audio energy in the console.\n\n"
-            "Debugging audio energy will show the energy of the audio stream in the console.\n"
-            "Enabling will probably slow down the app.",
+            self.cbtn_debug_db,
+            "Show audio db in the console.\n\nEnabling will probably slow down the app.",
         )
 
         self.cbtn_debug_translate = ttk.Checkbutton(
@@ -571,7 +573,7 @@ class SettingGeneral:
         # app
         cbtn_invoker(sj.cache["keep_log"], self.cbtn_keep_log)
         cbtn_invoker(sj.cache["debug_realtime_record"], self.cbtn_debug_realtime_record)
-        cbtn_invoker(sj.cache["debug_energy"], self.cbtn_debug_energy)
+        cbtn_invoker(sj.cache["debug_db"], self.cbtn_debug_db)
         cbtn_invoker(sj.cache["debug_translate"], self.cbtn_debug_translate)
         cbtn_invoker(sj.cache["verbose"], self.cbtn_verbose)
         cbtn_invoker(sj.cache["checkUpdateOnStart"], self.cbtn_update_on_start)
@@ -771,6 +773,17 @@ class SettingGeneral:
         self.btn_theme_add.pack_forget()
         self.lbl_notice_theme.pack_forget()
 
+    def prompt_restart_app_after_changing_theme(self):
+        if mbox(
+            "Restart confirmation",
+            "It is recommended to restart the app for the theme to fully take effect. Do you want to restart now?",
+            3,
+            self.root,
+        ):
+            #
+            assert gc.mw is not None
+            gc.mw.restart_app()
+
     def cb_theme_change(self, _event=None):
         if self.cb_theme.get() == "custom":
             self.entry_theme.pack(side="left", padx=5, pady=5, fill="x", expand=True)
@@ -788,6 +801,8 @@ class SettingGeneral:
 
             # save
             sj.save_key("theme", self.cb_theme.get())
+
+            self.prompt_restart_app_after_changing_theme()
 
             # set the theme
             set_ui_style(self.cb_theme.get())

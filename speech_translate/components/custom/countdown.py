@@ -1,3 +1,5 @@
+import threading
+import time
 import tkinter as tk
 from tkinter import ttk
 from typing import Union
@@ -11,13 +13,21 @@ class CountdownWindow:
 
     # ----------------------------------------------------------------------
     def __init__(
-        self, master: Union[tk.Tk, tk.Toplevel], countdown: int, title: str, taskname: str, cancelFunc=None, geometry=None
+        self,
+        master: Union[tk.Tk, tk.Toplevel],
+        countdown: int,
+        title: str,
+        taskname: str,
+        cancelFunc=None,
+        geometry=None,
+        notify_done=True,
     ) -> None:
         self.taskname = taskname
         self.master = master
         self.root = tk.Toplevel(master)
         self.root.title(title)
         self.root.transient(master)
+        self.notify_done = notify_done
         self.root.geometry("300x100")
         self.root.wm_attributes("-topmost", True)
         self.root.protocol("WM_DELETE_WINDOW", self.do_nothing_on_close)
@@ -30,24 +40,29 @@ class CountdownWindow:
         self.mf = ttk.Frame(self.root)
         self.mf.pack(side="top", fill="both", padx=5, pady=5, expand=True)
 
-        self.lbl = ttk.Label(self.mf, text=f"Current Task: {taskname}\nTask will be done in: {countdown}")
+        self.lbl = ttk.Label(self.mf, text=f"Current Task: {taskname}\nWill be done in: {countdown} seconds")
         self.lbl.pack(side="top", fill="x", padx=5, pady=5, expand=True)
 
         if cancelFunc:
             self.btn = ttk.Button(self.mf, text="Cancel", command=cancelFunc)
             self.btn.pack(side="bottom", fill="x", padx=5, pady=5, expand=True)
 
-        self.root.after(1000, self.countdown, countdown)
+        threading.Thread(target=self.start_counting, args=(countdown,)).start()
 
     # ----------------------------------------------------------------------
-    def countdown(self, countdown: int) -> None:
-        countdown -= 1
-        if countdown > 0:
-            self.lbl.configure(text=f"Current Task: {self.taskname}\nTask will be done in: {countdown} seconds")
-            self.root.after(1000, self.countdown, countdown)
-        else:
-            self.root.destroy()
-            mbox("Countdown", f"Task {self.taskname} is done", 0, self.master)
+    def start_counting(self, countdown: int) -> None:
+        """Start counting down"""
+        counter = countdown
+        while counter > 0:
+            time.sleep(1)
+            counter -= 1
+            if counter > 0:
+                self.lbl.configure(text=f"Current Task: {self.taskname}\nWill be done in: {counter} seconds")
+            else:
+                self.root.destroy()
+                if self.notify_done:
+                    mbox("Countdown", f"{self.taskname} is done", 0, self.master)
+                break
 
     def do_nothing_on_close(self) -> None:
         pass

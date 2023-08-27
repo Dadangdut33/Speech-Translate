@@ -25,7 +25,7 @@ default_setting = {
     "mic": "",
     "speaker": "",
     "hostAPI": "",
-    "theme": "sv-dark" if darkdetect.isDark() else "sv-light",
+    "theme": "sun-valley-dark" if darkdetect.isDark() else "sun-valley-light",
     "supress_hidden_to_tray": False,
     "supress_device_warning": False,
     "mw_size": "950x400",
@@ -58,18 +58,18 @@ default_setting = {
     "libre_https": True,
     # ------------------ #
     # Record settings
-    "debug_energy": False,
+    "debug_db": False,
     "max_temp": 200,
     "keep_temp": False,
     # mic
     "sample_rate_mic": 16000,
     "channels_mic": 1,
     "chunk_size_mic": 1024,
-    "auto_sample_rate_mic": True,
-    "auto_channels_mic": True,
+    "auto_sample_rate_mic": False,
+    "auto_channels_mic": False,
     "max_sentences_mic": 5,
     "max_buffer_mic": 10,
-    "threshold_energy_mic": 5000,
+    "threshold_db_mic": -17.0,
     "threshold_enable_mic": False,
     # speaker
     "sample_rate_speaker": 44100,
@@ -79,7 +79,7 @@ default_setting = {
     "auto_channels_speaker": True,
     "max_sentences_speaker": 5,
     "max_buffer_speaker": 10,
-    "threshold_energy_speaker": 5000,
+    "threshold_db_speaker": 0.0,
     "threshold_enable_speaker": False,
     # Transcribe settings
     "transcribe_rate": 300,

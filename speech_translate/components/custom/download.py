@@ -122,11 +122,14 @@ def whisper_download_with_progress_gui(
         update_progress_bar()
         while True:
             if gc.cancel_dl:
-                logger.info("Download cancelled")
-                downloading = False
-                gc.cancel_dl = False
-                root.after(1000, root.destroy)
-                mbox("Download Cancelled", f"Downloading of {model_name} model has been cancelled", 0, master)
+                try:
+                    logger.info("Download cancelled")
+                    downloading = False
+                    gc.cancel_dl = False
+                    root.after(1000, root.destroy)
+                    mbox("Download Cancelled", f"Downloading of {model_name} model has been cancelled", 0, master)
+                except:
+                    pass
                 return
 
             if paused:
@@ -159,7 +162,7 @@ def whisper_download_with_progress_gui(
 
     # tell setting window to check model again when it open
     assert gc.sw is not None
-    gc.sw.model_checked = False
+    gc.sw.f_general.model_checked = False
 
     mbox("Model Downloaded Success", f"{model_name} model has been downloaded successfully", 0, master)
     return model_bytes if in_memory else download_target
