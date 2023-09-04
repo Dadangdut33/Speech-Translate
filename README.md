@@ -14,7 +14,7 @@
     <a href="https://github.com/Dadangdut33/Speech-Translate/network/members"><img alt="GitHub forks" src="https://img.shields.io/github/forks/Dadangdut33/Speech-Translate?style=social"></a>
 </p>
 
-A speech transcription and translation application using whisper AI model.
+A speech transcription and translation application using whisper OpenAI model.
 
 <h1>Jump to</h1>
 
@@ -81,7 +81,7 @@ brew install ffmpeg
 
 # Download & Installation
 
-> [!Important] \ 
+> [!IMPORTANT]  
 > Make sure that you have installed [FFmpeg](https://ffmpeg.org/) and added it to the PATH environment variable. [See here](#user-requirements) for more info
 
 ## From Prebuilt binary:
@@ -140,15 +140,15 @@ brew install ffmpeg
 
 <h1 align="center">- Development -</h1>
 
-> [!Warning] \
+> [!WARNING]  
 > As of right now (4th of November 2022) I guess pytorch is not compatible with python 3.11 so you can't use python 3.11. I tried with 3.11 but it doesn't work so i rollback to python 3.10.9.
 
-> [!Note] \
+> [!NOTE]  
 > Ignore all this if you are using the prebuilt/compiled version.
 
 ## Setup
 
-> [!Note] \
+> [!NOTE]  
 > It is recommended to create a virtual environment, but it is not required.
 
 1. Create your virtual environment by running `python -m venv venv`
@@ -159,7 +159,7 @@ brew install ffmpeg
 
 ## Using GPU
 
-> [!Note] \
+> [!NOTE]  
 > The `--extra-index-url` here might not always be up to date, so you can check the latest version of pytorch [here](https://pytorch.org/get-started/locally/). You can also check the available version of pytorch [here](https://download.pytorch.org/whl/torch_stable.html).
 
 Make sure that you add `--extra-index-url https://download.pytorch.org/whl/cu118` when installing the dependencies if you want to use GPU for pytorch.
@@ -172,7 +172,7 @@ You can run the app by running the [`Run.py`](./Run.py) located in **root direct
 
 Before compiling the project, make sure you have installed all the dependencies and setup your pytorch correctly. Your pytorch version will control wether the app will use GPU or CPU (that's why it's recommended to make virtual environment for the project).
 
-I have provided a `[build script](./build.py)` that will build the project for you. You can run it by typing `python build.py` in the **root directory**. This will produce an executable file in the `dist` directory. An active python virtual environment is required to run the script. Alternatively you can use the following commands to build the project:
+I have provided a `[build script](./build_pyinstaller.py)` that will build the project for you. You can run it by typing `python build_pyinstaller.py` in the **root directory**. This will produce an executable file in the `dist` directory. An active python virtual environment is required to run the script. Alternatively you can use the following commands to build the project:
 
 ```bash
 pyinstaller --noconfirm --onedir --console --icon "./assets/icon.ico" --name "Speech Translate" --clean --add-data "./assets;assets/" --copy-metadata "tqdm" --copy-metadata "regex" --copy-metadata "requests" --copy-metadata "packaging" --copy-metadata "filelock" --copy-metadata "numpy" --copy-metadata "tokenizers" --add-data "./venv/Lib/site-packages/whisper/assets;whisper/assets/"  "./Run.py"

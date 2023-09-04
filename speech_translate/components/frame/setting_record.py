@@ -31,7 +31,7 @@ class SettingRecord:
         self.root = root
         self.master = master_frame
         self.getting_threshold = False
-        self.help_emoji = emoji_img(16, "❔")
+        self.help_emoji = emoji_img(16, "❓")
 
         # ------------------ Record  ------------------
         self.lf_device = tk.LabelFrame(self.master, text="• Device Parameters")
@@ -80,7 +80,6 @@ class SettingRecord:
             to=384_000,
             validate="key",
             validatecommand=(self.root.register(number_only), "%P"),
-            command=lambda: sj.save_key("sample_rate_mic", int(self.spn_sr_mic.get())),
         )
         self.spn_sr_mic.bind(
             "<KeyRelease>",
@@ -107,7 +106,6 @@ class SettingRecord:
             validate="key",
             width=15,
             validatecommand=(self.root.register(number_only), "%P"),
-            command=lambda: sj.save_key("chunk_size_mic", int(self.spn_chunk_size_mic.get())),
         )
         self.spn_chunk_size_mic.bind(
             "<KeyRelease>",
@@ -135,7 +133,6 @@ class SettingRecord:
             to=25,  # not sure what the limit is but we will just settle with 25
             validate="key",
             validatecommand=(self.root.register(number_only), "%P"),
-            command=lambda: sj.save_key("channels_mic", int(self.spn_channels_mic.get())),
         )
         self.spn_channels_mic.bind(
             "<KeyRelease>",
@@ -154,13 +151,7 @@ class SettingRecord:
         )
 
         # 3
-        self.cbtn_auto_sr_mic = ttk.Checkbutton(
-            self.f_mic_device_3,
-            text="Auto sample rate",
-            command=lambda: sj.save_key("auto_sample_rate_mic", self.cbtn_auto_sr_mic.instate(["selected"]))
-            or self.toggle_sr("mic", self.cbtn_auto_sr_mic.instate(["selected"])),
-            style="Switch.TCheckbutton",
-        )
+        self.cbtn_auto_sr_mic = ttk.Checkbutton(self.f_mic_device_3, text="Auto sample rate", style="Switch.TCheckbutton")
         self.cbtn_auto_sr_mic.pack(side="left", padx=5)
         tk_tooltip(
             self.cbtn_auto_sr_mic,
@@ -170,11 +161,7 @@ class SettingRecord:
         )
 
         self.cbtn_auto_channels_mic = ttk.Checkbutton(
-            self.f_mic_device_3,
-            text="Auto channels value",
-            command=lambda: sj.save_key("auto_channels_mic", self.cbtn_auto_channels_mic.instate(["selected"]))
-            or self.toggle_channels("mic", self.cbtn_auto_channels_mic.instate(["selected"])),
-            style="Switch.TCheckbutton",
+            self.f_mic_device_3, text="Auto channels value", style="Switch.TCheckbutton"
         )
         self.cbtn_auto_channels_mic.pack(side="left", padx=5)
         tk_tooltip(
@@ -205,7 +192,6 @@ class SettingRecord:
             to=384_000,
             validate="key",
             validatecommand=(self.root.register(number_only), "%P"),
-            command=lambda: sj.save_key("sample_rate_speaker", int(self.spn_sr_speaker.get())),
         )
         self.spn_sr_speaker.bind(
             "<KeyRelease>",
@@ -232,7 +218,6 @@ class SettingRecord:
             validate="key",
             width=15,
             validatecommand=(self.root.register(number_only), "%P"),
-            command=lambda: sj.save_key("chunk_size_speaker", int(self.spn_chunk_size_speaker.get())),
         )
         self.spn_chunk_size_speaker.bind(
             "<KeyRelease>",
@@ -255,12 +240,7 @@ class SettingRecord:
         self.lbl_channels_speaker = ttk.Label(self.f_speaker_device_2, text="Channels", width=14)
         self.lbl_channels_speaker.pack(side="left", padx=5)
         self.spn_channels_speaker = ttk.Spinbox(
-            self.f_speaker_device_2,
-            from_=1,
-            to=25,
-            validate="key",
-            validatecommand=(self.root.register(number_only), "%P"),
-            command=lambda: sj.save_key("channels_speaker", int(self.spn_channels_speaker.get())),
+            self.f_speaker_device_2, from_=1, to=25, validate="key", validatecommand=(self.root.register(number_only), "%P")
         )
         self.spn_channels_speaker.bind(
             "<KeyRelease>",
@@ -280,11 +260,7 @@ class SettingRecord:
 
         # 3
         self.cbtn_auto_sr_speaker = ttk.Checkbutton(
-            self.f_speaker_device_3,
-            text="Auto sample rate",
-            command=lambda: sj.save_key("auto_sample_rate_speaker", self.cbtn_auto_sr_speaker.instate(["selected"]))
-            or self.toggle_sr("speaker", self.cbtn_auto_sr_speaker.instate(["selected"])),
-            style="Switch.TCheckbutton",
+            self.f_speaker_device_3, text="Auto sample rate", style="Switch.TCheckbutton"
         )
         self.cbtn_auto_sr_speaker.pack(side="left", padx=5)
         tk_tooltip(
@@ -295,11 +271,7 @@ class SettingRecord:
         )
 
         self.cbtn_auto_channels_speaker = ttk.Checkbutton(
-            self.f_speaker_device_3,
-            text="Auto channels value",
-            command=lambda: sj.save_key("auto_channels_speaker", self.cbtn_auto_channels_speaker.instate(["selected"]))
-            or self.toggle_channels("speaker", self.cbtn_auto_channels_speaker.instate(["selected"])),
-            style="Switch.TCheckbutton",
+            self.f_speaker_device_3, text="Auto channels value", style="Switch.TCheckbutton"
         )
         self.cbtn_auto_channels_speaker.pack(side="left", padx=5)
         tk_tooltip(
@@ -320,12 +292,7 @@ class SettingRecord:
         self.lbl_max_temp = ttk.Label(self.f_temp_1, text="Max Temp Files", width=14)
         self.lbl_max_temp.pack(side="left", padx=5, pady=5)
         self.spn_max_temp = ttk.Spinbox(
-            self.f_temp_1,
-            from_=50,
-            to=1000,
-            validate="key",
-            validatecommand=(self.root.register(number_only), "%P"),
-            command=lambda: sj.save_key("max_temp", int(self.spn_max_temp.get())),
+            self.f_temp_1, from_=50, to=1000, validate="key", validatecommand=(self.root.register(number_only), "%P")
         )
         self.spn_max_temp.bind(
             "<KeyRelease>",
@@ -343,12 +310,7 @@ class SettingRecord:
             "Set max number of temporary files kept when recording from device that is not mono.\n\nDefault value is 200.",
         )
 
-        self.cbtn_keep_temp = ttk.Checkbutton(
-            self.f_temp_1,
-            text="Keep temp files",
-            command=lambda: sj.save_key("keep_temp", self.cbtn_keep_temp.instate(["selected"])),
-            style="Switch.TCheckbutton",
-        )
+        self.cbtn_keep_temp = ttk.Checkbutton(self.f_temp_1, text="Keep temp files", style="Switch.TCheckbutton")
         self.cbtn_keep_temp.pack(side="left", padx=5, pady=5)
         tk_tooltip(
             self.cbtn_keep_temp,
@@ -376,12 +338,7 @@ class SettingRecord:
         self.lbl_buffer_mic = ttk.Label(self.f_mic_recording_1, text="Max buffer (s)", width=14)
         self.lbl_buffer_mic.pack(side="left", padx=5)
         self.spn_buffer_mic = ttk.Spinbox(
-            self.f_mic_recording_1,
-            from_=3,
-            to=300,
-            validate="key",
-            validatecommand=(self.root.register(number_only), "%P"),
-            command=lambda: sj.save_key("max_buffer_mic", int(self.spn_buffer_mic.get())),
+            self.f_mic_recording_1, from_=3, to=300, validate="key", validatecommand=(self.root.register(number_only), "%P")
         )
         self.spn_buffer_mic.bind(
             "<KeyRelease>",
@@ -413,12 +370,7 @@ class SettingRecord:
         self.lbl_max_sentences_mic = ttk.Label(self.f_mic_recording_2, text="Max Sentences", width=14)
         self.lbl_max_sentences_mic.pack(side="left", padx=5)
         self.spn_max_sentences_mic = ttk.Spinbox(
-            self.f_mic_recording_2,
-            from_=1,
-            to=250,
-            validate="key",
-            validatecommand=(self.root.register(number_only), "%P"),
-            command=lambda: sj.save_key("max_sentences_mic", int(self.spn_max_sentences_mic.get())),
+            self.f_mic_recording_2, from_=1, to=250, validate="key", validatecommand=(self.root.register(number_only), "%P")
         )
         self.spn_max_sentences_mic.bind(
             "<KeyRelease>",
@@ -447,7 +399,6 @@ class SettingRecord:
             to=100000,
             validate="key",
             validatecommand=(self.root.register(number_only_float), "%P"),
-            command=lambda: sj.save_key("threshold_db_mic", float(self.spn_threshold_mic.get())),
             width=12,
         )
         self.spn_threshold_mic.bind(
@@ -484,10 +435,7 @@ class SettingRecord:
 
         # 4
         self.cbtn_threshold_enable_mic = ttk.Checkbutton(
-            self.f_mic_recording_4,
-            text="Enable threshold",
-            command=lambda: sj.save_key("threshold_enable_mic", self.cbtn_threshold_enable_mic.instate(["selected"])),
-            style="Switch.TCheckbutton",
+            self.f_mic_recording_4, text="Enable threshold", style="Switch.TCheckbutton"
         )
         self.cbtn_threshold_enable_mic.pack(side="left", padx=5, pady=2)
 
@@ -516,7 +464,6 @@ class SettingRecord:
             to=300,
             validate="key",
             validatecommand=(self.root.register(number_only), "%P"),
-            command=lambda: sj.save_key("max_buffer_speaker", int(self.spn_buffer_speaker.get())),
         )
         self.spn_buffer_speaker.bind(
             "<KeyRelease>",
@@ -553,7 +500,6 @@ class SettingRecord:
             to=250,
             validate="key",
             validatecommand=(self.root.register(number_only), "%P"),
-            command=lambda: sj.save_key("max_sentences_speaker", int(self.spn_max_sentences_speaker.get())),
         )
         self.spn_max_sentences_speaker.bind(
             "<KeyRelease>",
@@ -582,7 +528,6 @@ class SettingRecord:
             to=100000,
             validate="key",
             validatecommand=(self.root.register(number_only_float), "%P"),
-            command=lambda: sj.save_key("threshold_db_speaker", float(self.spn_threshold_speaker.get())),
             width=12,
         )
         self.spn_threshold_speaker.bind(
@@ -622,12 +567,7 @@ class SettingRecord:
 
         # 4
         self.cbtn_threshold_enable_speaker = ttk.Checkbutton(
-            self.f_speaker_recording_4,
-            text="Enable threshold",
-            command=lambda: sj.save_key(
-                "threshold_enable_speaker", self.cbtn_threshold_enable_speaker.instate(["selected"])
-            ),
-            style="Switch.TCheckbutton",
+            self.f_speaker_recording_4, text="Enable threshold", style="Switch.TCheckbutton"
         )
         self.cbtn_threshold_enable_speaker.pack(side="left", padx=5, pady=2)
 
@@ -704,6 +644,72 @@ class SettingRecord:
                 self.cbtn_threshold_enable_speaker,
                 self.btn_auto_threshold_speaker,
             ]
+        )
+
+        self.configure_commands()
+
+    def configure_commands(self):
+        """
+        To prevent the command from being called multiple times, we need to configure the command just once after the setting is initialized
+        """
+        # Device parameters
+        self.spn_sr_mic.configure(command=lambda: sj.save_key("sample_rate_mic", int(self.spn_sr_mic.get())))
+        self.spn_channels_mic.configure(command=lambda: sj.save_key("channels_mic", int(self.spn_channels_mic.get())))
+        self.spn_chunk_size_mic.configure(command=lambda: sj.save_key("chunk_size_mic", int(self.spn_chunk_size_mic.get())))
+        self.cbtn_auto_sr_mic.configure(
+            command=lambda: sj.save_key("auto_sample_rate_mic", self.cbtn_auto_sr_mic.instate(["selected"]))
+            or self.toggle_sr("mic", self.cbtn_auto_sr_mic.instate(["selected"]))
+        )
+        self.cbtn_auto_channels_mic.configure(
+            command=lambda: sj.save_key("auto_channels_mic", self.cbtn_auto_channels_mic.instate(["selected"]))
+            or self.toggle_channels("mic", self.cbtn_auto_channels_mic.instate(["selected"]))
+        )
+
+        self.spn_sr_speaker.configure(command=lambda: sj.save_key("sample_rate_speaker", int(self.spn_sr_speaker.get())))
+        self.spn_channels_speaker.configure(
+            command=lambda: sj.save_key("channels_speaker", int(self.spn_channels_speaker.get()))
+        )
+        self.spn_chunk_size_speaker.configure(
+            command=lambda: sj.save_key("chunk_size_speaker", int(self.spn_chunk_size_speaker.get()))
+        )
+        self.cbtn_auto_sr_speaker.configure(
+            command=lambda: sj.save_key("auto_sample_rate_speaker", self.cbtn_auto_sr_speaker.instate(["selected"]))
+            or self.toggle_sr("speaker", self.cbtn_auto_sr_speaker.instate(["selected"]))
+        )
+        self.cbtn_auto_channels_speaker.configure(
+            command=lambda: sj.save_key("auto_channels_speaker", self.cbtn_auto_channels_speaker.instate(["selected"]))
+            or self.toggle_channels("speaker", self.cbtn_auto_channels_speaker.instate(["selected"]))
+        )
+
+        # recording options
+        self.spn_max_temp.configure(command=lambda: sj.save_key("max_temp", int(self.spn_max_temp.get())))
+        self.cbtn_keep_temp.configure(command=lambda: sj.save_key("keep_temp", self.cbtn_keep_temp.instate(["selected"])))
+
+        self.spn_buffer_mic.configure(command=lambda: sj.save_key("max_buffer_mic", int(self.spn_buffer_mic.get())))
+        self.spn_max_sentences_mic.configure(
+            command=lambda: sj.save_key("max_sentences_mic", int(self.spn_max_sentences_mic.get()))
+        )
+        self.spn_threshold_mic.configure(
+            command=lambda: sj.save_key("threshold_db_mic", float(self.spn_threshold_mic.get()))
+        )
+        self.cbtn_threshold_enable_mic.configure(
+            command=lambda: sj.save_key("threshold_enable_mic", self.cbtn_threshold_enable_mic.instate(["selected"]))
+        )
+
+        self.spn_buffer_speaker.configure(
+            command=lambda: sj.save_key("max_buffer_speaker", int(self.spn_buffer_speaker.get()))
+        )
+        self.spn_max_sentences_speaker.configure(
+            command=lambda: sj.save_key("max_sentences_speaker", int(self.spn_max_sentences_speaker.get()))
+        )
+        self.spn_threshold_speaker.configure(
+            command=lambda: sj.save_key("threshold_db_speaker", float(self.spn_threshold_speaker.get()))
+        )
+        self.cbtn_threshold_enable_speaker.configure(
+            command=lambda: sj.save_key(
+                "threshold_enable_speaker",
+                self.cbtn_threshold_enable_speaker.instate(["selected"]),
+            )
         )
 
     def toggle_sr(self, device: Literal["mic", "speaker"], auto: bool) -> None:
