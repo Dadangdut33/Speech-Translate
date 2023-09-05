@@ -32,3 +32,28 @@ class LabelTitleText:
 
     def set_text_font(self, font):
         self.lbl_text.configure(font=font)
+
+
+class DraggableLabel(tk.Label):
+    def __init__(self, parent, root, *args, **kwargs):
+        super().__init__(parent, *args, **kwargs)
+        self.root = root
+        self.bind("<Button-1>", self.start_move)
+        self.bind("<ButtonRelease-1>", self.stop_move)
+        self.bind("<B1-Motion>", self.on_motion)
+        self.x = 0
+        self.y = 0
+
+    def start_move(self, event):
+        self.x = event.x_root - self.root.winfo_x()
+        self.y = event.y_root - self.root.winfo_y()
+
+    def stop_move(self, event):
+        self.x = None
+        self.y = None
+
+    def on_motion(self, event):
+        if self.x is not None and self.y is not None:
+            new_x = event.x_root - self.x
+            new_y = event.y_root - self.y
+            self.root.geometry("+%s+%s" % (new_x, new_y))

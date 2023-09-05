@@ -6,7 +6,6 @@ from tkinter import ttk, font
 from speech_translate._path import app_icon
 from speech_translate._contants import APP_NAME
 from speech_translate.globals import sj, gc
-from speech_translate.utils.helper import chooseColor
 from speech_translate.utils.helper import cbtn_invoker
 from speech_translate.utils.helper_whisper import convert_str_options_to_dict, get_temperature
 

@@ -7,17 +7,28 @@ from speech_translate._path import app_icon
 from speech_translate._contants import SUBTITLE_PLACEHOLDER
 from speech_translate.globals import sj, gc
 from speech_translate.utils.beep import beep
+from speech_translate.utils.helper import emoji_img
+
+from speech_translate.components.custom.label import DraggableLabel
 from speech_translate.components.custom.tooltip import tk_tooltip
 from speech_translate.components.custom.message import mbox
 
 
-# Classes
 class AbstractDetachedSubtitleWindow:
     """Detached Subtitle Window"""
 
     # ----------------------------------------------------------------------
     def __init__(self, master: tk.Tk, title: str, winType: Literal["tc", "tl"]):
+        self.close_emoji = emoji_img(14, " ❌")
+        self.copy_emoji = emoji_img(14, " 📋")
+        self.pin_emoji = emoji_img(14, " 📌")
+        self.help_emoji = emoji_img(14, " ❓")
+        self.title_emoji = emoji_img(14, "📝")
+        self.up_emoji = emoji_img(18, "↑")
+        self.down_emoji = emoji_img(18, "↓")
+
         self.master = master
+        self.title = title
         self.root = tk.Toplevel(master)
         self.root.title(title)
         self.root.geometry("800x200")
@@ -26,8 +37,8 @@ class AbstractDetachedSubtitleWindow:
         # ------------------ #
         self.winType = winType
         self.winString = ""
-        self.x = 0
-        self.y = 0
+        self.x_menu = 0
+        self.y_menu = 0
         self.currentOpacity = 1.0
         self.always_on_top = tk.IntVar()
         self.no_tooltip = tk.IntVar()
@@ -49,12 +60,13 @@ class AbstractDetachedSubtitleWindow:
         self.frame_1.pack(side="top", fill="both", expand=True)
         self.fTooltip = tk_tooltip(
             self.frame_1,
-            "Right click for interaction menu\n\nTips: You can drag the window by dragging from the label",
+            "Right click for interaction menu. You can also drag this window by dragging the label (text result).",
             wrapLength=400,
         )
 
-        self.lbl_text = tk.Label(
+        self.lbl_text = DraggableLabel(
             self.frame_1,
+            self.root,
             font=(
                 sj.cache[f"tb_ex_{winType}_font"],
                 sj.cache[f"tb_ex_{winType}_font_size"],
@@ -69,13 +81,15 @@ class AbstractDetachedSubtitleWindow:
         self.lbl_text.pack(side="top")
 
         self.menuDropdown = tk.Menu(self.root, tearoff=0)
-
-        self.menuDropdown.add_separator()
-        self.menuDropdown.add_command(label=title)
-        self.menuDropdown.add_separator()
-        self.menuDropdown.add_command(label="Close", command=lambda: self.on_closing())
-        self.menuDropdown.add_separator()
-        self.menuDropdown.add_command(label="Copy", command=lambda: self.copy_tb_content(), accelerator="Alt + C")
+        self.menuDropdown.add_command(label=self.title, command=self.open_menu, image=self.title_emoji, compound="left")
+        self.menuDropdown.add_command(label="Help", command=self.show_help, image=self.help_emoji, compound="left")
+        self.menuDropdown.add_command(
+            label="Copy",
+            command=self.copy_tb_content,
+            accelerator="Alt + C",
+            image=self.copy_emoji,
+            compound="left",
+        )
         self.menuDropdown.add_separator()
         self.menuDropdown.add_checkbutton(
             label="Hide Title bar",
@@ -84,6 +98,14 @@ class AbstractDetachedSubtitleWindow:
             offvalue=0,
             variable=self.no_title_bar,
             accelerator="Alt + T",
+        )
+        self.menuDropdown.add_checkbutton(
+            label="Hide Tooltip",
+            command=lambda: self.toggle_tooltip(fromKeyBind=False),
+            onvalue=1,
+            offvalue=0,
+            variable=self.no_tooltip,
+            accelerator="Alt + X",
         )
         if platform.system() == "Windows":
             self.click_through.set(int(sj.cache[f"ex_{winType}_click_through"]))
@@ -103,35 +125,26 @@ class AbstractDetachedSubtitleWindow:
             offvalue=0,
             variable=self.always_on_top,
             accelerator="Alt + O",
+            image=self.pin_emoji,
+            compound="right",
         )
         self.menuDropdown.add_separator()
         self.menuDropdown.add_command(
-            label="Increase Opacity by 0.1", command=lambda: self.increase_opacity(), accelerator="Alt + Mouse Wheel Up"
+            label="Increase Opacity by 0.1",
+            command=lambda: self.increase_opacity(),
+            accelerator="Alt + Mouse Wheel Up",
+            image=self.up_emoji,
+            compound="left",
         )
         self.menuDropdown.add_command(
-            label="Decrease Opacity by 0.1", command=lambda: self.decrease_opacity(), accelerator="Alt + Mouse Wheel Down"
+            label="Decrease Opacity by 0.1",
+            command=lambda: self.decrease_opacity(),
+            accelerator="Alt + Mouse Wheel Down",
+            image=self.down_emoji,
+            compound="left",
         )
         self.menuDropdown.add_separator()
-        self.menuDropdown.add_checkbutton(
-            label="Hide Tooltip",
-            command=lambda: self.toggle_tooltip(fromKeyBind=False),
-            onvalue=1,
-            offvalue=0,
-            variable=self.no_tooltip,
-            accelerator="Alt + X",
-        )
-        self.menuDropdown.add_separator()
-        self.menuDropdown.add_command(label="Keyboard Shortcut Keys", command=lambda: self.show_shortcut_keys())
-
-        # init settings
-        self.always_on_top.set(int(sj.cache[f"ex_{winType}_always_on_top"]))
-        self.toggle_always_on_top(fromKeyBind=False, onInit=True)
-
-        self.no_title_bar.set(int(sj.cache[f"ex_{winType}_no_title_bar"]))
-        self.toggle_title_bar(fromKeyBind=False, onInit=True)
-
-        self.no_tooltip.set(int(sj.cache[f"ex_{winType}_no_tooltip"]))
-        self.toggle_tooltip(fromKeyBind=False, onInit=True)
+        self.menuDropdown.add_command(label="Close", command=self.on_closing, image=self.close_emoji, compound="left")
 
         # ------------------------------------------------------------------------
         # Binds
@@ -139,7 +152,7 @@ class AbstractDetachedSubtitleWindow:
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
         # rclick menu
-        self.root.bind("<Button-3>", lambda event: self.menuDropdown.post(event.x_root, event.y_root))
+        self.root.bind("<Button-3>", self.open_menu)
 
         # keybinds
         if platform.system() == "Windows":
@@ -153,16 +166,24 @@ class AbstractDetachedSubtitleWindow:
         # bind resize
         self.frame_1.bind("<Configure>", lambda event: self.on_resize(event))
 
-        # bind drag on label text
-        self.lbl_text.bind("<ButtonPress-1>", self.StartMove)
-        self.lbl_text.bind("<ButtonRelease-1>", self.StopMove)
-        self.lbl_text.bind("<B1-Motion>", self.OnMotion)
-
         # ------------------ Set Icon ------------------
         try:
             self.root.iconbitmap(app_icon)
         except:
             pass
+
+        # init settings
+        self.init_settings()
+
+    def init_settings(self):
+        self.always_on_top.set(int(sj.cache[f"ex_{self.winType}_always_on_top"]))
+        self.toggle_always_on_top(fromKeyBind=False, onInit=True)
+
+        self.no_title_bar.set(int(sj.cache[f"ex_{self.winType}_no_title_bar"]))
+        self.toggle_title_bar(fromKeyBind=False, onInit=True)
+
+        self.no_tooltip.set(int(sj.cache[f"ex_{self.winType}_no_tooltip"]))
+        self.toggle_tooltip(fromKeyBind=False, onInit=True)
 
     def on_resize(self, event):
         """
@@ -172,19 +193,6 @@ class AbstractDetachedSubtitleWindow:
         if event.width >= 300:  # minimum width
             self.lbl_text.configure(wraplength=event.width)
 
-    def StartMove(self, event):
-        self.x = event.x
-        self.y = event.y
-
-    def StopMove(self, event):
-        self.x = None
-        self.y = None
-
-    def OnMotion(self, event):
-        x = event.x_root - self.x - self.lbl_text.winfo_rootx() + self.lbl_text.winfo_rootx()
-        y = event.y_root - self.y - self.lbl_text.winfo_rooty() + self.lbl_text.winfo_rooty()
-        self.root.geometry("+%s+%s" % (x, y))
-
     def check_height_resize(self):
         """
         Method to resize the window height if label text height is more than the window height.
@@ -192,14 +200,34 @@ class AbstractDetachedSubtitleWindow:
         if self.lbl_text.winfo_height() > self.frame_1.winfo_height():
             self.root.geometry(f"{self.root.winfo_width()}x{self.lbl_text.winfo_height()}")
 
-    def show_shortcut_keys(self):
+    def open_menu(self, event=None):
         """
-        Method to show shortcut keys.
+        Method to open the menu.
+        """
+        if event:
+            self.x_menu = event.x_root
+            self.y_menu = event.y_root
+            self.menuDropdown.post(event.x_root, event.y_root)
+        else:
+            self.menuDropdown.post(self.x_menu, self.y_menu)
+
+    def show_help(self):
+        """
+        Help window.
         """
         mbox(
-            "Shortcut keys command for detached window",
-            "Alt + scroll to change opacity\nAlt + c to copy text\nAlt + t to toggle title bar (remove title bar)\nAlt + s to toggle click through or transparent window\nAlt + o to toggle always on top\nAlt + x to toggle on/off this tooltip\n\nTips: You can drag the window by dragging from the label",
+            f"{self.title} - Help",
+            "This is a window that shows the result of the recording session in a separate window. You can think of this as a subtitle box. "
+            "To drag the window, drag from the label (text result).\n\n"
+            "Keybinds (when focused):\n"
+            "- Alt + scroll to change opacity\n"
+            "- Alt + c to copy text\n"
+            "- Alt + t to toggle title bar (remove title bar)\n"
+            "- Alt + s to toggle click through or transparent window\n"
+            "- Alt + o to toggle always on top\n"
+            "- Alt + x to toggle on/off tooltip",
             0,
+            self.root,
         )
 
     # toggle tooltip

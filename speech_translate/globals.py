@@ -6,7 +6,7 @@ import arabic_reshaper
 from bidi.algorithm import get_display
 from tkinter import ttk
 from threading import Thread, Lock
-from typing import Optional, List, TYPE_CHECKING
+from typing import Literal, Optional, List, TYPE_CHECKING, Union
 from ._path import dir_temp, dir_log, dir_export, dir_user
 from ._contants import SUBTITLE_PLACEHOLDER, RESHAPE_LANG_LIST
 from .utils.setting import SettingJson
@@ -126,137 +126,159 @@ class GlobalClass:
     def disableTranslating(self):
         self.translating = False
 
-    def insertMwTbTc(self, textToAppend: str, detected_lang: str):
+    def getSeparator(self):
+        return ast.literal_eval(shlex.quote(sj.cache["separate_with"]))
+
+    def insert_result_mw(self, textToAppend, mode: Literal["tc", "tl"]):
         """Insert text to transcribed textbox. Will also check if the text is too long and will truncate it if it is.
-        Separator should be added in the arguments (already in textToAppend)
 
         Parameters
         ---
-        textToAppend: str
+        textToAppend
             Text to append
+        mode: Literal["tc", "tl"]
+            Mode to insert the text to. "tc" for transcribed textbox, "tl" for translated textbox
         """
         assert self.mw is not None
-        currentText = self.getMwTextTc()
-        # Main window textbox
-        if sj.cache["tb_mw_tc_max"] != 0 and len(currentText) > sj.cache["tb_mw_tc_max"]:
-            # if not infinite and text too long
-            # remove words from the start with length of the new text
-            # then add new text to the end
+        op_dic = {"tc": [self.get_mw_tc, self.mw.tb_transcribed], "tl": [self.get_mw_tl, self.mw.tb_translated]}
+        get_text = op_dic[mode][0]
+        tb = op_dic[mode][1]
+
+        separator = self.getSeparator()
+        currentText = get_text()
+        # if not infinite and text too long
+        # remove words from the start with length of the new text
+        # then add new text to the end
+        if sj.cache[f"tb_mw_{mode}_limit_max"] and len(currentText) > sj.cache[f"tb_mw_{mode}_max"]:
             currentText = currentText[len(textToAppend) :]
             currentText += textToAppend
             textToAppend = currentText
-            self.mw.tb_transcribed.delete("1.0", "end")
+            tb.delete("1.0", "end")
 
-        if detected_lang.lower() in RESHAPE_LANG_LIST:
+        if sj.cache["parse_arabic"]:
             textToAppend = str(get_display(arabic_reshaper.reshape(textToAppend)))
 
-        self.mw.tb_transcribed.insert("end", textToAppend)
-        self.mw.tb_transcribed.see("end")
+        # if it has limit per sentence, break it into multiple sentences with
+        # character limitation for each sentence set by the user.
+        if sj.cache[f"tb_mw_{mode}_limit_max_per_line"]:
+            currentText = currentText.split("\n")  # split it by line
+            lastLine = currentText[-1]  # get the last line
+            if lastLine != "":  # if the last line is not empty, add a new line
+                tb.insert("end", "\n")
 
-    def insertMwTbTl(self, textToAppend: str, detected_lang: str):
-        """Insert text to translated textbox. Will also check if the text is too long and will truncate it if it is.
-        Separator should be added in the arguments (already in textToAppend)
+            # split the text to append by line
+            textToAppend = textToAppend.split("\n")
 
-        Parameters
-        ---
-        textToAppend: str
-            Text to append
-        """
-        assert self.mw is not None
-        currentText = self.getMwTextTl()
-        # Main window textbox
-        if sj.cache["tb_mw_tl_max"] != 0 and len(currentText) > sj.cache["tb_mw_tl_max"]:
-            # if not infinite and text is too long
-            # remove words from the start with length of the new text
-            # then add new text to the end
-            currentText = currentText[len(textToAppend) :]
-            currentText += textToAppend
-            textToAppend = currentText
-            self.mw.tb_translated.delete("1.0", "end")
+            # loop through the text to append
+            for line in textToAppend:
+                if line != "":  # line is not empty
+                    # too long, cut it into multiple lines
+                    if len(line) > sj.cache[f"tb_mw_{mode}_max_per_line"]:
+                        # split the line into multiple lines with the max length of the line set by the user
+                        line = [
+                            line[i : i + sj.cache[f"tb_mw_{mode}_max_per_line"]]
+                            for i in range(0, len(line), sj.cache[f"tb_mw_{mode}_max_per_line"])
+                        ]
+                        # loop through the new lines
+                        for newLine in line:
+                            if newLine != "":  # not empty
+                                # insert the new line
+                                tb.insert("end", newLine + separator)
+                    else:
+                        # if the line is not too long, insert it
+                        tb.insert("end", line + separator)
+        else:
+            tb.insert("end", textToAppend + separator)
 
-        if detected_lang.lower() in RESHAPE_LANG_LIST:
-            textToAppend = str(get_display(arabic_reshaper.reshape(textToAppend)))
+        tb.see("end")
 
-        self.mw.tb_translated.insert("end", textToAppend)
-        self.mw.tb_translated.see("end")
-
-    def insertExTbTc(self, textToAppend: str, detected_lang: str):
+    def insert_result_ex(self, textToAppend, mode: Literal["tc", "tl"]):
         """Insert text to detached transcribed textbox. Will also check if the text is too long and will truncate it if it is.
         Separator is added here.
 
         Parameters
         ---
-        textToAppend: str
+        textToAppend
             Text to append
         """
-        assert self.ex_tcw is not None
-        currentText = self.ex_tcw.lbl_text.cget("text").strip()
-        textToAppend = textToAppend.strip()
-        # Main window textbox
-        if sj.cache["tb_ex_tc_max"] != 0 and len(currentText) > sj.cache["tb_ex_tc_max"]:
-            # if not infinite and text is too long
-            # remove words from the start with length of the new text
-            # then add new text to the end
+        assert self.ex_tcw and self.ex_tlw is not None
+        op_dic = {"tc": [self.get_ex_tc, self.ex_tcw], "tl": [self.get_ex_tl, self.ex_tlw]}
+        get_text = op_dic[mode][0]
+        ex: Union[TcsWindow, TlsWindow] = op_dic[mode][1]
+
+        separator = self.getSeparator()
+        currentText = get_text()
+        # if not infinite and text too long
+        # remove words from the start with length of the new text
+        # then add new text to the end
+        if sj.cache[f"tb_ex_{mode}_limit_max"] and len(currentText) > sj.cache[f"tb_ex_{mode}_max"]:
             currentText = currentText[len(textToAppend) :]
             currentText += textToAppend
-            textToAppend = currentText  # set new text
-        else:
-            textToAppend += ast.literal_eval(shlex.quote(sj.cache["separate_with"]))  # set new text
+            textToAppend = currentText
 
-        if detected_lang.lower() in RESHAPE_LANG_LIST:
+        if sj.cache["parse_arabic"]:
             textToAppend = str(get_display(arabic_reshaper.reshape(textToAppend)))
 
-        self.ex_tcw.lbl_text.configure(text=textToAppend)
-        self.ex_tcw.check_height_resize()
+        # if it has limit per sentence, break it into multiple sentences with
+        # character limitation for each sentence set by the user.
+        if sj.cache[f"tb_ex_{mode}_limit_max_per_line"]:
+            # split the text to append by line
+            splited = textToAppend.split("\n")
+            textToAppend = ""
 
-    def insertExTbTl(self, textToAppend: str, detected_lang: str):
-        """Insert text to detached translated textbox. Will also check if the text is too long and will truncate it if it is.
-        Separator is added here.
-
-        Parameters
-        ---
-        textToAppend: str
-            Text to append
-        """
-        assert self.ex_tlw is not None
-        currentText = self.ex_tlw.lbl_text.cget("text").strip()
-        textToAppend = textToAppend.strip()
-        # Main window textbox
-        if sj.cache["tb_ex_tl_max"] != 0 and len(currentText) > sj.cache["tb_ex_tl_max"]:
-            # if not infinite and text is too long
-            currentText = currentText[len(textToAppend) :]  # remove words from the start with length of the new text
-            currentText += textToAppend  # add new text to the end
-            textToAppend = currentText  # set new text
+            # loop through the text to append
+            for line in splited:
+                if line != "":  # line is not empty
+                    # too long, cut it into multiple lines
+                    if len(line) > sj.cache[f"tb_ex_{mode}_max_per_line"]:
+                        # split the line into multiple lines with the max length of the line set by the user
+                        line = [
+                            line[i : i + sj.cache[f"tb_ex_{mode}_max_per_line"]]
+                            for i in range(0, len(line), sj.cache["tb_mw_tc_max_per_line"])
+                        ]
+                        # loop through the new lines
+                        for newLine in line:
+                            if newLine != "":  # not empty
+                                # insert the new line
+                                textToAppend += newLine + separator
+                    else:
+                        # if the line is not too long, insert it
+                        textToAppend += line + separator
         else:
-            textToAppend += ast.literal_eval(shlex.quote(sj.cache["separate_with"]))  # set new text
+            textToAppend += separator
 
-        if detected_lang.lower() in RESHAPE_LANG_LIST:
-            textToAppend = str(get_display(arabic_reshaper.reshape(textToAppend)))
+        ex.lbl_text.configure(text=textToAppend)
+        ex.check_height_resize()
 
-        self.ex_tlw.lbl_text.configure(text=textToAppend)
-        self.ex_tlw.check_height_resize()
-
-    def getMwTextTc(self) -> str:
+    def get_mw_tc(self) -> str:
         assert self.mw is not None
         return self.mw.tb_transcribed.get("1.0", "end")
 
-    def getMwTextTl(self) -> str:
+    def get_mw_tl(self) -> str:
         assert self.mw is not None
         return self.mw.tb_translated.get("1.0", "end")
 
-    def clearMwTc(self):
+    def get_ex_tc(self) -> str:
+        assert self.ex_tcw is not None
+        return self.ex_tcw.lbl_text.cget("text")
+
+    def get_ex_tl(self) -> str:
+        assert self.ex_tlw is not None
+        return self.ex_tlw.lbl_text.cget("text")
+
+    def clear_mw_tc(self):
         assert self.mw is not None
         self.mw.tb_transcribed.delete("1.0", "end")
 
-    def clearMwTl(self):
+    def clear_mw_tl(self):
         assert self.mw is not None
         self.mw.tb_translated.delete("1.0", "end")
 
-    def clearExTc(self):
+    def clear_ex_tc(self):
         assert self.ex_tcw is not None
         self.ex_tcw.lbl_text.configure(text=SUBTITLE_PLACEHOLDER)
 
-    def clearExTl(self):
+    def clear_ex_tl(self):
         assert self.ex_tlw is not None
         self.ex_tlw.lbl_text.configure(text=SUBTITLE_PLACEHOLDER)
 

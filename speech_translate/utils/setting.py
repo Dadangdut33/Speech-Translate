@@ -37,6 +37,7 @@ default_setting = {
     "export_format": "%Y-%m-%d %H_%M {file}_{task}",  # {file} {task} {task-short} {lang-source} {lang-target} {model} {engine}
     "file_slice_start": "",  # empty will be read as None
     "file_slice_end": "",  # empty will be read as None
+    "parse_arabic": False,
     # ------------------ #
     # logging
     "keep_log": False,
@@ -113,7 +114,7 @@ default_setting = {
     "ex_tc_always_on_top": 1,
     "ex_tc_click_through": 1,
     "ex_tc_no_title_bar": 1,
-    "ex_tc_no_tooltip": 1,
+    "ex_tc_no_tooltip": 0,
     "tb_ex_tc_limit_max": False,
     "tb_ex_tc_limit_max_per_line": False,
     "tb_ex_tc_max": 120,
@@ -128,7 +129,7 @@ default_setting = {
     "ex_tl_always_on_top": 1,
     "ex_tl_click_through": 1,
     "ex_tl_no_title_bar": 1,
-    "ex_tl_no_tooltip": 1,
+    "ex_tl_no_tooltip": 0,
     "tb_ex_tl_limit_max": False,
     "tb_ex_tl_limit_max_per_line": False,
     "tb_ex_tl_max": 120,

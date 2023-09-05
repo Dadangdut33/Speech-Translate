@@ -336,6 +336,7 @@ def getDeviceAverageThreshold(deviceType: Literal["mic", "speaker"], duration: i
 
     return db
 
+
 # --------------------------------------------------------------------------------------------------------------------------------------
 def record_realtime(
     lang_source: str,
@@ -771,19 +772,19 @@ def record_realtime(
                             # this works like this:
                             # clear the textbox first, then insert the text. The text inserted is a continuation of the previous text.
                             # the longer it is the clearer the transcribed text will be, because of more context.
-                            gc.clearMwTc()
-                            gc.clearExTc()
+                            gc.clear_mw_tc()
+                            gc.clear_ex_tc()
                             toExTc = ""
 
-                            # insert previous sentences if there are any
+                            # insert previous sentences first if there are any
                             for sentence in sentences_tc:
-                                gc.insertMwTbTc(sentence + separator, str(result["language"]))
+                                gc.insert_result_mw(sentence, "tc")
                                 toExTc += sentence + separator
 
+                            toExTc += text
                             # insert the current sentence after previous sentences
-                            gc.insertMwTbTc(text + separator, str(result["language"]))
-                            toExTc += text + separator
-                            gc.insertExTbTc(toExTc, str(result["language"]))
+                            gc.insert_result_mw(text, "tc")
+                            gc.insert_result_ex(toExTc, "tc")
 
                         if translate:
                             # Start translate thread
@@ -892,7 +893,7 @@ def realtime_recording_thread(chunk_size: int, rec_type: Literal["mic", "speaker
 
         # if either debug_db or threshold_enable is enabled, then calculate current db
         if sj.cache["debug_db"] or sj.cache[f"threshold_enable_{rec_type}"]:
-            rms = audioop.rms(data, 2) / 32767 # calculate rms
+            rms = audioop.rms(data, 2) / 32767  # calculate rms
             if rms == 0.0:
                 db = 0.0
             else:
@@ -951,19 +952,19 @@ def whisper_realtime_tl(
             # this works like this:
             # clear the textbox first, then insert the text. The text inserted is a continuation of the previous text.
             # the longer it is the clearer the transcribed text will be, because of more context.
-            gc.clearMwTl()
-            gc.clearExTl()
+            gc.clear_mw_tl()
+            gc.clear_ex_tl()
             toExTb = ""
 
             # insert previous sentences if there are any
             for sentence in sentences_tl:
-                gc.insertMwTbTl(sentence + separator, str(result["language"]))
+                gc.insert_result_mw(sentence, "tl")
                 toExTb += sentence + separator
 
+            toExTb += text
             # insert the current sentence after previous sentences
-            gc.insertMwTbTl(text + separator, str(result["language"]))
-            toExTb += text + separator
-            gc.insertExTbTl(toExTb, str(result["language"]))
+            gc.insert_result_mw(text, "tl")
+            gc.insert_result_ex(toExTb, "tl")
 
     except Exception as e:
         logger.exception(e)
@@ -1015,19 +1016,19 @@ def realtime_tl(
             # this works like this:
             # clear the textbox first, then insert the text. The text inserted is a continuation of the previous text.
             # the longer it is the clearer the transcribed text will be, because of more context.
-            gc.clearMwTl()
-            gc.clearExTl()
+            gc.clear_mw_tl()
+            gc.clear_ex_tl()
             toExTb = ""
 
             # insert previous sentences if there are any
             for sentence in sentences_tl:
-                gc.insertMwTbTl(sentence + separator, lang_target)
+                gc.insert_result_mw(sentence, "tl")
                 toExTb += sentence + separator
 
+            toExTb += result_Tl
             # insert the current sentence after previous sentences
-            gc.insertMwTbTl(result_Tl + separator, lang_target)
-            toExTb += result_Tl + separator
-            gc.insertExTbTl(toExTb, lang_target)
+            gc.insert_result_mw(result_Tl, "tl")
+            gc.insert_result_ex(toExTb, "tl")
 
     except Exception as e:
         logger.exception(e)
@@ -1145,14 +1146,9 @@ def cancellable_tl(
                 with open(os.path.join(export_to, f"{save_name}.srt"), "w", encoding="utf-8") as f:
                     f.write(resultSrt)
 
-                gc.insertMwTbTl(
-                    f"translated {save_name} and saved to .txt and .srt" + separator, str(result_Tl_whisper["language"])
-                )
+                gc.insert_result_mw(f"translated {save_name} and saved to .txt and .srt" + separator, "tl")
             else:
-                gc.insertMwTbTl(
-                    f"Fail to save file {save_name}. It is empty (no text get from transcription)" + separator,
-                    str(result_Tl_whisper["language"]),
-                )
+                gc.insert_result_mw(f"Fail to save file {save_name}. It is empty (no text get from transcription)", "tl")
                 logger.warning("Translated Text is empty")
         else:
             # limit to 5000 characters
@@ -1225,12 +1221,10 @@ def cancellable_tl(
                     with open(os.path.join(export_to, f"{save_name_part}.srt"), "w", encoding="utf-8") as f:
                         f.write(resultSrt)
 
-                    gc.insertMwTbTl(f"Translated {save_name_part} and saved to .txt and .srt" + separator, lang_target)
+                    gc.insert_result_mw(f"Translated {save_name_part} and saved to .txt and .srt", "tl")
                 else:
-                    gc.insertMwTbTl(
-                        f"Translated file {save_name} is empty (no text get from transcription) so it's not saved"
-                        + separator,
-                        lang_target,
+                    gc.insert_result_mw(
+                        f"Translated file {save_name} is empty (no text get from transcription) so it's not saved", "tl"
                     )
                     logger.warning("Translated Text is empty")
 
@@ -1348,15 +1342,10 @@ def cancellable_tc(
                 with open(os.path.join(export_to, f"{save_name}.srt"), "w", encoding="utf-8") as f:
                     f.write(resultSrt)
 
-                gc.insertMwTbTc(
-                    f"Transcribed File {audioNameOnly} saved to {save_name} .txt and .srt" + separator,
-                    str(result_Tc["language"]),
-                )
+                gc.insert_result_mw(f"Transcribed File {audioNameOnly} saved to {save_name} .txt and .srt", "tc")
             else:
-                gc.insertMwTbTc(
-                    f"Transcribed File {audioNameOnly} is empty (no text get from transcription) so it's not saved"
-                    + separator,
-                    str(result_Tc["language"]),
+                gc.insert_result_mw(
+                    f"Transcribed File {audioNameOnly} is empty (no text get from transcription) so it's not saved", "tc"
                 )
                 logger.warning("Transcribed Text is empty")
 

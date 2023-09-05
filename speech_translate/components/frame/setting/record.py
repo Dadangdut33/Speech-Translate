@@ -22,6 +22,8 @@ from speech_translate.components.custom.message import mbox
 from speech_translate.components.custom.tooltip import tk_tooltips, tk_tooltip
 
 
+#TODO: auto breakup buffer and auto threshold ?
+
 class SettingRecord:
     """
     Record tab in setting window.
@@ -582,7 +584,7 @@ class SettingRecord:
         )
         tk_tooltips(
             [self.entry_separator, self.lbl_separator],
-            "Set the separator for text that is transcribed or translated.\n\nDefault value \\n",
+            "Set the separator for text resulted from the record session.\n\nDefault value \\n",
             wrapLength=400,
         )
 

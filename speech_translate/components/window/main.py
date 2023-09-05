@@ -979,10 +979,10 @@ class MainWindow:
 
     # clear textboxes
     def tb_clear(self):
-        gc.clearMwTc()
-        gc.clearMwTl()
-        gc.clearExTc()
-        gc.clearExTl()
+        gc.clear_mw_tc()
+        gc.clear_mw_tl()
+        gc.clear_ex_tc()
+        gc.clear_ex_tl()
 
     # Swap textboxes
     def tb_swap_content(self):
