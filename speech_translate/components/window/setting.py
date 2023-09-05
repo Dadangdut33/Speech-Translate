@@ -4,15 +4,15 @@ import tkinter as tk
 from tkinter import ttk, font
 
 from speech_translate._path import app_icon
-from speech_translate._contants import APP_NAME, PREVIEW_WORDS
-from speech_translate.components.frame.setting_textbox import SettingTextbox
+from speech_translate._contants import APP_NAME
 from speech_translate.globals import sj, gc
 from speech_translate.utils.helper import chooseColor
 from speech_translate.utils.helper import cbtn_invoker
 from speech_translate.utils.helper_whisper import convert_str_options_to_dict, get_temperature
 
-from speech_translate.components.frame.setting_general import SettingGeneral
-from speech_translate.components.frame.setting_record import SettingRecord
+from speech_translate.components.frame.setting.general import SettingGeneral
+from speech_translate.components.frame.setting.record import SettingRecord
+from speech_translate.components.frame.setting.textbox import SettingTextbox
 
 from speech_translate.components.custom.message import mbox, MBoxText
 from speech_translate.components.custom.tooltip import tk_tooltip, tk_tooltip, CreateToolTipOnText, tk_tooltips
