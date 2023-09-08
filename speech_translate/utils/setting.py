@@ -59,7 +59,9 @@ default_setting = {
     "libre_https": True,
     # ------------------ #
     # Record settings
-    "debug_db": False,
+    "debug_recorded_audio": False,
+    # temp
+    "use_temp": False,
     "max_temp": 200,
     "keep_temp": False,
     # mic
@@ -114,7 +116,7 @@ default_setting = {
     "ex_tc_always_on_top": 1,
     "ex_tc_click_through": 1,
     "ex_tc_no_title_bar": 1,
-    "ex_tc_no_tooltip": 0,
+    "ex_tc_no_tooltip": 1,
     "tb_ex_tc_limit_max": False,
     "tb_ex_tc_limit_max_per_line": False,
     "tb_ex_tc_max": 120,
@@ -129,7 +131,7 @@ default_setting = {
     "ex_tl_always_on_top": 1,
     "ex_tl_click_through": 1,
     "ex_tl_no_title_bar": 1,
-    "ex_tl_no_tooltip": 0,
+    "ex_tl_no_tooltip": 1,
     "tb_ex_tl_limit_max": False,
     "tb_ex_tl_limit_max_per_line": False,
     "tb_ex_tl_max": 120,

@@ -22,7 +22,8 @@ from speech_translate.components.custom.message import mbox
 from speech_translate.components.custom.tooltip import tk_tooltips, tk_tooltip
 
 
-#TODO: auto breakup buffer and auto threshold ?
+# TODO: auto breakup buffer and auto threshold ?
+
 
 class SettingRecord:
     """
@@ -154,7 +155,7 @@ class SettingRecord:
 
         # 3
         self.cbtn_auto_sr_mic = ttk.Checkbutton(self.f_mic_device_3, text="Auto sample rate", style="Switch.TCheckbutton")
-        self.cbtn_auto_sr_mic.pack(side="left", padx=5)
+        self.cbtn_auto_sr_mic.pack(side="left", padx=5, pady=(0, 5))
         tk_tooltip(
             self.cbtn_auto_sr_mic,
             "If checked, the sample rate will be automatically set based on the device's sample rate."
@@ -165,7 +166,7 @@ class SettingRecord:
         self.cbtn_auto_channels_mic = ttk.Checkbutton(
             self.f_mic_device_3, text="Auto channels value", style="Switch.TCheckbutton"
         )
-        self.cbtn_auto_channels_mic.pack(side="left", padx=5)
+        self.cbtn_auto_channels_mic.pack(side="left", padx=5, pady=(0, 5))
         tk_tooltip(
             self.cbtn_auto_channels_mic,
             "If checked, the channels value will be automatically set based on the device's channels amount."
@@ -264,7 +265,7 @@ class SettingRecord:
         self.cbtn_auto_sr_speaker = ttk.Checkbutton(
             self.f_speaker_device_3, text="Auto sample rate", style="Switch.TCheckbutton"
         )
-        self.cbtn_auto_sr_speaker.pack(side="left", padx=5)
+        self.cbtn_auto_sr_speaker.pack(side="left", padx=5, pady=(0, 5))
         tk_tooltip(
             self.cbtn_auto_sr_speaker,
             "If checked, the sample rate will be automatically set based on the device's sample rate."
@@ -275,7 +276,7 @@ class SettingRecord:
         self.cbtn_auto_channels_speaker = ttk.Checkbutton(
             self.f_speaker_device_3, text="Auto channels value", style="Switch.TCheckbutton"
         )
-        self.cbtn_auto_channels_speaker.pack(side="left", padx=5)
+        self.cbtn_auto_channels_speaker.pack(side="left", padx=5, pady=(0, 5))
         tk_tooltip(
             self.cbtn_auto_channels_speaker,
             "If checked, the channels value will be automatically set based on the device's channels amount."
@@ -284,17 +285,66 @@ class SettingRecord:
         )
 
         # ------------------ Recording ------------------
-        # ----- temp
-        self.lf_temp = ttk.LabelFrame(self.f_recording_1, text="Temporary Files")
-        self.lf_temp.pack(side="left", padx=5, fill="x", expand=True)
+        # ----- procesing
+        self.lf_processing = ttk.LabelFrame(self.f_recording_1, text="Audio Processing")
+        self.lf_processing.pack(side="left", padx=5, fill="x", expand=True)
 
-        self.f_temp_1 = ttk.Frame(self.lf_temp)
-        self.f_temp_1.pack(side="top", fill="x", pady=5, padx=5)
+        self.f_processing_1 = ttk.Frame(self.lf_processing)
+        self.f_processing_1.pack(side="top", fill="x", pady=5, padx=5)
 
-        self.lbl_max_temp = ttk.Label(self.f_temp_1, text="Max Temp Files", width=14)
-        self.lbl_max_temp.pack(side="left", padx=5, pady=5)
+        self.f_processing_2 = ttk.Frame(self.lf_processing)
+        self.f_processing_2.pack(side="top", fill="x", pady=5, padx=5)
+
+        self.lbl_conversion_method = ttk.Label(self.f_processing_1, text="Conversion", width=14)
+        self.lbl_conversion_method.pack(side="left", padx=5)
+        tk_tooltip(
+            self.lbl_conversion_method,
+            "Set the method used to convert the audio before feeding it to the model." "\n\nDefault value is numpy array.",
+        )
+
+        self.var_conversion = tk.StringVar()
+        self.radio_numpy_array = ttk.Radiobutton(
+            self.f_processing_1, text="Numpy Array", value="numpy", variable=self.var_conversion
+        )
+        self.radio_numpy_array.pack(side="left", padx=5)
+        tk_tooltip(
+            self.radio_numpy_array,
+            "The default and recommended method to process the audio. "
+            "This will make the process faster with some minor loss of details in the audio. "
+            "The loss of details is not noticeable in most cases.\n\n"
+            "Default value is checked.",
+            wrapLength=400,
+        )
+
+        self.radio_temp_file = ttk.Radiobutton(
+            self.f_processing_1, text="Temporary wav File", value="temp", variable=self.var_conversion
+        )
+        self.radio_temp_file.pack(side="left", padx=5)
+        tk_tooltip(
+            self.radio_temp_file,
+            "If checked, will use temporary created wav files to fed the audio to the Whisper model "
+            "instead of using numpy arrays.\n\nUsing this might help to fix error that could happen related to device"
+            " but it could slow down the process especially if the buffer is long"
+            ".\n\nDefault value is unchecked.",
+            wrapLength=400,
+        )
+
+        self.lbl_hint_pconversion = ttk.Label(self.f_processing_1, image=self.help_emoji, compound="left")
+        self.lbl_hint_pconversion.pack(side="left", padx=5)
+        tk_tooltip(
+            self.lbl_hint_pconversion,
+            "Convert method is the method used to process the audio before feeding it to the model."
+            "\n\nNumpy array is the default and recommended method. It is faster and more efficient. "
+            "When using numpy array, we will need to convert the audio to float32 and resample it to 16k sample rate, hence the loss of some details"
+            "\n\nTemporary wav file is slower and less efficient but might be more accurate in some cases. "
+            "When using wav file whisper will do the conversion automatically, but the I/O process of the file might slow down the performance significantly.",
+            wrapLength=400,
+        )
+
+        self.lbl_max_temp = ttk.Label(self.f_processing_2, text="Max Temp Files", width=14)
+        self.lbl_max_temp.pack(side="left", padx=5, pady=(0, 5))
         self.spn_max_temp = ttk.Spinbox(
-            self.f_temp_1, from_=50, to=1000, validate="key", validatecommand=(self.root.register(number_only), "%P")
+            self.f_processing_2, from_=50, to=1000, validate="key", validatecommand=(self.root.register(number_only), "%P")
         )
         self.spn_max_temp.bind(
             "<KeyRelease>",
@@ -306,17 +356,17 @@ class SettingRecord:
                 lambda: sj.save_key("max_temp", int(self.spn_max_temp.get())),
             ),
         )
-        self.spn_max_temp.pack(side="left", padx=5, pady=5)
+        self.spn_max_temp.pack(side="left", padx=5, pady=(0, 5))
         tk_tooltips(
             [self.spn_max_temp, self.lbl_max_temp],
-            "Set max number of temporary files kept when recording from device that is not mono.\n\nDefault value is 200.",
+            "Set max number of temporary files kept when recording.\n\nDefault value is 200.",
         )
 
-        self.cbtn_keep_temp = ttk.Checkbutton(self.f_temp_1, text="Keep temp files", style="Switch.TCheckbutton")
-        self.cbtn_keep_temp.pack(side="left", padx=5, pady=5)
+        self.cbtn_keep_temp = ttk.Checkbutton(self.f_processing_2, text="Keep temp files", style="Switch.TCheckbutton")
+        self.cbtn_keep_temp.pack(side="left", padx=5, pady=(0, 5))
         tk_tooltip(
             self.cbtn_keep_temp,
-            "If checked, will not delete temporary audio file that might be created by the program."
+            "If checked, will not delete the audio file that is fed into the transcribers."
             "\n\nDefault value is unchecked.",
         )
 
@@ -340,7 +390,11 @@ class SettingRecord:
         self.lbl_buffer_mic = ttk.Label(self.f_mic_recording_1, text="Max buffer (s)", width=14)
         self.lbl_buffer_mic.pack(side="left", padx=5)
         self.spn_buffer_mic = ttk.Spinbox(
-            self.f_mic_recording_1, from_=3, to=300, validate="key", validatecommand=(self.root.register(number_only), "%P")
+            self.f_mic_recording_1,
+            from_=2,
+            to=30,
+            validate="key",
+            validatecommand=(self.root.register(number_only), "%P"),
         )
         self.spn_buffer_mic.bind(
             "<KeyRelease>",
@@ -397,8 +451,8 @@ class SettingRecord:
         self.lbl_threshold_mic.pack(side="left", padx=5)
         self.spn_threshold_mic = ttk.Spinbox(
             self.f_mic_recording_3,
-            from_=0,
-            to=100000,
+            from_=-80,
+            to=10,
             validate="key",
             validatecommand=(self.root.register(number_only_float), "%P"),
             width=12,
@@ -408,8 +462,8 @@ class SettingRecord:
             lambda e: max_number_float(
                 self.root,
                 self.spn_threshold_mic,
-                0,
-                100000,
+                -80,
+                10,
                 lambda: sj.save_key("threshold_db_mic", float(self.spn_threshold_mic.get())),
             ),
         )
@@ -439,7 +493,7 @@ class SettingRecord:
         self.cbtn_threshold_enable_mic = ttk.Checkbutton(
             self.f_mic_recording_4, text="Enable threshold", style="Switch.TCheckbutton"
         )
-        self.cbtn_threshold_enable_mic.pack(side="left", padx=5, pady=2)
+        self.cbtn_threshold_enable_mic.pack(side="left", padx=5, pady=(0, 5))
 
         # ------ Speaker
         self.lf_speaker_recording = ttk.LabelFrame(self.f_recording_2, text="Speaker")
@@ -462,8 +516,8 @@ class SettingRecord:
         self.lbl_buffer_speaker.pack(side="left", padx=5)
         self.spn_buffer_speaker = ttk.Spinbox(
             self.f_speaker_recording_1,
-            from_=3,
-            to=300,
+            from_=2,
+            to=30,
             validate="key",
             validatecommand=(self.root.register(number_only), "%P"),
         )
@@ -526,8 +580,8 @@ class SettingRecord:
         self.lbl_threshold_speaker.pack(side="left", padx=5)
         self.spn_threshold_speaker = ttk.Spinbox(
             self.f_speaker_recording_3,
-            from_=0,
-            to=100000,
+            from_=-80,
+            to=10,
             validate="key",
             validatecommand=(self.root.register(number_only_float), "%P"),
             width=12,
@@ -537,8 +591,8 @@ class SettingRecord:
             lambda e: max_number_float(
                 self.root,
                 self.spn_threshold_speaker,
-                0,
-                100000,
+                -80,
+                10,
                 lambda: sj.save_key(
                     "threshold_db_speaker",
                     float(self.spn_threshold_speaker.get()),
@@ -571,7 +625,7 @@ class SettingRecord:
         self.cbtn_threshold_enable_speaker = ttk.Checkbutton(
             self.f_speaker_recording_4, text="Enable threshold", style="Switch.TCheckbutton"
         )
-        self.cbtn_threshold_enable_speaker.pack(side="left", padx=5, pady=2)
+        self.cbtn_threshold_enable_speaker.pack(side="left", padx=5, pady=(0, 5))
 
         # ------------------ Result ------------------
         self.lbl_separator = ttk.Label(self.f_result_1, text="Text Separator", width=14)
@@ -607,6 +661,7 @@ class SettingRecord:
         cbtn_invoker(sj.cache["auto_channels_speaker"], self.cbtn_auto_channels_speaker)
 
         # recording options
+        self.var_conversion.set("temp" if sj.cache["use_temp"] else "numpy")
         self.spn_max_temp.set(sj.cache["max_temp"])
         cbtn_invoker(sj.cache["keep_temp"], self.cbtn_keep_temp)
 
@@ -623,6 +678,13 @@ class SettingRecord:
         # result
         self.entry_separator.delete(0, "end")
         self.entry_separator.insert(0, sj.cache["separate_with"])
+
+        # toggle
+        self.toggle_sr("mic", self.cbtn_auto_sr_mic.instate(["selected"]))
+        self.toggle_channels("mic", self.cbtn_auto_channels_mic.instate(["selected"]))
+        self.toggle_sr("speaker", self.cbtn_auto_sr_speaker.instate(["selected"]))
+        self.toggle_channels("speaker", self.cbtn_auto_channels_speaker.instate(["selected"]))
+        self.toggle_use_temp(self.radio_temp_file.instate(["selected"]))
 
         # disable
         windows_os_only(
@@ -684,6 +746,8 @@ class SettingRecord:
         )
 
         # recording options
+        self.radio_numpy_array.configure(command=lambda: sj.save_key("use_temp", False) or self.toggle_use_temp(False))
+        self.radio_temp_file.configure(command=lambda: sj.save_key("use_temp", True) or self.toggle_use_temp(True))
         self.spn_max_temp.configure(command=lambda: sj.save_key("max_temp", int(self.spn_max_temp.get())))
         self.cbtn_keep_temp.configure(command=lambda: sj.save_key("keep_temp", self.cbtn_keep_temp.instate(["selected"])))
 
@@ -713,6 +777,23 @@ class SettingRecord:
                 self.cbtn_threshold_enable_speaker.instate(["selected"]),
             )
         )
+
+    def toggle_use_temp(self, state: bool) -> None:
+        """
+        Toggle the use temp checkbutton
+        """
+        if state:
+            self.f_processing_2.pack(side="top", fill="x", pady=5, padx=5)
+            self.lbl_conversion_method.pack_configure(pady=0)
+            self.radio_numpy_array.pack_configure(pady=0)
+            self.radio_temp_file.pack_configure(pady=0)
+            self.lbl_hint_pconversion.pack_configure(pady=0)
+        else:
+            self.lbl_conversion_method.pack_configure(pady=(0, 5))
+            self.radio_numpy_array.pack_configure(pady=(0, 5))
+            self.radio_temp_file.pack_configure(pady=(0, 5))
+            self.lbl_hint_pconversion.pack_configure(pady=(0, 5))
+            self.f_processing_2.pack_forget()
 
     def toggle_sr(self, device: Literal["mic", "speaker"], auto: bool) -> None:
         """

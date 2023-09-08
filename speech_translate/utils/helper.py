@@ -4,6 +4,7 @@ import webbrowser
 import platform
 
 import tkinter as tk
+from datetime import datetime
 from tkinter import colorchooser, ttk
 from typing import Dict, Union, List
 from notifypy import Notify, exceptions
@@ -23,6 +24,10 @@ def get_similar_keys(_dict: Dict, key: str):
 
 
 def cbtn_invoker(settingVal: bool, widget: Union[ttk.Checkbutton, ttk.Radiobutton]):
+    """
+    Checkbutton invoker
+    Invoking twice will make it unchecked
+    """
     if settingVal:
         widget.invoke()
     else:
@@ -86,6 +91,13 @@ def no_connection_notify(
     Notify user that they are not connected to the internet
     """
     nativeNotify(customTitle, customMessage)
+
+
+def generate_temp_filename(base_dir):
+    """
+    Generates a temporary filename with the current date and time.
+    """
+    return os.path.join(base_dir, datetime.now().strftime("%Y-%m-%d %H_%M_%S_%f")) + ".wav"
 
 
 def filename_only(filename: str):

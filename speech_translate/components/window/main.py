@@ -29,7 +29,14 @@ from speech_translate.components.window.transcribed import TcsWindow
 from speech_translate.components.window.translated import TlsWindow
 
 from speech_translate.utils.model_download import verify_model, download_model
-from speech_translate.utils.helper import cbtn_invoker, emoji_img, tb_copy_only, nativeNotify, popup_menu, windows_os_only
+from speech_translate.utils.helper import (
+    cbtn_invoker,
+    emoji_img,
+    tb_copy_only,
+    nativeNotify,
+    popup_menu,
+    windows_os_only,
+)
 from speech_translate.utils.style import set_ui_style, init_theme, get_theme_list, get_current_theme
 from speech_translate.utils.helper import up_first_case, start_file
 from speech_translate.utils.helper_whisper import append_dot_en, modelKeys, modelSelectDict
@@ -436,8 +443,14 @@ class MainWindow:
         self.lbl_temp = ttk.Label(self.f3_3_row1, text="Input:", font="TkDefaultFont 9 bold", width=10)
         self.lbl_temp.pack(side="left", padx=5, pady=5, ipady=0)
 
+        self.strvar_input = tk.StringVar()
         self.radio_mic = ttk.Radiobutton(
-            self.f3_3_row2, text="Microphone", value="mic", width=12, command=lambda: sj.save_key("input", "mic")
+            self.f3_3_row2,
+            text="Microphone",
+            value="mic",
+            width=12,
+            command=lambda: sj.save_key("input", "mic"),
+            variable=self.strvar_input,
         )
         self.radio_mic.pack(side="left", padx=5, pady=2.5, ipady=0)
 
@@ -447,6 +460,7 @@ class MainWindow:
             value="speaker",
             width=12,
             command=lambda: sj.save_key("input", "speaker"),
+            variable=self.strvar_input,
         )
         self.radio_speaker.pack(side="left", padx=5, pady=2.5, ipady=0)
 
@@ -530,7 +544,7 @@ class MainWindow:
         # ------------------ on Start ------------------
         # Start polling
         gc.running_after_id = self.root.after(1000, self.is_running_poll)
-        self.onInit()
+        self.on_init()
 
         # ------------------ Set Icon ------------------
         try:
@@ -685,21 +699,18 @@ class MainWindow:
 
         self.btn_copy.configure(text="Copied!")
 
-        # reset after 1 second
-        self.root.after(1000, lambda: self.btn_copy.configure(text="Copy"))
+        # reset after .7 second
+        self.root.after(700, lambda: self.btn_copy.configure(text="Copy"))
 
     # on start
-    def onInit(self):
+    def on_init(self):
         self.cb_model.set({v: k for k, v in modelSelectDict.items()}[sj.cache["model"]])
         self.cb_sourceLang.set(sj.cache["sourceLang"])
         self.cb_targetLang.set(sj.cache["targetLang"])
         self.cb_engine.set(sj.cache["tl_engine"])
         cbtn_invoker(sj.cache["transcribe"], self.cbtn_task_transcribe)
         cbtn_invoker(sj.cache["translate"], self.cbtn_task_translate)
-        if sj.cache["input"] == "mic":
-            cbtn_invoker(True, self.radio_mic)
-        elif sj.cache["input"] == "speaker":
-            cbtn_invoker(True, self.radio_speaker)
+        self.strvar_input.set("mic" if sj.cache["input"] == "mic" else "speaker")
 
         if platform.system() != "Windows":
             self.radio_speaker.configure(state="disabled")
@@ -1078,6 +1089,7 @@ class MainWindow:
     def disable_interactions(self):
         self.cbtn_task_transcribe.configure(state="disabled")
         self.cbtn_task_translate.configure(state="disabled")
+        self.cb_hostAPI.configure(state="disabled")
         self.cb_mic.configure(state="disabled")
         self.cb_speaker.configure(state="disabled")
         self.btn_swap.configure(state="disabled")
@@ -1091,6 +1103,7 @@ class MainWindow:
     def enable_interactions(self):
         self.cbtn_task_transcribe.configure(state="normal")
         self.cbtn_task_translate.configure(state="normal")
+        self.cb_hostAPI.configure(state="readonly")
         self.cb_mic.configure(state="readonly")
         self.cb_speaker.configure(state="readonly")
         self.btn_swap.configure(state="normal")

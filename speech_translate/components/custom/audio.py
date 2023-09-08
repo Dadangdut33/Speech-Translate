@@ -6,7 +6,6 @@ class AudioMeter(tk.Canvas):
     def __init__(self, master, show_threshold, min, max, **kwargs):
         super().__init__(master, **kwargs)
 
-        self.chunk_size = 1024
         self.min = min
         self.max = max
         self.show_threshold = show_threshold

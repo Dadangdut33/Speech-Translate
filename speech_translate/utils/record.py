@@ -16,19 +16,22 @@ from typing import Literal, List, Union, Dict
 
 import whisper_timestamped as whisper
 import wave
+import scipy.io.wavfile as wav
+import librosa
 
 if platform.system() == "Windows":
     import pyaudiowpatch as pyaudio
 else:
     import pyaudio  # type: ignore
 
-from speech_translate._path import app_icon
-from speech_translate.globals import dir_temp, sj, gc, dir_export
+from speech_translate._contants import WHISPER_SR
+from speech_translate._path import app_icon, dir_debug, dir_temp
+from speech_translate.globals import sj, gc, dir_export
 from speech_translate.custom_logging import logger
 from speech_translate.components.custom.label import LabelTitleText
 from speech_translate.components.custom.message import mbox
 
-from .helper import cbtn_invoker, nativeNotify, start_file, filename_only
+from .helper import cbtn_invoker, generate_temp_filename, nativeNotify, start_file, filename_only
 from .helper_whisper import (
     get_temperature,
     convert_str_options_to_dict,
@@ -447,6 +450,7 @@ def record_realtime(
     except:
         pass
 
+    modal_after = None
     try:
         src_english = lang_source == "english"
         auto = lang_source == "auto detect"
@@ -460,7 +464,7 @@ def record_realtime(
         # read from settings
         max_int16 = 2**15  # bit depth of 16 bit audio (32768)
         separator = ast.literal_eval(shlex.quote(sj.cache["separate_with"]))
-
+        use_temp = sj.cache["use_temp"]
         temperature = sj.cache["temperature"]
         whisper_args = sj.cache["whisper_extra_args"]
 
@@ -587,8 +591,9 @@ def record_realtime(
 
         timerStart = time()
         paused = False
-        audio_length_in_seconds = 0
-        gc.current_rec_status = f"▶️ Recording"
+        duration_seconds = 0
+        modal_update_rate = 300
+        gc.current_rec_status = f"▶️ Idle"
         gc.auto_detected_lang = "~"
         language = f"{lang_source} → {lang_target}" if translate else lang_source
 
@@ -614,23 +619,22 @@ def record_realtime(
             lbl_status.configure(text=gc.current_rec_status)
 
         def update_modal_ui():
-            nonlocal timerStart, paused
-            if gc.recording:
-                if not paused:
-                    timer = t.strftime("%H:%M:%S", t.gmtime(time() - timerStart))
-                    data_queue_size = gc.data_queue.qsize() * chunk_size / 1024  # approx buffer size in kb
+            nonlocal timerStart, paused, modal_after
+            if gc.recording and not paused:
+                timer = t.strftime("%H:%M:%S", t.gmtime(time() - timerStart))
+                data_queue_size = gc.data_queue.qsize() * chunk_size / 1024  # approx buffer size in kb
 
-                    lbl_timer.configure(
-                        text=f"REC: {timer} | {language if not auto else language.replace('auto detect', f'auto detect ({gc.auto_detected_lang})')}"
-                    )
-                    lbl_buffer.set_text(
-                        f"{round(audio_length_in_seconds, 2)}/{round(max_record_time, 2)} sec ({round(data_queue_size, 2)} kb)"
-                    )
-                    # update progress / buffer percentage
-                    progress_buffer["value"] = audio_length_in_seconds / max_record_time * 100
-                    update_status_lbl()
+                lbl_timer.configure(
+                    text=f"REC: {timer} | {language if not auto else language.replace('auto detect', f'auto detect ({gc.auto_detected_lang})')}"
+                )
+                lbl_buffer.set_text(
+                    f"{round(duration_seconds, 2)}/{round(max_record_time, 2)} sec ({round(data_queue_size, 2)} kb)"
+                )
+                # update progress / buffer percentage
+                progress_buffer["value"] = duration_seconds / max_record_time * 100
+                update_status_lbl()
 
-                    root.after(1000, update_modal_ui)
+                modal_after = root.after(modal_update_rate, update_modal_ui)
 
         lbl_sample_rate.set_text(sample_rate)
         lbl_channels.set_text(num_of_channels)
@@ -674,8 +678,8 @@ def record_realtime(
                 if not next_transcribe_time:
                     next_transcribe_time = now + transcribe_rate
 
-                # Run transcription based on transcribe rate that is set by user. The more delay it have the more it will reduces stress on the GPU / CPU (if using cpu).
-                # Transcriptions will be more accurate as they go because they will have more audio context to work with (Limit on the audio context or buffer is set in the setting).
+                # Run transcription based on transcribe rate that is set by user.
+                # The more delay it have the more it will reduces stress on the GPU / CPU (if using cpu).
                 if now > next_transcribe_time:
                     next_transcribe_time = now + transcribe_rate
 
@@ -684,37 +688,66 @@ def record_realtime(
                         data = gc.data_queue.get()
                         last_sample += data
 
-                    # Write out raw frames as a wave file.
-                    wav_file = io.BytesIO()
-                    wav_writer: wave.Wave_write = wave.open(wav_file, "wb")
-                    wav_writer.setframerate(sample_rate)
-                    wav_writer.setsampwidth(p.get_sample_size(pyaudio.paInt16))
-                    wav_writer.setnchannels(num_of_channels)
-                    wav_writer.writeframes(last_sample)  # get the audio data from the buffer.
-                    wav_writer.close()
-
-                    # Read the audio data
-                    wav_file.seek(0)
-                    wav_reader: wave.Wave_read = wave.open(wav_file)
-                    samples = wav_reader.getnframes()
-                    audio = wav_reader.readframes(samples)
-                    wav_reader.close()
-
-                    # DEBUG
                     if sj.cache["debug_realtime_record"] == 1:
                         logger.info(f"Processing Audio")
 
-                    # TODO: FIX this make sure that the conversion is correct so we can use the fast method
-                    if num_of_channels > 1:
-                        # If not mono, the fast method does not work so we have to resort to using the old, a little slower, but working method
-                        # which is to save the audio file and read it directly to the whisper model
-                        audio_target = os.path.join(dir_temp, datetime.now().strftime("%Y-%m-%d %H_%M_%S_%f")) + ".wav"
+                    # When not using temp file, we need to convert the audio to numpy array. To do that
+                    # We use librosa to resample to 16k because whisper only accept 16k hz audio and
+                    # when we use numpy array we need to convert it ourselves
+                    if not use_temp and sample_rate != WHISPER_SR:
+                        audio_as_np_int16 = np.frombuffer(last_sample, dtype=np.int16)  # read as numpy array of int16
+                        audio_as_np_float32 = audio_as_np_int16.astype(np.float32)  # convert to float32
+                        resampled_audio = librosa.resample(audio_as_np_float32, orig_sr=sample_rate, target_sr=WHISPER_SR)
+                        audio_bytes = resampled_audio.astype(np.int16).tobytes()  # Convert the resampled audio back to bytes
+                    else:
+                        audio_bytes = last_sample
+
+                    # Write out raw frames as a wave file.
+                    wf = io.BytesIO()
+                    wav_writer: wave.Wave_write = wave.open(wf, "wb")
+                    wav_writer.setframerate(WHISPER_SR if not use_temp else sample_rate)
+                    wav_writer.setsampwidth(p.get_sample_size(pyaudio.paInt16))
+                    wav_writer.setnchannels(num_of_channels)
+                    wav_writer.writeframes(audio_bytes)  # get the audio data from the buffer.
+                    wav_writer.close()
+
+                    # Read the audio data
+                    wf.seek(0)
+                    wav_reader: wave.Wave_read = wave.open(wf)
+                    samples = wav_reader.getnframes()
+                    audio_bytes = wav_reader.readframes(samples)
+                    duration_seconds = samples / WHISPER_SR  # 2 bytes per sample for int16
+                    wav_reader.close()
+
+                    if not use_temp:
+                        # Convert the wave data straight to a numpy array for the model.
+                        if num_of_channels == 1:
+                            audio_as_np_int16 = np.frombuffer(audio_bytes, dtype=np.int16)
+                            audio_as_np_float32 = audio_as_np_int16.astype(np.float32)
+                            audio_target = audio_as_np_float32 / max_int16  # normalized as Numpy array
+                        else:
+                            # Samples are interleaved, so for a stereo stream with left channel
+                            # of [L0, L1, L2, ...] and right channel of [R0, R1, R2, ...], the output
+                            # is ordered as [L0, R0, L1, R1, ...]
+                            audio_as_np_int16 = np.frombuffer(audio_bytes, dtype=np.int16)
+                            audio_as_np_float32 = audio_as_np_int16.astype(np.float32)
+
+                            chunk_length = len(audio_as_np_float32) / num_of_channels
+                            assert chunk_length == int(chunk_length)
+                            audio_reshaped = np.reshape(audio_as_np_float32, (int(chunk_length), num_of_channels))
+                            audio_target = audio_reshaped[:, 0] / max_int16  # normalized as Numpy array
+
+                        if sj.cache["debug_recorded_audio"] == 1:
+                            wav.write(generate_temp_filename(dir_debug), WHISPER_SR, audio_target)
+                    else:
+                        # Using temp file
+                        audio_target = generate_temp_filename(dir_temp)
                         tempList.append(audio_target)  # add to the temp list to delete later
 
                         # block until the file is written
                         timeNow = time()
                         with open(audio_target, "wb") as f:
-                            f.write(wav_file.getvalue())  # write it
+                            f.write(wf.getvalue())  # write it
 
                         if sj.cache["debug_realtime_record"] == 1:
                             logger.debug(f"File Write Time: {time() - timeNow}")
@@ -723,16 +756,6 @@ def record_realtime(
                         if len(tempList) > sj.cache["max_temp"] and not sj.cache["keep_temp"]:
                             os.remove(tempList[0])
                             tempList.pop(0)
-                    else:
-                        # Convert the wave data straight to a numpy array for the model.
-                        # https://stackoverflow.com/a/62298670
-
-                        # get audio format and bit depth
-                        audio_format = p.get_format_from_width(wav_reader.getsampwidth())
-
-                        audio_as_np_int16 = np.frombuffer(audio, dtype=np.int16)
-                        audio_as_np_float32 = audio_as_np_int16.astype(np.float32)
-                        audio_target = audio_as_np_float32 / max_int16  # normalized as Numpy array
 
                     # DEBUG
                     if sj.cache["debug_realtime_record"] == 1:
@@ -759,33 +782,28 @@ def record_realtime(
                     text = str(result["text"]).strip()
                     gc.auto_detected_lang = str(result["language"])
 
-                    if len(text) > 0 and text != prev_tc_text:
+                    if len(text) > 0:
                         prev_tc_text = text
                         if transcribe:
                             if sj.cache["debug_realtime_record"] == 1:
-                                logger.info(f"New transcribed text")
                                 if sj.cache["verbose"]:
                                     logger.debug(whisper_verbose_log(result))
                                 else:
-                                    logger.debug(f"{text}")
+                                    logger.debug(f"New text: {text}")
 
-                            # this works like this:
-                            # clear the textbox first, then insert the text. The text inserted is a continuation of the previous text.
-                            # the longer it is the clearer the transcribed text will be, because of more context.
+                            # Clear the textbox first, then insert the new text.
                             gc.clear_mw_tc()
                             gc.clear_ex_tc()
-                            toExTc = ""
+                            to_ex_tc = ""
 
                             # insert previous sentences first if there are any
                             for sentence in sentences_tc:
                                 gc.insert_result_mw(sentence, "tc")
-                                toExTc += sentence + separator
+                                to_ex_tc += sentence + separator
 
-                            toExTc += text
                             # insert the current sentence after previous sentences
                             gc.insert_result_mw(text, "tc")
-                            gc.insert_result_ex(toExTc, "tc")
-
+                            gc.insert_result_ex(to_ex_tc + text, "tc")
                         if translate:
                             # Start translate thread
                             gc.current_rec_status = "▶️ Recording ⟳ Translating"
@@ -812,11 +830,7 @@ def record_realtime(
                                 tlThread.start()
 
                     # break up the buffer If we've reached max recording time
-                    audio_length_in_seconds = samples / float(sample_rate)
-                    if sj.cache["debug_realtime_record"] == 1:
-                        logger.debug(f"Audio length: {audio_length_in_seconds}")
-
-                    if audio_length_in_seconds > max_record_time:
+                    if duration_seconds > max_record_time:
                         last_sample = bytes()
 
                         if transcribe:
@@ -854,10 +868,10 @@ def record_realtime(
             while not gc.data_queue.empty():
                 gc.data_queue.get()
 
-            if num_of_channels > 1 and not sj.cache["keep_temp"]:
-                gc.current_rec_status = "⚠️ Cleaning up audioFiles"
+            if not sj.cache["keep_temp"]:
+                gc.current_rec_status = "⚠️ Cleaning up audioFiles (if any)"
                 update_status_lbl()
-                logger.info("Cleaning up audioFiles")
+                logger.info("Cleaning up audioFiles (if any)")
                 for audio in tempList:
                     try:
                         os.remove(audio)
@@ -868,8 +882,13 @@ def record_realtime(
             gc.current_rec_status = "⏹️ Stopped"
             update_status_lbl()
             gc.mw.after_rec_stop()
+            if modal_after:
+                root.after_cancel(modal_after)
             if root.winfo_exists():
                 root.destroy()  # close if not destroyed
+
+            logger.info("Modal closed")
+            logger.info("-" * 50)
     except Exception as e:
         logger.error(f"Error in record session")
         logger.exception(e)
@@ -877,6 +896,8 @@ def record_realtime(
         mbox("Error in record session", f"{str(e)}", 2, gc.mw.root)
         gc.mw.rec_stop()
         gc.mw.after_rec_stop()
+        if modal_after:
+            root.after_cancel(modal_after)
         if root.winfo_exists():
             root.destroy()  # close if not destroyed
 
@@ -891,8 +912,8 @@ def realtime_recording_thread(chunk_size: int, rec_type: Literal["mic", "speaker
 
         data = gc.stream.read(chunk_size)
 
-        # if either debug_db or threshold_enable is enabled, then calculate current db
-        if sj.cache["debug_db"] or sj.cache[f"threshold_enable_{rec_type}"]:
+        # TODO: show db meter in the modal
+        if sj.cache[f"threshold_enable_{rec_type}"]:
             rms = audioop.rms(data, 2) / 32767  # calculate rms
             if rms == 0.0:
                 db = 0.0
@@ -901,14 +922,14 @@ def realtime_recording_thread(chunk_size: int, rec_type: Literal["mic", "speaker
 
             gc.current_db = db
 
-        if sj.cache["debug_db"]:
-            logger.debug(f"DB: {gc.current_db}")
-
         # store chunks of audio in queue
         if not sj.cache[f"threshold_enable_{rec_type}"]:  # record regardless of energy
             gc.data_queue.put(data)
-        elif sj.cache[f"threshold_enable_{rec_type}"] and gc.current_db > sj.cache[f"threshold_db_{rec_type}"]:
-            gc.data_queue.put(data)  # only record if energy is above threshold
+        elif sj.cache[f"threshold_enable_{rec_type}"]:
+            if gc.current_db > sj.cache[f"threshold_db_{rec_type}"]:
+                gc.data_queue.put(data)  # only record if energy is above threshold
+            else:
+                gc.current_rec_status = f"▶️ Idle"
 
 
 def whisper_realtime_tl(
@@ -939,7 +960,7 @@ def whisper_realtime_tl(
         text = str(result["text"]).strip()
         gc.auto_detected_lang = str(result["language"])
 
-        if len(text) > 0 and text != prev_tl_text:
+        if len(text) > 0:
             prev_tl_text = text
 
             if sj.cache["debug_realtime_record"] == 1:
@@ -949,22 +970,19 @@ def whisper_realtime_tl(
                 else:
                     logger.debug(f"{text}")
 
-            # this works like this:
-            # clear the textbox first, then insert the text. The text inserted is a continuation of the previous text.
-            # the longer it is the clearer the transcribed text will be, because of more context.
+            # Clear the textbox first, then insert the new text.
             gc.clear_mw_tl()
             gc.clear_ex_tl()
-            toExTb = ""
+            to_ex_tb = ""
 
             # insert previous sentences if there are any
             for sentence in sentences_tl:
                 gc.insert_result_mw(sentence, "tl")
-                toExTb += sentence + separator
+                to_ex_tb += sentence + separator
 
-            toExTb += text
             # insert the current sentence after previous sentences
             gc.insert_result_mw(text, "tl")
-            gc.insert_result_ex(toExTb, "tl")
+            gc.insert_result_ex(to_ex_tb + text, "tl")
 
     except Exception as e:
         logger.exception(e)
@@ -983,16 +1001,16 @@ def realtime_tl(
     try:
         global prev_tl_text, sentences_tl
         separator = ast.literal_eval(shlex.quote(sj.cache["separate_with"]))
-        result_Tl = ""
+        tl_res = ""
         debug_log = sj.cache["debug_translate"]
 
         if engine == "Google":
-            success, result_Tl = google_tl(text, lang_source, lang_target, debug_log)
+            success, tl_res = google_tl(text, lang_source, lang_target, debug_log)
             if not success:
-                nativeNotify("Error: translation with google failed", result_Tl)
+                nativeNotify("Error: translation with google failed", tl_res)
 
         elif engine == "LibreTranslate":
-            success, result_Tl = libre_tl(
+            success, tl_res = libre_tl(
                 text,
                 lang_source,
                 lang_target,
@@ -1003,32 +1021,29 @@ def realtime_tl(
                 debug_log,
             )
             if not success:
-                nativeNotify("Error: translation with libre failed", result_Tl)
+                nativeNotify("Error: translation with libre failed", tl_res)
 
         elif engine == "MyMemoryTranslator":
-            success, result_Tl = memory_tl(text, lang_source, lang_target, debug_log)
+            success, tl_res = memory_tl(text, lang_source, lang_target, debug_log)
             if not success:
-                nativeNotify("Error: translation with mymemory failed", str(result_Tl))
+                nativeNotify("Error: translation with mymemory failed", str(tl_res))
 
-        result_Tl = result_Tl.strip()
-        if len(result_Tl) > 0 and result_Tl != prev_tl_text:
-            prev_tl_text = result_Tl
-            # this works like this:
-            # clear the textbox first, then insert the text. The text inserted is a continuation of the previous text.
-            # the longer it is the clearer the transcribed text will be, because of more context.
+        tl_res = tl_res.strip()
+        if len(tl_res) > 0:
+            prev_tl_text = tl_res
+            # Clear the textbox first, then insert the new text.
             gc.clear_mw_tl()
             gc.clear_ex_tl()
-            toExTb = ""
+            to_ex_tb = ""
 
             # insert previous sentences if there are any
             for sentence in sentences_tl:
                 gc.insert_result_mw(sentence, "tl")
-                toExTb += sentence + separator
+                to_ex_tb += sentence + separator
 
-            toExTb += result_Tl
             # insert the current sentence after previous sentences
-            gc.insert_result_mw(result_Tl, "tl")
-            gc.insert_result_ex(toExTb, "tl")
+            gc.insert_result_mw(tl_res, "tl")
+            gc.insert_result_ex(to_ex_tb + tl_res, "tl")
 
     except Exception as e:
         logger.exception(e)
@@ -1324,8 +1339,8 @@ def cancellable_tc(
         result_Tc = gc.data_queue.get()
 
         # export to file
-        audioNameOnly = filename_only(audio_name)
-        audioNameOnly = audioNameOnly[:100]  # limit length of file name to 100 characters
+        name_only = filename_only(audio_name)
+        name_only = name_only[:100]  # limit length of file name to 100 characters
         export_to = dir_export if sj.cache["dir_export"] == "auto" else sj.cache["dir_export"]
 
         # export if transcribe mode is on
@@ -1342,10 +1357,10 @@ def cancellable_tc(
                 with open(os.path.join(export_to, f"{save_name}.srt"), "w", encoding="utf-8") as f:
                     f.write(resultSrt)
 
-                gc.insert_result_mw(f"Transcribed File {audioNameOnly} saved to {save_name} .txt and .srt", "tc")
+                gc.insert_result_mw(f"Transcribed File {name_only} saved to {save_name} .txt and .srt", "tc")
             else:
                 gc.insert_result_mw(
-                    f"Transcribed File {audioNameOnly} is empty (no text get from transcription) so it's not saved", "tc"
+                    f"Transcribed File {name_only} is empty (no text get from transcription) so it's not saved", "tc"
                 )
                 logger.warning("Transcribed Text is empty")
 

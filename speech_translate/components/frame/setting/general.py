@@ -5,14 +5,15 @@ from tkinter import ttk, filedialog
 from typing import Union
 from datetime import datetime
 
-from speech_translate.globals import sj, gc, dir_log, dir_temp, dir_export
+from speech_translate.globals import sj, gc
+from speech_translate._path import dir_log, dir_temp, dir_export, dir_debug
 from speech_translate.custom_logging import logger, current_log
 from speech_translate.utils.helper import filename_only, popup_menu, emoji_img, up_first_case
 from speech_translate.utils.model_download import verify_model, download_model, get_default_download_root
 from speech_translate.utils.helper import start_file, cbtn_invoker
 from speech_translate.utils.style import set_ui_style
 from speech_translate.components.custom.message import MBoxText, mbox
-from speech_translate.components.custom.tooltip import CreateToolTipOnText, tk_tooltip, tk_tooltips
+from speech_translate.components.custom.tooltip import tk_tooltip, tk_tooltips
 
 
 class SettingGeneral:
@@ -344,7 +345,7 @@ class SettingGeneral:
         self.cb_log_level.bind("<<ComboboxSelected>>", self.log_level_change)
 
         self.cbtn_debug_realtime_record = ttk.Checkbutton(
-            self.f_logging_4, text="Debug realtime record", style="Switch.TCheckbutton"
+            self.f_logging_4, text="Debug recording", style="Switch.TCheckbutton"
         )
         self.cbtn_debug_realtime_record.pack(side="left", padx=5, pady=(0, 5))
         tk_tooltip(
@@ -352,11 +353,16 @@ class SettingGeneral:
             "Show some debugging process of the realtime record.\n\n" "Enabling will probably slow down the app.",
         )
 
-        self.cbtn_debug_db = ttk.Checkbutton(self.f_logging_4, text="Debug audio db", style="Switch.TCheckbutton")
-        self.cbtn_debug_db.pack(side="left", padx=5, pady=(0, 5))
+        self.cbtn_debug_recorded_audio = ttk.Checkbutton(
+            self.f_logging_4, text="Debug recorded audio", style="Switch.TCheckbutton"
+        )
+        self.cbtn_debug_recorded_audio.pack(side="left", padx=5, pady=(0, 5))
         tk_tooltip(
-            self.cbtn_debug_db,
-            "Show audio db in the console.\n\nEnabling will probably slow down the app.",
+            self.cbtn_debug_recorded_audio,
+            "Save recorded audio as .wav file in the debug folder. "
+            "Keep in mind that the files in that directory will be deleted automatically every time the app run\n\n"
+            "Enabling Could slow the app down.",
+            wrapLength=300,
         )
 
         self.cbtn_debug_translate = ttk.Checkbutton(self.f_logging_4, text="Debug translate", style="Switch.TCheckbutton")
@@ -551,7 +557,7 @@ class SettingGeneral:
         # app
         cbtn_invoker(sj.cache["keep_log"], self.cbtn_keep_log)
         cbtn_invoker(sj.cache["debug_realtime_record"], self.cbtn_debug_realtime_record)
-        cbtn_invoker(sj.cache["debug_db"], self.cbtn_debug_db)
+        cbtn_invoker(sj.cache["debug_recorded_audio"], self.cbtn_debug_recorded_audio)
         cbtn_invoker(sj.cache["debug_translate"], self.cbtn_debug_translate)
         cbtn_invoker(sj.cache["verbose"], self.cbtn_verbose)
         cbtn_invoker(sj.cache["checkUpdateOnStart"], self.cbtn_update_on_start)
@@ -597,7 +603,9 @@ class SettingGeneral:
         self.cbtn_debug_realtime_record.configure(
             command=lambda: sj.save_key("debug_realtime_record", self.cbtn_debug_realtime_record.instate(["selected"]))
         )
-        self.cbtn_debug_db.configure(command=lambda: sj.save_key("debug_db", self.cbtn_debug_db.instate(["selected"])))
+        self.cbtn_debug_recorded_audio.configure(
+            command=lambda: sj.save_key("debug_recorded_audio", self.cbtn_debug_recorded_audio.instate(["selected"]))
+        )
         self.cbtn_debug_translate.configure(
             command=lambda: sj.save_key("debug_translate", self.cbtn_debug_translate.instate(["selected"]))
         )
@@ -654,6 +662,15 @@ class SettingGeneral:
                 except Exception as e:
                     logger.warning("Failed to delete temp file: " + file)
                     logger.warning("Reason " + str(e))
+
+    def delete_debug(self):
+        # delete all debug files
+        for file in os.listdir(dir_debug):
+            try:
+                os.remove(os.path.join(dir_debug, file))
+            except Exception as e:
+                logger.warning("Failed to delete debug file: " + file)
+                logger.warning("Reason " + str(e))
 
     def delete_log_on_start(self):
         if not sj.cache["keep_log"]:

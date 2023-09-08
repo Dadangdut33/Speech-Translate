@@ -7,8 +7,8 @@ from bidi.algorithm import get_display
 from tkinter import ttk
 from threading import Thread, Lock
 from typing import Literal, Optional, List, TYPE_CHECKING, Union
-from ._path import dir_temp, dir_log, dir_export, dir_user
-from ._contants import SUBTITLE_PLACEHOLDER, RESHAPE_LANG_LIST
+from ._path import dir_temp, dir_log, dir_export, dir_user, dir_debug
+from ._contants import SUBTITLE_PLACEHOLDER
 from .utils.setting import SettingJson
 
 # Disabling tqdm globally by Defining a custom dummy class that suppresses tqdm's behavior
@@ -49,7 +49,7 @@ else:
     import pyaudio  # type: ignore
 
 # ------------------ #
-sj: SettingJson = SettingJson(os.path.join(dir_user, "setting.json"), dir_user, [dir_temp, dir_log, dir_export])
+sj: SettingJson = SettingJson(os.path.join(dir_user, "setting.json"), dir_user, [dir_temp, dir_log, dir_export, dir_debug])
 
 
 class GlobalClass:
