@@ -6,12 +6,13 @@ from tkinter import ttk, font
 from speech_translate._path import app_icon
 from speech_translate._contants import APP_NAME
 from speech_translate.globals import sj, gc
-from speech_translate.utils.helper import cbtn_invoker
+from speech_translate.utils.helper import bind_focus_recursively, cbtn_invoker
 from speech_translate.utils.helper_whisper import convert_str_options_to_dict, get_temperature
 
 from speech_translate.components.frame.setting.general import SettingGeneral
 from speech_translate.components.frame.setting.record import SettingRecord
 from speech_translate.components.frame.setting.textbox import SettingTextbox
+from speech_translate.components.frame.setting.translate import SettingTranslate
 
 from speech_translate.components.custom.message import mbox, MBoxText
 from speech_translate.components.custom.tooltip import tk_tooltip, tk_tooltip, CreateToolTipOnText, tk_tooltips
@@ -51,29 +52,24 @@ class SettingWindow:
 
         self.ft_general = ttk.Frame(self.tabControl)
         self.tabControl.add(self.ft_general, text="General")
-        self.ft_general.bind("<Button-1>", lambda event: self.root.focus_set())
 
         self.ft_record = ttk.Frame(self.tabControl)
         self.tabControl.add(self.ft_record, text="Record")
-        self.ft_record.bind("<Button-1>", lambda event: self.root.focus_set())
 
         self.ft_transcribe = ttk.Frame(self.tabControl)
         self.tabControl.add(self.ft_transcribe, text="Transcribe")
-        self.ft_transcribe.bind("<Button-1>", lambda event: self.root.focus_set())
 
         self.ft_translate = ttk.Frame(self.tabControl)
         self.tabControl.add(self.ft_translate, text="Translate")
-        self.ft_translate.bind("<Button-1>", lambda event: self.root.focus_set())
 
         self.ft_textbox = ttk.Frame(self.tabControl)
         self.tabControl.add(self.ft_textbox, text="Textbox")
-        self.ft_textbox.bind("<Button-1>", lambda event: self.root.focus_set())
 
         # Insert the frames
         self.f_general = SettingGeneral(self.root, self.ft_general)
         self.f_record = SettingRecord(self.root, self.ft_record)
         #
-        #
+        self.f_translate = SettingTranslate(self.root, self.ft_translate)
         self.f_textbox = SettingTextbox(self.root, self.ft_textbox)
 
         # ------------------ Transcribe  ------------------
@@ -333,55 +329,6 @@ class SettingWindow:
         self.btn_verify.pack(side="left", padx=5)
         tk_tooltip(self.btn_verify, "Verify the extra arguments.")
 
-        # ------------------ Translate ------------------
-        # translate
-        self.lf_libre = tk.LabelFrame(self.ft_translate, text="• Libre Translate Setting")
-        self.lf_libre.pack(side="top", fill="x", padx=5, pady=5)
-
-        self.f_libre_1 = ttk.Frame(self.lf_libre)
-        self.f_libre_1.pack(side="top", fill="x", pady=5, padx=5)
-
-        self.lbl_libre_key = ttk.Label(self.f_libre_1, text="API Key")
-        self.lbl_libre_key.pack(side="left", padx=5, pady=5)
-
-        self.entry_libre_key = ttk.Entry(self.f_libre_1)
-        self.entry_libre_key.pack(side="left", padx=5, pady=5)
-        self.entry_libre_key.bind("<KeyRelease>", lambda e: sj.save_key("libre_api_key", self.entry_libre_key.get()))
-        tk_tooltips(
-            [self.lbl_libre_key, self.entry_libre_key],
-            "Libre Translate API Key. Leave empty if not needed or host locally.",
-        )
-
-        self.lbl_libre_host = ttk.Label(self.f_libre_1, text="Host")
-        self.lbl_libre_host.pack(side="left", padx=5, pady=5)
-
-        self.entry_libre_host = ttk.Entry(self.f_libre_1, width=40)
-        self.entry_libre_host.pack(side="left", padx=5, pady=5)
-        self.entry_libre_host.bind("<KeyRelease>", lambda e: sj.save_key("libre_host", self.entry_libre_host.get()))
-        tk_tooltips(
-            [self.lbl_libre_host, self.entry_libre_host],
-            "The host of Libre Translate. You can check out the official instance/mirrors at https://github.com/LibreTranslate/LibreTranslate or host your own instance",
-            wrapLength=300,
-        )
-
-        self.lbl_libre_port = ttk.Label(self.f_libre_1, text="Port")
-        self.lbl_libre_port.pack(side="left", padx=5, pady=5)
-        self.lbl_libre_port.bind("<KeyRelease>", lambda e: sj.save_key("libre_port", self.entry_libre_port.get()))
-
-        self.entry_libre_port = ttk.Entry(self.f_libre_1)
-        self.entry_libre_port.pack(side="left", padx=5, pady=5)
-        self.entry_libre_port.bind("<KeyRelease>", lambda e: sj.save_key("libre_port", self.entry_libre_port.get()))
-        tk_tooltips([self.lbl_libre_port, self.entry_libre_port], "Libre Translate Port.")
-
-        self.cbtn_libre_https = ttk.Checkbutton(
-            self.f_libre_1,
-            text="Use HTTPS",
-            command=lambda: sj.save_key("libre_https", self.cbtn_libre_https.instate(["selected"])),
-            style="Switch.TCheckbutton",
-        )
-        self.cbtn_libre_https.pack(side="left", padx=5, pady=5)
-        tk_tooltip(self.cbtn_libre_https, "Set it to false if you're hosting locally.")
-
         # ------------------ Variables ------------------
         # Flags
         gc.sw = self  # Add self to global class
@@ -390,7 +337,7 @@ class SettingWindow:
         self.on_close()  # hide window on start
         self.init_threaded()
         self.init_setting_once()
-        self.bind_focus_on_frame_recursively(self.root)
+        bind_focus_recursively(self.root, self.root)
 
         # ------------------ Set Icon ------------------
         try:
@@ -425,17 +372,6 @@ class SettingWindow:
         if not self.f_general.model_checked:
             threading.Thread(target=self.f_general.check_model_on_first_open, daemon=True).start()
 
-    def bind_focus_on_frame_recursively(self, root_widget):
-        widgets = root_widget.winfo_children()
-
-        # now check if there are any children of the children
-        for widget in widgets:
-            if len(widget.winfo_children()) > 0:
-                self.bind_focus_on_frame_recursively(widget)
-
-            if isinstance(widget, tk.Frame) or isinstance(widget, ttk.Frame) or isinstance(widget, tk.LabelFrame):
-                widget.bind("<Button-1>", lambda event: self.root.focus_set())  # type: ignore
-
     def init_setting_once(self):
         # tc
         self.spn_tc_rate.set(sj.cache["transcribe_rate"])
@@ -451,15 +387,6 @@ class SettingWindow:
         self.entry_temperature.insert(0, sj.cache["temperature"])
         self.entry_whisper_extra_args.delete(0, "end")
         self.entry_whisper_extra_args.insert(0, sj.cache["whisper_extra_args"])
-
-        # tl
-        self.entry_libre_key.delete(0, "end")
-        self.entry_libre_key.insert(0, sj.cache["libre_api_key"])
-        self.entry_libre_host.delete(0, "end")
-        self.entry_libre_host.insert(0, sj.cache["libre_host"])
-        self.entry_libre_port.delete(0, "end")
-        self.entry_libre_port.insert(0, sj.cache["libre_port"])
-        cbtn_invoker(sj.cache["libre_https"], self.cbtn_libre_https)
 
     def number_only(self, P):
         return P.isdigit()

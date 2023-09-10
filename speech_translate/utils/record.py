@@ -31,7 +31,7 @@ from speech_translate.custom_logging import logger
 from speech_translate.components.custom.label import LabelTitleText
 from speech_translate.components.custom.message import mbox
 
-from .helper import cbtn_invoker, generate_temp_filename, nativeNotify, start_file, filename_only
+from .helper import cbtn_invoker, generate_temp_filename, get_proxies, nativeNotify, start_file, filename_only
 from .helper_whisper import (
     get_temperature,
     convert_str_options_to_dict,
@@ -1176,17 +1176,7 @@ def cancellable_tl(
                 timestamps.append(timestamp)
             result_Tl = []
             debug_log = sj.cache["debug_translate"]
-
-            if sj.cache["proxy_http"] != "" or sj.cache["proxy_https"] != "":
-                proxies = {}
-
-                if sj.cache["proxy_http"] != "":
-                    proxies["http"] = sj.cache["proxy_http"]
-
-                if sj.cache["proxy_https"] != "":
-                    proxies["https"] = sj.cache["proxy_https"]
-            else:
-                proxies = None
+            proxies = get_proxies(sj.cache["proxy_http"], sj.cache["proxy_https"])
 
             # translate each part
             for query, timestamp in zip(toTranslates_txt, timestamps):

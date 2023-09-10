@@ -310,9 +310,8 @@ class SettingRecord:
         tk_tooltip(
             self.radio_numpy_array,
             "The default and recommended method to process the audio. "
-            "This will make the process faster with some minor loss of details in the audio. "
-            "The loss of details is not noticeable in most cases.\n\n"
-            "Default value is checked.",
+            "This will make the process faster with possible minor loss of details in the audio. "
+            "\n\nDefault value is checked.",
             wrapLength=400,
         )
 
@@ -335,9 +334,13 @@ class SettingRecord:
             self.lbl_hint_pconversion,
             "Convert method is the method used to process the audio before feeding it to the model."
             "\n\nNumpy array is the default and recommended method. It is faster and more efficient. "
-            "When using numpy array, we will need to convert the audio to float32 and resample it to 16k sample rate, hence the loss of some details"
+            "When using numpy array, we will need to convert the audio to float32 and downsample it to 16k hz sample rate"
+            ", hence the possibility of loss of details. Keep in mind that no downsample will be done "
+            "if the device is already set to 16k hz sample rate, meaning no loss. "
+            "If there are any errors related to device, try using the temporary wav file."
             "\n\nTemporary wav file is slower and less efficient but might be more accurate in some cases. "
-            "When using wav file whisper will do the conversion automatically, but the I/O process of the file might slow down the performance significantly.",
+            "When using wav file whisper will do the conversion automatically, but the I/O process of the recorded wav file "
+            "might slow down the performance significantly, especially on long buffers.",
             wrapLength=400,
         )
 

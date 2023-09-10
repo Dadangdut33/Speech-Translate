@@ -1,4 +1,5 @@
 import os
+import random
 import subprocess
 import webbrowser
 import platform
@@ -21,6 +22,23 @@ def up_first_case(string: str):
 
 def get_similar_keys(_dict: Dict, key: str):
     return [k for k in _dict.keys() if key.lower() in k.lower()]
+
+
+def get_proxies(proxy_http: str, proxy_https: str):
+    """
+    Proxies in setting is saved in a string format separated by \n
+    This function will convert it to a dict format and get the proxies randomly
+    """
+    proxies = {}
+    if proxy_http != "":
+        http_list = proxy_http.split()
+        http_list = [word for word in http_list if any(char.isalpha() for char in word)]
+        proxies["http"] = random.choice(http_list)
+    if proxy_https != "":
+        https_list = proxy_https.split()
+        https_list = [word for word in https_list if any(char.isalpha() for char in word)]
+        proxies["https"] = random.choice(https_list)
+    return proxies
 
 
 def cbtn_invoker(settingVal: bool, widget: Union[ttk.Checkbutton, ttk.Radiobutton]):
@@ -206,19 +224,28 @@ def max_number_float(root, el, min: int, max: int, cb_func=None):
     root.after(1000, lambda: num_check(el, min, max, cb_func, True))
 
 
-def bind_focus_on_frame_recursively(root, root_widget):
+def bind_focus_recursively(root, root_widget):
     """
-    Bind focus on frame recursively
+    Bind focus on widgets recursively
     """
     widgets = root_widget.winfo_children()
 
     # now check if there are any children of the children
     for widget in widgets:
         if len(widget.winfo_children()) > 0:
-            bind_focus_on_frame_recursively(root, widget)
+            bind_focus_recursively(root, widget)
 
-        if isinstance(widget, tk.Frame) or isinstance(widget, ttk.Frame) or isinstance(widget, tk.LabelFrame):
-            widget.bind("<Button-1>", lambda event: root.focus_set())  # type: ignore
+        if (
+            isinstance(widget, tk.Frame)
+            or isinstance(widget, ttk.Frame)
+            or isinstance(widget, tk.LabelFrame)
+            or isinstance(widget, ttk.LabelFrame)
+            or isinstance(widget, tk.Label)
+            or isinstance(widget, ttk.Label)
+        ):
+            # make sure that Button-1 is not already binded
+            if "<Button-1>" not in widget.bind():
+                widget.bind("<Button-1>", lambda event: root.focus_set())
 
 
 def windows_os_only(

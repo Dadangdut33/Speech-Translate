@@ -1,5 +1,5 @@
 import requests
-from typing import Dict, Optional
+from typing import Dict
 from speech_translate.custom_logging import logger
 from .helper import get_similar_keys, no_connection_notify
 from .language import google_lang, libre_lang, myMemory_lang
@@ -35,7 +35,7 @@ class TranslationConnection:
 TlCon = TranslationConnection(GoogleTranslator, MyMemoryTranslator)
 
 
-def google_tl(text: str, from_lang: str, to_lang: str, proxies: Optional[Dict] = None, debug_log: bool = False):
+def google_tl(text: str, from_lang: str, to_lang: str, proxies: Dict, debug_log: bool = False):
     """Translate Using Google Translate
 
     Args
@@ -43,6 +43,7 @@ def google_tl(text: str, from_lang: str, to_lang: str, proxies: Optional[Dict] =
         text (str): Text to translate
         from_lang (str): Language From
         to_lang (str): Language to translate
+        proxies (Dict): Proxies. Defaults to None.
         debug_log (bool, optional): Debug Log. Defaults to False.
 
     Returns
@@ -90,7 +91,7 @@ def google_tl(text: str, from_lang: str, to_lang: str, proxies: Optional[Dict] =
         return is_Success, result
 
 
-def memory_tl(text: str, from_lang: str, to_lang: str, proxies: Optional[Dict] = None, debug_log: bool = False):
+def memory_tl(text: str, from_lang: str, to_lang: str, proxies: Dict, debug_log: bool = False):
     """Translate Using MyMemoryTranslator
 
     Args
@@ -98,6 +99,7 @@ def memory_tl(text: str, from_lang: str, to_lang: str, proxies: Optional[Dict] =
         text (str): Text to translate
         from_lang (str): Language From
         to_lang (str): Language to translate
+        proxies (Dict): Proxies. Defaults to None.
         debug_log (bool, optional): Debug Log. Defaults to False.
 
     Returns
@@ -151,11 +153,11 @@ def libre_tl(
     text: str,
     from_lang: str,
     to_lang: str,
-    https: bool = False,
-    host: str = "libretranslate.de",
-    port: str = "",
-    apiKeys: str = "",
-    proxies: Optional[Dict] = None,
+    https: bool,
+    host: str,
+    port: str,
+    apiKeys: str,
+    proxies: Dict,
     debug_log: bool = False,
 ):
     """Translate Using LibreTranslate
@@ -165,10 +167,11 @@ def libre_tl(
         text (str): Text to translate
         from_lang (str): Language From
         to_lang (str): Language to translate
-        https (bool, optional): Use https. Defaults to False.
-        host (str, optional): Host. Defaults to "libretranslate.de".
-        port (str, optional): Port. Defaults to "".
-        apiKeys (str, optional): API Keys. Defaults to "".
+        https (bool): Use https
+        host (str): Host
+        port (str): Port
+        apiKeys (str): API Keys
+        proxies (Dict): Proxies
         debug_log (bool, optional): Debug Log. Defaults to False.
 
     Returns

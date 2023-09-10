@@ -38,7 +38,7 @@ from speech_translate.utils.helper import (
     windows_os_only,
 )
 from speech_translate.utils.style import set_ui_style, init_theme, get_theme_list, get_current_theme
-from speech_translate.utils.helper import up_first_case, start_file
+from speech_translate.utils.helper import up_first_case, start_file, bind_focus_recursively
 from speech_translate.utils.helper_whisper import append_dot_en, modelKeys, modelSelectDict
 from speech_translate.utils.language import engine_select_source_dict, engine_select_target_dict, whisper_compatible
 from speech_translate.utils.record import (
@@ -197,19 +197,15 @@ class MainWindow:
         # ------------------ Frames ------------------
         self.f1_toolbar = ttk.Frame(self.root)
         self.f1_toolbar.pack(side="top", fill="x", expand=False, pady=(5, 0))
-        self.f1_toolbar.bind("<Button-1>", lambda event: self.root.focus_set())
 
         self.f2_textBox = ttk.Frame(self.root)
         self.f2_textBox.pack(side="top", fill="both", expand=True)
-        self.f2_textBox.bind("<Button-1>", lambda event: self.root.focus_set())
 
         self.f3_toolbar = ttk.Frame(self.root)
         self.f3_toolbar.pack(side="top", fill="x", expand=False)
-        self.f3_toolbar.bind("<Button-1>", lambda event: self.root.focus_set())
 
         self.f4_statusbar = ttk.Frame(self.root)
         self.f4_statusbar.pack(side="bottom", fill="x", expand=False)
-        self.f4_statusbar.bind("<Button-1>", lambda event: self.root.focus_set())
 
         # ------------------ Elements ------------------
         # -- f1_toolbar
@@ -306,19 +302,15 @@ class MainWindow:
         # -- f3_toolbar
         self.f3_1 = ttk.Frame(self.f3_toolbar)
         self.f3_1.pack(side="left", fill="x", expand=True)
-        self.f3_1.bind("<Button-1>", lambda event: self.root.focus_set())
 
         self.f3_1_row1 = ttk.Frame(self.f3_1)
         self.f3_1_row1.pack(side="top", fill="x")
-        self.f3_1_row1.bind("<Button-1>", lambda event: self.root.focus_set())
 
         self.f3_1_row2 = ttk.Frame(self.f3_1)
         self.f3_1_row2.pack(side="top", fill="x")
-        self.f3_1_row2.bind("<Button-1>", lambda event: self.root.focus_set())
 
         self.f3_1_row3 = ttk.Frame(self.f3_1)
         self.f3_1_row3.pack(side="top", fill="x")
-        self.f3_1_row3.bind("<Button-1>", lambda event: self.root.focus_set())
 
         # -- hostAPI
         self.lbl_hostAPI = ttk.Label(self.f3_1_row1, text="HostAPI:", font="TkDefaultFont 9 bold", width=10)
@@ -545,6 +537,7 @@ class MainWindow:
         # Start polling
         gc.running_after_id = self.root.after(1000, self.is_running_poll)
         self.on_init()
+        bind_focus_recursively(self.root, self.root)
 
         # ------------------ Set Icon ------------------
         try:

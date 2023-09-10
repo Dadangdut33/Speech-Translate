@@ -1,7 +1,6 @@
 import requests
 import tkinter as tk
 from tkinter import ttk
-from time import sleep
 from threading import Thread
 from PIL import Image, ImageTk
 
@@ -47,7 +46,7 @@ class AboutWindow:
             self.canvas_img = tk.Canvas(self.f_top, width=100, height=100)
             self.canvas_img.pack(side="top", padx=5, pady=5)
             self.imgObj = Image.open(app_icon.replace(".ico", ".png"))
-            self.imgObj = self.imgObj.resize((100, 100), Image.ANTIALIAS)
+            self.imgObj = self.imgObj.resize((100, 100))
 
             self.img = ImageTk.PhotoImage(self.imgObj)
             self.canvas_img.create_image(2, 50, anchor=tk.W, image=self.img)
@@ -56,10 +55,17 @@ class AboutWindow:
             self.logoNotFoud.pack(side="top", padx=5, pady=5)
             self.root.geometry("375x325")
 
-        self.lbl_title = ttk.Label(self.f_top, text="Speech Translate", font=("Helvetica", 12, "bold"), style="BrighterTFrameBg.TLabel")
+        self.lbl_title = ttk.Label(
+            self.f_top, text="Speech Translate", font=("Helvetica", 12, "bold"), style="BrighterTFrameBg.TLabel"
+        )
         self.lbl_title.pack(padx=5, pady=2, side="top")
 
-        self.lbl_content = ttk.Label(self.f_top, text="An open source Speech Transcription and Translation tool.\nMade using Whisper OpenAI and some translation API.", style="BrighterTFrameBg.TLabel")
+        self.lbl_content = ttk.Label(
+            self.f_top,
+            text="An open source Speech Transcription and Translation tool.\n"
+            "Made using Whisper OpenAI and some translation API.",
+            style="BrighterTFrameBg.TLabel",
+        )
         self.lbl_content.pack(padx=5, pady=0, side="top")
 
         # Label for version
@@ -75,7 +81,9 @@ class AboutWindow:
         self.update_text = "Click to check for update"
         self.update_fg = "blue"
         self.update_func = self.check_for_update
-        self.lbl_check_update = ttk.Label(self.f_bot_l_1, text=self.update_text, foreground=self.update_fg, font=("Segoe UI", 8), cursor="hand2")
+        self.lbl_check_update = ttk.Label(
+            self.f_bot_l_1, text=self.update_text, foreground=self.update_fg, font=("Segoe UI", 8), cursor="hand2"
+        )
         self.lbl_check_update.pack(padx=5, pady=0, side="left")
         self.lbl_check_update.bind("<Button-1>", self.update_func)
         self.tooltip_check_update = tk_tooltip(self.lbl_check_update, "Click to check for update")

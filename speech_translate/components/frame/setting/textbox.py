@@ -503,6 +503,10 @@ class SettingTextbox:
         # ------------------ Other ------------------
         self.cbtn_parse_arabic = ttk.Checkbutton(self.f_other_1, text="Parse Arabic character", style="Switch.TCheckbutton")
         self.cbtn_parse_arabic.pack(side="left", padx=5, pady=5)
+        tk_tooltip(
+            self.cbtn_parse_arabic,
+            "Check this option if you want to transcribe Arabic character. This will fix the display issue of Arabic character",
+        )
 
         # ------------------ Preview ------------------
         # tb 1

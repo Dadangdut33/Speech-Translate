@@ -9,7 +9,7 @@ from speech_translate._path import app_icon
 from speech_translate._contants import APP_NAME
 from speech_translate.globals import gc, sj
 from speech_translate.custom_logging import logger, current_log, dir_log, init_logging
-from speech_translate.utils.helper import start_file, tb_copy_only
+from speech_translate.utils.helper import bind_focus_recursively, start_file, tb_copy_only
 
 
 # Classes
@@ -85,6 +85,7 @@ class LogWindow:
         # On Close
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.onInit()
+        bind_focus_recursively(self.root, self.root)
 
         # ------------------ Set Icon ------------------
         try:
