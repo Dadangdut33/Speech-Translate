@@ -4,7 +4,7 @@ from tkinter import ttk
 from typing import Literal
 
 from speech_translate._path import app_icon
-from speech_translate._contants import SUBTITLE_PLACEHOLDER
+from speech_translate._constants import SUBTITLE_PLACEHOLDER
 from speech_translate.globals import sj, gc
 from speech_translate.utils.beep import beep
 from speech_translate.utils.helper import emoji_img

@@ -37,6 +37,9 @@ class SettingTranslate:
         self.f_proxies_1_2 = ttk.Frame(self.f_proxies_1)
         self.f_proxies_1_2.pack(side="top", fill="x", expand=True)
 
+        self.f_proxies_1_3 = ttk.Frame(self.f_proxies_1)
+        self.f_proxies_1_3.pack(side="top", fill="x", expand=True)
+
         self.f_proxies_2 = ttk.Frame(self.lf_proxies)
         self.f_proxies_2.pack(side="left", fill="x", pady=5, padx=5, expand=True)
 
@@ -45,6 +48,9 @@ class SettingTranslate:
 
         self.f_proxies_2_2 = ttk.Frame(self.f_proxies_2)
         self.f_proxies_2_2.pack(side="top", fill="x", expand=True)
+
+        self.f_proxies_2_3 = ttk.Frame(self.f_proxies_2)
+        self.f_proxies_2_3.pack(side="top", fill="x", expand=True)
 
         self.lbl_proxies_https = ttk.Label(self.f_proxies_1_1, text="HTTPS")
         self.lbl_proxies_https.pack(side="left", padx=5, fill="x", expand=True)
@@ -66,6 +72,9 @@ class SettingTranslate:
             wrapLength=250,
         )
 
+        self.cbtn_proxies_https = ttk.Checkbutton(self.f_proxies_1_3, text="Enable https proxy", style="Switch.TCheckbutton")
+        self.cbtn_proxies_https.pack(side="left", padx=5, pady=(0, 5))
+
         self.lbl_proxies_http = ttk.Label(self.f_proxies_2_1, text="HTTP")
         self.lbl_proxies_http.pack(side="left", padx=5, fill="x", expand=True)
 
@@ -85,6 +94,9 @@ class SettingTranslate:
             "\n\nExample input:\nhttp://proxy1:port\nhttp://proxy2:port",
             wrapLength=250,
         )
+
+        self.cbtn_proxies_http = ttk.Checkbutton(self.f_proxies_2_3, text="Enable http proxy", style="Switch.TCheckbutton")
+        self.cbtn_proxies_http.pack(side="left", padx=5, pady=(0, 5))
 
         # ------------------ Libre translate ------------------
         self.lf_libre = tk.LabelFrame(self.master, text="• Libre Translate Setting")
@@ -154,6 +166,12 @@ class SettingTranslate:
         """
         To prevent the command from being called multiple times, we need to configure the command just once after the setting is initialized
         """
+        self.cbtn_proxies_https.configure(
+            command=lambda: sj.save_key("https_proxy_enable", self.cbtn_proxies_https.instate(["selected"]))
+        )
+        self.cbtn_proxies_http.configure(
+            command=lambda: sj.save_key("http_proxy_enable", self.cbtn_proxies_http.instate(["selected"]))
+        )
         self.cbtn_libre_https.configure(
             command=lambda: sj.save_key("libre_https", self.cbtn_libre_https.instate(["selected"]))
         )

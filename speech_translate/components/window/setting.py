@@ -4,7 +4,7 @@ import tkinter as tk
 from tkinter import ttk, font
 
 from speech_translate._path import app_icon
-from speech_translate._contants import APP_NAME
+from speech_translate._constants import APP_NAME
 from speech_translate.globals import sj, gc
 from speech_translate.utils.helper import bind_focus_recursively, cbtn_invoker
 from speech_translate.utils.helper_whisper import convert_str_options_to_dict, get_temperature
@@ -18,7 +18,7 @@ from speech_translate.components.custom.message import mbox, MBoxText
 from speech_translate.components.custom.tooltip import tk_tooltip, tk_tooltip, CreateToolTipOnText, tk_tooltips
 
 
-# TODO: proxies, whisper option
+# TODO: whisper option
 
 
 class SettingWindow:
@@ -47,23 +47,24 @@ class SettingWindow:
 
         # ------------------ Widgets ------------------
         # notebook
-        self.tabControl = ttk.Notebook(self.frame_top)
-        self.tabControl.pack(fill="both", expand=True)
+        self.tab_control = ttk.Notebook(self.frame_top)
+        self.tab_control.pack(fill="both", expand=True)
+        self.tab_control.bind("<<NotebookTabChanged>>", self.notebook_change)
 
-        self.ft_general = ttk.Frame(self.tabControl)
-        self.tabControl.add(self.ft_general, text="General")
+        self.ft_general = ttk.Frame(self.tab_control)
+        self.tab_control.add(self.ft_general, text="General")
 
-        self.ft_record = ttk.Frame(self.tabControl)
-        self.tabControl.add(self.ft_record, text="Record")
+        self.ft_record = ttk.Frame(self.tab_control)
+        self.tab_control.add(self.ft_record, text="Record")
 
-        self.ft_transcribe = ttk.Frame(self.tabControl)
-        self.tabControl.add(self.ft_transcribe, text="Transcribe")
+        self.ft_transcribe = ttk.Frame(self.tab_control)
+        self.tab_control.add(self.ft_transcribe, text="Transcribe")
 
-        self.ft_translate = ttk.Frame(self.tabControl)
-        self.tabControl.add(self.ft_translate, text="Translate")
+        self.ft_translate = ttk.Frame(self.tab_control)
+        self.tab_control.add(self.ft_translate, text="Translate")
 
-        self.ft_textbox = ttk.Frame(self.tabControl)
-        self.tabControl.add(self.ft_textbox, text="Textbox")
+        self.ft_textbox = ttk.Frame(self.tab_control)
+        self.tab_control.add(self.ft_textbox, text="Textbox")
 
         # Insert the frames
         self.f_general = SettingGeneral(self.root, self.ft_general)
@@ -363,6 +364,8 @@ class SettingWindow:
             sj.save_key("sw_size", f"{w}x{h}")
 
     def on_close(self):
+        threading.Thread(target=self.f_record.set_meter_mic, args=(False,), daemon=True).start()
+        threading.Thread(target=self.f_record.set_meter_speaker, args=(False,), daemon=True).start()
         self.save_win_size()
         self.root.withdraw()
 
@@ -371,6 +374,17 @@ class SettingWindow:
 
         if not self.f_general.model_checked:
             threading.Thread(target=self.f_general.check_model_on_first_open, daemon=True).start()
+
+        self.notebook_change()
+
+    def notebook_change(self, _event=None):
+        pos = str(self.tab_control.index(self.tab_control.select()))
+        if pos == "1":
+            threading.Thread(target=self.f_record.set_meter_mic, daemon=True).start()
+            threading.Thread(target=self.f_record.set_meter_speaker, daemon=True).start()
+        else:
+            threading.Thread(target=self.f_record.call_set_meter_mic, args=(False,), daemon=True).start()
+            threading.Thread(target=self.f_record.call_set_meter_speaker, args=(False,), daemon=True).start()
 
     def init_setting_once(self):
         # tc

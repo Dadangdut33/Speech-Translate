@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk, font
 from typing import Union
 
-from speech_translate._contants import PREVIEW_WORDS
+from speech_translate._constants import PREVIEW_WORDS
 from speech_translate.globals import sj, gc
 from speech_translate.utils.helper import chooseColor, max_number, number_only
 from speech_translate.utils.helper import cbtn_invoker

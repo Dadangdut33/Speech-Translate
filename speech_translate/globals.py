@@ -8,7 +8,7 @@ from tkinter import ttk
 from threading import Thread, Lock
 from typing import Literal, Optional, List, TYPE_CHECKING, Union
 from ._path import dir_temp, dir_log, dir_export, dir_user, dir_debug
-from ._contants import SUBTITLE_PLACEHOLDER
+from ._constants import SUBTITLE_PLACEHOLDER
 from .utils.setting import SettingJson
 
 # Disabling tqdm globally by Defining a custom dummy class that suppresses tqdm's behavior
@@ -66,7 +66,6 @@ class GlobalClass:
         # Flags
         self.running: bool = True
         self.recording: bool = False
-        self.paused: bool = False
         self.transcribing: bool = False
         self.translating: bool = False
 
@@ -99,7 +98,6 @@ class GlobalClass:
         # record stream
         self.stream: Optional[pyaudio.Stream] = None
         self.data_queue = Queue()
-        self.current_db: float = 0.0
         self.current_rec_status = ""
         self.auto_detected_lang = "~"
         self.tc_lock: Optional[Lock] = None

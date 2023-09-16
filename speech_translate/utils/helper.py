@@ -13,7 +13,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageTk
 from speech_translate.components.custom.tooltip import tk_tooltip
 from speech_translate.custom_logging import logger
 from speech_translate._path import app_icon, app_icon_missing
-from speech_translate._contants import APP_NAME
+from speech_translate._constants import APP_NAME
 
 
 def up_first_case(string: str):
@@ -262,6 +262,8 @@ def windows_os_only(
             tk.Frame,
             tk.Label,
             ttk.Label,
+            tk.Scale,
+            ttk.Scale,
         ]
     ]
 ):
@@ -281,6 +283,9 @@ def windows_os_only(
                 assert isinstance(widget, (ttk.LabelFrame, tk.LabelFrame, ttk.Frame, tk.Frame))
                 widget.pack_forget()
             else:
-                assert isinstance(widget, (ttk.Checkbutton, ttk.Radiobutton, ttk.Entry, ttk.Combobox, ttk.Button, ttk.Label))
+                assert isinstance(
+                    widget,
+                    (ttk.Checkbutton, ttk.Radiobutton, ttk.Entry, ttk.Combobox, ttk.Button, ttk.Label, tk.Scale, ttk.Scale),
+                )
                 widget.configure(state="disabled")
                 tk_tooltip(widget, "This feature is only available on Windows OS.")

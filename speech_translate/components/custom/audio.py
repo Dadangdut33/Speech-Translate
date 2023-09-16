@@ -1,16 +1,20 @@
-import threading
 import tkinter as tk
 
 
 class AudioMeter(tk.Canvas):
-    def __init__(self, master, show_threshold, min, max, **kwargs):
+    def __init__(self, master, root, show_threshold: bool, min: float, max: float, **kwargs):
         super().__init__(master, **kwargs)
 
+        self.root = root
         self.min = min
         self.max = max
         self.show_threshold = show_threshold
         self.db = 0
         self.threshold = 0
+        self.running = False
+        self.auto = False
+        self.recording = False
+        self.after_id = None
 
     def set_db(self, db):
         self.db = db
@@ -18,31 +22,45 @@ class AudioMeter(tk.Canvas):
     def set_threshold(self, threshold):
         self.threshold = threshold
 
+    def set_auto(self, auto):
+        self.auto = auto
+
+    def set_recording(self, recording):
+        self.recording = recording
+
     def start(self):
         self.running = True
-        self.update_thread = threading.Thread(target=self.update_meter)
-        self.update_thread.daemon = True
-        self.update_thread.start()
+        self.update_visual()
 
     def stop(self):
+        if self.after_id:
+            self.root.after_cancel(self.after_id)
         self.running = False
 
-    def update_meter(self):
-        while self.running:
-            # Map loudness to the canvas width
-            loudness_percentage = (self.db - self.min) / (self.max - self.min)
-            bar_width = int(self.winfo_width() * loudness_percentage)
+    def update_visual(self):
+        if not self.auto:
+            self.meter_update()
+        else:
+            self.meter_update_flash()
 
-            # Clear canvas and draw the loudness bar
-            self.after(0, self.update_bar, bar_width)
+        if self.running:
+            self.after_id = self.root.after(10, self.update_visual)
 
-    def update_bar(self, bar_width):
+    def meter_update(self):
+        # Map loudness to the canvas width
+        loudness_percentage = (self.db - self.min) / (self.max - self.min)
+        bar_width = int(self.winfo_width() * loudness_percentage)
+
+        # Update the loudness bar
+        self.bar_update(bar_width)
+
+    def bar_update(self, bar_width):
         # Clear canvas and draw the loudness bar
         self.delete("all")
         self.create_rectangle(0, 0, bar_width, self.winfo_height(), fill="green", tags="loudness_bar")
-        self.draw_ruler()
+        self.ruler_update()
 
-    def draw_ruler(self):
+    def ruler_update(self):
         # Draw dB level markers. For every 5 db make long line and text, other than that make little line
         for db_level in range(int(self.min), int(self.max + 1)):
             marker_x = (db_level - self.min) / (self.max - self.min) * self.winfo_width()
@@ -57,3 +75,25 @@ class AudioMeter(tk.Canvas):
                     self.create_text(marker_x, self.winfo_height() / 2, text=f"{db_level}", fill="black", tags="ruler")
             else:
                 self.create_line(marker_x, 0, marker_x, self.winfo_height() / 5, fill="black", tags="ruler")
+
+    def meter_update_flash(self):
+        """
+        When on auto mode we want it to just show flashing and only when its recording
+        """
+        if self.recording:
+            self.flash()
+        else:
+            self.delete("all")
+
+    def flash(self):
+        # Map loudness to the canvas width
+        loudness_percentage = (self.db - self.min) / (self.max - self.min)
+        bar_width = int(self.winfo_width() * loudness_percentage)
+
+        # Update the loudness bar
+        self.flash_bar(bar_width)
+
+    def flash_bar(self, bar_width):
+        # Clear canvas and draw the loudness bar
+        self.delete("all")
+        self.create_rectangle(0, 0, bar_width, self.winfo_height(), fill="green", tags="flash")

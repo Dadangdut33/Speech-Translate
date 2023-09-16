@@ -15,7 +15,7 @@ from pystray import MenuItem as item
 
 from speech_translate._version import __version__
 from speech_translate._path import app_icon
-from speech_translate._contants import APP_NAME
+from speech_translate._constants import APP_NAME
 from speech_translate.globals import sj, gc
 from speech_translate.custom_logging import logger
 
@@ -41,16 +41,16 @@ from speech_translate.utils.style import set_ui_style, init_theme, get_theme_lis
 from speech_translate.utils.helper import up_first_case, start_file, bind_focus_recursively
 from speech_translate.utils.helper_whisper import append_dot_en, modelKeys, modelSelectDict
 from speech_translate.utils.language import engine_select_source_dict, engine_select_target_dict, whisper_compatible
-from speech_translate.utils.record import (
+from speech_translate.utils.record import file_input, record_realtime
+from speech_translate.utils.device import (
     get_input_devices,
     get_output_devices,
     get_host_apis,
     get_default_output_device,
     get_default_input_device,
     get_default_host_api,
-    file_input,
-    record_realtime,
 )
+
 
 # Terminal window hide/showing
 try:
