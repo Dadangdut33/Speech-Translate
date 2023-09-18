@@ -1,4 +1,5 @@
-import re
+from re import sub
+
 from speech_translate.custom_logging import logger
 
 modelSelectDict = {
@@ -191,7 +192,7 @@ def convert_str_options_to_dict(options):
 
             if param in validDecodingOptions:
                 # add to dict but delete all " ' in value
-                val = re.sub(r"['\"]", "", value)
+                val = sub(r"['\"]", "", value)
                 val = decodingDict[param](val)  # convert values
 
                 result[param] = val
@@ -206,7 +207,8 @@ def convert_str_options_to_dict(options):
 
 def get_temperature(args):
     """
-    Input must be a string of either a single float number (ex: 0.0) or tuple of floats number separated with commas (ex: 0.2, 0.3, 0.4 ...).
+    Input must be a string of either a single float number (ex: 0.0) or tuple of floats number separated with commas
+    (ex: 0.2, 0.3, 0.4 ...).
     """
     try:
         if "," in args:

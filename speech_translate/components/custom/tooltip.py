@@ -1,7 +1,6 @@
 __all__ = ["tk_tooltip", "Tooltip", "tk_tooltips", "CreateToolTipOnText"]
 
-import tkinter as tk
-from tkinter import ttk
+from tkinter import Entry, Label, Text, Toplevel, Widget, ttk
 from typing import List, Union
 
 
@@ -74,7 +73,7 @@ class Tooltip(object):
         y += self.widget.winfo_rooty() + 20
 
         # creates a toplevel window
-        self.root = tk.Toplevel(self.widget)
+        self.root = Toplevel(self.widget)
 
         # Make it stay on top
         self.root.wm_attributes("-topmost", self.always_on_top)
@@ -90,9 +89,7 @@ class Tooltip(object):
 
         self.root.wm_geometry("+%d+%d" % (x, y))
 
-        label = tk.Label(
-            self.root, text=self.text, justify="left", relief="solid", borderwidth=1, wraplength=self.wrapLength
-        )
+        label = Label(self.root, text=self.text, justify="left", relief="solid", borderwidth=1, wraplength=self.wrapLength)
         label.pack(ipadx=1)
 
     def hidetip(self):
@@ -103,7 +100,7 @@ class Tooltip(object):
 
 
 def tk_tooltip(
-    widget: Union[tk.Widget, ttk.Widget],
+    widget: Union[Widget, ttk.Widget],
     text: str,
     delay: int = 250,
     wrapLength: int = 180,
@@ -118,7 +115,7 @@ def tk_tooltip(
 
 
 def tk_tooltips(
-    widgets: List[tk.Widget],
+    widgets: List[Widget],
     text: str,
     delay: int = 250,
     wrapLength: int = 180,
@@ -139,7 +136,7 @@ def tk_tooltips(
 class CreateToolTipOnText:
     def __init__(
         self,
-        widget: Union[tk.Text, tk.Entry, ttk.Entry],
+        widget: Union[Text, Entry, ttk.Entry],
         text: str,
         delay=250,
         opacity=0.9,
@@ -184,7 +181,7 @@ class CreateToolTipOnText:
         y += self.widget.winfo_rooty() + 20
 
         # creates a toplevel window
-        self.root = tk.Toplevel(self.widget)
+        self.root = Toplevel(self.widget)
         self.root.wm_attributes("-topmost", True)  # Make it stay on top
         self.root.wm_attributes("-alpha", self.opacity)  # Make it a little transparent
         self.root.wm_overrideredirect(True)  # Leaves only the label and removes the app window
@@ -197,12 +194,12 @@ class CreateToolTipOnText:
         self.f_1 = ttk.Frame(self.root)
         self.f_1.pack(fill="both", expand=True, side="top", padx=5, pady=5)
 
-        self.tb = tk.Text(self.f_1, wrap=tk.WORD, font=("Arial", 10))
+        self.tb = Text(self.f_1, wrap="word", font=("Arial", 10))
         self.tb.insert("end", self.text)
         self.tb.bind("<Key>", lambda event: tb_copy_only(event))  # Disable textbox input
         self.tb.pack(fill="both", expand=True, side="left")
 
-        self.scrollbar = ttk.Scrollbar(self.f_1, orient=tk.VERTICAL, command=self.tb.yview)
+        self.scrollbar = ttk.Scrollbar(self.f_1, orient="vertical", command=self.tb.yview)
         self.scrollbar.pack(fill="y", side="right")
         self.tb.configure(yscrollcommand=self.scrollbar.set)
 

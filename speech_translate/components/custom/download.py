@@ -1,19 +1,19 @@
 import os
-import hashlib
-import time
 import urllib.request
-import tkinter as tk
-import threading
-from tkinter import ttk
+from hashlib import sha256
+from threading import Thread
+from time import sleep
+from tkinter import Tk, Toplevel, ttk
 from typing import Union
-from speech_translate.custom_logging import logger
-from speech_translate.globals import gc
+
 from speech_translate._path import app_icon
 from speech_translate.components.custom.message import mbox
+from speech_translate.custom_logging import logger
+from speech_translate.globals import gc
 
 
 def whisper_download_with_progress_gui(
-    master: Union[tk.Tk, tk.Toplevel],
+    master: Union[Tk, Toplevel],
     cancel_func,
     after_func,
     model_name: str,
@@ -32,13 +32,13 @@ def whisper_download_with_progress_gui(
     if os.path.isfile(download_target):
         with open(download_target, "rb") as f:
             model_bytes = f.read()
-        if hashlib.sha256(model_bytes).hexdigest() == expected_sha256:
+        if sha256(model_bytes).hexdigest() == expected_sha256:
             return model_bytes if in_memory else download_target
         else:
             logger.warn(f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file")
 
     # Show toplevel window
-    root = tk.Toplevel(master)
+    root = Toplevel(master)
     root.title("Downloading Model")
     root.transient(master)
     root.geometry("450x150")
@@ -46,7 +46,7 @@ def whisper_download_with_progress_gui(
     root.geometry("+{}+{}".format(master.winfo_rootx() + 50, master.winfo_rooty() + 50))
     try:
         root.iconbitmap(app_icon)
-    except:
+    except Exception:
         pass
 
     # flag
@@ -106,8 +106,7 @@ def whisper_download_with_progress_gui(
                 if not paused:
                     lbl_status_text["text"] = (
                         f"Downloading {model_name} model ({mb_downloaded:.2f}/{length_in_mb:.2f} MB)"
-                        if percent < 100
-                        else f"Downloading {model_name} model (100%)"
+                        if percent < 100 else f"Downloading {model_name} model (100%)"
                     )
                     root.after(100, update_progress_bar)
                 else:
@@ -128,13 +127,13 @@ def whisper_download_with_progress_gui(
                     gc.cancel_dl = False
                     root.after(1000, root.destroy)
                     mbox("Download Cancelled", f"Downloading of {model_name} model has been cancelled", 0, master)
-                except:
+                except Exception:
                     pass
                 return
 
             if paused:
                 # sleep for 1 second
-                time.sleep(1)
+                sleep(1)
                 continue
 
             buffer = source.read(buffer_size)
@@ -148,7 +147,7 @@ def whisper_download_with_progress_gui(
         root.after(1000, root.destroy)
 
     model_bytes = open(download_target, "rb").read()
-    if hashlib.sha256(model_bytes).hexdigest() != expected_sha256:
+    if sha256(model_bytes).hexdigest() != expected_sha256:
         raise RuntimeError(
             "Model has been downloaded but the SHA256 checksum does not match. Please retry loading the model."
         )
@@ -158,7 +157,7 @@ def whisper_download_with_progress_gui(
     logger.info("Download finished")
     if after_func:
         logger.info("Running after_func")
-        threading.Thread(target=after_func, daemon=True).start()
+        Thread(target=after_func, daemon=True).start()
 
     # tell setting window to check model again when it open
     assert gc.sw is not None

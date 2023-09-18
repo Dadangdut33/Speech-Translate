@@ -1,40 +1,28 @@
-import platform
-import threading
-import time
-import tkinter as tk
-import numpy as np
-from tkinter import ttk
+from time import time
+from platform import system
+from threading import Thread
+from tkinter import ttk, Toplevel, Frame, LabelFrame, StringVar
 from typing import Literal, Union
 
 from speech_translate.globals import sj
 from speech_translate.custom_logging import logger
 from speech_translate._constants import MIN_THRESHOLD, MAX_THRESHOLD, STEPS
 from speech_translate.utils.device import auto_threshold, get_db, get_device_details
-from speech_translate.utils.helper import (
-    number_only,
-    max_number,
-    cbtn_invoker,
-    emoji_img,
-    windows_os_only,
-)
-
-from speech_translate.components.custom.audio import AudioMeter
-from speech_translate.components.custom.countdown import CountdownWindow
-from speech_translate.components.custom.message import mbox
-from speech_translate.components.custom.tooltip import tk_tooltips, tk_tooltip
-
-if platform.system() == "Windows":
+from speech_translate.utils.helper import number_only, max_number, cbtn_invoker, emoji_img, windows_os_only
+if system() == "Windows":
     import pyaudiowpatch as pyaudio
 else:
     import pyaudio  # type: ignore
+
+from speech_translate.components.custom.audio import AudioMeter
+from speech_translate.components.custom.tooltip import tk_tooltips, tk_tooltip
 
 
 class SettingRecord:
     """
     Record tab in setting window.
     """
-
-    def __init__(self, root: tk.Toplevel, master_frame: Union[ttk.Frame, tk.Frame]):
+    def __init__(self, root: Toplevel, master_frame: Union[ttk.Frame, Frame]):
         self.root = root
         self.master = master_frame
         self.getting_threshold = False
@@ -42,7 +30,7 @@ class SettingRecord:
 
         self.max_mic = MAX_THRESHOLD
         self.min_mic = MIN_THRESHOLD
-        self.t_start_mic = time.time()
+        self.t_start_mic = time()
         self.recording_mic = False
         self.p_mic = None
         self.detail_mic = None
@@ -53,7 +41,7 @@ class SettingRecord:
 
         self.max_speaker = MAX_THRESHOLD
         self.min_speaker = MIN_THRESHOLD
-        self.t_start_speaker = time.time()
+        self.t_start_speaker = time()
         self.recording_speaker = False
         self.p_speaker = None
         self.detail_speaker = None
@@ -63,13 +51,13 @@ class SettingRecord:
         self.speaker_optimal = False
 
         # ------------------ Record  ------------------
-        self.lf_device = tk.LabelFrame(self.master, text="• Device Parameters")
+        self.lf_device = LabelFrame(self.master, text="• Device Parameters")
         self.lf_device.pack(side="top", fill="x", padx=5, pady=5)
 
         self.f_device_1 = ttk.Frame(self.lf_device)
         self.f_device_1.pack(side="top", fill="x", pady=5, padx=5)
 
-        self.lf_recording = tk.LabelFrame(self.master, text="• Recording Options")
+        self.lf_recording = LabelFrame(self.master, text="• Recording Options")
         self.lf_recording.pack(side="top", fill="x", padx=5, pady=5)
 
         self.f_recording_1 = ttk.Frame(self.lf_recording)
@@ -87,7 +75,7 @@ class SettingRecord:
         self.f_recording_2_r = ttk.Frame(self.f_recording_2)
         self.f_recording_2_r.pack(side="left", fill="both", expand=True)
 
-        self.lf_result = tk.LabelFrame(self.master, text="• Result")
+        self.lf_result = LabelFrame(self.master, text="• Result")
         self.lf_result.pack(side="top", fill="x", padx=5, pady=5)
 
         self.f_result_1 = ttk.Frame(self.lf_result)
@@ -334,10 +322,11 @@ class SettingRecord:
         self.lbl_conversion_method.pack(side="left", padx=5)
         tk_tooltip(
             self.lbl_conversion_method,
-            "Set the method used to convert the audio before feeding it to the model." "\n\nDefault value is numpy array.",
+            "Set the method used to convert the audio before feeding it to the model."
+            "\n\nDefault value is numpy array.",
         )
 
-        self.var_conversion = tk.StringVar()
+        self.var_conversion = StringVar()
         self.radio_numpy_array = ttk.Radiobutton(
             self.f_processing_1, text="Numpy Array", value="numpy", variable=self.var_conversion
         )
@@ -747,24 +736,12 @@ class SettingRecord:
         # disable
         windows_os_only(
             [
-                self.lbl_sr_speaker,
-                self.spn_sr_speaker,
-                self.lbl_channels_speaker,
-                self.spn_channels_speaker,
-                self.lbl_chunk_size_speaker,
-                self.spn_chunk_size_speaker,
-                self.cbtn_auto_sr_speaker,
-                self.cbtn_auto_channels_speaker,
-                self.lbl_hint_buffer_speaker,
-                self.lbl_buffer_speaker,
-                self.spn_buffer_speaker,
-                self.lbl_max_sentences_speaker,
-                self.spn_max_sentences_speaker,
-                self.cbtn_threshold_enable_speaker,
-                self.cbtn_threshold_auto_speaker,
-                self.cbtn_auto_break_buffer_speaker,
-                self.lbl_hint_threshold_speaker,
-                self.scale_threshold_speaker,
+                self.lbl_sr_speaker, self.spn_sr_speaker, self.lbl_channels_speaker, self.spn_channels_speaker,
+                self.lbl_chunk_size_speaker, self.spn_chunk_size_speaker, self.cbtn_auto_sr_speaker,
+                self.cbtn_auto_channels_speaker, self.lbl_hint_buffer_speaker, self.lbl_buffer_speaker,
+                self.spn_buffer_speaker, self.lbl_max_sentences_speaker, self.spn_max_sentences_speaker,
+                self.cbtn_threshold_enable_speaker, self.cbtn_threshold_auto_speaker, self.cbtn_auto_break_buffer_speaker,
+                self.lbl_hint_threshold_speaker, self.scale_threshold_speaker
             ]
         )
 
@@ -776,19 +753,20 @@ class SettingRecord:
 
     def configure_commands(self):
         """
-        To prevent the command from being called multiple times, we need to configure the command just once after the setting is initialized
+        To prevent the command from being called multiple times, 
+        we need to configure the command just once after the setting is initialized
         """
         # Device parameters
         self.spn_sr_mic.configure(command=lambda: sj.save_key("sample_rate_mic", int(self.spn_sr_mic.get())))
         self.spn_channels_mic.configure(command=lambda: sj.save_key("channels_mic", int(self.spn_channels_mic.get())))
         self.spn_chunk_size_mic.configure(command=lambda: sj.save_key("chunk_size_mic", int(self.spn_chunk_size_mic.get())))
         self.cbtn_auto_sr_mic.configure(
-            command=lambda: sj.save_key("auto_sample_rate_mic", self.cbtn_auto_sr_mic.instate(["selected"]))
-            or self.toggle_sr("mic", self.cbtn_auto_sr_mic.instate(["selected"]))
+            command=lambda: sj.save_key("auto_sample_rate_mic", self.cbtn_auto_sr_mic.instate(["selected"])) or self.
+            toggle_sr("mic", self.cbtn_auto_sr_mic.instate(["selected"]))
         )
         self.cbtn_auto_channels_mic.configure(
-            command=lambda: sj.save_key("auto_channels_mic", self.cbtn_auto_channels_mic.instate(["selected"]))
-            or self.toggle_channels("mic", self.cbtn_auto_channels_mic.instate(["selected"]))
+            command=lambda: sj.save_key("auto_channels_mic", self.cbtn_auto_channels_mic.instate(["selected"])) or self.
+            toggle_channels("mic", self.cbtn_auto_channels_mic.instate(["selected"]))
         )
 
         self.spn_sr_speaker.configure(command=lambda: sj.save_key("sample_rate_speaker", int(self.spn_sr_speaker.get())))
@@ -799,12 +777,12 @@ class SettingRecord:
             command=lambda: sj.save_key("chunk_size_speaker", int(self.spn_chunk_size_speaker.get()))
         )
         self.cbtn_auto_sr_speaker.configure(
-            command=lambda: sj.save_key("auto_sample_rate_speaker", self.cbtn_auto_sr_speaker.instate(["selected"]))
-            or self.toggle_sr("speaker", self.cbtn_auto_sr_speaker.instate(["selected"]))
+            command=lambda: sj.save_key("auto_sample_rate_speaker", self.cbtn_auto_sr_speaker.instate(["selected"])) or self.
+            toggle_sr("speaker", self.cbtn_auto_sr_speaker.instate(["selected"]))
         )
         self.cbtn_auto_channels_speaker.configure(
-            command=lambda: sj.save_key("auto_channels_speaker", self.cbtn_auto_channels_speaker.instate(["selected"]))
-            or self.toggle_channels("speaker", self.cbtn_auto_channels_speaker.instate(["selected"]))
+            command=lambda: sj.save_key("auto_channels_speaker", self.cbtn_auto_channels_speaker.instate(["selected"])) or
+            self.toggle_channels("speaker", self.cbtn_auto_channels_speaker.instate(["selected"]))
         )
 
         # recording options
@@ -819,12 +797,12 @@ class SettingRecord:
             command=lambda: sj.save_key("max_sentences_mic", int(self.spn_max_sentences_mic.get()))
         )
         self.cbtn_threshold_enable_mic.configure(
-            command=lambda: sj.save_key("threshold_enable_mic", self.cbtn_threshold_enable_mic.instate(["selected"]))
-            or self.topggle_enable_threshold_mic()
+            command=lambda: sj.save_key("threshold_enable_mic", self.cbtn_threshold_enable_mic.instate(["selected"])) or self
+            .topggle_enable_threshold_mic()
         )
         self.cbtn_threshold_auto_mic.configure(
-            command=lambda: sj.save_key("threshold_auto_mic", self.cbtn_threshold_auto_mic.instate(["selected"]))
-            or self.toggle_auto_threshold_mic()
+            command=lambda: sj.save_key("threshold_auto_mic", self.cbtn_threshold_auto_mic.instate(["selected"])) or self.
+            toggle_auto_threshold_mic()
         )
         self.cbtn_auto_break_buffer_mic.configure(
             command=lambda: sj.save_key("auto_break_buffer_mic", self.cbtn_auto_break_buffer_mic.instate(["selected"]))
@@ -839,17 +817,17 @@ class SettingRecord:
             command=lambda: sj.save_key("max_sentences_speaker", int(self.spn_max_sentences_speaker.get()))
         )
         self.cbtn_threshold_enable_speaker.configure(
-            command=lambda: sj.save_key("threshold_enable_speaker", self.cbtn_threshold_enable_speaker.instate(["selected"]))
-            or self.topggle_enable_threshold_speaker()
+            command=lambda: sj.save_key(
+                "threshold_enable_speaker", self.cbtn_threshold_enable_speaker.instate(["selected"])
+            ) or self.topggle_enable_threshold_speaker()
         )
         self.cbtn_threshold_auto_speaker.configure(
-            command=lambda: sj.save_key("threshold_auto_speaker", self.cbtn_threshold_auto_speaker.instate(["selected"]))
-            or self.toggle_auto_threshold_speaker()
+            command=lambda: sj.save_key("threshold_auto_speaker", self.cbtn_threshold_auto_speaker.instate(["selected"])) or
+            self.toggle_auto_threshold_speaker()
         )
         self.cbtn_auto_break_buffer_speaker.configure(
-            command=lambda: sj.save_key(
-                "auto_break_buffer_speaker", self.cbtn_auto_break_buffer_speaker.instate(["selected"])
-            )
+            command=lambda: sj.
+            save_key("auto_break_buffer_speaker", self.cbtn_auto_break_buffer_speaker.instate(["selected"]))
         )
         self.scale_threshold_speaker.configure(command=self.slider_speaker_move)
 
@@ -958,7 +936,7 @@ class SettingRecord:
             self.audiometer_mic.configure(height=30)
 
     def call_set_meter_mic(self, open=True):
-        threading.Thread(target=self.set_meter_mic, daemon=True, args=[open]).start()
+        Thread(target=self.set_meter_mic, daemon=True, args=[open]).start()
 
     def close_meter_mic(self):
         self.audiometer_mic.stop()
@@ -980,7 +958,7 @@ class SettingRecord:
 
                 self.max_mic = MAX_THRESHOLD
                 self.min_mic = MIN_THRESHOLD
-                self.t_start_mic = time.time()
+                self.t_start_mic = time()
                 self.recording_mic = False
                 self.p_mic = pyaudio.PyAudio()
                 success, detail = get_device_details("mic", sj, self.p_mic)
@@ -1023,7 +1001,7 @@ class SettingRecord:
         """
         When the slider is moved, change the threshold value and save it to the settings
         """
-        if platform.system() != "Windows":
+        if system() != "Windows":
             return
 
         self.lbl_threshold_db_speaker.configure(text=f"{self.scale_threshold_speaker.get():.2f} dB")
@@ -1066,7 +1044,7 @@ class SettingRecord:
         return (in_data, pyaudio.paContinue)
 
     def topggle_enable_threshold_speaker(self, open=True):
-        if platform.system() != "Windows":
+        if system() != "Windows":
             return
 
         if "selected" in self.cbtn_threshold_enable_speaker.state():
@@ -1082,7 +1060,7 @@ class SettingRecord:
 
     def toggle_auto_threshold_speaker(self):
         pass
-        if platform.system() != "Windows":
+        if system() != "Windows":
             return
 
         if "selected" in self.cbtn_threshold_auto_speaker.state():
@@ -1098,13 +1076,13 @@ class SettingRecord:
             self.lbl_threshold_db_speaker.configure(text=f"{float(sj.cache['threshold_db_speaker']):.2f} dB")
 
     def call_set_meter_speaker(self, open=True):
-        if platform.system() != "Windows":
+        if system() != "Windows":
             return
 
-        threading.Thread(target=self.set_meter_speaker, daemon=True, args=[open]).start()
+        Thread(target=self.set_meter_speaker, daemon=True, args=[open]).start()
 
     def close_meter_speaker(self):
-        if platform.system() != "Windows":
+        if system() != "Windows":
             return
         self.audiometer_speaker.stop()
         if self.stream_speaker:
@@ -1114,7 +1092,7 @@ class SettingRecord:
             self.p_speaker.terminate()
 
     def set_meter_speaker(self, open=True):
-        if platform.system() != "Windows":
+        if system() != "Windows":
             return
 
         try:
@@ -1128,7 +1106,7 @@ class SettingRecord:
 
                 self.max_speaker = MAX_THRESHOLD
                 self.min_speaker = MIN_THRESHOLD
-                self.t_start_speaker = time.time()
+                self.t_start_speaker = time()
                 self.recording_speaker = False
                 self.p_speaker = pyaudio.PyAudio()
                 success, detail = get_device_details("speaker", sj, self.p_speaker)

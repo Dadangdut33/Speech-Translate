@@ -1,11 +1,10 @@
-import threading
-import time
-import tkinter as tk
-from tkinter import ttk
+from threading import Thread
+from time import sleep
+from tkinter import Tk, Toplevel, ttk
 from typing import Union
 
-from speech_translate.components.custom.message import mbox
 from speech_translate._path import app_icon
+from speech_translate.components.custom.message import mbox
 
 
 class CountdownWindow:
@@ -14,7 +13,7 @@ class CountdownWindow:
     # ----------------------------------------------------------------------
     def __init__(
         self,
-        master: Union[tk.Tk, tk.Toplevel],
+        master: Union[Tk, Toplevel],
         countdown: int,
         title: str,
         taskname: str,
@@ -24,7 +23,7 @@ class CountdownWindow:
     ) -> None:
         self.taskname = taskname
         self.master = master
-        self.root = tk.Toplevel(master)
+        self.root = Toplevel(master)
         self.root.title(title)
         self.root.transient(master)
         self.notify_done = notify_done
@@ -34,7 +33,7 @@ class CountdownWindow:
         self.root.geometry(geometry if geometry else "+{}+{}".format(master.winfo_rootx() + 50, master.winfo_rooty() + 50))
         try:
             self.root.iconbitmap(app_icon)
-        except:
+        except Exception:
             pass
 
         self.mf = ttk.Frame(self.root)
@@ -47,14 +46,14 @@ class CountdownWindow:
             self.btn = ttk.Button(self.mf, text="Cancel", command=cancelFunc)
             self.btn.pack(side="bottom", fill="x", padx=5, pady=5, expand=True)
 
-        threading.Thread(target=self.start_counting, args=(countdown,)).start()
+        Thread(target=self.start_counting, args=(countdown, )).start()
 
     # ----------------------------------------------------------------------
     def start_counting(self, countdown: int) -> None:
         """Start counting down"""
         counter = countdown
         while counter > 0:
-            time.sleep(1)
+            sleep(1)
             counter -= 1
             if counter > 0:
                 self.lbl.configure(text=f"Current Task: {self.taskname}\nWill be done in: {counter} seconds")

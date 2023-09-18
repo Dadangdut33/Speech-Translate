@@ -1,22 +1,18 @@
-import threading
-import random
-import tkinter as tk
-from tkinter import ttk, font
+from random import randint
+from threading import Thread
+from tkinter import Frame, LabelFrame, Tk, Toplevel, font, ttk
 
-from speech_translate._path import app_icon
 from speech_translate._constants import APP_NAME
-from speech_translate.globals import sj, gc
-from speech_translate.utils.helper import bind_focus_recursively, cbtn_invoker
-from speech_translate.utils.helper_whisper import convert_str_options_to_dict, get_temperature
-
+from speech_translate._path import app_icon
+from speech_translate.components.custom.message import MBoxText, mbox
+from speech_translate.components.custom.tooltip import CreateToolTipOnText, tk_tooltip, tk_tooltips
 from speech_translate.components.frame.setting.general import SettingGeneral
 from speech_translate.components.frame.setting.record import SettingRecord
 from speech_translate.components.frame.setting.textbox import SettingTextbox
 from speech_translate.components.frame.setting.translate import SettingTranslate
-
-from speech_translate.components.custom.message import mbox, MBoxText
-from speech_translate.components.custom.tooltip import tk_tooltip, tk_tooltip, CreateToolTipOnText, tk_tooltips
-
+from speech_translate.globals import gc, sj
+from speech_translate.utils.helper import bind_focus_recursively, cbtn_invoker
+from speech_translate.utils.helper_whisper import convert_str_options_to_dict, get_temperature
 
 # TODO: whisper option
 
@@ -25,9 +21,8 @@ class SettingWindow:
     """
     Setting UI
     """
-
-    def __init__(self, master: tk.Tk):
-        self.root = tk.Toplevel(master)
+    def __init__(self, master: Tk):
+        self.root = Toplevel(master)
 
         self.root.title(APP_NAME + " | Settings")
         self.root.geometry(sj.cache["sw_size"])
@@ -39,10 +34,10 @@ class SettingWindow:
         self.fonts.sort()
 
         # ------------------ Frames ------------------
-        self.frame_top = tk.Frame(self.root)
+        self.frame_top = Frame(self.root)
         self.frame_top.pack(side="top", fill="x")
 
-        self.frame_bottom = tk.Frame(self.root)
+        self.frame_bottom = Frame(self.root)
         self.frame_bottom.pack(side="bottom", fill="x")
 
         # ------------------ Widgets ------------------
@@ -74,7 +69,7 @@ class SettingWindow:
         self.f_textbox = SettingTextbox(self.root, self.ft_textbox)
 
         # ------------------ Transcribe  ------------------
-        self.lf_tc_params = tk.LabelFrame(self.ft_transcribe, text="• Input Parameters")
+        self.lf_tc_params = LabelFrame(self.ft_transcribe, text="• Input Parameters")
         self.lf_tc_params.pack(side="top", fill="x", padx=5, pady=5)
 
         self.f_tc_params_1 = ttk.Frame(self.lf_tc_params)
@@ -105,14 +100,16 @@ class SettingWindow:
         )
         self.spn_tc_rate.bind(
             "<KeyRelease>",
-            lambda e: self.verifyMaxNumber(
-                self.spn_tc_rate, 1, 1000, lambda: sj.save_key("transcribe_rate", int(self.spn_tc_rate.get()))
-            ),
+            lambda e: self.
+            verifyMaxNumber(self.spn_tc_rate, 1, 1000, lambda: sj.save_key("transcribe_rate", int(self.spn_tc_rate.get()))),
         )
         self.spn_tc_rate.pack(side="left", padx=5)
         tk_tooltips(
             [self.spn_tc_rate, self.lbl_tc_rate],
-            "Set the transcribe rate or the time between each transcribe check. \n\nFor more real time experience you can lower it more. The lower the value, the more resource it will use.\n\nIf you lower the transcribe rate, you should also lower the max buffer for a better experience.\n\nDefault value is 300ms.",
+            "Set the transcribe rate or the time between each transcribe check."
+            "\n\nFor more real time experience you can lower it more. The lower the value, the more resource it will use."
+            "\n\nIf you lower the transcribe rate, you should also lower the max buffer for a better experience."
+            "\n\nDefault value is 300ms.",
             wrapLength=350,
         )
 
@@ -135,17 +132,17 @@ class SettingWindow:
         self.cbtn_condition_on_previous_text = ttk.Checkbutton(
             self.f_extra_whisper_args_1,
             text="Condition on previous text",
-            command=lambda: sj.save_key(
-                "condition_on_previous_text", self.cbtn_condition_on_previous_text.instate(["selected"])
-            ),
+            command=lambda: sj.
+            save_key("condition_on_previous_text", self.cbtn_condition_on_previous_text.instate(["selected"])),
             style="Switch.TCheckbutton",
         )
         self.cbtn_condition_on_previous_text.pack(side="left", padx=5)
         tk_tooltip(
             self.cbtn_condition_on_previous_text,
-            """if True, the previous output of the model is provided as a prompt for the next window;
-        \rDisabling may make the text inconsistent across windows, but the model becomes less prone to getting stuck in a failure loop, such as repetition looping or timestamps going out of sync.
-        \rDefault value is true/checked""",
+            "if True, the previous output of the model is provided as a prompt for the next window;"
+            "\n\nDisabling may make the text inconsistent across windows, but the model becomes less prone to getting stuck "
+            "in a failure loop, such as repetition looping or timestamps going out of sync."
+            "\n\nDefault value is true/checked",
         )
 
         self.lbl_compression_ratio_threshold = ttk.Label(self.f_extra_whisper_args_2, text="Compression threshold", width=21)
@@ -173,7 +170,8 @@ class SettingWindow:
         self.spn_compression_ratio_threshold.pack(side="left", padx=5)
         tk_tooltips(
             [self.lbl_compression_ratio_threshold, self.spn_compression_ratio_threshold],
-            "Compression ratio threshold.\n\nIf the gzip compression ratio is above this value, treat as failed.\n\nDefault value is 2.4",
+            "Compression ratio threshold.\n\nIf the gzip compression ratio is above this value, treat as failed."
+            "\n\nDefault value is 2.4",
         )
 
         self.lbl_logprob_threshold = ttk.Label(self.f_extra_whisper_args_2, text="Logprob threshold", width=21)
@@ -201,7 +199,8 @@ class SettingWindow:
         self.spn_logprob_threshold.pack(side="left", padx=5)
         tk_tooltips(
             [self.lbl_logprob_threshold, self.spn_logprob_threshold],
-            "If the average log probability over sampled tokens is below this value, treat as failed.\n\nDefault value is -1.0",
+            "If the average log probability over sampled tokens is below this value, treat as failed."
+            "\n\nDefault value is -1.0",
         )
 
         self.lbl_no_speech_threshold = ttk.Label(self.f_extra_whisper_args_2, text="No speech threshold", width=21)
@@ -253,7 +252,9 @@ class SettingWindow:
         self.entry_temperature.bind("<KeyRelease>", lambda e: sj.save_key("temperature", self.entry_temperature.get()))
         tk_tooltips(
             [self.lbl_temperature, self.entry_temperature],
-            "Temperature for sampling. It can be a tuple of temperatures, which will be successively used upon failures according to either `compression_ratio_threshold` or `logprob_threshold`.\n\nDefault is 0.0, 0.2, 0.4, 0.6, 0.8, 1.0",
+            "Temperature for sampling. It can be a tuple of temperatures, which will be successively used upon failures "
+            "according to either `compression_ratio_threshold` or `logprob_threshold`."
+            "\n\nDefault is 0.0, 0.2, 0.4, 0.6, 0.8, 1.0",
         )
 
         self.btn_verify_temperature = ttk.Button(
@@ -262,7 +263,7 @@ class SettingWindow:
         self.btn_verify_temperature.pack(side="left", padx=5)
         tk_tooltip(self.btn_verify_temperature, "Verify temperature input.")
 
-        rng = random.randint(0, 10000)
+        randint(0, 10000)
         self.lbl_extra_whisper_args = ttk.Label(self.f_extra_whisper_args_4, text="Extra parameter", width=21)
         self.lbl_extra_whisper_args.pack(side="left", padx=5)
 
@@ -294,16 +295,17 @@ class SettingWindow:
             "\nlength_penalty: float = None\n--length_penalty 0.0"
             #
             "\n\n# Text or tokens for the previous context"
-            f'\nprompt: str or [int]\n--prompt "hello world" or --prompt [1, 2, 3]'
+            '\nprompt: str or [int]\n--prompt "hello world" or --prompt [1, 2, 3]'
             #
             "\n\n# Text or tokens to prefix the current context"
-            f'\nprefix: str or [int]\n--prefix "hello world" or --prefix [1, 2, 3]'
+            '\nprefix: str or [int]\n--prefix "hello world" or --prefix [1, 2, 3]'
             #
             "\n\n# Text or tokens for the previous context"
             "\nsuppress_blank: bool\n--suppress_blank true"
             #
-            f'\n\n# List of tokens ids (or comma-separated token ids) to suppress\n# "-1" will suppress a set of symbols as defined in `tokenizer.non_speech_tokens()`'
-            f'\nsuppress_tokens: str or [int]\n--suppress_tokens "-1" or --suppress_tokens [-1, 0]'
+            '\n\n# List of tokens ids (or comma-separated token ids) to suppress\n# "-1" will suppress a set of symbols as '
+            "defined in `tokenizer.non_speech_tokens()`"
+            '\nsuppress_tokens: str or [int]\n--suppress_tokens "-1" or --suppress_tokens [-1, 0]'
             #
             "\n\n# Timestamp sampling options"
             "\nwithout_timestamps: bool\n--without_timestamps true"
@@ -343,7 +345,7 @@ class SettingWindow:
         # ------------------ Set Icon ------------------
         try:
             self.root.iconbitmap(app_icon)
-        except:
+        except Exception:
             pass
 
     # ------------------ Functions ------------------
@@ -351,8 +353,8 @@ class SettingWindow:
         """
         Init some startup function in a thread to avoid blocking
         """
-        threading.Thread(target=self.f_general.delete_log_on_start, daemon=True).start()
-        threading.Thread(target=self.f_general.delete_temp_on_start, daemon=True).start()
+        Thread(target=self.f_general.delete_log_on_start, daemon=True).start()
+        Thread(target=self.f_general.delete_temp_on_start, daemon=True).start()
 
     def save_win_size(self):
         """
@@ -364,8 +366,8 @@ class SettingWindow:
             sj.save_key("sw_size", f"{w}x{h}")
 
     def on_close(self):
-        threading.Thread(target=self.f_record.set_meter_mic, args=(False,), daemon=True).start()
-        threading.Thread(target=self.f_record.set_meter_speaker, args=(False,), daemon=True).start()
+        Thread(target=self.f_record.set_meter_mic, args=(False, ), daemon=True).start()
+        Thread(target=self.f_record.set_meter_speaker, args=(False, ), daemon=True).start()
         self.save_win_size()
         self.root.withdraw()
 
@@ -373,18 +375,18 @@ class SettingWindow:
         self.root.after(0, self.root.deiconify)
 
         if not self.f_general.model_checked:
-            threading.Thread(target=self.f_general.check_model_on_first_open, daemon=True).start()
+            Thread(target=self.f_general.check_model_on_first_open, daemon=True).start()
 
         self.notebook_change()
 
     def notebook_change(self, _event=None):
         pos = str(self.tab_control.index(self.tab_control.select()))
         if pos == "1":
-            threading.Thread(target=self.f_record.set_meter_mic, daemon=True).start()
-            threading.Thread(target=self.f_record.set_meter_speaker, daemon=True).start()
+            Thread(target=self.f_record.set_meter_mic, daemon=True).start()
+            Thread(target=self.f_record.set_meter_speaker, daemon=True).start()
         else:
-            threading.Thread(target=self.f_record.call_set_meter_mic, args=(False,), daemon=True).start()
-            threading.Thread(target=self.f_record.call_set_meter_speaker, args=(False,), daemon=True).start()
+            Thread(target=self.f_record.call_set_meter_mic, args=(False, ), daemon=True).start()
+            Thread(target=self.f_record.call_set_meter_speaker, args=(False, ), daemon=True).start()
 
     def init_setting_once(self):
         # tc

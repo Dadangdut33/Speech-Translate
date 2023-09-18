@@ -1,19 +1,20 @@
-import audioop
-import math
-import time
-import platform
-import numpy as np
-from typing import Literal, Optional
-from speech_translate.custom_logging import logger
-from time import sleep
+from audioop import rms as calculate_rms
+from math import ceil
+from platform import system
+from time import sleep, time
+from typing import Literal
 
-if platform.system() == "Windows":
+from numpy import log10
+
+from speech_translate.custom_logging import logger
+
+if system() == "Windows":
     import pyaudiowpatch as pyaudio
 else:
     import pyaudio  # type: ignore
 
 
-def get_db(audio_data: bytes):
+def get_db(audio_data: bytes) -> float:
     """Get the db value of the audio data.
 
     Parameters
@@ -26,11 +27,11 @@ def get_db(audio_data: bytes):
     float
         db value of the audio data
     """
-    rms = audioop.rms(audio_data, 2) / 32767
+    rms: float = calculate_rms(audio_data, 2) / 32767
     if rms == 0.0:
         return 0.0
     else:
-        return 20 * np.log10(rms)  # convert to db
+        return 20 * log10(rms)  # convert to db
 
 
 def auto_threshold(
@@ -42,29 +43,24 @@ def auto_threshold(
     recording_start: float,
     optimal: bool,
     recording: bool,
-    gc=None,
-    data: Optional[bytes] = None,
 ):
     # Check if the db value is above the threshold every 1 second
     if recording:
-        if gc and data:
-            gc.data_queue.put(data)
-
         if db > threshold:  # still speaking
-            recording_start = time.time()
+            recording_start = time()
         else:
             # check again every 1 second wetber still recording or not
-            if time.time() - recording_start > 1:
+            if time() - recording_start > 1:
                 # db < threshold = stop recording
                 if db < threshold:
                     recording = False
                 else:
-                    recording_start = time.time()
+                    recording_start = time()
                     # still recording? verify again
                     # increase the threshold to make sure that it is not a false positive
                     if optimal and threshold <= max:
-                        if abs(abs(threshold) - math.ceil(abs(db))) > steps:
-                            adjustment_start = time.time()
+                        if abs(abs(threshold) - ceil(abs(db))) > steps:
+                            time()
                             prev = threshold
                             threshold += steps
                             # make sure that it is not a false positive
@@ -75,14 +71,14 @@ def auto_threshold(
         # recording is false, check if db > threshold
         if db > threshold:
             # Start recording
-            recording_start = time.time()
+            recording_start = time()
             recording = True
         else:
             # db < threshold = not picking up voice
             # adjust threshold
             if optimal and threshold >= min:
                 if abs(abs(threshold) - abs(db)) > steps + 2:  # meaning steps + 2 away from the db
-                    adjustment_start = time.time()
+                    time()
                     prev = threshold
                     threshold -= steps
                     # make sure that it is not a false negative
@@ -102,7 +98,7 @@ def auto_threshold(
         if db < threshold:
             # adjust threshold until near db
             if threshold >= min:
-                if abs(abs(threshold) - math.ceil(abs(db))) > steps:
+                if abs(abs(threshold) - ceil(abs(db))) > steps:
                     threshold -= steps
                 else:
                     optimal = True
@@ -119,7 +115,7 @@ def auto_threshold(
     return (threshold, max, min, recording_start, optimal, recording)
 
 
-def get_device_average_threshold(device_type: Literal["mic", "speaker"], sj, duration: int = 5):
+def get_device_average_threshold(device_type: Literal["mic", "speaker"], sj, duration: int = 5) -> float:
     """
     Function to get the average threshold of the device.
 
@@ -142,11 +138,6 @@ def get_device_average_threshold(device_type: Literal["mic", "speaker"], sj, dur
     success, detail = get_device_details(device_type, sj, p)
     if not success:
         return 0
-
-    logger.debug(f"Device: ({detail['device_detail']['index']}) {detail['device_detail']['name']}")
-    logger.debug(f"Sample Rate {detail['sample_rate']} | channels {detail['num_of_channels']}")
-    logger.debug("Actual device detail:")
-    logger.debug(detail["device_detail"])
 
     # get data from device using pyaudio
     audio_data = b""
@@ -176,11 +167,7 @@ def get_device_average_threshold(device_type: Literal["mic", "speaker"], sj, dur
     p.terminate()
 
     # get average threshold using RMS
-    rms = audioop.rms(audio_data, 2) / 32767
     db = get_db(audio_data)
-
-    logger.debug(f"Average RMS Value: {rms:.2f}")
-    logger.debug(f"Average dB Value: {db:.2f}")
 
     return db
 

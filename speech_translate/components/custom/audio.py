@@ -1,7 +1,7 @@
-import tkinter as tk
+from tkinter import Canvas
 
 
-class AudioMeter(tk.Canvas):
+class AudioMeter(Canvas):
     def __init__(self, master, root, show_threshold: bool, min: float, max: float, **kwargs):
         super().__init__(master, **kwargs)
 

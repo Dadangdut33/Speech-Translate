@@ -1,5 +1,4 @@
-import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, Frame, LabelFrame, Text, Toplevel
 from typing import Union
 
 from speech_translate.globals import sj
@@ -12,13 +11,12 @@ class SettingTranslate:
     """
     Textboox tab in setting window.
     """
-
-    def __init__(self, root: tk.Toplevel, master_frame: Union[ttk.Frame, tk.Frame]):
+    def __init__(self, root: Toplevel, master_frame: Union[ttk.Frame, Frame]):
         self.root = root
         self.master = master_frame
 
         # ------------------ Options ------------------
-        self.lf_translate_options = tk.LabelFrame(self.master, text="• Options")
+        self.lf_translate_options = LabelFrame(self.master, text="• Options")
         self.lf_translate_options.pack(side="top", fill="x", padx=5, pady=5)
 
         self.f_translate_options_1 = ttk.Frame(self.lf_translate_options)
@@ -58,16 +56,18 @@ class SettingTranslate:
         self.sb_proxies_https = ttk.Scrollbar(self.f_proxies_1_2)
         self.sb_proxies_https.pack(side="right", fill="y")
 
-        self.tb_proxies_https = tk.Text(self.f_proxies_1_2, width=27, height=10)
+        self.tb_proxies_https = Text(self.f_proxies_1_2, width=27, height=10)
         self.tb_proxies_https.pack(side="left", padx=5, pady=5, fill="both", expand=True)
         self.tb_proxies_https.bind(
-            "<KeyRelease>", lambda e: sj.save_key("https_proxy", self.tb_proxies_https.get("1.0", "end").strip())
+            "<KeyRelease>", lambda e: sj.save_key("https_proxy",
+                                                  self.tb_proxies_https.get("1.0", "end").strip())
         )
         self.tb_proxies_https.configure(yscrollcommand=self.sb_proxies_https.set)
         self.sb_proxies_https.configure(command=self.tb_proxies_https.yview)
         tk_tooltips(
             [self.lbl_proxies_https, self.tb_proxies_https],
-            "HTTPS proxies list separated by new line, tab, or space. If there are multiple proxies, it will be chosen randomly."
+            "HTTPS proxies list separated by new line, tab, or space. If there are "
+            "multiple proxies, it will be chosen randomly."
             "\n\nExample input:\nhttps://proxy1:port\nhttps://proxy2:port",
             wrapLength=250,
         )
@@ -81,16 +81,18 @@ class SettingTranslate:
         self.sb_proxies_http = ttk.Scrollbar(self.f_proxies_2_2)
         self.sb_proxies_http.pack(side="right", fill="y")
 
-        self.tb_proxies_http = tk.Text(self.f_proxies_2_2, width=27, height=10)
+        self.tb_proxies_http = Text(self.f_proxies_2_2, width=27, height=10)
         self.tb_proxies_http.pack(side="left", padx=5, pady=5, fill="both", expand=True)
         self.tb_proxies_http.bind(
-            "<KeyRelease>", lambda e: sj.save_key("http_proxy", self.tb_proxies_http.get("1.0", "end").strip())
+            "<KeyRelease>", lambda e: sj.save_key("http_proxy",
+                                                  self.tb_proxies_http.get("1.0", "end").strip())
         )
         self.tb_proxies_http.configure(yscrollcommand=self.sb_proxies_http.set)
         self.sb_proxies_http.configure(command=self.tb_proxies_http.yview)
         tk_tooltips(
             [self.lbl_proxies_http, self.tb_proxies_http],
-            "HTTP proxies list separated by new line, tab, or space. If there are multiple proxies, it will be chosen randomly."
+            "HTTP proxies list separated by new line, tab, or space. If there "
+            "are multiple proxies, it will be chosen randomly."
             "\n\nExample input:\nhttp://proxy1:port\nhttp://proxy2:port",
             wrapLength=250,
         )
@@ -99,7 +101,7 @@ class SettingTranslate:
         self.cbtn_proxies_http.pack(side="left", padx=5, pady=(0, 5))
 
         # ------------------ Libre translate ------------------
-        self.lf_libre = tk.LabelFrame(self.master, text="• Libre Translate Setting")
+        self.lf_libre = LabelFrame(self.master, text="• Libre Translate Setting")
         self.lf_libre.pack(side="top", fill="x", padx=5, pady=5)
 
         self.f_libre_1 = ttk.Frame(self.lf_libre)
@@ -164,7 +166,8 @@ class SettingTranslate:
 
     def configure_commands(self):
         """
-        To prevent the command from being called multiple times, we need to configure the command just once after the setting is initialized
+        To prevent the command from being called multiple times, we need to configure
+        the command just once after the setting is initialized
         """
         self.cbtn_proxies_https.configure(
             command=lambda: sj.save_key("https_proxy_enable", self.cbtn_proxies_https.instate(["selected"]))

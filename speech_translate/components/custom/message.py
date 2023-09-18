@@ -1,7 +1,6 @@
-import tkinter as tk
-from tkinter import ttk
-from tkinter import messagebox
-from typing import Literal, Union, Optional, List
+from tkinter import messagebox, ttk, TclError, Text, Tk, Toplevel
+from typing import List, Literal, Optional, Union
+
 from speech_translate._path import app_icon
 from speech_translate.utils.helper import tb_copy_only
 
@@ -9,14 +8,14 @@ opened: List[str] = []
 
 
 class MBoxText:
-    def __init__(self, id: str, parent: Union[tk.Tk, tk.Toplevel], title: str, text: str, geometry=None) -> None:
+    def __init__(self, id: str, parent: Union[Tk, Toplevel], title: str, text: str, geometry=None) -> None:
         # Check if already opened
         for i in opened:
             if i == id:
                 return
 
         self.id = id
-        self.root = tk.Toplevel(parent)
+        self.root = Toplevel(parent)
         self.root.title(title)
         self.root.transient(parent)
         self.root.geometry(geometry if geometry else "+{}+{}".format(parent.winfo_rootx() + 50, parent.winfo_rooty() + 50))
@@ -29,7 +28,7 @@ class MBoxText:
         self.f_2 = ttk.Frame(self.root)
         self.f_2.pack(fill="both", expand=True, side="bottom", padx=5, pady=5)
 
-        self.tb = tk.Text(self.f_1, wrap=tk.WORD, font=("Arial", 10))
+        self.tb = Text(self.f_1, wrap="word", font=("Arial", 10))
         self.tb.insert("end", text)
         self.tb.bind(
             "<Control-MouseWheel>", lambda event: self.increase_font_size() if event.delta > 0 else self.lower_font_size()
@@ -37,7 +36,7 @@ class MBoxText:
         self.tb.bind("<Key>", lambda event: tb_copy_only(event))  # Disable textbox input
         self.tb.pack(fill="both", expand=True, side="left")
 
-        self.scrollbar = ttk.Scrollbar(self.f_1, orient=tk.VERTICAL, command=self.tb.yview)
+        self.scrollbar = ttk.Scrollbar(self.f_1, orient="vertical", command=self.tb.yview)
         self.scrollbar.pack(fill="y", side="right")
         self.tb.configure(yscrollcommand=self.scrollbar.set)
 
@@ -49,7 +48,7 @@ class MBoxText:
         # ------------------ Set Icon ------------------
         try:
             self.root.iconbitmap(app_icon)
-        except:
+        except Exception:
             pass
 
     def lower_font_size(self):
@@ -68,16 +67,16 @@ class MBoxText:
         try:
             id = self.id
             opened.remove(id)
-        except ValueError as e:
+        except ValueError:
             pass
 
         try:
             self.root.destroy()
-        except tk.TclError as e:
+        except TclError:
             pass
 
 
-def mbox(title: str, text: str, style: Literal[0, 1, 2, 3], parent: Optional[Union[tk.Tk, tk.Toplevel]] = None):
+def mbox(title: str, text: str, style: Literal[0, 1, 2, 3], parent: Optional[Union[Tk, Toplevel]] = None):
     """Message Box, made simpler
     ##  Styles:
     ##  0 : info
@@ -93,22 +92,3 @@ def mbox(title: str, text: str, style: Literal[0, 1, 2, 3], parent: Optional[Uni
         return messagebox.showerror(title, text, parent=parent)  # Return ok x same as ok
     elif style == 3:
         return messagebox.askyesno(title, text, parent=parent)  # Return True False, x can't be clicked
-
-
-# Testing
-if __name__ == "__main__":
-    root = tk.Tk()
-
-    # -----------------
-    mbox("Info", "Info no parent", 0)
-    mbox("Warning", "Warning no parent", 1)
-    mbox("Error", "Error no parent", 2)
-    print(mbox("Yes No", "Yes No no parent", 3))
-
-    # -----------------
-    mbox("Info", "Info with parent", 0, parent=root)
-    mbox("Warning", "Warning with parent", 1, parent=root)
-    mbox("Error", "Error with parent", 2, parent=root)
-    print(mbox("Yes No", "Yes No with parent", 3, parent=root))
-
-    root.destroy()

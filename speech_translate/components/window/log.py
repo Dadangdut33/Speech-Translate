@@ -1,14 +1,13 @@
-import os
-import threading
-import time
-import tkinter as tk
-from tkinter import ttk
+from os import path
+from threading import Thread
+from time import sleep
+from tkinter import Text, Tk, Toplevel, ttk
 
-from speech_translate.components.custom.message import mbox
-from speech_translate._path import app_icon
 from speech_translate._constants import APP_NAME
+from speech_translate._path import app_icon
+from speech_translate.components.custom.message import mbox
+from speech_translate.custom_logging import current_log, dir_log, init_logging, logger
 from speech_translate.globals import gc, sj
-from speech_translate.custom_logging import logger, current_log, dir_log, init_logging
 from speech_translate.utils.helper import bind_focus_recursively, start_file, tb_copy_only
 
 
@@ -17,8 +16,8 @@ class LogWindow:
     """Logger but shown in toplevel window"""
 
     # ----------------------------------------------------------------------
-    def __init__(self, master: tk.Tk):
-        self.root = tk.Toplevel(master)
+    def __init__(self, master: Tk):
+        self.root = Toplevel(master)
         self.root.title(APP_NAME + " | Log")
         self.root.geometry("900x350")
         self.root.wm_withdraw()
@@ -36,10 +35,10 @@ class LogWindow:
         self.f_bot.pack(side="bottom", fill="both", expand=False)
 
         # Scrollbar
-        self.sbY = ttk.Scrollbar(self.f_1, orient=tk.VERTICAL)
+        self.sbY = ttk.Scrollbar(self.f_1, orient="vertical")
         self.sbY.pack(side="right", fill="both")
 
-        self.tbLogger = tk.Text(self.f_1, height=5, width=100, font=("Consolas", self.currentFontSize))
+        self.tbLogger = Text(self.f_1, height=5, width=100, font=("Consolas", self.currentFontSize))
         self.tbLogger.bind("<Key>", lambda event: tb_copy_only(event))  # Disable textbox input
         self.tbLogger.pack(side="left", fill="both", expand=True)
         self.tbLogger.configure(yscrollcommand=self.sbY.set)
@@ -90,7 +89,7 @@ class LogWindow:
         # ------------------ Set Icon ------------------
         try:
             self.root.iconbitmap(app_icon)
-        except:
+        except Exception:
             pass
 
     def onInit(self):
@@ -129,22 +128,22 @@ class LogWindow:
         self.root.wm_attributes("-topmost", self.stay_on_top)
 
     def start_refresh_thread(self):
-        self.thread_refresh = threading.Thread(target=self.update_periodically, daemon=True)
+        self.thread_refresh = Thread(target=self.update_periodically, daemon=True)
         self.thread_refresh.start()
 
     def update_periodically(self):
         while self.isOpen and sj.cache["auto_refresh_log"]:
             self.updateLog()
 
-            time.sleep(1)
+            sleep(1)
 
     def updateLog(self):
         prev_content = self.tbLogger.get(1.0, "end").strip()
         try:
-            content = open(os.path.join(dir_log, current_log), encoding="utf-8").read().strip()
+            content = open(path.join(dir_log, current_log), encoding="utf-8").read().strip()
         except FileNotFoundError:
-            logger.error(f"Log file not found | {os.path.join(dir_log, current_log)}")
-            content = f"Log file not found | {os.path.join(dir_log, current_log)}"
+            logger.error(f"Log file not found | {path.join(dir_log, current_log)}")
+            content = f"Log file not found | {path.join(dir_log, current_log)}"
 
         if len(prev_content) != len(content):
             if sj.cache["auto_scroll_log"]:

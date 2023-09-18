@@ -1,63 +1,50 @@
 import os
-import time
-import platform
-import threading
-import tkinter as tk
-import torch
-import signal  # Import the signal module to handle Ctrl+C
-from tkinter import ttk, filedialog
-from typing import Literal, Dict
+from platform import processor, release, system, version
+from signal import SIGINT, signal  # Import the signal module to handle Ctrl+C
+from threading import Thread
+from time import strftime
+from tkinter import Frame, Menu, StringVar, Text, Tk, Toplevel, filedialog, ttk
+from typing import Dict, Literal
 
 from PIL import Image, ImageDraw
 from pystray import Icon as icon
 from pystray import Menu as menu
 from pystray import MenuItem as item
+from torch import cuda
 
-from speech_translate._version import __version__
-from speech_translate._path import app_icon
 from speech_translate._constants import APP_NAME
-from speech_translate.globals import sj, gc
-from speech_translate.custom_logging import logger
-
+from speech_translate._path import app_icon
+from speech_translate._version import __version__
 from speech_translate.components.custom.message import mbox
 from speech_translate.components.custom.tooltip import tk_tooltip
-
 from speech_translate.components.window.about import AboutWindow
 from speech_translate.components.window.log import LogWindow
 from speech_translate.components.window.setting import SettingWindow
 from speech_translate.components.window.transcribed import TcsWindow
 from speech_translate.components.window.translated import TlsWindow
-
-from speech_translate.utils.model_download import verify_model, download_model
-from speech_translate.utils.helper import (
-    cbtn_invoker,
-    emoji_img,
-    tb_copy_only,
-    nativeNotify,
-    popup_menu,
-    windows_os_only,
+from speech_translate.custom_logging import logger
+from speech_translate.globals import gc, sj
+from speech_translate.utils.device import (
+    get_default_host_api, get_default_input_device, get_default_output_device, get_host_apis, get_input_devices,
+    get_output_devices
 )
-from speech_translate.utils.style import set_ui_style, init_theme, get_theme_list, get_current_theme
-from speech_translate.utils.helper import up_first_case, start_file, bind_focus_recursively
+from speech_translate.utils.helper import (
+    bind_focus_recursively, cbtn_invoker, emoji_img, nativeNotify, popup_menu, start_file, tb_copy_only, up_first_case,
+    windows_os_only
+)
 from speech_translate.utils.helper_whisper import append_dot_en, modelKeys, modelSelectDict
 from speech_translate.utils.language import engine_select_source_dict, engine_select_target_dict, whisper_compatible
+from speech_translate.utils.model_download import download_model, verify_model
 from speech_translate.utils.record import file_input, record_realtime
-from speech_translate.utils.device import (
-    get_input_devices,
-    get_output_devices,
-    get_host_apis,
-    get_default_output_device,
-    get_default_input_device,
-    get_default_host_api,
-)
-
+from speech_translate.utils.style import get_current_theme, get_theme_list, init_theme, set_ui_style
 
 # Terminal window hide/showing
 try:
-    if platform.system() != "Windows":
+    if system() != "Windows":
         raise Exception("Console window is not hidden automatically because Not running on Windows")
 
     import ctypes
+
     import win32.lib.win32con as win32con
     import win32gui
 
@@ -67,7 +54,8 @@ try:
     hWnd = kernel32.GetConsoleWindow()
     win32gui.ShowWindow(hWnd, win32con.SW_HIDE)
     logger.info(
-        "Console window hidden. If it is not hidden (only minimized), try changing your default windows terminal to windows cmd."
+        "Console window hidden. If it is not hidden (only minimized), try changing your"
+        " default windows terminal to windows cmd."
     )
     gc.cw = hWnd
 except Exception as e:
@@ -82,14 +70,13 @@ def signal_handler(sig, frame):
     gc.running = False
 
 
-signal.signal(signal.SIGINT, signal_handler)  # Register the signal handler for Ctrl+C
+signal(SIGINT, signal_handler)  # Register the signal handler for Ctrl+C
 
 
 class AppTray:
     """
     Tray app
     """
-
     def __init__(self):
         self.icon: icon = None  # type: ignore
         self.menu: menu = None  # type: ignore
@@ -153,11 +140,10 @@ class MainWindow:
     """
     Main window of the app
     """
-
     def __init__(self):
         # ------------------ Window ------------------
         # UI
-        self.root = tk.Tk()
+        self.root = Tk()
         self.wrench_emoji = emoji_img(16, "     🛠️")
         gc.cuda = check_cuda_and_gpu()
 
@@ -218,8 +204,9 @@ class MainWindow:
         tk_tooltip(
             self.cb_model,
             """Model size, larger models are more accurate but slower and require more VRAM/CPU power. 
-            \rIf you have a low end GPU, use Tiny or Base. Don't use large unless you really need it or have super computer because it's very slow.
-            \rModel specs: \n- Tiny: ~1 GB Vram\n- Base: ~1 GB Vram\n- Small: ~2 GB Vram\n- Medium: ~5 GB Vram\n- Large: ~10 GB Vram""".strip(),
+            \rIf you have a low end GPU, use Tiny or Base. Don't use large unless you really need it or have super computer.
+            \rModel specs:\n- Tiny: ~1 GB Vram\n- Base: ~1 GB Vram\n- Small: ~2 GB Vram"
+            "\n- Medium: ~5 GB Vram\n- Large: ~10 GB Vram""".strip(),
             wrapLength=400,
         )
         self.cb_model.bind("<<ComboboxSelected>>", lambda _: sj.save_key("model", modelSelectDict[self.cb_model.get()]))
@@ -263,13 +250,13 @@ class MainWindow:
         self.btn_clear.pack(side="left", padx=5, pady=5)
 
         # -- f2_textBox
-        self.tb_transcribed_bg = tk.Frame(self.f2_textBox, bg="#7E7E7E")
+        self.tb_transcribed_bg = Frame(self.f2_textBox, bg="#7E7E7E")
         self.tb_transcribed_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
 
         self.sb_transcribed = ttk.Scrollbar(self.tb_transcribed_bg)
         self.sb_transcribed.pack(side="right", fill="y")
 
-        self.tb_transcribed = tk.Text(
+        self.tb_transcribed = Text(
             self.tb_transcribed_bg,
             height=5,
             width=25,
@@ -281,13 +268,13 @@ class MainWindow:
         self.tb_transcribed.configure(yscrollcommand=self.sb_transcribed.set)
         self.sb_transcribed.configure(command=self.tb_transcribed.yview)
 
-        self.tb_translated_bg = tk.Frame(self.f2_textBox, bg="#7E7E7E")
+        self.tb_translated_bg = Frame(self.f2_textBox, bg="#7E7E7E")
         self.tb_translated_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
 
         self.sb_translated = ttk.Scrollbar(self.tb_translated_bg)
         self.sb_translated.pack(side="right", fill="y")
 
-        self.tb_translated = tk.Text(
+        self.tb_translated = Text(
             self.tb_translated_bg,
             height=5,
             width=25,
@@ -317,7 +304,8 @@ class MainWindow:
         self.lbl_hostAPI.pack(side="left", padx=5, pady=0, ipady=0)
         tk_tooltip(
             self.lbl_hostAPI,
-            "HostAPI for the input device. There are many hostAPI for your device and it is recommended to follow the default value, other than that it might not work or crash the app.",
+            "HostAPI for the input device. There are many hostAPI for your device and it is recommended to follow the "
+            "default value, other than that it might not work or crash the app.",
             wrapLength=350,
         )
 
@@ -435,7 +423,7 @@ class MainWindow:
         self.lbl_temp = ttk.Label(self.f3_3_row1, text="Input:", font="TkDefaultFont 9 bold", width=10)
         self.lbl_temp.pack(side="left", padx=5, pady=5, ipady=0)
 
-        self.strvar_input = tk.StringVar()
+        self.strvar_input = StringVar()
         self.radio_mic = ttk.Radiobutton(
             self.f3_3_row2,
             text="Microphone",
@@ -479,7 +467,7 @@ class MainWindow:
         self.btn_copy.pack(side="right", padx=5, pady=5)
         tk_tooltip(self.btn_copy, "Copy the text to clipboard", wrapLength=250)
 
-        self.menu_copy = tk.Menu(self.root, tearoff=0)
+        self.menu_copy = Menu(self.root, tearoff=0)
         self.menu_copy.add_command(label="Copy transcribed text", command=lambda: self.copy_tb("transcribed"))
         self.menu_copy.add_command(label="Copy translated text", command=lambda: self.copy_tb("translated"))
 
@@ -497,22 +485,22 @@ class MainWindow:
         self.loadBar.pack(side="left", padx=5, pady=5, fill="x", expand=True)
 
         # ------------------ Menubar ------------------
-        self.menubar = tk.Menu(self.root)
-        self.fm_file = tk.Menu(self.menubar, tearoff=0)
+        self.menubar = Menu(self.root)
+        self.fm_file = Menu(self.menubar, tearoff=0)
         self.fm_file.add_checkbutton(label="Stay on top", command=self.toggle_always_on_top)
         self.fm_file.add_separator()
         self.fm_file.add_command(label="Hide", command=lambda: self.root.withdraw())
         self.fm_file.add_command(label="Exit", command=self.quit_app)
         self.menubar.add_cascade(label="File", menu=self.fm_file)
 
-        self.fm_view = tk.Menu(self.menubar, tearoff=0)
+        self.fm_view = Menu(self.menubar, tearoff=0)
         self.fm_view.add_command(label="Settings", command=self.open_setting, accelerator="F2")
         self.fm_view.add_command(label="Log", command=self.open_log)
-        if platform.system() == "Windows":
+        if system() == "Windows":
             self.fm_view.add_checkbutton(label="Console/Terminal", command=self.toggle_console)
         self.menubar.add_cascade(label="View", menu=self.fm_view)
 
-        self.fm_generate = tk.Menu(self.menubar, tearoff=0)
+        self.fm_generate = Menu(self.menubar, tearoff=0)
         self.fm_generate.add_command(
             label="Transcribed Speech Subtitle Window", command=self.open_detached_tcw, accelerator="F3"
         )
@@ -521,7 +509,7 @@ class MainWindow:
         )
         self.menubar.add_cascade(label="Generate", menu=self.fm_generate)
 
-        self.fm_help = tk.Menu(self.menubar, tearoff=0)
+        self.fm_help = Menu(self.menubar, tearoff=0)
         self.fm_help.add_command(label="About", command=self.open_about, accelerator="F1")
         self.menubar.add_cascade(label="Help", menu=self.fm_help)
 
@@ -542,7 +530,7 @@ class MainWindow:
         # ------------------ Set Icon ------------------
         try:
             self.root.iconbitmap(app_icon)
-        except:
+        except Exception:
             pass
 
     # ------------------ Handle window ------------------
@@ -585,11 +573,11 @@ class MainWindow:
         self.save_win_size()
         gc.sw.save_win_size()  # type: ignore
 
-        if platform.system() == "Windows":
+        if system() == "Windows":
             try:
                 if gc.cw:
                     win32gui.ShowWindow(gc.cw, win32con.SW_SHOW)
-            except:
+            except Exception:
                 pass
 
         self.cleanup()
@@ -604,7 +592,9 @@ class MainWindow:
             # prompt
             if not mbox(
                 "Restarting app...",
-                "There is a process still running, are you sure you want to restart the app?\n\nThis will stop the process and may cause data loss!",
+                "There is a process still running, are you sure you want to restart the app?"
+                "\n\nThis will stop the process "
+                "and may cause data loss!",
                 3,
             ):
                 return
@@ -658,7 +648,7 @@ class MainWindow:
         gc.lw.show()
 
     def toggle_console(self):
-        if platform.system() != "Windows":
+        if system() != "Windows":
             logger.info("Console toggling is only available on Windows")
             return
 
@@ -705,7 +695,7 @@ class MainWindow:
         cbtn_invoker(sj.cache["translate"], self.cbtn_task_translate)
         self.strvar_input.set("mic" if sj.cache["input"] == "mic" else "speaker")
 
-        if platform.system() != "Windows":
+        if system() != "Windows":
             self.radio_speaker.configure(state="disabled")
 
         # update on start
@@ -780,7 +770,7 @@ class MainWindow:
             "speaker": get_default_output_device,
         }
 
-        menu = tk.Menu(self.btn_config_hostAPI, tearoff=0)
+        menu = Menu(self.btn_config_hostAPI, tearoff=0)
         menu.add_command(label="Refresh", command=refreshDict[theType])
         menu.add_command(label="Set to default", command=setDefaultDict[theType])
 
@@ -788,7 +778,7 @@ class MainWindow:
         if success:
             assert isinstance(default_host, Dict)
             menu.add_separator()
-            menu.add_command(label=f"Default: {default_host['name']}", state=tk.DISABLED)
+            menu.add_command(label=f"Default: {default_host['name']}", state="disabled")
 
         return menu
 
@@ -1035,7 +1025,7 @@ class MainWindow:
             self.cb_engine.configure(state="readonly")
             self.enable_processing()
 
-        elif "selected" in self.cbtn_task_transcribe.state() and not "selected" in self.cbtn_task_translate.state():
+        elif "selected" in self.cbtn_task_transcribe.state() and "selected" not in self.cbtn_task_translate.state():
             # transcribe only
             self.tb_transcribed_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
             self.tb_transcribed.pack(fill="both", expand=True, padx=1, pady=1)
@@ -1048,7 +1038,7 @@ class MainWindow:
             self.cb_engine.configure(state="disabled")
             self.enable_processing()
 
-        elif "selected" in self.cbtn_task_translate.state() and not "selected" in self.cbtn_task_transcribe.state():
+        elif "selected" in self.cbtn_task_translate.state() and "selected" not in self.cbtn_task_transcribe.state():
             # translate only
             self.tb_transcribed_bg.pack_forget()
             self.tb_transcribed.pack_forget()
@@ -1105,7 +1095,7 @@ class MainWindow:
         self.cb_model.configure(state="readonly")
         self.cb_engine.configure(state="readonly")
         self.cb_sourceLang.configure(state="readonly")
-        if not "selected" in self.cbtn_task_translate.state():
+        if "selected" not in self.cbtn_task_translate.state():
             self.cb_targetLang.configure(state="disabled")
         else:
             self.cb_targetLang.configure(state="readonly")
@@ -1141,11 +1131,14 @@ class MainWindow:
 
     # ------------------ Export ------------------
     def export_tc(self):
-        fileName = f"Transcribed {time.strftime('%Y-%m-%d %H-%M-%S')}"
+        fileName = f"Transcribed {strftime('%Y-%m-%d %H-%M-%S')}"
         text = str(self.tb_transcribed.get(1.0, "end"))
 
         f = filedialog.asksaveasfile(
-            mode="w", defaultextension=".txt", initialfile=fileName, filetypes=(("Text File", "*.txt"), ("All Files", "*.*"))
+            mode="w",
+            defaultextension=".txt",
+            initialfile=fileName,
+            filetypes=(("Text File", "*.txt"), ("All Files", "*.*"))
         )
         if f is None:
             return
@@ -1161,11 +1154,14 @@ class MainWindow:
         start_file(f.name)
 
     def export_tl(self):
-        fileName = f"Translated {time.strftime('%Y-%m-%d %H-%M-%S')}"
+        fileName = f"Translated {strftime('%Y-%m-%d %H-%M-%S')}"
         text = str(self.tb_translated.get(1.0, "end"))
 
         f = filedialog.asksaveasfile(
-            mode="w", defaultextension=".txt", initialfile=fileName, filetypes=(("Text File", "*.txt"), ("All Files", "*.*"))
+            mode="w",
+            defaultextension=".txt",
+            initialfile=fileName,
+            filetypes=(("Text File", "*.txt"), ("All Files", "*.*"))
         )
         if f is None:
             return
@@ -1182,7 +1178,7 @@ class MainWindow:
     # TODO: maybe save the result to memory first so we can export like when using file import?
     def export_result(self):
         # check based on mode
-        if "selected" in self.cbtn_task_transcribe.state() and not "selected" in self.cbtn_task_translate.state():
+        if "selected" in self.cbtn_task_transcribe.state() and "selected" not in self.cbtn_task_translate.state():
             text = str(self.tb_transcribed.get(1.0, "end"))
 
             if len(text.strip()) == 0:
@@ -1190,7 +1186,7 @@ class MainWindow:
                 return
 
             self.export_tc()
-        elif not "selected" in self.cbtn_task_transcribe.state() and "selected" in self.cbtn_task_translate.state():
+        elif "selected" not in self.cbtn_task_transcribe.state() and "selected" in self.cbtn_task_translate.state():
             text = str(self.tb_translated.get(1.0, "end"))
 
             if len(text.strip()) == 0:
@@ -1221,7 +1217,7 @@ class MainWindow:
 
     def destroy_transient_toplevel(self, name, similar=False):
         for child in self.root.winfo_children():
-            if isinstance(child, tk.Toplevel):
+            if isinstance(child, Toplevel):
                 if child.title() == name:
                     child.destroy()
                     break
@@ -1232,12 +1228,13 @@ class MainWindow:
     # ------------------ Rec ------------------
     def rec(self):
         is_speaker = "selected" in self.radio_speaker.state()
-        if is_speaker and platform.system() != "Windows":  # double checking. Speaker input is only available on Windows
+        if is_speaker and system() != "Windows":  # double checking. Speaker input is only available on Windows
             mbox(
                 "Not available",
-                """This feature is only available on Windows. 
-                \rIn order to record PC sound from OS other than Windows you will need to create a virtual audio loopback to pass the speaker output as an input. You can use software like PulseAudio or Blackhole (on Mac) to do this.
-                \rAfter that you can change your default input device to the virtual audio loopback.""",
+                "This feature is only available on Windows."
+                "\n\nIn order to record PC sound from OS other than Windows you will need to create a virtual audio loopback"
+                " to pass the speaker output as an input. You can use software like PulseAudio or Blackhole to do this."
+                "\n\nAfter that you can change your default input device to the virtual audio loopback.",
                 0,
                 self.root,
             )
@@ -1268,7 +1265,7 @@ class MainWindow:
             ):
                 logger.info("Downloading model...")
                 try:
-                    gc.dl_thread = threading.Thread(
+                    gc.dl_thread = Thread(
                         target=download_model,
                         args=(
                             modelName,
@@ -1295,7 +1292,7 @@ class MainWindow:
         # Start thread
         try:
             device = mic if not is_speaker else speaker
-            recThread = threading.Thread(
+            recThread = Thread(
                 target=record_realtime,
                 args=(sourceLang, targetLang, engine, modelKey, device, tc, tl, is_speaker),
                 daemon=True,
@@ -1349,7 +1346,7 @@ class MainWindow:
             ):
                 logger.info("Downloading model...")
                 try:
-                    gc.dl_thread = threading.Thread(
+                    gc.dl_thread = Thread(
                         target=download_model,
                         args=(
                             modelName,
@@ -1388,7 +1385,7 @@ class MainWindow:
 
         # Start thread
         try:
-            recFileThread = threading.Thread(
+            recFileThread = Thread(
                 target=file_input, args=(list(files), modelKey, sourceLang, targetLang, tc, tl, engine), daemon=True
             )
             recFileThread.start()
@@ -1411,7 +1408,8 @@ class MainWindow:
         if notify:
             mbox(
                 "Cancelled",
-                f"Cancelled file import processing\n\nTranscribed {gc.file_tced_counter} and translated {gc.file_tled_counter} file",
+                f"Cancelled file import processing\n\nTranscribed {gc.file_tced_counter} "
+                " and translated {gc.file_tled_counter} file",
                 0,
                 self.root,
             )
@@ -1425,11 +1423,11 @@ class MainWindow:
 def get_gpu_info():
     result = ""
     try:
-        gpu_count = torch.cuda.device_count()
+        gpu_count = cuda.device_count()
         if gpu_count == 0:
             result = "No GPU detected"
         elif gpu_count == 1:
-            result = torch.cuda.get_device_name(0)
+            result = cuda.get_device_name(0)
         else:
             result = f"{gpu_count} GPUs detected"
     except Exception as e:
@@ -1442,11 +1440,11 @@ def get_gpu_info():
 def check_cuda_and_gpu():
     result = ""
     try:
-        if not torch.cuda.is_available():
+        if not cuda.is_available():
             result = "CUDA is not available! Using CPU instead"
         else:
-            count = torch.cuda.device_count()
-            gpus = [torch.cuda.get_device_name(i) for i in range(count)]
+            count = cuda.device_count()
+            gpus = [cuda.get_device_name(i) for i in range(count)]
             result = f"Using {count} GPU(s): {', '.join(gpus)}"
     except Exception as e:
         logger.exception(e)
@@ -1457,7 +1455,7 @@ def check_cuda_and_gpu():
 
 def main():
     logger.info(f"App Version: {__version__}")
-    logger.info(f"OS: {platform.system()} {platform.release()} {platform.version()} | CPU: {platform.processor()}")
+    logger.info(f"OS: {system()} {release()} {version()} | CPU: {processor()}")
     logger.info(f"GPU: {get_gpu_info()} | CUDA: {check_cuda_and_gpu()}")
 
     # --- GUI ---

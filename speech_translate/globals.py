@@ -1,18 +1,35 @@
 import os
-import platform
-import ast
-import shlex
-import arabic_reshaper
-from bidi.algorithm import get_display
+from ast import literal_eval
+from platform import system
+from shlex import quote
+from threading import Lock, Thread
 from tkinter import ttk
-from threading import Thread, Lock
-from typing import Literal, Optional, List, TYPE_CHECKING, Union
-from ._path import dir_temp, dir_log, dir_export, dir_user, dir_debug
+from typing import TYPE_CHECKING, List, Literal, Optional, Union
+from warnings import simplefilter
+
+import tqdm
+from arabic_reshaper import reshape
+from bidi.algorithm import get_display
+from numba.core.errors import NumbaDeprecationWarning, NumbaPendingDeprecationWarning
+
 from ._constants import SUBTITLE_PLACEHOLDER
+from ._path import dir_debug, dir_export, dir_log, dir_temp, dir_user
 from .utils.setting import SettingJson
 
+if system() == "Windows":
+    from multiprocessing import Queue
+
+    import pyaudiowpatch as pyaudio
+else:
+    import pyaudio  # type: ignore
+
+    from .utils.custom_queue import MyQueue as Queue  # to get qsize on platform other than windows
+
+# remove numba warnings
+simplefilter("ignore", category=NumbaDeprecationWarning)
+simplefilter("ignore", category=NumbaPendingDeprecationWarning)
+
 # Disabling tqdm globally by Defining a custom dummy class that suppresses tqdm's behavior
-import tqdm
 
 
 class DummyTqdm:
@@ -34,19 +51,12 @@ tqdm.tqdm = DummyTqdm
 
 # Forward declaration for type hinting
 if TYPE_CHECKING:
-    from .components.window.main import MainWindow, AppTray
-    from .components.window.setting import SettingWindow
     from .components.window.about import AboutWindow
     from .components.window.log import LogWindow
+    from .components.window.main import AppTray, MainWindow
+    from .components.window.setting import SettingWindow
     from .components.window.transcribed import TcsWindow
     from .components.window.translated import TlsWindow
-
-if platform.system() == "Windows":
-    from multiprocessing import Queue
-    import pyaudiowpatch as pyaudio
-else:
-    from .utils.custom_queue import MyQueue as Queue  # to get qsize on platform other than windows
-    import pyaudio  # type: ignore
 
 # ------------------ #
 sj: SettingJson = SettingJson(os.path.join(dir_user, "setting.json"), dir_user, [dir_temp, dir_log, dir_export, dir_debug])
@@ -58,7 +68,6 @@ class GlobalClass:
 
     Stored like this in order to allow other file to use the same thing without circular import error.
     """
-
     def __init__(self):
         self.cuda: str = ""
         self.running_after_id: str = ""
@@ -125,7 +134,7 @@ class GlobalClass:
         self.translating = False
 
     def getSeparator(self):
-        return ast.literal_eval(shlex.quote(sj.cache["separate_with"]))
+        return literal_eval(quote(sj.cache["separate_with"]))
 
     def insert_result_mw(self, textToAppend, mode: Literal["tc", "tl"]):
         """Insert text to transcribed textbox. Will also check if the text is too long and will truncate it if it is.
@@ -148,13 +157,13 @@ class GlobalClass:
         # remove words from the start with length of the new text
         # then add new text to the end
         if sj.cache[f"tb_mw_{mode}_limit_max"] and len(currentText) > sj.cache[f"tb_mw_{mode}_max"]:
-            currentText = currentText[len(textToAppend) :]
+            currentText = currentText[len(textToAppend):]
             currentText += textToAppend
             textToAppend = currentText
             tb.delete("1.0", "end")
 
         if sj.cache["parse_arabic"]:
-            textToAppend = str(get_display(arabic_reshaper.reshape(textToAppend)))
+            textToAppend = str(get_display(reshape(textToAppend)))
 
         # if it has limit per sentence, break it into multiple sentences with
         # character limitation for each sentence set by the user.
@@ -174,7 +183,7 @@ class GlobalClass:
                     if len(line) > sj.cache[f"tb_mw_{mode}_max_per_line"]:
                         # split the line into multiple lines with the max length of the line set by the user
                         line = [
-                            line[i : i + sj.cache[f"tb_mw_{mode}_max_per_line"]]
+                            line[i:i + sj.cache[f"tb_mw_{mode}_max_per_line"]]
                             for i in range(0, len(line), sj.cache[f"tb_mw_{mode}_max_per_line"])
                         ]
                         # loop through the new lines
@@ -191,8 +200,9 @@ class GlobalClass:
         tb.see("end")
 
     def insert_result_ex(self, textToAppend, mode: Literal["tc", "tl"]):
-        """Insert text to detached transcribed textbox. Will also check if the text is too long and will truncate it if it is.
-        Separator is added here.
+        """
+        Insert text to detached transcribed textbox. Will also check if
+        the text is too long and will truncate it if it is. Separator is also added here.
 
         Parameters
         ---
@@ -210,12 +220,12 @@ class GlobalClass:
         # remove words from the start with length of the new text
         # then add new text to the end
         if sj.cache[f"tb_ex_{mode}_limit_max"] and len(currentText) > sj.cache[f"tb_ex_{mode}_max"]:
-            currentText = currentText[len(textToAppend) :]
+            currentText = currentText[len(textToAppend):]
             currentText += textToAppend
             textToAppend = currentText
 
         if sj.cache["parse_arabic"]:
-            textToAppend = str(get_display(arabic_reshaper.reshape(textToAppend)))
+            textToAppend = str(get_display(reshape(textToAppend)))
 
         # if it has limit per sentence, break it into multiple sentences with
         # character limitation for each sentence set by the user.
@@ -231,7 +241,7 @@ class GlobalClass:
                     if len(line) > sj.cache[f"tb_ex_{mode}_max_per_line"]:
                         # split the line into multiple lines with the max length of the line set by the user
                         line = [
-                            line[i : i + sj.cache[f"tb_ex_{mode}_max_per_line"]]
+                            line[i:i + sj.cache[f"tb_ex_{mode}_max_per_line"]]
                             for i in range(0, len(line), sj.cache["tb_mw_tc_max_per_line"])
                         ]
                         # loop through the new lines

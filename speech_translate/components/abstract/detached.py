@@ -1,24 +1,22 @@
-import platform
-import tkinter as tk
-from tkinter import ttk
+from platform import system
+from tkinter import IntVar, Menu, Tk, Toplevel, ttk
 from typing import Literal
 
-from speech_translate._path import app_icon
 from speech_translate._constants import SUBTITLE_PLACEHOLDER
-from speech_translate.globals import sj, gc
+from speech_translate._path import app_icon
+from speech_translate.components.custom.label import DraggableLabel
+from speech_translate.components.custom.message import mbox
+from speech_translate.components.custom.tooltip import tk_tooltip
+from speech_translate.globals import gc, sj
 from speech_translate.utils.beep import beep
 from speech_translate.utils.helper import emoji_img
 
-from speech_translate.components.custom.label import DraggableLabel
-from speech_translate.components.custom.tooltip import tk_tooltip
-from speech_translate.components.custom.message import mbox
 
-
-class AbstractDetachedSubtitleWindow:
+class SubtitleWindow:
     """Detached Subtitle Window"""
 
     # ----------------------------------------------------------------------
-    def __init__(self, master: tk.Tk, title: str, winType: Literal["tc", "tl"]):
+    def __init__(self, master: Tk, title: str, winType: Literal["tc", "tl"]):
         self.close_emoji = emoji_img(14, " ❌")
         self.copy_emoji = emoji_img(14, " 📋")
         self.pin_emoji = emoji_img(14, " 📌")
@@ -29,7 +27,7 @@ class AbstractDetachedSubtitleWindow:
 
         self.master = master
         self.title = title
-        self.root = tk.Toplevel(master)
+        self.root = Toplevel(master)
         self.root.title(title)
         self.root.geometry("800x200")
         self.root.wm_withdraw()
@@ -40,10 +38,10 @@ class AbstractDetachedSubtitleWindow:
         self.x_menu = 0
         self.y_menu = 0
         self.currentOpacity = 1.0
-        self.always_on_top = tk.IntVar()
-        self.no_tooltip = tk.IntVar()
-        self.no_title_bar = tk.IntVar()
-        self.click_through = tk.IntVar()
+        self.always_on_top = IntVar()
+        self.no_tooltip = IntVar()
+        self.no_title_bar = IntVar()
+        self.click_through = IntVar()
         if winType == "tc":
             gc.ex_tcw = self  # type: ignore
             self.winString = "Transcribe"
@@ -80,7 +78,7 @@ class AbstractDetachedSubtitleWindow:
         )
         self.lbl_text.pack(side="top")
 
-        self.menuDropdown = tk.Menu(self.root, tearoff=0)
+        self.menuDropdown = Menu(self.root, tearoff=0)
         self.menuDropdown.add_command(label=self.title, command=self.open_menu, image=self.title_emoji, compound="left")
         self.menuDropdown.add_command(label="Help", command=self.show_help, image=self.help_emoji, compound="left")
         self.menuDropdown.add_command(
@@ -107,7 +105,7 @@ class AbstractDetachedSubtitleWindow:
             variable=self.no_tooltip,
             accelerator="Alt + X",
         )
-        if platform.system() == "Windows":
+        if system() == "Windows":
             self.click_through.set(int(sj.cache[f"ex_{winType}_click_through"]))
             self.menuDropdown.add_checkbutton(
                 label="Click Through/Transparent",
@@ -155,7 +153,7 @@ class AbstractDetachedSubtitleWindow:
         self.root.bind("<Button-3>", self.open_menu)
 
         # keybinds
-        if platform.system() == "Windows":
+        if system() == "Windows":
             self.root.bind("<Alt-KeyPress-s>", lambda event: self.toggle_click_through())
         self.root.bind("<Alt-KeyPress-c>", lambda event: self.copy_tb_content())
         self.root.bind("<Alt-KeyPress-t>", lambda event: self.toggle_title_bar())
@@ -169,7 +167,7 @@ class AbstractDetachedSubtitleWindow:
         # ------------------ Set Icon ------------------
         try:
             self.root.iconbitmap(app_icon)
-        except:
+        except Exception:
             pass
 
         # init settings
@@ -217,8 +215,8 @@ class AbstractDetachedSubtitleWindow:
         """
         mbox(
             f"{self.title} - Help",
-            "This is a window that shows the result of the recording session in a separate window. You can think of this as a subtitle box. "
-            "To drag the window, drag from the label (text result).\n\n"
+            "This is a window that shows the result of the recording session in a separate window. You can think of this as"
+            " a subtitle box. To drag the window, drag from the label (text result).\n\n"
             "Keybinds (when focused):\n"
             "- Alt + scroll to change opacity\n"
             "- Alt + c to copy text\n"
@@ -273,7 +271,7 @@ class AbstractDetachedSubtitleWindow:
         If from keybind, then toggle the value manually.
         If on init, then don't save the setting and don't beep.
         """
-        if platform.system() != "Windows":
+        if system() != "Windows":
             return
         if fromKeyBind:
             self.click_through.set(0 if self.click_through.get() == 1 else 1)

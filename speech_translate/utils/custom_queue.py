@@ -20,7 +20,6 @@ class SharedCounter(object):
     This class comes almost entirely from Eli Bendersky's blog:
     http://eli.thegreenplace.net/2012/01/04/shared-counter-with-pythons-multiprocessing/
     """
-
     def __init__(self, n=0):
         self.count = multiprocessing.Value("i", n)
 
@@ -54,7 +53,6 @@ class MyQueue(Queue):
     For documentation of using __getstate__ and __setstate__ to serialize objects,
     refer to here: https://docs.python.org/3/library/pickle.html#pickling-class-instances
     """
-
     def __init__(self):
         super().__init__(ctx=multiprocessing.get_context())
         self.size = SharedCounter(0)

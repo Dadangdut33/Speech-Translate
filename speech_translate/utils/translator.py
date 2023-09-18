@@ -1,9 +1,8 @@
-import requests
+from requests import post as r_post
 from typing import Dict
 from speech_translate.custom_logging import logger
 from .helper import get_similar_keys, no_connection_notify
 from .language import google_lang, libre_lang, myMemory_lang
-
 
 # Import the translator
 try:
@@ -26,7 +25,6 @@ class TranslationConnection:
         GoogleTranslator (function): Google Translate
         MyMemoryTranslator (function): MyMemoryTranslator
     """
-
     def __init__(self, GoogleTranslator, MyMemoryTranslator):
         self.GoogleTranslator = GoogleTranslator
         self.MyMemoryTranslator = MyMemoryTranslator
@@ -58,7 +56,7 @@ def google_tl(text: str, from_lang: str, to_lang: str, proxies: Dict, debug_log:
         try:
             to_LanguageCode_Google = google_lang[to_lang]
             from_LanguageCode_Google = google_lang[from_lang]
-        except KeyError as e:
+        except KeyError:
             to_LanguageCode_Google = google_lang[get_similar_keys(google_lang, to_lang)[0]]
             from_LanguageCode_Google = google_lang[get_similar_keys(google_lang, from_lang)[0]]
     except KeyError as e:
@@ -72,13 +70,12 @@ def google_tl(text: str, from_lang: str, to_lang: str, proxies: Dict, debug_log:
                 from deep_translator import GoogleTranslator
 
                 TlCon.GoogleTranslator = GoogleTranslator
-            except Exception as e:
+            except Exception:
                 no_connection_notify()
                 return is_Success, "Error: Not connected to internet"
 
-        result = TlCon.GoogleTranslator(
-            source=from_LanguageCode_Google, target=to_LanguageCode_Google, proxies=proxies
-        ).translate(text.strip())
+        result = TlCon.GoogleTranslator(source=from_LanguageCode_Google, target=to_LanguageCode_Google,
+                                        proxies=proxies).translate(text.strip())
         is_Success = True
     except Exception as e:
         logger.exception(str(e))
@@ -114,7 +111,7 @@ def memory_tl(text: str, from_lang: str, to_lang: str, proxies: Dict, debug_log:
         try:
             to_LanguageCode_Memory = myMemory_lang[to_lang]
             from_LanguageCode_Memory = myMemory_lang[from_lang]
-        except KeyError as e:
+        except KeyError:
             to_LanguageCode_Memory = myMemory_lang[get_similar_keys(myMemory_lang, to_lang)[0]]
             from_LanguageCode_Memory = myMemory_lang[get_similar_keys(myMemory_lang, from_lang)[0]]
     except KeyError as e:
@@ -127,14 +124,13 @@ def memory_tl(text: str, from_lang: str, to_lang: str, proxies: Dict, debug_log:
                 from deep_translator import MyMemoryTranslator
 
                 TlCon.MyMemoryTranslator = MyMemoryTranslator
-            except Exception as e:
+            except Exception:
                 no_connection_notify()
                 return is_Success, "Error: Not connected to internet"
 
         result = str(
-            TlCon.MyMemoryTranslator(
-                source=from_LanguageCode_Memory, target=to_LanguageCode_Memory, proxies=proxies
-            ).translate(text.strip())
+            TlCon.MyMemoryTranslator(source=from_LanguageCode_Memory, target=to_LanguageCode_Memory,
+                                     proxies=proxies).translate(text.strip())
         )
         is_Success = True
     except Exception as e:
@@ -186,7 +182,7 @@ def libre_tl(
         try:
             to_LanguageCode_Libre = libre_lang[to_lang]
             from_LanguageCode_Libre = libre_lang[from_lang]
-        except KeyError as e:
+        except KeyError:
             to_LanguageCode_Libre = libre_lang[get_similar_keys(libre_lang, to_lang)[0]]
             from_LanguageCode_Libre = libre_lang[get_similar_keys(libre_lang, from_lang)[0]]
     except KeyError as e:
@@ -208,7 +204,7 @@ def libre_tl(
         else:
             adr = httpStr + "://" + host + "/translate"
 
-        response = requests.post(adr, json=request, proxies=proxies).json()
+        response = r_post(adr, json=request, proxies=proxies).json()
         if "error" in response:
             result = response["error"]
         else:
@@ -218,9 +214,11 @@ def libre_tl(
         result = str(e)
         logger.exception(str(e))
         if "NewConnectionError" in str(e):
-            result = "Error: Could not connect. Please make sure that the server is running and the port is correct. If you are not hosting it yourself, please try again with an internet connection."
+            result = "Error: Could not connect. Please make sure that the server is running and the port is correct."
+            " If you are not hosting it yourself, please try again with an internet connection."
         if "request expecting value" in str(e):
-            result = "Error: Invalid parameter value. Check for https, host, port, and apiKeys. If you use external server, make sure https is set to True."
+            result = "Error: Invalid parameter value. Check for https, host, port, and apiKeys. If you use external server, "
+            "make sure https is set to True."
     finally:
         if debug_log:
             logger.info("-" * 50)

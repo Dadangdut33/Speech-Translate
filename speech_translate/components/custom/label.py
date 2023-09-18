@@ -2,8 +2,7 @@
 # [title] text
 # combination of 2 packed labels
 
-import tkinter as tk
-from tkinter import ttk
+from tkinter import Label, ttk
 
 
 class LabelTitleText:
@@ -34,7 +33,7 @@ class LabelTitleText:
         self.lbl_text.configure(font=font)
 
 
-class DraggableLabel(tk.Label):
+class DraggableLabel(Label):
     def __init__(self, parent, root, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
         self.root = root

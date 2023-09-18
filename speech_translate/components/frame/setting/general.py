@@ -1,7 +1,6 @@
-import os
-import threading
-import tkinter as tk
-from tkinter import ttk, filedialog
+from os import listdir, remove, path
+from threading import Thread
+from tkinter import ttk, filedialog, Menu, Toplevel, Frame, Event, LabelFrame
 from typing import Union
 from datetime import datetime
 
@@ -20,8 +19,7 @@ class SettingGeneral:
     """
     General tab in setting window.
     """
-
-    def __init__(self, root: tk.Toplevel, master_frame: Union[ttk.Frame, tk.Frame]):
+    def __init__(self, root: Toplevel, master_frame: Union[ttk.Frame, Frame]):
         self.root = root
         self.master = master_frame
         self.initial_theme = ""
@@ -37,7 +35,7 @@ class SettingGeneral:
 
         # ------------------ General ------------------
         # app
-        self.lf_application = tk.LabelFrame(self.master, text="• Application")
+        self.lf_application = LabelFrame(self.master, text="• Application")
         self.lf_application.pack(side="top", fill="x", padx=5, pady=5)
 
         self.f_application_1 = ttk.Frame(self.lf_application)
@@ -107,14 +105,15 @@ class SettingGeneral:
         self.btn_theme_add.pack(side="left", padx=5, pady=5)
         tk_tooltip(
             self.btn_theme_add,
-            "Add custom theme.\n\nThe theme name should be according to the `set_theme` parameter in the .tcl folder of the theme."
+            "Add custom theme.\n\nThe theme name should be according to the `set_theme` "
+            "parameter in the .tcl folder of the theme."
             "\n\nMight need to reload the app for the changes to take effect.",
             wrapLength=500,
         )
 
         # --------------------
         # export
-        self.lf_export = tk.LabelFrame(self.master, text="• Export")
+        self.lf_export = LabelFrame(self.master, text="• Export")
         self.lf_export.pack(side="top", fill="x", padx=5, pady=5)
 
         self.f_export_1 = ttk.Frame(self.lf_export)
@@ -145,7 +144,7 @@ class SettingGeneral:
         )
         self.btn_export_config.pack(side="left", padx=5)
 
-        self.menu_config_export = tk.Menu(self.master, tearoff=0)
+        self.menu_config_export = Menu(self.master, tearoff=0)
         self.menu_config_export.add_command(
             label="Open", image=self.open_emoji, compound="left", command=lambda: start_file(self.entry_export.get())
         )
@@ -175,7 +174,7 @@ class SettingGeneral:
             wrapLength=300,
         )
 
-        def keybind_num(event: tk.Event, widget: ttk.Entry):
+        def keybind_num(event: Event, widget: ttk.Entry):
             vsym = event.keysym
             vw = widget.get()
             v = event.char
@@ -210,8 +209,8 @@ class SettingGeneral:
         self.entry_slice_file_start.bind("<Key>", lambda e: keybind_num(e, self.entry_slice_file_start))
         self.entry_slice_file_start.bind(
             "<KeyRelease>",
-            lambda e: self.update_preview_export_format()
-            or sj.save_key("file_slice_start", self.entry_slice_file_start.get()),
+            lambda e: self.update_preview_export_format() or sj.
+            save_key("file_slice_start", self.entry_slice_file_start.get()),
         )
         self.entry_slice_file_start.pack(side="left", padx=5)
 
@@ -221,8 +220,8 @@ class SettingGeneral:
         self.entry_slice_file_end.bind("<Key>", lambda e: keybind_num(e, self.entry_slice_file_end))
         self.entry_slice_file_end.bind(
             "<KeyRelease>",
-            lambda e: self.update_preview_export_format()
-            or sj.save_key("file_slice_end", self.entry_slice_file_start.get()),
+            lambda e: self.update_preview_export_format() or sj.
+            save_key("file_slice_end", self.entry_slice_file_start.get()),
         )
         self.entry_slice_file_end.pack(side="left", padx=5)
 
@@ -274,7 +273,7 @@ class SettingGeneral:
         )
         # --------------------
         # log
-        self.lf_logging = tk.LabelFrame(self.master, text="• Logging")
+        self.lf_logging = LabelFrame(self.master, text="• Logging")
         self.lf_logging.pack(side="top", fill="x", padx=5, pady=5)
 
         self.f_logging_1 = ttk.Frame(self.lf_logging)
@@ -305,7 +304,7 @@ class SettingGeneral:
         )
         self.btn_log_config.pack(side="left", padx=5, pady=5)
 
-        self.menu_config_log = tk.Menu(self.master, tearoff=0)
+        self.menu_config_log = Menu(self.master, tearoff=0)
         self.menu_config_log.add_command(
             label="Open", image=self.open_emoji, compound="left", command=lambda: start_file(dir_log)
         )
@@ -350,7 +349,8 @@ class SettingGeneral:
         self.cbtn_debug_realtime_record.pack(side="left", padx=5, pady=(0, 5))
         tk_tooltip(
             self.cbtn_debug_realtime_record,
-            "Show some debugging process of the realtime record.\n\n" "Enabling will probably slow down the app.",
+            "Show some debugging process of the realtime record.\n\n"
+            "Enabling will probably slow down the app.",
         )
 
         self.cbtn_debug_recorded_audio = ttk.Checkbutton(
@@ -369,7 +369,7 @@ class SettingGeneral:
         self.cbtn_debug_translate.pack(side="left", padx=5, pady=(0, 5))
 
         # model
-        self.ft1lf_model = tk.LabelFrame(self.master, text="• Model")
+        self.ft1lf_model = LabelFrame(self.master, text="• Model")
         self.ft1lf_model.pack(side="top", fill="x", padx=5, pady=5)
 
         # label model location
@@ -398,7 +398,7 @@ class SettingGeneral:
         )
         self.btn_model_config.pack(side="left", padx=5, pady=5)
 
-        self.menu_config_model = tk.Menu(self.master, tearoff=0)
+        self.menu_config_model = Menu(self.master, tearoff=0)
         self.menu_config_model.add_command(
             label="Open", image=self.open_emoji, compound="left", command=lambda: start_file(sj.cache["dir_model"])
         )
@@ -597,7 +597,8 @@ class SettingGeneral:
 
     def configure_commands(self):
         """
-        To prevent the command from being called multiple times, we need to configure the command just once after the setting is initialized
+        To prevent the command from being called multiple times, 
+        we need to configure the command just once after the setting is initialized
         """
         self.cbtn_keep_log.configure(command=lambda: sj.save_key("keep_log", self.cbtn_keep_log.instate(["selected"])))
         self.cbtn_debug_realtime_record.configure(
@@ -644,10 +645,10 @@ class SettingGeneral:
 
     def delete_log(self):
         # delete all log files
-        for file in os.listdir(dir_log):
+        for file in listdir(dir_log):
             if file.endswith(".log"):
                 try:
-                    os.remove(os.path.join(dir_log, file))
+                    remove(path.join(dir_log, file))
                 except Exception as e:
                     if file != current_log:  # show warning only if the fail to delete is not the current log
                         logger.warning("Failed to delete log file: " + file)
@@ -655,19 +656,19 @@ class SettingGeneral:
 
     def delete_temp(self):
         # delete all temp wav files
-        for file in os.listdir(dir_temp):
+        for file in listdir(dir_temp):
             if file.endswith(".wav"):
                 try:
-                    os.remove(os.path.join(dir_temp, file))
+                    remove(path.join(dir_temp, file))
                 except Exception as e:
                     logger.warning("Failed to delete temp file: " + file)
                     logger.warning("Reason " + str(e))
 
     def delete_debug(self):
         # delete all debug files
-        for file in os.listdir(dir_debug):
+        for file in listdir(dir_debug):
             try:
-                os.remove(os.path.join(dir_debug, file))
+                remove(path.join(dir_debug, file))
             except Exception as e:
                 logger.warning("Failed to delete debug file: " + file)
                 logger.warning("Reason " + str(e))
@@ -702,7 +703,7 @@ class SettingGeneral:
                 )
             btn.configure(text="Download", command=lambda: self.model_download(model, btn))
         else:
-            btn.configure(text="Downloaded", state=tk.DISABLED)
+            btn.configure(text="Downloaded", state="disabled")
 
     def model_download(self, model: str, btn: ttk.Button) -> None:
         if self.checkingModel:
@@ -715,32 +716,32 @@ class SettingGeneral:
 
         # verify first
         if verify_model(model):  # already downloaded
-            btn.configure(text="Downloaded", state=tk.DISABLED)
+            btn.configure(text="Downloaded", state="disabled")
             return
 
         # Download model
         try:
 
             def after_func():
-                btn.configure(text="Downloaded", state=tk.DISABLED)
+                btn.configure(text="Downloaded", state="disabled")
 
-            gc.dl_thread = threading.Thread(
+            gc.dl_thread = Thread(
                 target=download_model,
                 args=(model, self.root, lambda: self.cancel_download(model, btn), after_func),
                 daemon=True,
             )
             gc.dl_thread.start()
 
-            btn.configure(text="Downloading...", state=tk.DISABLED)
+            btn.configure(text="Downloading...", state="disabled")
         except Exception as e:
-            btn.configure(text="Download", command=lambda: self.model_download(model, btn), state=tk.NORMAL)
+            btn.configure(text="Download", command=lambda: self.model_download(model, btn), state="normal")
             mbox("Download error", f"Err details: {e}", 0, self.root)
 
     def cancel_download(self, model: str, btn: ttk.Button) -> None:
         if not mbox("Cancel confirmation", "Are you sure you want to cancel downloading?", 3, self.root):
             return
 
-        btn.configure(text="Download", command=lambda: self.model_download(model, btn), state=tk.NORMAL)
+        btn.configure(text="Download", command=lambda: self.model_download(model, btn), state="normal")
         gc.cancel_dl = True  # Raise flag to stop
 
     def model_btn_checker(self, model: str, btn: ttk.Button) -> None:
@@ -749,19 +750,20 @@ class SettingGeneral:
         It will first change btn state to disabled to prevent user from clicking it, set text to "Checking..."
         Then check it and change the text and state accordingly.
         """
-        btn.configure(text="Checking...", state=tk.DISABLED)
+        btn.configure(text="Checking...", state="disabled")
 
         downloaded = verify_model(model)
 
         if not downloaded:
-            btn.configure(text="Download", command=lambda: self.model_download(model, btn), state=tk.NORMAL)
+            btn.configure(text="Download", command=lambda: self.model_download(model, btn), state="normal")
         else:
-            btn.configure(text="Downloaded", state=tk.DISABLED)
+            btn.configure(text="Downloaded", state="disabled")
 
     def check_model_on_first_open(self):
         """
         Check if model is downloaded on first setting open.
-        It need to be checked hardcodedly because for some reason if i try to use a map it keep referencing to the wrong button.
+        It need to be checked hardcodedly because for some reason 
+        if i try to use a map it keep referencing to the wrong button.
         """
         try:
             self.checkingModel = True
@@ -783,7 +785,7 @@ class SettingGeneral:
             if self.first_check:
                 # run this function again if it failed on first check but after 3 second
                 logger.warning("Retrying to check model on first setting open")
-                self.root.after(3000, lambda: threading.Thread(target=self.check_model_on_first_open, daemon=True).start())
+                self.root.after(3000, lambda: Thread(target=self.check_model_on_first_open, daemon=True).start())
         finally:
             self.checkingModel = False
 
@@ -891,6 +893,6 @@ class SettingGeneral:
     def clear_export(self):
         if mbox("Clear Export Folder", "Are you sure you want to clear the export folder?", 3, self.root):
             # get all the files in the export folder
-            files = os.listdir(sj.cache["dir_export"])
+            files = listdir(sj.cache["dir_export"])
             for file in files:
-                os.remove(os.path.join(sj.cache["dir_export"], file))
+                remove(path.join(sj.cache["dir_export"], file))

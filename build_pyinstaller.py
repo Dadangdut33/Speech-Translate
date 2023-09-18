@@ -80,7 +80,7 @@ with open(specFile, "r") as f:
     # add recursion limit after copy_metadata
     spec = spec.replace("copy_metadata", "copy_metadata\nimport sys\nsys.setrecursionlimit(5000)", 1)
     # rename the exe file
-    spec = spec.replace(f"name='{specName}'", f"name='SpeechTranslate'", 1)
+    spec = spec.replace(f"name='{specName}'", "name='SpeechTranslate'", 1)
     # rename the build folder name, add venv name to it
     spec = spec.replace(f"name='{specName}'", f"name='{folderName}'", 1)
 

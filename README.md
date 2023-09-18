@@ -153,7 +153,7 @@ brew install ffmpeg
 
 1. Create your virtual environment by running `python -m venv venv`
 2. Activate your virtual environment by running `source venv/bin/activate`
-3. Install all the dependencies needed by running the [`devSetup.py`](./devSetup.py) located in **root directory** or install the packages yourself by running `pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu118` if you are using GPU or `pip install -r requirements.txt` if you are using CPU.
+3. Install all the dependencies needed by running `pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu118` if you are using GPU or `pip install -r requirements.txt` if you are using CPU.
 4. Make sure to have ffmpeg installed and added to your PATH
 5. Get to root directory and Run the script by typing `python Main.py`
 

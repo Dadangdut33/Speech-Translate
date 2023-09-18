@@ -1,6 +1,8 @@
-import whisper
 import hashlib
 import os
+
+import whisper
+
 from speech_translate.components.custom.download import whisper_download_with_progress_gui
 
 

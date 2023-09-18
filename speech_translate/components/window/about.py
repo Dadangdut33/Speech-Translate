@@ -1,17 +1,16 @@
-import requests
-import tkinter as tk
-from tkinter import ttk
 from threading import Thread
+from tkinter import Canvas, Tk, Toplevel, ttk
+
 from PIL import Image, ImageTk
+from requests import get
 
-
-from speech_translate._version import __version__
-from speech_translate.custom_logging import logger
-from speech_translate._path import app_icon
 from speech_translate._constants import APP_NAME
+from speech_translate._path import app_icon
+from speech_translate._version import __version__
+from speech_translate.components.custom.tooltip import tk_tooltip
+from speech_translate.custom_logging import logger
 from speech_translate.globals import gc, sj
 from speech_translate.utils.helper import OpenUrl, nativeNotify
-from speech_translate.components.custom.tooltip import tk_tooltip
 
 
 # Classes
@@ -19,8 +18,8 @@ class AboutWindow:
     """About Window"""
 
     # ----------------------------------------------------------------------
-    def __init__(self, master: tk.Tk):
-        self.root = tk.Toplevel(master)
+    def __init__(self, master: Tk):
+        self.root = Toplevel(master)
         self.root.title(APP_NAME + " | About")
         self.root.geometry("375x220")
         self.root.wm_withdraw()
@@ -43,13 +42,13 @@ class AboutWindow:
 
         # Top frame
         try:  # Try catch the logo so if logo not found it can still run
-            self.canvas_img = tk.Canvas(self.f_top, width=100, height=100)
+            self.canvas_img = Canvas(self.f_top, width=100, height=100)
             self.canvas_img.pack(side="top", padx=5, pady=5)
             self.imgObj = Image.open(app_icon.replace(".ico", ".png"))
             self.imgObj = self.imgObj.resize((100, 100))
 
             self.img = ImageTk.PhotoImage(self.imgObj)
-            self.canvas_img.create_image(2, 50, anchor=tk.W, image=self.img)
+            self.canvas_img.create_image(2, 50, anchor="w", image=self.img)
         except Exception:
             self.logoNotFoud = ttk.Label(self.f_top, text="Fail To Load Logo, Logo not found", foreground="red")
             self.logoNotFoud.pack(side="top", padx=5, pady=5)
@@ -104,7 +103,7 @@ class AboutWindow:
         # ------------------ Set Icon ------------------
         try:
             self.root.iconbitmap(app_icon)
-        except:
+        except Exception:
             pass
 
         # ------------------------------
@@ -146,7 +145,7 @@ class AboutWindow:
     def req_update_check(self):
         try:
             # request to github api, compare version. If not same tell user to update
-            req = requests.get("https://api.github.com/repos/Dadangdut33/Speech-Translate/releases/latest")
+            req = get("https://api.github.com/repos/Dadangdut33/Speech-Translate/releases/latest")
 
             if req is not None and req.status_code == 200:
                 data = req.json()

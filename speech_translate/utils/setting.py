@@ -1,14 +1,14 @@
 __all__ = ["default_setting", "SettingJson"]
 import json
-import os
-import darkdetect
+from os import makedirs, path
 from typing import List
 
+from darkdetect import isDark
 from notifypy import Notify
 
+from speech_translate._version import __setting_version__
 from speech_translate.components.custom.message import mbox
 from speech_translate.custom_logging import logger
-from speech_translate._version import __setting_version__
 
 default_setting = {
     "version": __setting_version__,
@@ -25,7 +25,7 @@ default_setting = {
     "mic": "",
     "speaker": "",
     "hostAPI": "",
-    "theme": "sun-valley-dark" if darkdetect.isDark() else "sun-valley-light",
+    "theme": "sun-valley-dark" if isDark() else "sun-valley-light",
     "supress_hidden_to_tray": False,
     "supress_device_warning": False,
     "mw_size": "950x400",
@@ -34,7 +34,8 @@ default_setting = {
     "dir_model": "auto",
     "dir_export": "auto",
     "auto_open_dir_export": True,
-    "export_format": "%Y-%m-%d %H_%M {file}_{task}",  # {file} {task} {task-short} {lang-source} {lang-target} {model} {engine}
+    # {file} {task} {task-short} {lang-source} {lang-target} {model} {engine}
+    "export_format": "%Y-%m-%d %H_%M {file}_{task}",
     "file_slice_start": "",  # empty will be read as None
     "file_slice_end": "",  # empty will be read as None
     "parse_arabic": False,
@@ -156,11 +157,10 @@ class SettingJson:
     """
     Class to handle setting.json
     """
-
-    def __init__(self, settingPath: str, settingDir: str, checkdirs: List[str]):
+    def __init__(self, setting_path: str, setting_dir: str, checkdirs: List[str]):
         self.cache = {}
-        self.path = settingPath
-        self.dir = settingDir
+        self.setting_path = setting_path
+        self.dir = setting_dir
         self.createDirectoryIfNotExist(self.dir)  # setting dir
         for checkdir in checkdirs:
             self.createDirectoryIfNotExist(checkdir)
@@ -187,42 +187,42 @@ class SettingJson:
                 self.save_old_setting(self.cache)
                 self.cache = default_setting  # load default
                 self.save(self.cache)  # save
-                # notify
                 notification = Notify()
                 notification.application_name = "Speech Translate"
                 notification.title = "Setting file is outdated"
                 notification.message = "Setting file is outdated. Setting has been reverted to default setting."
                 notification.send()
                 logger.warning(
-                    "Setting file is outdated. Setting has been reverted to default setting. You can find your old setting in the user folder."
+                    "Setting file is outdated. Setting has been reverted to default setting. "
+                    "You can find your old setting in the user folder."
                 )
         else:
             self.cache = default_setting
             logger.error("Error loading setting file: " + msg)
-            mbox("Error", "Error: Loading setting file. " + self.path + "\nReason: " + msg, 2)
+            mbox("Error", "Error: Loading setting file. " + self.setting_path + "\nReason: " + msg, 2)
 
-    def createDirectoryIfNotExist(self, path: str):
+    def createDirectoryIfNotExist(self, dir: str):
         """
         Create directory if it doesn't exist
         """
         try:
-            if not os.path.exists(path):
-                os.makedirs(path)
+            if not path.exists(dir):
+                makedirs(dir)
         except Exception as e:
-            mbox("Error", "Error: Creating directory. " + path + "\nReason: " + str(e), 2)
+            mbox("Error", "Error: Creating directory. " + dir + "\nReason: " + str(e), 2)
 
     def createDefaultSettingIfNotExist(self):
         """
         Create default json file if it doesn't exist
         """
-        path = self.path
+        setting_path = self.setting_path
         try:
-            if not os.path.exists(path):
-                with open(path, "w", encoding="utf-8") as f:
+            if not path.exists(setting_path):
+                with open(setting_path, "w", encoding="utf-8") as f:
                     json.dump(default_setting, f, ensure_ascii=False, indent=4)
         except Exception as e:
             logger.exception(e)
-            mbox("Error", "Error: Creating default setting file. " + path + "\nReason: " + str(e), 2)
+            mbox("Error", "Error: Creating default setting file. " + setting_path + "\nReason: " + str(e), 2)
 
     def save(self, data: dict):
         """
@@ -231,7 +231,7 @@ class SettingJson:
         success: bool = False
         msg: str = ""
         try:
-            with open(self.path, "w", encoding="utf-8") as f:
+            with open(self.setting_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=4)
             success = True
             self.cache = data
@@ -248,7 +248,7 @@ class SettingJson:
         msg: str = ""
         try:
             with open(
-                self.path.replace("setting.json", f"setting_old_{data['version']}.json"),
+                self.setting_path.replace("setting.json", f"setting_old_{data['version']}.json"),
                 "w",
                 encoding="utf-8",
             ) as f:
@@ -288,7 +288,7 @@ class SettingJson:
         msg: str = ""
         data: dict = {}
         try:
-            with open(self.path, "r", encoding="utf-8") as f:
+            with open(self.setting_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             success = True
         except Exception as e:

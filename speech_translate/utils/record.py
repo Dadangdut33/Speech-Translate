@@ -1,47 +1,39 @@
-import audioop
-import io
-import os
-import platform
-import threading
-import ast
-import shlex
-import numpy as np
-import tkinter as tk
-import time as t
-from tkinter import ttk, filedialog
-from textwrap import wrap
+from ast import literal_eval
 from datetime import datetime, timedelta
-from time import sleep, time
-from typing import Literal, List, Union, Dict
+from io import BytesIO
+from os import path, remove, sep
+from platform import system
+from shlex import quote
+from textwrap import wrap
+from threading import Lock, Thread
+from time import gmtime, sleep, strftime, time
+from tkinter import Toplevel, filedialog, ttk
+from typing import Dict, List, Literal
+from wave import Wave_read, Wave_write
+from wave import open as w_open
 
-import whisper_timestamped as whisper
-import wave
-import scipy.io.wavfile as wav
 import librosa
+import numpy as np
+import scipy.io.wavfile as wav
+import whisper_timestamped as whisper
 
-
-if platform.system() == "Windows":
+if system() == "Windows":
     import pyaudiowpatch as pyaudio
 else:
     import pyaudio  # type: ignore
 
-from speech_translate._constants import WHISPER_SR, MIN_THRESHOLD, MAX_THRESHOLD, STEPS
+from speech_translate._constants import MAX_THRESHOLD, MIN_THRESHOLD, STEPS, WHISPER_SR
 from speech_translate._path import app_icon, dir_debug, dir_temp
-from speech_translate.globals import sj, gc, dir_export
-from speech_translate.utils.device import auto_threshold, get_db, get_device_details
-from speech_translate.custom_logging import logger
 from speech_translate.components.custom.label import LabelTitleText
 from speech_translate.components.custom.message import mbox
+from speech_translate.custom_logging import logger
+from speech_translate.globals import dir_export, gc, sj
+from speech_translate.utils.device import auto_threshold, get_db, get_device_details
 
-from .helper import cbtn_invoker, generate_temp_filename, get_proxies, nativeNotify, start_file, filename_only
+from .helper import cbtn_invoker, filename_only, generate_temp_filename, get_proxies, nativeNotify, start_file
 from .helper_whisper import (
-    get_temperature,
-    convert_str_options_to_dict,
-    whisper_result_to_srt,
-    srt_whisper_to_txt_format,
-    srt_whisper_to_txt_format_stamps,
-    txt_to_srt_whisper_format_stamps,
-    append_dot_en,
+    append_dot_en, convert_str_options_to_dict, get_temperature, srt_whisper_to_txt_format, srt_whisper_to_txt_format_stamps,
+    txt_to_srt_whisper_format_stamps, whisper_result_to_srt
 )
 from .translator import google_tl, libre_tl, memory_tl
 
@@ -57,7 +49,7 @@ def whisper_verbose_log(result):
     """
     logger.debug(f"Language: {result['language']}")
     logger.debug(f"Text: {result['text']}")
-    logger.debug(f"Segments:")
+    logger.debug("Segments:")
     for index, segment in enumerate(result["segments"]):
         logger.debug(f"Segment {index}")
         logger.debug(f"ID: {segment['id']}")
@@ -72,7 +64,7 @@ def whisper_verbose_log(result):
         logger.debug(f"No Speech Prob: {segment['no_speech_prob']}")
         logger.debug(f"Confidence: {segment['confidence']}")
 
-        logger.debug(f"Words:")
+        logger.debug("Words:")
         for index, words in enumerate(segment["words"]):
             logger.debug(f"Word {index}")
             logger.debug(f"Text: {words['text']}")
@@ -81,10 +73,7 @@ def whisper_verbose_log(result):
             logger.debug(f"Confidence: {words['confidence']}")
 
 
-# --------------------------------------------------------------------------------------------------------------------------------------
-
-
-# --------------------------------------------------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------------------------------------
 def record_realtime(
     lang_source: str,
     lang_target: str,
@@ -124,7 +113,7 @@ def record_realtime(
     """
     assert gc.mw is not None
     master = gc.mw.root
-    root = tk.Toplevel(master)
+    root = Toplevel(master)
     root.title("Loading...")
     root.transient(master)
     root.geometry("450x200")
@@ -167,13 +156,13 @@ def record_realtime(
     lbl_chunk_size = LabelTitleText(frame_lbl_2, "Chunk Size: ", "⌛")
     lbl_chunk_size.pack(side="left", fill="x", padx=5, pady=5)
 
-    lbl_buffer = LabelTitleText(frame_lbl_3, "Buffer: ", f"0/0 sec")
+    lbl_buffer = LabelTitleText(frame_lbl_3, "Buffer: ", "0/0 sec")
     lbl_buffer.pack(side="left", fill="x", padx=5, pady=5)
 
     progress_buffer = ttk.Progressbar(frame_lbl_4, orient="horizontal", length=200, mode="determinate")
     progress_buffer.pack(side="left", fill="x", padx=5, pady=5, expand=True)
 
-    lbl_timer = ttk.Label(frame_lbl_5, text=f"REC: 00:00:00")
+    lbl_timer = ttk.Label(frame_lbl_5, text="REC: 00:00:00")
     lbl_timer.pack(
         side="left",
         fill="x",
@@ -191,7 +180,7 @@ def record_realtime(
     btn_stop.pack(side="right", fill="x", padx=5, pady=5, expand=True)
     try:
         root.iconbitmap(app_icon)
-    except:
+    except Exception:
         pass
 
     modal_after = None
@@ -203,11 +192,11 @@ def record_realtime(
 
         # cannot transcribe concurrently. Will need to wait for the previous transcribe to finish
         if transcribe and whisperEngine:
-            gc.tc_lock = threading.Lock()
+            gc.tc_lock = Lock()
 
         # read from settings
         max_int16 = 2**15  # bit depth of 16 bit audio (32768)
-        separator = ast.literal_eval(shlex.quote(sj.cache["separate_with"]))
+        separator = literal_eval(quote(sj.cache["separate_with"]))
         use_temp = sj.cache["use_temp"]
         temperature = sj.cache["temperature"]
         whisper_args = sj.cache["whisper_extra_args"]
@@ -278,7 +267,7 @@ def record_realtime(
         paused = False
         duration_seconds = 0
         modal_update_rate = 300
-        gc.current_rec_status = f"💤 Idle"
+        gc.current_rec_status = "💤 Idle"
         gc.auto_detected_lang = "~"
         language = f"{lang_source} → {lang_target}" if translate else lang_source
 
@@ -295,7 +284,7 @@ def record_realtime(
                     gc.stream.stop_stream()
                 btn_pause.configure(text="Resume")
                 root.title(f"Recording {rec_type} (Paused)")
-                gc.current_rec_status = f"⏸️ Paused"
+                gc.current_rec_status = "⏸️ Paused"
                 update_status_lbl()
             else:
                 if gc.stream:
@@ -310,11 +299,12 @@ def record_realtime(
         def update_modal_ui():
             nonlocal timerStart, paused, modal_after
             if gc.recording and not paused:
-                timer = t.strftime("%H:%M:%S", t.gmtime(time() - timerStart))
+                timer = strftime("%H:%M:%S", gmtime(time() - timerStart))
                 data_queue_size = gc.data_queue.qsize() * chunk_size / 1024  # approx buffer size in kb
 
                 lbl_timer.configure(
-                    text=f"REC: {timer} | {language if not auto else language.replace('auto detect', f'auto detect ({gc.auto_detected_lang})')}"
+                    text=f"REC: {timer} | "
+                    f"{language if not auto else language.replace('auto detect', f'auto detect ({gc.auto_detected_lang})')}"
                 )
                 lbl_buffer.set_text(
                     f"{round(duration_seconds, 2)}/{round(max_record_time, 2)} sec ({round(data_queue_size, 2)} kb)"
@@ -368,7 +358,7 @@ def record_realtime(
             stream_callback=record_callback,
         )
 
-        logger.debug(f"Record Session Started")
+        logger.debug("Record Session Started")
 
         # transcribing loop
         while gc.recording:
@@ -393,15 +383,14 @@ def record_realtime(
                         last_sample += data
 
                     if sj.cache["debug_realtime_record"] == 1:
-                        logger.info(f"Processing Audio")
+                        logger.info("Processing Audio")
 
                     # When not using temp file, we need to convert the audio to numpy array. To do that
                     # We use librosa to resample to 16k because whisper only accept 16k hz audio and
                     # when we use numpy array we need to convert it ourselves
                     if not use_temp and sample_rate != WHISPER_SR:
-                        audio_as_np_int16 = np.frombuffer(
-                            last_sample, dtype=np.int16
-                        ).flatten()  # read as numpy array of int16
+                        audio_as_np_int16 = np.frombuffer(last_sample,
+                                                          dtype=np.int16).flatten()  # read as numpy array of int16
                         audio_as_np_float32 = audio_as_np_int16.astype(np.float32)  # convert to float32
                         resampled_audio = librosa.resample(audio_as_np_float32, orig_sr=sample_rate, target_sr=WHISPER_SR)
                         audio_bytes = resampled_audio.astype(np.int16).tobytes()  # Convert the resampled audio back to bytes
@@ -409,8 +398,8 @@ def record_realtime(
                         audio_bytes = last_sample
 
                     # Write out raw frames as a wave file.
-                    wf = io.BytesIO()
-                    wav_writer: wave.Wave_write = wave.open(wf, "wb")
+                    wf = BytesIO()
+                    wav_writer: Wave_write = w_open(wf, "wb")
                     wav_writer.setframerate(WHISPER_SR if not use_temp else sample_rate)
                     wav_writer.setsampwidth(p.get_sample_size(pyaudio.paInt16))
                     wav_writer.setnchannels(num_of_channels)
@@ -419,7 +408,7 @@ def record_realtime(
 
                     # Read the audio data
                     wf.seek(0)
-                    wav_reader: wave.Wave_read = wave.open(wf)
+                    wav_reader: Wave_read = w_open(wf)
                     samples = wav_reader.getnframes()
                     audio_bytes = wav_reader.readframes(samples)
                     duration_seconds = samples / WHISPER_SR  # 2 bytes per sample for int16
@@ -460,12 +449,12 @@ def record_realtime(
 
                         # delete the oldest file if the temp list is too long
                         if len(tempList) > sj.cache["max_temp"] and not sj.cache["keep_temp"]:
-                            os.remove(tempList[0])
+                            remove(tempList[0])
                             tempList.pop(0)
 
                     # DEBUG
                     if sj.cache["debug_realtime_record"] == 1:
-                        logger.info(f"Transcribing")
+                        logger.info("Transcribing")
 
                     # Transcribe the audio
                     gc.current_rec_status = "▶️ Recording ⟳ Transcribing"
@@ -518,7 +507,7 @@ def record_realtime(
 
                             # Using whisper engine
                             if whisperEngine:
-                                tlThread = threading.Thread(
+                                tlThread = Thread(
                                     target=whisper_realtime_tl,
                                     args=[
                                         audio_target,
@@ -532,7 +521,7 @@ def record_realtime(
                                 tlThread.start()
                             # Using translation API
                             else:
-                                tlThread = threading.Thread(
+                                tlThread = Thread(
                                     target=realtime_tl, args=[text, lang_source, lang_target, engine], daemon=True
                                 )
                                 tlThread.start()
@@ -555,7 +544,7 @@ def record_realtime(
 
             sleep(0.1)
         else:
-            logger.debug(f"Record Session ended")
+            logger.debug("Record Session ended")
 
             gc.current_rec_status = "⚠️ Stopping stream"
             update_status_lbl()
@@ -582,7 +571,7 @@ def record_realtime(
                 logger.info("Cleaning up audioFiles (if any)")
                 for audio in tempList:
                     try:
-                        os.remove(audio)
+                        remove(audio)
                     except FileNotFoundError:
                         pass
                 logger.info("Done!")
@@ -598,7 +587,7 @@ def record_realtime(
             logger.info("Modal closed")
             logger.info("-" * 50)
     except Exception as e:
-        logger.error(f"Error in record session")
+        logger.error("Error in record session")
         logger.exception(e)
         assert gc.mw is not None
         mbox("Error in record session", f"{str(e)}", 2, gc.mw.root)
@@ -613,16 +602,14 @@ def record_realtime(
 def record_callback(in_data, frame_count, time_info, status):
     """Record Audio From stream buffer and save it to a queue"""
     global threshold, rec_type, max, min, t_start, optimal, recording
-    assert gc.stream is not None
 
     # TODO: show db meter in the modal, idle status, auto breakup buffer
-    # store chunks of audio in queue
-    # record regardless of db
     if not sj.cache[f"threshold_enable_{rec_type}"]:
+        # store chunks of audio in queue
+        # record regardless of db
         gc.data_queue.put(in_data)
-
-    # only record if db is above threshold
     else:
+        # only record if db is above threshold
         db = get_db(in_data)
         if sj.cache[f"threshold_auto_{rec_type}"]:
             threshold, max, min, t_start, optimal, recording = auto_threshold(
@@ -632,12 +619,12 @@ def record_callback(in_data, frame_count, time_info, status):
             if recording:
                 gc.data_queue.put(in_data)
             else:
-                gc.current_rec_status = f"💤 Idle"
+                gc.current_rec_status = "💤 Idle"
         else:
             if db > sj.cache[f"threshold_db_{rec_type}"]:
                 gc.data_queue.put(in_data)
             else:
-                gc.current_rec_status = f"💤 Idle"
+                gc.current_rec_status = "💤 Idle"
 
     return (in_data, pyaudio.paContinue)
 
@@ -655,7 +642,7 @@ def whisper_realtime_tl(
 
     global prev_tl_text, sentences_tl
     try:
-        separator = ast.literal_eval(shlex.quote(sj.cache["separate_with"]))
+        separator = literal_eval(quote(sj.cache["separate_with"]))
 
         assert gc.tc_lock is not None
         gc.tc_lock.acquire()
@@ -674,7 +661,7 @@ def whisper_realtime_tl(
             prev_tl_text = text
 
             if sj.cache["debug_realtime_record"] == 1:
-                logger.debug(f"New translated text (Whisper)")
+                logger.debug("New translated text (Whisper)")
                 if sj.cache["verbose"]:
                     logger.debug(whisper_verbose_log(result))
                 else:
@@ -710,7 +697,7 @@ def realtime_tl(
 
     try:
         global prev_tl_text, sentences_tl
-        separator = ast.literal_eval(shlex.quote(sj.cache["separate_with"]))
+        separator = literal_eval(quote(sj.cache["separate_with"]))
         tl_res = ""
         debug_log = sj.cache["debug_translate"]
 
@@ -762,7 +749,7 @@ def realtime_tl(
         gc.disableTranslating()  # flag processing as done
 
 
-# --------------------------------------------------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------------------------------------
 # run in threaded environment with queue and exception to cancel
 def cancellable_tl(
     query: str,
@@ -776,8 +763,8 @@ def cancellable_tl(
 ):
     """
     Translate the result of file input using either whisper model or translation API
-    This function is cancellable with the cancel flag that is set by the cancel button and will be checked periodically every 0.1 seconds
-    If the cancel flag is set, the function will raise an exception to stop the thread
+    This function is cancellable with the cancel flag that is set by the cancel button and will be checked periodically every
+    0.1 seconds. If the cancel flag is set, the function will raise an exception to stop the thread
 
     We use thread instead of multiprocessing because it seems to be faster and easier to use
 
@@ -807,10 +794,10 @@ def cancellable_tl(
     assert gc.mw is not None
     gc.enableTranslating()
     gc.mw.start_loadBar()
-    logger.debug(f"Translating...")
+    logger.debug("Translating...")
 
     try:
-        separator = ast.literal_eval(shlex.quote(sj.cache["separate_with"]))
+        separator = literal_eval(quote(sj.cache["separate_with"]))
         export_to = dir_export if sj.cache["dir_export"] == "auto" else sj.cache["dir_export"]
         save_name = save_name.replace("{task}", "translate")
         save_name = save_name.replace("{task-short}", "tl")
@@ -818,7 +805,7 @@ def cancellable_tl(
         if engine == "Whisper":
             try:
                 # verify audio file exists
-                if not os.path.isfile(query):
+                if not path.isfile(query):
                     logger.warning("Audio file does not exist")
                     gc.disableTranslating()
                     return
@@ -837,7 +824,7 @@ def cancellable_tl(
                     )
                     gc.data_queue.put(result)
 
-                thread = threading.Thread(target=run_threaded, daemon=True)
+                thread = Thread(target=run_threaded, daemon=True)
                 thread.start()
 
                 while thread.is_alive():
@@ -865,10 +852,10 @@ def cancellable_tl(
                 gc.file_tled_counter += 1
                 resultSrt = whisper_result_to_srt(result_Tl_whisper)
 
-                with open(os.path.join(export_to, f"{save_name}.txt"), "w", encoding="utf-8") as f:
+                with open(path.join(export_to, f"{save_name}.txt"), "w", encoding="utf-8") as f:
                     f.write(resultsTxt)
 
-                with open(os.path.join(export_to, f"{save_name}.srt"), "w", encoding="utf-8") as f:
+                with open(path.join(export_to, f"{save_name}.srt"), "w", encoding="utf-8") as f:
                     f.write(resultSrt)
 
                 gc.insert_result_mw(f"translated {save_name} and saved to .txt and .srt" + separator, "tl")
@@ -922,7 +909,8 @@ def cancellable_tl(
                 result_Tl.append(result)
 
             for i, results in enumerate(result_Tl):
-                # sended text (toTranslate parameter) is sended in srt format so the result that we got from translation is as srt
+                # sended text (toTranslate parameter) is sended in srt format
+                # so the result that we got from translation is as srt
                 resultSrt = results
                 resultTxt = srt_whisper_to_txt_format(resultSrt)  # format it back to txt
 
@@ -930,10 +918,10 @@ def cancellable_tl(
                     gc.file_tled_counter += 1
                     save_name_part = f"{save_name}_pt{i + 1}" if len(result_Tl) > 1 else save_name
 
-                    with open(os.path.join(export_to, f"{save_name_part}.txt"), "w", encoding="utf-8") as f:
+                    with open(path.join(export_to, f"{save_name_part}.txt"), "w", encoding="utf-8") as f:
                         f.write(resultTxt)
 
-                    with open(os.path.join(export_to, f"{save_name_part}.srt"), "w", encoding="utf-8") as f:
+                    with open(path.join(export_to, f"{save_name_part}.srt"), "w", encoding="utf-8") as f:
                         f.write(resultSrt)
 
                     gc.insert_result_mw(f"Translated {save_name_part} and saved to .txt and .srt", "tl")
@@ -999,10 +987,10 @@ def cancellable_tc(
 
     # Transcribe
     logger.info("-" * 50)
-    logger.info(f"Transcribing Audio: {audio_name.split(os.sep)[-1]}")
+    logger.info(f"Transcribing Audio: {audio_name.split(sep)[-1]}")
 
     # verify audio file exists
-    if not os.path.isfile(audio_name):
+    if not path.isfile(audio_name):
         logger.warning("Audio file does not exist")
         gc.disableTranslating()
         gc.mw.stop_loadBar()
@@ -1026,7 +1014,7 @@ def cancellable_tc(
             )
             gc.data_queue.put(result)
 
-        thread = threading.Thread(target=run_threaded, daemon=True)
+        thread = Thread(target=run_threaded, daemon=True)
         thread.start()
 
         while thread.is_alive():
@@ -1052,10 +1040,10 @@ def cancellable_tc(
                 gc.file_tced_counter += 1
                 resultSrt = whisper_result_to_srt(result_Tc)
 
-                with open(os.path.join(export_to, f"{save_name}.txt"), "w", encoding="utf-8") as f:
+                with open(path.join(export_to, f"{save_name}.txt"), "w", encoding="utf-8") as f:
                     f.write(resultTxt)
 
-                with open(os.path.join(export_to, f"{save_name}.srt"), "w", encoding="utf-8") as f:
+                with open(path.join(export_to, f"{save_name}.srt"), "w", encoding="utf-8") as f:
                     f.write(resultSrt)
 
                 gc.insert_result_mw(f"Transcribed File {name_only} saved to {save_name} .txt and .srt", "tc")
@@ -1067,9 +1055,10 @@ def cancellable_tc(
 
         # start translation thread if translate mode is on
         if translate:
-            # send result as srt if not using whisper because it will be send to translation API. If using whisper translation will be done using whisper model
+            # send result as srt if not using whisper because it will be send to translation API.
+            # If using whisper translation will be done using whisper model
             toTranslate = whisper_result_to_srt(result_Tc) if engine != "Whisper" else audio_name
-            translateThread = threading.Thread(
+            translateThread = Thread(
                 target=cancellable_tl,
                 args=[
                     toTranslate,
@@ -1126,7 +1115,7 @@ def file_input(
     assert gc.mw is not None
     # window to show progress
     master = gc.mw.root
-    root = tk.Toplevel(master)
+    root = Toplevel(master)
     root.title("File Import Progress")
     root.transient(master)
     root.geometry("450x225")
@@ -1134,7 +1123,7 @@ def file_input(
     root.geometry("+{}+{}".format(master.winfo_rootx() + 50, master.winfo_rooty() + 50))
     try:
         root.iconbitmap(app_icon)
-    except:
+    except Exception:
         pass
 
     # widgets
@@ -1180,7 +1169,7 @@ def file_input(
     lbl_tled = LabelTitleText(frame_lbl_3, "Translated: ", f"{gc.file_tled_counter}")
     lbl_tled.pack(side="left", fill="x", padx=5, pady=5)
 
-    lbl_elapsed = LabelTitleText(frame_lbl_4, "Elapsed: ", f"0s")
+    lbl_elapsed = LabelTitleText(frame_lbl_4, "Elapsed: ", "0s")
     lbl_elapsed.pack(side="left", fill="x", padx=5, pady=5)
 
     progress_bar = ttk.Progressbar(frame_lbl_5, orient="horizontal", length=300, mode="determinate")
@@ -1202,7 +1191,7 @@ def file_input(
 
     try:
         startProc = time()
-        logger.info(f"Start Process (FILE)")
+        logger.info("Start Process (FILE)")
         gc.file_tced_counter = 0
         gc.file_tled_counter = 0
 
@@ -1214,10 +1203,8 @@ def file_input(
         temperature = sj.cache["temperature"]
         whisper_args = sj.cache["whisper_extra_args"]
         export_format: str = sj.cache["export_format"]
-        file_slice_start: Union[None, int] = (
-            None if sj.cache["file_slice_start"] == "" else int(sj.cache["file_slice_start"])
-        )
-        file_slice_end: Union[None, int] = None if sj.cache["file_slice_end"] == "" else int(sj.cache["file_slice_end"])
+        file_slice_start = (None if sj.cache["file_slice_start"] == "" else int(sj.cache["file_slice_start"]))
+        file_slice_end = None if sj.cache["file_slice_end"] == "" else int(sj.cache["file_slice_end"])
 
         success, data = get_temperature(temperature)
         if not success:
@@ -1288,7 +1275,7 @@ def file_input(
                     current_file_counter = gc.file_tled_counter
 
                 lbl_files.set_text(text=f"{current_file_counter}/{len(files)}")
-                lbl_elapsed.set_text(text=f"{t.strftime('%H:%M:%S', t.gmtime(time() - timerStart))}")
+                lbl_elapsed.set_text(text=f"{strftime('%H:%M:%S', gmtime(time() - timerStart))}")
 
                 if current_file_counter > 0:
                     lbl_files.set_text(
@@ -1337,7 +1324,7 @@ def file_input(
             logger.debug("save_name: " + save_name)
 
             if translate and whisperEngine and not transcribe:  # if only translating and using the whisper engine
-                proc_thread = threading.Thread(
+                proc_thread = Thread(
                     target=cancellable_tl,
                     args=[
                         file,
@@ -1354,7 +1341,7 @@ def file_input(
             else:
                 # will automatically check translate on or not depend on input
                 # translate is called from here because other engine need to get transcribed text first if translating
-                proc_thread = threading.Thread(
+                proc_thread = Thread(
                     target=cancellable_tc,
                     args=[
                         file,
@@ -1389,10 +1376,8 @@ def file_input(
 
             resultMsg = (
                 f"Transcribed {gc.file_tced_counter} file(s) and Translated {gc.file_tled_counter} file(s)"
-                if transcribe and translate
-                else f"Transcribed {gc.file_tced_counter} file(s)"
-                if transcribe
-                else f"Translated {gc.file_tled_counter} file(s)"
+                if transcribe and translate else
+                f"Transcribed {gc.file_tced_counter} file(s)" if transcribe else f"Translated {gc.file_tled_counter} file(s)"
             )
             mbox(f"File {taskname} Done", resultMsg, 0)
 

@@ -1,19 +1,20 @@
-import os
-import random
-import subprocess
-import webbrowser
-import platform
-
 import tkinter as tk
 from datetime import datetime
+from os import path, startfile
+from platform import system
+from random import choice
+from subprocess import Popen
 from tkinter import colorchooser, ttk
-from typing import Dict, Union, List
+from typing import Dict, List, Union
+from webbrowser import open_new
+
 from notifypy import Notify, exceptions
 from PIL import Image, ImageDraw, ImageFont, ImageTk
+
+from speech_translate._constants import APP_NAME
+from speech_translate._path import app_icon, app_icon_missing
 from speech_translate.components.custom.tooltip import tk_tooltip
 from speech_translate.custom_logging import logger
-from speech_translate._path import app_icon, app_icon_missing
-from speech_translate._constants import APP_NAME
 
 
 def up_first_case(string: str):
@@ -33,11 +34,11 @@ def get_proxies(proxy_http: str, proxy_https: str):
     if proxy_http != "":
         http_list = proxy_http.split()
         http_list = [word for word in http_list if any(char.isalpha() for char in word)]
-        proxies["http"] = random.choice(http_list)
+        proxies["http"] = choice(http_list)
     if proxy_https != "":
         https_list = proxy_https.split()
         https_list = [word for word in https_list if any(char.isalpha() for char in word)]
-        proxies["https"] = random.choice(https_list)
+        proxies["https"] = choice(https_list)
     return proxies
 
 
@@ -58,13 +59,13 @@ def start_file(filename: str):
     Open a folder or file in the default application.
     """
     try:
-        os.startfile(filename)
+        startfile(filename)
     except FileNotFoundError:
         logger.exception("Cannot find the file specified.")
         nativeNotify("Error", "Cannot find the file specified.")
     except Exception:
         try:
-            subprocess.Popen(["xdg-open", filename])
+            Popen(["xdg-open", filename])
         except FileNotFoundError:
             logger.exception("Cannot open the file specified.")
             nativeNotify("Error", "Cannot find the file specified.")
@@ -78,7 +79,7 @@ def OpenUrl(url: str):
     To open a url in the default browser
     """
     try:
-        webbrowser.open_new(url)
+        open_new(url)
     except Exception as e:
         logger.exception(e)
         nativeNotify("Error", "Cannot open the url specified.")
@@ -103,7 +104,8 @@ def nativeNotify(title: str, message: str):
 
 def no_connection_notify(
     customTitle: str = "No Internet Connection",
-    customMessage: str = "Translation for engine other than Whisper or your local LibreTranslate Deployment (If you have one) will not work until you reconnect to the internet.",
+    customMessage: str = "Translation for engine other than Whisper or your local LibreTranslate Deployment "
+    "(If you have one) will not work until you reconnect to the internet.",
 ):
     """
     Notify user that they are not connected to the internet
@@ -115,7 +117,7 @@ def generate_temp_filename(base_dir):
     """
     Generates a temporary filename with the current date and time.
     """
-    return os.path.join(base_dir, datetime.now().strftime("%Y-%m-%d %H_%M_%S_%f")) + ".wav"
+    return path.join(base_dir, datetime.now().strftime("%Y-%m-%d %H_%M_%S_%f")) + ".wav"
 
 
 def filename_only(filename: str):
@@ -236,12 +238,8 @@ def bind_focus_recursively(root, root_widget):
             bind_focus_recursively(root, widget)
 
         if (
-            isinstance(widget, tk.Frame)
-            or isinstance(widget, ttk.Frame)
-            or isinstance(widget, tk.LabelFrame)
-            or isinstance(widget, ttk.LabelFrame)
-            or isinstance(widget, tk.Label)
-            or isinstance(widget, ttk.Label)
+            isinstance(widget, tk.Frame) or isinstance(widget, ttk.Frame) or isinstance(widget, tk.LabelFrame)
+            or isinstance(widget, ttk.LabelFrame) or isinstance(widget, tk.Label) or isinstance(widget, ttk.Label)
         ):
             # make sure that Button-1 is not already binded
             if "<Button-1>" not in widget.bind():
@@ -249,33 +247,31 @@ def bind_focus_recursively(root, root_widget):
 
 
 def windows_os_only(
-    widgets: List[
-        Union[
-            ttk.Checkbutton,
-            ttk.Radiobutton,
-            ttk.Entry,
-            ttk.Combobox,
-            ttk.Button,
-            ttk.Labelframe,
-            tk.LabelFrame,
-            ttk.Frame,
-            tk.Frame,
-            tk.Label,
-            ttk.Label,
-            tk.Scale,
-            ttk.Scale,
-        ]
-    ]
+    widgets: List[Union[
+        ttk.Checkbutton,
+        ttk.Radiobutton,
+        ttk.Entry,
+        ttk.Combobox,
+        ttk.Button,
+        ttk.Labelframe,
+        tk.LabelFrame,
+        ttk.Frame,
+        tk.Frame,
+        tk.Label,
+        ttk.Label,
+        tk.Scale,
+        ttk.Scale,
+    ]]
 ):
     """
     Disable widgets that are not available on Windows OS
 
     Args
     ----
-        widgets (List[ Union[ ttk.Checkbutton, ttk.Radiobutton, ttk.Entry, ttk.Combobox, ttk.Button, ttk.Labelframe, tk.LabelFrame, ttk.Frame, tk.Frame, ] ]):
+        widgets:
             List of widgets to disable
     """
-    if platform.system() != "Windows":
+    if system() != "Windows":
         hide = [ttk.LabelFrame, tk.LabelFrame, ttk.Frame, tk.Frame]
 
         for widget in widgets:
