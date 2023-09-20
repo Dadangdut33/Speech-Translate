@@ -8,7 +8,7 @@ from speech_translate.components.custom.label import DraggableLabel
 from speech_translate.components.custom.message import mbox
 from speech_translate.components.custom.tooltip import tk_tooltip
 from speech_translate.globals import gc, sj
-from speech_translate.utils.beep import beep
+from speech_translate.utils.audio.beep import beep
 from speech_translate.utils.helper import emoji_img
 
 

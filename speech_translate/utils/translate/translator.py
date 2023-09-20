@@ -1,7 +1,7 @@
 from requests import post as r_post
 from typing import Dict
 from speech_translate.custom_logging import logger
-from .helper import get_similar_keys, no_connection_notify
+from ..helper import get_similar_keys, no_connection_notify
 from .language import google_lang, libre_lang, myMemory_lang
 
 # Import the translator

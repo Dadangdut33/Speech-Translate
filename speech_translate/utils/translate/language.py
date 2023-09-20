@@ -1,4 +1,4 @@
-from .helper import up_first_case
+from ..helper import up_first_case
 
 # List of whisper languages
 whisper_compatible = [

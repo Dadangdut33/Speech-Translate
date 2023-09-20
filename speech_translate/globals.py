@@ -87,7 +87,7 @@ class GlobalClass:
         self.dl_thread: Optional[Thread] = None
         self.cancel_dl: bool = False
 
-        self.cw = None  # Console window
+        self.cw: Optional[int] = None  # Console window
         # References to class
         self.tray: Optional[AppTray] = None
         """Tray app class"""
@@ -106,34 +106,34 @@ class GlobalClass:
 
         # record stream
         self.stream: Optional[pyaudio.Stream] = None
-        self.data_queue = Queue()
-        self.current_rec_status = ""
-        self.auto_detected_lang = "~"
+        self.data_queue: Queue = Queue()
+        self.current_rec_status: str = ""
+        self.auto_detected_lang: str = "~"
         self.tc_lock: Optional[Lock] = None
 
         # file process
         self.file_tced_counter: int = 0
         self.file_tled_counter: int = 0
 
-    def enableRecording(self):
+    def enable_rec(self):
         self.recording = True
 
-    def disableRecording(self):
+    def disable_rec(self):
         self.recording = False
 
-    def enableTranscribing(self):
+    def enable_tc(self):
         self.transcribing = True
 
-    def disableTranscribing(self):
+    def disable_tc(self):
         self.transcribing = False
 
-    def enableTranslating(self):
+    def enable_tl(self):
         self.translating = True
 
-    def disableTranslating(self):
+    def disable_tl(self):
         self.translating = False
 
-    def getSeparator(self):
+    def get_separator(self):
         return literal_eval(quote(sj.cache["separate_with"]))
 
     def insert_result_mw(self, textToAppend, mode: Literal["tc", "tl"]):
@@ -151,7 +151,7 @@ class GlobalClass:
         get_text = op_dic[mode][0]
         tb = op_dic[mode][1]
 
-        separator = self.getSeparator()
+        separator = self.get_separator()
         currentText = get_text()
         # if not infinite and text too long
         # remove words from the start with length of the new text
@@ -214,7 +214,7 @@ class GlobalClass:
         get_text = op_dic[mode][0]
         ex: Union[TcsWindow, TlsWindow] = op_dic[mode][1]
 
-        separator = self.getSeparator()
+        separator = self.get_separator()
         currentText = get_text()
         # if not infinite and text too long
         # remove words from the start with length of the new text

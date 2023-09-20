@@ -14,6 +14,41 @@ modelKeys = list(modelSelectDict.keys())
 modelValues = list(modelSelectDict.values())
 
 
+def whisper_verbose_log(result):
+    """
+    This will log the result of the whisper engine in a verbose way.
+
+    Parameters
+    ----
+    result:
+        whisper result
+    """
+    logger.debug(f"Language: {result['language']}")
+    logger.debug(f"Text: {result['text']}")
+    logger.debug("Segments:")
+    for index, segment in enumerate(result["segments"]):
+        logger.debug(f"Segment {index}")
+        logger.debug(f"ID: {segment['id']}")
+        logger.debug(f"Seek: {segment['seek']}")
+        logger.debug(f"Start: {segment['start']}")
+        logger.debug(f"End: {segment['end']}")
+        logger.debug(f"Text: {segment['text']}")
+        logger.debug(f"Tokens: {segment['tokens']}")
+        logger.debug(f"Temperature: {segment['temperature']}")
+        logger.debug(f"Avg Logprob: {segment['avg_logprob']}")
+        logger.debug(f"Compression Ratio: {segment['compression_ratio']}")
+        logger.debug(f"No Speech Prob: {segment['no_speech_prob']}")
+        logger.debug(f"Confidence: {segment['confidence']}")
+
+        logger.debug("Words:")
+        for index, words in enumerate(segment["words"]):
+            logger.debug(f"Word {index}")
+            logger.debug(f"Text: {words['text']}")
+            logger.debug(f"Start: {words['start']}")
+            logger.debug(f"End: {words['end']}")
+            logger.debug(f"Confidence: {words['confidence']}")
+
+
 def append_dot_en(modelKey: str, src_english: bool):
     """
     Append .en to model name if src_english is True and model is not large (large does not have english version)

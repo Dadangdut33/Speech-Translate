@@ -1,6 +1,7 @@
 torch
 torchvision
 torchaudio
+librosa
 deep-translator==1.11.0
 notify-py==0.3.42
 pillow==9.5.0

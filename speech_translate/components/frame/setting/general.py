@@ -8,9 +8,9 @@ from speech_translate.globals import sj, gc
 from speech_translate._path import dir_log, dir_temp, dir_export, dir_debug
 from speech_translate.custom_logging import logger, current_log
 from speech_translate.utils.helper import filename_only, popup_menu, emoji_img, up_first_case
-from speech_translate.utils.model_download import verify_model, download_model, get_default_download_root
+from speech_translate.utils.whisper.download import verify_model, download_model, get_default_download_root
 from speech_translate.utils.helper import start_file, cbtn_invoker
-from speech_translate.utils.style import set_ui_style
+from speech_translate.utils.ui.style import set_ui_style
 from speech_translate.components.custom.message import MBoxText, mbox
 from speech_translate.components.custom.tooltip import tk_tooltip, tk_tooltips
 
@@ -625,23 +625,26 @@ class SettingGeneral:
         )
 
     def update_preview_export_format(self):
-        filename = filename_only("this is an example video or audio file.mp4")
-        task = "transcribe"
-        short_task = "tc"
-        slice_start = int(self.entry_slice_file_start.get()) if self.entry_slice_file_start.get() != "" else None
-        slice_end = int(self.entry_slice_file_end.get()) if self.entry_slice_file_end.get() != "" else None
+        try:
+            filename = filename_only("this is an example video or audio file.mp4")
+            task = "transcribe"
+            short_task = "tc"
+            slice_start = int(self.entry_slice_file_start.get()) if self.entry_slice_file_start.get() != "" else None
+            slice_end = int(self.entry_slice_file_end.get()) if self.entry_slice_file_end.get() != "" else None
 
-        assert gc.mw is not None
-        save_name = datetime.now().strftime(self.entry_export_format.get())
-        save_name = save_name.replace("{file}", filename[slice_start:slice_end])
-        save_name = save_name.replace("{lang-source}", gc.mw.cb_sourceLang.get())
-        save_name = save_name.replace("{lang-target}", gc.mw.cb_targetLang.get())
-        save_name = save_name.replace("{model}", gc.mw.cb_model.get())
-        save_name = save_name.replace("{engine}", gc.mw.cb_engine.get())
-        save_name = save_name.replace("{task}", task)
-        save_name = save_name.replace("{task-short}", short_task)
+            assert gc.mw is not None
+            save_name = datetime.now().strftime(self.entry_export_format.get())
+            save_name = save_name.replace("{file}", filename[slice_start:slice_end])
+            save_name = save_name.replace("{lang-source}", gc.mw.cb_sourceLang.get())
+            save_name = save_name.replace("{lang-target}", gc.mw.cb_targetLang.get())
+            save_name = save_name.replace("{model}", gc.mw.cb_model.get())
+            save_name = save_name.replace("{engine}", gc.mw.cb_engine.get())
+            save_name = save_name.replace("{task}", task)
+            save_name = save_name.replace("{task-short}", short_task)
 
-        self.lbl_preview_export_format_result.configure(text=save_name)
+            self.lbl_preview_export_format_result.configure(text=save_name)
+        except Exception:
+            pass
 
     def delete_log(self):
         # delete all log files

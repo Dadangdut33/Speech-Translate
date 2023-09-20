@@ -34,6 +34,7 @@ def get_db(audio_data: bytes) -> float:
         return 20 * log10(rms)  # convert to db
 
 
+#TODO: FIX if threshold is already lower than the db, it will not adjust anymore
 def auto_threshold(
     db: float,
     threshold: float,

@@ -7,7 +7,7 @@ from typing import Literal, Union
 from speech_translate.globals import sj
 from speech_translate.custom_logging import logger
 from speech_translate._constants import MIN_THRESHOLD, MAX_THRESHOLD, STEPS
-from speech_translate.utils.device import auto_threshold, get_db, get_device_details
+from speech_translate.utils.audio.device import auto_threshold, get_db, get_device_details
 from speech_translate.utils.helper import number_only, max_number, cbtn_invoker, emoji_img, windows_os_only
 if system() == "Windows":
     import pyaudiowpatch as pyaudio
@@ -988,7 +988,9 @@ class SettingRecord:
                 self.lbl_threshold_db_mic.pack_forget()
                 self.audiometer_mic.pack_forget()
         except Exception as e:
-            logger.exception(e)
+            # when on start up, the main thread is not in main loop. ignore
+            if "main thread is not in main loop" not in str(e):
+                logger.exception(e)
             # fail because probably no device
             self.close_meter_mic()
 
@@ -1136,7 +1138,10 @@ class SettingRecord:
                 self.lbl_threshold_db_speaker.pack_forget()
                 self.audiometer_speaker.pack_forget()
         except Exception as e:
-            logger.exception(e)
+            # when on start up, the main thread is not in main loop. ignore
+            if "main thread is not in main loop" not in str(e):
+                logger.exception(e)
+
             # fail because probably no device
             self.close_meter_speaker()
 

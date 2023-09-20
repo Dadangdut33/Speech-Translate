@@ -90,31 +90,28 @@ brew install ffmpeg
   3. Run the program
   
 ## As module:
-  - From the latest commit: 
   
-    with **GPU (Cuda compatible)** support: 
+  To install as module, we can use pip. Here is how to do it: 
+  
+  with **GPU (Cuda compatible)** support: 
+  
+  `pip install -U git+https://github.com/Dadangdut33/Speech-Translate.git --extra-index-url https://download.pytorch.org/whl/cu118`
 
-    `pip install -U git+https://github.com/Dadangdut33/Speech-Translate.git --extra-index-url https://download.pytorch.org/whl/cu118`
-
-    **CPU** only:
-
-    `pip install -U git+https://github.com/Dadangdut33/Speech-Translate.git`
-
-    If you are updating from an older version, you can add `--upgrade --no-deps --force-reinstall` at the end of the command.
-
-    **Notes:**
-
-    -  This will install the latest commit from the main branch. You can also install from a specific branch or commit by adding `@branch_name` or `@commit_hash` at the end of the url. Example:
-```pip install -U git+https://github.com/Dadangdut33/Speech-Translate.git@dev --extra-index-url https://download.pytorch.org/whl/cu118```
-
-    - The --extra-index-url shown here might not always be up to date, so you can check the latest version of pytorch [here](https://pytorch.org/get-started/locally/). You can also check the available version of pytorch [here](https://download.pytorch.org/whl/torch_stable.html).
-    -  You can also clone the repo and install it locally by running `pip install -e .` in the project directory. (Don't forget to add `--extra-index-url` if you want to install with GPU support)
-
-    You can then run the program by typing `speech-translate` in your terminal/console.
-
+  **CPU** only:
+  
+  `pip install -U git+https://github.com/Dadangdut33/Speech-Translate.git`
+  
+  You can then run the program by typing `speech-translate` in your terminal/console. Alternatively, when installing as a module, you can also clone the repo and install it locally by running `pip install -e .` in the project directory. (Don't forget to add `--extra-index-url` if you want to install with GPU support)
+  
+  **Notes:**
+  
+  -  If you want to install from a specific branch or commit, you can do it by adding `@branch_name` or `@commit_hash` at the end of the url. Example: `pip install -U git+https://github.com/Dadangdut33/Speech-Translate.git@dev --extra-index-url https://download.pytorch.org/whl/cu118`
+  -  The --extra-index-url shown here might not always be up to date, so you can check the latest version of pytorch [here](https://pytorch.org/get-started/locally/). You can also check the available version of pytorch [here](https://download.pytorch.org/whl/torch_stable.html).
+  -  If you are updating from an older version, you can add `--upgrade --no-deps --force-reinstall` at the end of the command.
+   
 # General Usage
 
-- Realtime Record:
+- Live speech to text and speech translation:
 
   1. Set user setting
   2. Select model, mode, and language
@@ -128,7 +125,6 @@ brew install ffmpeg
   2. Select model, mode, and language
   3. Click the import file button
   4. Wait for the process to finish or cancel it
-
 
 # User Settings and Thing to Note
 

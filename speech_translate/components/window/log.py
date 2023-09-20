@@ -83,7 +83,7 @@ class LogWindow:
 
         # On Close
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
-        self.onInit()
+        self.on_init()
         bind_focus_recursively(self.root, self.root)
 
         # ------------------ Set Icon ------------------
@@ -92,7 +92,7 @@ class LogWindow:
         except Exception:
             pass
 
-    def onInit(self):
+    def on_init(self):
         if sj.cache["auto_scroll_log"]:
             self.cbtn_auto_scroll.invoke()
         else:

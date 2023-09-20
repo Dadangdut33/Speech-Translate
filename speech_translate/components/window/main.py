@@ -24,7 +24,7 @@ from speech_translate.components.window.transcribed import TcsWindow
 from speech_translate.components.window.translated import TlsWindow
 from speech_translate.custom_logging import logger
 from speech_translate.globals import gc, sj
-from speech_translate.utils.device import (
+from speech_translate.utils.audio.device import (
     get_default_host_api, get_default_input_device, get_default_output_device, get_host_apis, get_input_devices,
     get_output_devices
 )
@@ -32,11 +32,14 @@ from speech_translate.utils.helper import (
     bind_focus_recursively, cbtn_invoker, emoji_img, nativeNotify, popup_menu, start_file, tb_copy_only, up_first_case,
     windows_os_only
 )
-from speech_translate.utils.helper_whisper import append_dot_en, modelKeys, modelSelectDict
-from speech_translate.utils.language import engine_select_source_dict, engine_select_target_dict, whisper_compatible
-from speech_translate.utils.model_download import download_model, verify_model
-from speech_translate.utils.record import file_input, record_realtime
-from speech_translate.utils.style import get_current_theme, get_theme_list, init_theme, set_ui_style
+from speech_translate.utils.translate.language import (
+    engine_select_source_dict, engine_select_target_dict, whisper_compatible
+)
+from speech_translate.utils.whisper.helper import append_dot_en, modelKeys, modelSelectDict
+from speech_translate.utils.whisper.download import download_model, verify_model
+from speech_translate.utils.audio.record import record_realtime
+from speech_translate.utils.audio.file import import_file
+from speech_translate.utils.ui.style import get_current_theme, get_theme_list, init_theme, set_ui_style
 
 # Terminal window hide/showing
 try:
@@ -196,7 +199,7 @@ class MainWindow:
         # ------------------ Elements ------------------
         # -- f1_toolbar
         # model
-        self.lbl_model = ttk.Label(self.f1_toolbar, text="Model:")
+        self.lbl_model = ttk.Label(self.f1_toolbar, text="Transcribe:")
         self.lbl_model.pack(side="left", fill="x", padx=5, pady=5, expand=False)
 
         self.cb_model = ttk.Combobox(self.f1_toolbar, values=modelKeys, state="readonly")
@@ -547,9 +550,9 @@ class MainWindow:
         # cancel the is_running_poll
         self.root.after_cancel(gc.running_after_id)
 
-        gc.disableRecording()
-        gc.disableTranscribing()
-        gc.disableTranslating()
+        gc.disable_rec()
+        gc.disable_tc()
+        gc.disable_tl()
 
         logger.info("Stopping tray...")
         if gc.tray:
@@ -1287,7 +1290,7 @@ class MainWindow:
         self.disable_interactions()
         self.btn_record.configure(text="Loading", command=self.rec_stop, state="normal")
 
-        gc.enableRecording()  # Flag update    # Disable recording is by button input
+        gc.enable_rec()  # Flag update    # Disable recording is by button input
 
         # Start thread
         try:
@@ -1306,7 +1309,7 @@ class MainWindow:
 
     def rec_stop(self):
         logger.info("Recording Stopped")
-        gc.disableRecording()
+        gc.disable_rec()
 
         self.btn_record.configure(text="Stopping...", state="disabled")
 
@@ -1381,12 +1384,12 @@ class MainWindow:
         self.disable_interactions()
         self.btn_import_file.configure(text="Loading", command=lambda: self.from_file_stop(True), state="normal")
 
-        gc.enableRecording()  # Flag update
+        gc.enable_rec()  # Flag update
 
         # Start thread
         try:
             recFileThread = Thread(
-                target=file_input, args=(list(files), modelKey, sourceLang, targetLang, tc, tl, engine), daemon=True
+                target=import_file, args=(list(files), modelKey, sourceLang, targetLang, tc, tl, engine), daemon=True
             )
             recFileThread.start()
         except Exception as e:
@@ -1400,9 +1403,9 @@ class MainWindow:
                 return
 
         logger.info("Cancelling file import processing...")
-        gc.disableRecording()
-        gc.disableTranscribing()
-        gc.disableTranslating()
+        gc.disable_rec()
+        gc.disable_tc()
+        gc.disable_tl()
         self.destroy_transient_toplevel("File Import Progress")
 
         if notify:

@@ -74,6 +74,24 @@ def start_file(filename: str):
             nativeNotify("Error", f"Uncaught error {str(e)}")
 
 
+def save_file_with_dupe_check(filename: str, extension: str, data):
+    try:
+        # check if file already exists
+        if path.exists(filename + extension):
+            # add (2) to the filename, but if that already exists, add (3) and so on
+            i = 2
+            while path.exists(filename + f" ({i})"):
+                i += 1
+
+            filename += f" ({i})"
+
+        with open(filename + extension, "w", encoding="utf-8") as f:
+            f.write(data)
+    except Exception as e:
+        logger.exception(e)
+        nativeNotify("Error: Fail to save file", f"{e}")
+
+
 def OpenUrl(url: str):
     """
     To open a url in the default browser

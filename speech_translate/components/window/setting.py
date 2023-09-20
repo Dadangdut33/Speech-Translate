@@ -12,7 +12,7 @@ from speech_translate.components.frame.setting.textbox import SettingTextbox
 from speech_translate.components.frame.setting.translate import SettingTranslate
 from speech_translate.globals import gc, sj
 from speech_translate.utils.helper import bind_focus_recursively, cbtn_invoker
-from speech_translate.utils.helper_whisper import convert_str_options_to_dict, get_temperature
+from speech_translate.utils.whisper.helper import convert_str_options_to_dict, get_temperature
 
 # TODO: whisper option
 
@@ -27,7 +27,7 @@ class SettingWindow:
         self.root.title(APP_NAME + " | Settings")
         self.root.geometry(sj.cache["sw_size"])
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
-        self.root.wm_attributes("-topmost", False)  # Default False
+        self.root.withdraw()
 
         self.fonts = list(font.families())
         self.fonts.append("TKDefaultFont")
@@ -337,7 +337,6 @@ class SettingWindow:
         gc.sw = self  # Add self to global class
 
         # ------------------ Functions ------------------
-        self.on_close()  # hide window on start
         self.init_threaded()
         self.init_setting_once()
         bind_focus_recursively(self.root, self.root)
