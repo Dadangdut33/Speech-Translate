@@ -400,7 +400,7 @@ def import_file(
 
     # widgets
     frame_lbl = ttk.Frame(root)
-    frame_lbl.pack(side="top", fill="x", padx=5, pady=5, expand=True)
+    frame_lbl.pack(side="top", fill="both", padx=5, pady=5, expand=True)
 
     frame_lbl_1 = ttk.Frame(frame_lbl)
     frame_lbl_1.pack(side="top", fill="x", expand=True)

@@ -6,7 +6,7 @@
 		"editor.formatOnSave": true,
 		"editor.formatOnPaste": true,
 		"editor.codeActionsOnSave": {
-			"source.fixAll": true,
+			"source.fixAll": false,
 			"source.organizeImports": false,
 			"source.organizeImports.ruff": false,
 			"source.organizeImports.python": false,

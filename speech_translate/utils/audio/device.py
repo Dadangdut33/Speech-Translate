@@ -1,17 +1,87 @@
 from audioop import rms as calculate_rms
-from math import ceil
 from platform import system
-from time import sleep, time
 from typing import Literal
 
-from numpy import log10
-
-from speech_translate.custom_logging import logger
-
+from webrtcvad import Vad
+from scipy.signal import resample_poly, butter, filtfilt
+from numpy import log10, frombuffer, int16, float32
 if system() == "Windows":
     import pyaudiowpatch as pyaudio
 else:
     import pyaudio  # type: ignore
+
+from speech_translate.custom_logging import logger
+
+
+class Frame(object):
+    """Represents a "frame" of audio data."""
+    def __init__(self, bytes, timestamp, duration):
+        self.bytes = bytes
+        self.timestamp = timestamp
+        self.duration = duration
+
+
+def frame_generator(frame_duration_ms, audio, sample_rate, get_only_first_frame=False):
+    """Generates audio frames from PCM audio data.
+
+    Takes the desired frame duration in milliseconds, the PCM data, and
+    the sample rate.
+
+    Yields Frames of the requested duration.
+    """
+    n = int(sample_rate * (frame_duration_ms / 1000.0) * 2)
+    offset = 0
+    timestamp = 0.0
+    duration = (float(n) / sample_rate) / 2.0
+    while offset + n < len(audio):
+        yield Frame(audio[offset:offset + n], timestamp, duration)
+        timestamp += duration
+        offset += n
+        if get_only_first_frame:
+            break
+
+
+def resample_sr(data: bytes, sample_rate: int, target_sample_rate: int) -> bytes:
+    """
+    This function resamples the audio data from a given sample rate to a target sample rate.
+    The function is used when the sample rate of the audio is not 16kHz.
+
+    If by chance the sample rate is already 16kHz, the function will return the original audio data.
+
+    Parameters
+    ----------
+    data : bytes
+        chunk of audio data from pyaudio input stream in bytes
+    sample_rate : int
+        sample rate of the audio data
+    target_sample_rate : int
+        target sample rate
+
+    Returns
+    -------
+    bytes
+    """
+    if sample_rate == target_sample_rate:
+        return data
+
+    audio_as_np_int16 = frombuffer(data, dtype=int16)  # read as numpy array of int16
+    audio_as_np_float32 = audio_as_np_int16.astype(float32)  # convert to float32
+
+    # Filter the audio with a anti aliasing filter
+    nyquist = 0.5 * sample_rate  # nyquist frequency / folding frequency
+    cutoff = 0.9 * nyquist  # Adjust the cutoff frequency as needed
+
+    # Use a butterworth filter with order of 4
+    filter_order = 4
+    b, a = butter(filter_order, cutoff / nyquist, btype='lowpass')
+
+    # Filter the audio using filtfilt (zero-phase filtering)
+    filtered_audio = filtfilt(b, a, audio_as_np_float32)
+
+    # Resample the filtered audio with zero-padding
+    resampled = resample_poly(filtered_audio, target_sample_rate, sample_rate, window=('kaiser', 5.0))
+
+    return resampled.astype(int16).tobytes()  # convert back to int16 and bytes
 
 
 def get_db(audio_data: bytes) -> float:
@@ -34,143 +104,39 @@ def get_db(audio_data: bytes) -> float:
         return 20 * log10(rms)  # convert to db
 
 
-#TODO: FIX if threshold is already lower than the db, it will not adjust anymore
-def auto_threshold(
-    db: float,
-    threshold: float,
-    max: float,
-    min: float,
-    steps: int,
-    recording_start: float,
-    optimal: bool,
-    recording: bool,
-):
-    # Check if the db value is above the threshold every 1 second
-    if recording:
-        if db > threshold:  # still speaking
-            recording_start = time()
-        else:
-            # check again every 1 second wetber still recording or not
-            if time() - recording_start > 1:
-                # db < threshold = stop recording
-                if db < threshold:
-                    recording = False
-                else:
-                    recording_start = time()
-                    # still recording? verify again
-                    # increase the threshold to make sure that it is not a false positive
-                    if optimal and threshold <= max:
-                        if abs(abs(threshold) - ceil(abs(db))) > steps:
-                            time()
-                            prev = threshold
-                            threshold += steps
-                            # make sure that it is not a false positive
-                            if threshold > db:
-                                threshold = prev - steps
+def get_speech(data: bytes, sample_rate: int, frame_duration_ms: int, vad: Vad, get_only_first_frame: bool = True) -> bool:
+    frames = list(frame_generator(frame_duration_ms, data, sample_rate, get_only_first_frame=get_only_first_frame))
+    data_to_check = data if len(frames) == 0 else frames[0].bytes
 
-    else:
-        # recording is false, check if db > threshold
-        if db > threshold:
-            # Start recording
-            recording_start = time()
-            recording = True
-        else:
-            # db < threshold = not picking up voice
-            # adjust threshold
-            if optimal and threshold >= min:
-                if abs(abs(threshold) - abs(db)) > steps + 2:  # meaning steps + 2 away from the db
-                    time()
-                    prev = threshold
-                    threshold -= steps
-                    # make sure that it is not a false negative
-                    if threshold < db:
-                        threshold = prev + steps
-
-    # Adjust the max min if needed
-    if db < min:
-        min = db
-    elif db > max:
-        max = db
-
-    # first time
-    # go until optimal
-    if not optimal:
-        # not speaking
-        if db < threshold:
-            # adjust threshold until near db
-            if threshold >= min:
-                if abs(abs(threshold) - ceil(abs(db))) > steps:
-                    threshold -= steps
-                else:
-                    optimal = True
-
-        # speaking
-        elif db > threshold:
-            # adjust threshold until near db
-            if threshold <= max:
-                if abs(abs(threshold) - abs(db)) > steps + 2:
-                    threshold += steps  # increse
-                else:
-                    optimal = True
-
-    return (threshold, max, min, recording_start, optimal, recording)
+    # Use WebRTC VAD to detect speech
+    return vad.is_speech(data_to_check, sample_rate)
 
 
-def get_device_average_threshold(device_type: Literal["mic", "speaker"], sj, duration: int = 5) -> float:
+def get_frame_duration(sample_rate: int, chunk_size: int) -> int:
     """
-    Function to get the average threshold of the device.
+    Get the frame duration to be used in the frame generator.
+    Value return is either 10, 20, or 30 ms.
 
     Parameters
-    ----
-    deviceType: "mic" | "speaker"
-        Device type
-    sj: dict
-        setting object
-    duration: int
-        Duration of recording in seconds
+    ----------
+    sample_rate : int
+        sample rate of the audio data
+    chunk_size : int
+        chunk size of the audio data
 
     Returns
-    ----
-    float
-        Average threshold of the device
+    -------
+    int
+        frame duration in ms
     """
-    p = pyaudio.PyAudio()
+    ms_per_read = int((chunk_size / sample_rate) * 1000)
 
-    success, detail = get_device_details(device_type, sj, p)
-    if not success:
-        return 0
-
-    # get data from device using pyaudio
-    audio_data = b""
-
-    def callback(in_data, frame_count, time_info, status):
-        nonlocal audio_data
-        audio_data += in_data
-        return (in_data, pyaudio.paContinue)
-
-    stream = p.open(
-        format=pyaudio.paInt16,  # 16 bit audio
-        channels=detail["num_of_channels"],
-        rate=detail["sample_rate"],
-        input=True,
-        frames_per_buffer=detail["chunk_size"],
-        input_device_index=int(detail["device_detail"]["index"]),
-        stream_callback=callback,
-    )
-
-    # start recording
-    stream.start_stream()
-
-    sleep(duration)  # wait for 5 seconds
-
-    stream.stop_stream()  # end
-    stream.close()
-    p.terminate()
-
-    # get average threshold using RMS
-    db = get_db(audio_data)
-
-    return db
+    if ms_per_read >= 30:
+        return 30
+    elif ms_per_read >= 20:
+        return 20
+    else:
+        return 10
 
 
 def get_device_details(device_type: Literal["speaker", "mic"], sj, p: pyaudio.PyAudio):

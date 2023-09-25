@@ -5,4 +5,3 @@ PREVIEW_WORDS = "1234567 Preview プレビュー 预习 предваритель
 WHISPER_SR = 16_000
 MIN_THRESHOLD = -61
 MAX_THRESHOLD = 1
-STEPS = 1

@@ -19,6 +19,12 @@ class AudioMeter(Canvas):
     def set_db(self, db):
         self.db = db
 
+    def set_max(self, max):
+        self.max = max
+
+    def set_min(self, min):
+        self.min = min
+
     def set_threshold(self, threshold):
         self.threshold = threshold
 

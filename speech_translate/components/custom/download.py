@@ -41,9 +41,11 @@ def whisper_download_with_progress_gui(
     root = Toplevel(master)
     root.title("Downloading Model")
     root.transient(master)
-    root.geometry("450x150")
+    root.geometry("450x115")
     root.protocol("WM_DELETE_WINDOW", lambda: master.state("iconic"))  # minimize window when click close button
     root.geometry("+{}+{}".format(master.winfo_rootx() + 50, master.winfo_rooty() + 50))
+    root.minsize(200, 115)
+    root.maxsize(600, 180)
     try:
         root.iconbitmap(app_icon)
     except Exception:
@@ -63,14 +65,17 @@ def whisper_download_with_progress_gui(
             btn_pause["text"] = "Pause"
             update_progress_bar()  # resume progress bar update
 
-    mf = ttk.Frame(root)
-    mf.pack(side="top", fill="both", padx=5, pady=5, expand=True)
+    frame_lbl = ttk.Frame(root)
+    frame_lbl.pack(side="top", fill="both", expand=True)
 
-    status_frame = ttk.Frame(mf)
-    status_frame.pack(side="top", fill="x", padx=5, pady=5, expand=True)
+    status_frame = ttk.Frame(frame_lbl)
+    status_frame.pack(side="top", fill="x", padx=5, pady=5)
 
-    btn_frame = ttk.Frame(mf)
-    btn_frame.pack(side="bottom", fill="x", padx=5, pady=5, expand=True)
+    progress_frame = ttk.Frame(frame_lbl)
+    progress_frame.pack(side="top", fill="x", padx=5, pady=5)
+
+    btn_frame = ttk.Frame(root)
+    btn_frame.pack(side="top", fill="x", padx=5, pady=5, expand=True)
 
     lbl_status_title = ttk.Label(status_frame, text="Status:", font="TkDefaultFont 9 bold")
     lbl_status_title.pack(side="left", padx=(5, 0), pady=5)
@@ -87,8 +92,8 @@ def whisper_download_with_progress_gui(
         length = int(source.info().get("Content-Length"))
         length_in_mb = length / 1024 / 1024
 
-        progress_bar = ttk.Progressbar(mf, orient="horizontal", length=300, mode="determinate")
-        progress_bar.pack(side="top", fill="x", padx=5, pady=5, expand=True)
+        progress_bar = ttk.Progressbar(progress_frame, orient="horizontal", length=300, mode="determinate")
+        progress_bar.pack(side="left", fill="x", padx=5, pady=5, expand=True)
 
         global bytes_read
         bytes_read = 0

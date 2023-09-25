@@ -23,7 +23,8 @@ if system() == "Windows":
 else:
     import pyaudio  # type: ignore
 
-    from .utils.custom_queue import MyQueue as Queue  # to get qsize on platform other than windows
+    # to get qsize on platform other than windows
+    from .utils.custom_queue import MyQueue as Queue
 
 # remove numba warnings
 simplefilter("ignore", category=NumbaDeprecationWarning)
@@ -106,7 +107,7 @@ class GlobalClass:
 
         # record stream
         self.stream: Optional[pyaudio.Stream] = None
-        self.data_queue: Queue = Queue()
+        self.data_queue: Queue[bytes] = Queue()  # type: ignore
         self.current_rec_status: str = ""
         self.auto_detected_lang: str = "~"
         self.tc_lock: Optional[Lock] = None

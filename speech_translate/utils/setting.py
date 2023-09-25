@@ -76,7 +76,8 @@ default_setting = {
     # mic - record option
     "threshold_enable_mic": True,
     "threshold_auto_mic": True,
-    "threshold_db_mic": -17.0,
+    "threshold_auto_mode_mic": 2,
+    "threshold_db_mic": -20.0,
     "auto_break_buffer_mic": True,
     "max_buffer_mic": 10,
     "max_sentences_mic": 5,
@@ -88,7 +89,8 @@ default_setting = {
     "auto_channels_speaker": True,
     # speaker - record option
     "threshold_enable_speaker": False,
-    "threshold_auto_speaker": False,
+    "threshold_auto_speaker": True,
+    "threshold_auto_mode_speaker": 2,
     "threshold_db_speaker": 0.0,
     "auto_break_buffer_speaker": False,
     "max_buffer_speaker": 10,
