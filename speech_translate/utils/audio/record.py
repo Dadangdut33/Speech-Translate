@@ -1,3 +1,4 @@
+import sys
 from ast import literal_eval
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -8,7 +9,7 @@ from threading import Lock, Thread
 from time import gmtime, strftime, time, sleep
 from tkinter import IntVar, Toplevel, ttk
 from typing import Dict, Literal
-from wave import Wave_write
+from wave import Wave_read, Wave_write
 from wave import open as w_open
 
 import numpy as np
@@ -36,6 +37,15 @@ from ..translate.translator import google_tl, libre_tl, memory_tl
 
 
 # -------------------------------------------------------------------------------------------------------------------------
+class NullIO:
+    def write(self, s):
+        pass
+
+
+# store original stdout
+original_stdout = sys.stdout
+
+
 def record_realtime(
     lang_source: str,
     lang_target: str,
@@ -211,6 +221,10 @@ def record_realtime(
         # cannot transcribe concurrently. Will need to wait for the previous transcribe to finish
         if transcribe and whisperEngine:
             gc.tc_lock = Lock()
+
+        if auto:
+            # temporary disable print functon from the library | Logger is not affected
+            sys.stdout = NullIO()
 
         # read from settings
         max_int16 = 2**15  # bit depth of 16 bit audio (32768)
@@ -393,39 +407,35 @@ def record_realtime(
         lbl_buffer.set_text(f"0/{round(max_record_time, 2)} sec")
         lbl_timer.configure(text=f"REC: 00:00:00 | {language}")
         lbl_status.configure(text="▶️ Recording")
+
         cbtn_enable_threshold.configure(state="normal")
         cbtn_auto_threshold.configure(state="normal")
         cbtn_break_buffer_on_silence.configure(state="normal")
         scale_threshold.set(sj.cache[f"threshold_db_{rec_type}"])
-        scale_threshold.configure(state="normal")
+        scale_threshold.configure(command=slider_move, state="normal")
         lbl_threshold_db.configure(text=f"{sj.cache[f'threshold_db_{rec_type}']:.2f} dB")
-        cbtn_enable_threshold.configure(
-            command=lambda: sj.save_key(f"threshold_enable_{rec_type}", cbtn_enable_threshold.instate(["selected"])) or
-            toggle_enable_threshold(),
-            state="normal"
-        )
-        cbtn_auto_threshold.configure(
-            command=lambda: sj.save_key(f"threshold_auto_{rec_type}", cbtn_auto_threshold.instate(["selected"])) or
-            toggle_auto_threshold(),
-            state="normal"
-        )
-        cbtn_break_buffer_on_silence.configure(
-            command=lambda: sj.save_key(f"auto_break_buffer_{rec_type}", cbtn_break_buffer_on_silence.instate(["selected"])),
-            state="normal"
-        )
+        temp_map = {1: radio_vad_1, 2: radio_vad_2, 3: radio_vad_3}
         radio_vad_1.configure(command=lambda: sj.save_key(f"threshold_auto_mode_{rec_type}", 1), state="normal")
         radio_vad_2.configure(command=lambda: sj.save_key(f"threshold_auto_mode_{rec_type}", 2), state="normal")
         radio_vad_3.configure(command=lambda: sj.save_key(f"threshold_auto_mode_{rec_type}", 3), state="normal")
-        scale_threshold.configure(command=slider_move)
-        btn_pause.configure(state="normal", command=toggle_pause)
-        btn_stop.configure(state="normal", command=stop_recording)
-        audiometer.set_threshold(sj.cache[f"threshold_db_{rec_type}"])
-
-        temp_map = {1: radio_vad_1, 2: radio_vad_2, 3: radio_vad_3}
         cbtn_invoker(sj.cache[f"threshold_enable_{rec_type}"], cbtn_enable_threshold)
         cbtn_invoker(sj.cache[f"threshold_auto_{rec_type}"], cbtn_auto_threshold)
         cbtn_invoker(sj.cache[f"auto_break_buffer_{rec_type}"], cbtn_break_buffer_on_silence)
         cbtn_invoker(sj.cache[f"threshold_auto_mode_{rec_type}"], temp_map[sj.cache[f"threshold_auto_mode_{rec_type}"]])
+        cbtn_enable_threshold.configure(
+            command=lambda: sj.save_key(f"threshold_enable_{rec_type}", cbtn_enable_threshold.instate(["selected"])) or
+            toggle_enable_threshold()
+        )
+        cbtn_auto_threshold.configure(
+            command=lambda: sj.save_key(f"threshold_auto_{rec_type}", cbtn_auto_threshold.instate(["selected"])) or
+            toggle_auto_threshold()
+        )
+        cbtn_break_buffer_on_silence.configure(
+            command=lambda: sj.save_key(f"auto_break_buffer_{rec_type}", cbtn_break_buffer_on_silence.instate(["selected"]))
+        )
+        btn_pause.configure(state="normal", command=toggle_pause)
+        btn_stop.configure(state="normal", command=stop_recording)
+        audiometer.set_threshold(sj.cache[f"threshold_db_{rec_type}"])
         toggle_enable_threshold()
         update_modal_ui()
 
@@ -528,7 +538,25 @@ def record_realtime(
                     # Samples are interleaved, so for a stereo stream with left channel
                     # of [L0, L1, L2, ...] and right channel of [R0, R1, R2, ...]
                     # the output is ordered as [[L0, R0], [L1, R1], [L2, R2], ...
-                    audio_as_np_int16 = np.frombuffer(last_sample, dtype=np.int16).flatten()
+                    # Write out raw frames as a wave file.
+
+                    # need to make temp in memory to read the audio properly
+                    wf = BytesIO()
+                    wav_writer: Wave_write = w_open(wf, "wb")
+                    wav_writer.setframerate(WHISPER_SR)
+                    wav_writer.setsampwidth(p.get_sample_size(pyaudio.paInt16))
+                    wav_writer.setnchannels(num_of_channels)
+                    wav_writer.writeframes(last_sample)
+                    wav_writer.close()
+                    wf.seek(0)
+
+                    # Read the audio data
+                    wav_reader: Wave_read = w_open(wf)
+                    samples = wav_reader.getnframes()
+                    audio_bytes = wav_reader.readframes(samples)
+                    wav_reader.close()
+
+                    audio_as_np_int16 = np.frombuffer(audio_bytes, dtype=np.int16).flatten()
                     audio_as_np_float32 = audio_as_np_int16.astype(np.float32)
 
                     chunk_length = len(audio_as_np_float32) / num_of_channels
@@ -633,6 +661,10 @@ def record_realtime(
             gc.current_rec_status = "▶️ Recording"  # reset status
         else:
             logger.debug("Record Session ended")
+
+            if auto:
+                # re-enable print
+                sys.stdout = original_stdout
 
             gc.current_rec_status = "⚠️ Stopping stream"
             update_status_lbl()
