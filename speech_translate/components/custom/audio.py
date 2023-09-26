@@ -10,7 +10,7 @@ class AudioMeter(Canvas):
         self.max = max
         self.show_threshold = show_threshold
         self.db = 0
-        self.threshold = 0
+        self.threshold = 0.0
         self.running = False
         self.auto = False
         self.recording = False

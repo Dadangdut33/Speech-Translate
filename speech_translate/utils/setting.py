@@ -91,7 +91,7 @@ default_setting = {
     "threshold_enable_speaker": False,
     "threshold_auto_speaker": True,
     "threshold_auto_mode_speaker": 2,
-    "threshold_db_speaker": 0.0,
+    "threshold_db_speaker": -20.0,
     "auto_break_buffer_speaker": False,
     "max_buffer_speaker": 10,
     "max_sentences_speaker": 5,
@@ -241,6 +241,12 @@ class SettingJson:
             msg = str(e)
         finally:
             return success, msg
+
+    def save_cache(self):
+        """
+        Save but from cache
+        """
+        return self.save(self.cache)
 
     def save_old_setting(self, data: dict):
         """

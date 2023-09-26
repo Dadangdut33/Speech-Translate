@@ -170,7 +170,23 @@ def get_device_details(device_type: Literal["speaker", "mic"], sj, p: pyaudio.Py
 
         device_detail = p.get_device_info_by_host_api_device_index(int(deviceIndex), int(hostIndex))
         if device_type == "speaker":
-            device_detail = p.get_wasapi_loopback_analogue_by_dict(device_detail)  # type: ignore
+            # device_detail = p.get_wasapi_loopback_analogue_by_dict(device_detail)
+            if not device_detail["isLoopbackDevice"]:
+                for loopback in p.get_loopback_device_info_generator():  # type: ignore
+                    """
+                    Try to find loopback device with same name(and [Loopback suffix]).
+                    """
+                    if device_detail["name"] in loopback["name"]:
+                        device_detail = loopback
+                        break
+                else:
+                    logger.error("Fail to find loopback device with same name.")
+                    return False, {
+                        "device_detail": {},
+                        "chunk_size": 0,
+                        "sample_rate": 0,
+                        "num_of_channels": 0,
+                    }
 
         chunk_size = int(sj.cache[f"chunk_size_{device_type}"])
         if sj.cache[f"auto_sample_rate_{device_type}"]:
@@ -185,8 +201,7 @@ def get_device_details(device_type: Literal["speaker", "mic"], sj, p: pyaudio.Py
 
         logger.debug(f"Device: ({device_detail['index']}) {device_detail['name']}")
         logger.debug(f"Sample Rate {sample_rate} | channels {num_of_channels} | chunk size {chunk_size}")
-        logger.debug("Actual device detail:")
-        logger.debug(device_detail)
+        logger.debug(f"Actual device detail: {device_detail}")
 
         return True, {
             "device_detail": device_detail,

@@ -365,8 +365,7 @@ class SettingWindow:
             sj.save_key("sw_size", f"{w}x{h}")
 
     def on_close(self):
-        Thread(target=self.f_record.set_meter_mic, args=(False, ), daemon=True).start()
-        Thread(target=self.f_record.set_meter_speaker, args=(False, ), daemon=True).start()
+        Thread(target=self.f_record.call_both_with_wait, args=[False], daemon=True).start()
         self.save_win_size()
         self.root.withdraw()
 
@@ -381,11 +380,9 @@ class SettingWindow:
     def notebook_change(self, _event=None):
         pos = str(self.tab_control.index(self.tab_control.select()))
         if pos == "1":
-            Thread(target=self.f_record.set_meter_mic, daemon=True).start()
-            Thread(target=self.f_record.set_meter_speaker, daemon=True).start()
+            Thread(target=self.f_record.call_both_with_wait, daemon=True).start()
         else:
-            Thread(target=self.f_record.call_set_meter_mic, args=(False, ), daemon=True).start()
-            Thread(target=self.f_record.call_set_meter_speaker, args=(False, ), daemon=True).start()
+            Thread(target=self.f_record.call_both_with_wait, args=[False], daemon=True).start()
 
     def init_setting_once(self):
         # tc

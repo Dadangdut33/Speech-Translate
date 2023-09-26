@@ -29,8 +29,8 @@ from speech_translate.utils.audio.device import (
     get_output_devices
 )
 from speech_translate.utils.helper import (
-    bind_focus_recursively, cbtn_invoker, emoji_img, nativeNotify, popup_menu, start_file, tb_copy_only, up_first_case,
-    windows_os_only
+    bind_focus_recursively, cbtn_invoker, emoji_img, nativeNotify, popup_menu, similar, start_file, tb_copy_only,
+    up_first_case, windows_os_only
 )
 from speech_translate.utils.translate.language import (
     engine_select_source_dict, engine_select_target_dict, whisper_compatible
@@ -883,13 +883,13 @@ class MainWindow:
             if not ["supress_device_warning"]:
                 self.errorNotif(str(default_device))
 
-            self.cb_mic.set("[ERROR] No default mic found")
+            self.cb_mic.set("[WARNING] No default mic found")
         else:
             assert isinstance(default_device, Dict)
             found = False
             index = 0
             for i, name in enumerate(self.cb_mic["values"]):
-                if default_device["name"] in name:
+                if similar(default_device["name"], name) > 0.6:
                     found = True
                     index = i
                     break
@@ -926,13 +926,13 @@ class MainWindow:
             if not ["supress_device_warning"]:
                 self.errorNotif(str(default_device))
 
-            self.cb_speaker.set("[ERROR] No default speaker found")
+            self.cb_speaker.set("[WARNING] No default speaker found")
         else:
             assert isinstance(default_device, Dict)
             found = False
             index = 0
             for i, name in enumerate(self.cb_speaker["values"]):
-                if default_device["name"] in name:
+                if similar(default_device["name"], name) > 0.6:
                     found = True
                     index = i
                     break

@@ -7,6 +7,7 @@ from subprocess import Popen
 from tkinter import colorchooser, ttk
 from typing import Dict, List, Union
 from webbrowser import open_new
+from difflib import SequenceMatcher
 
 from notifypy import Notify, exceptions
 from PIL import Image, ImageDraw, ImageFont, ImageTk
@@ -136,6 +137,10 @@ def generate_temp_filename(base_dir):
     Generates a temporary filename with the current date and time.
     """
     return path.join(base_dir, datetime.now().strftime("%Y-%m-%d %H_%M_%S_%f")) + ".wav"
+
+
+def similar(a, b):
+    return SequenceMatcher(None, a, b).ratio()
 
 
 def filename_only(filename: str):
