@@ -1,7 +1,7 @@
 import os
 import sys
 
-toAdd = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+toAdd = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(toAdd)
 
 from speech_translate.custom_logging import logger  # noqa: E402

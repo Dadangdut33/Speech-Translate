@@ -3,7 +3,7 @@ import sys
 
 from tkinter import Tk
 
-toAdd = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+toAdd = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(toAdd)
 
 from speech_translate.components.custom.message import mbox  # noqa: E402

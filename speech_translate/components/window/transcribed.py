@@ -1,6 +1,6 @@
 from tkinter import Tk
 
-from speech_translate.components.abstract.detached import SubtitleWindow
+from speech_translate.components.template.detached import SubtitleWindow
 
 
 # Classes
