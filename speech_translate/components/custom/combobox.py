@@ -1,20 +1,33 @@
 from tkinter import ttk
+from typing import List
 
 
 class ComboboxTypeOnCustom(ttk.Combobox):
-    def __init__(self, master, values, save_func, initial_value=None):
-        super().__init__(master, values=values)
+    """
+    Combobox that allows to type on custom value
+    Designed for integer values
+    """
+    def __init__(self, master, values: List[str], vmin: str, vmax: str, save_func, initial_value: str, first_prev="1"):
+        super().__init__(master, values=values.copy() + ["Custom"])
         self.values = values
+        self.vmin = vmin
+        self.vmax = vmax
         self.prev = None
         self.save_func = save_func
+        self.first_prev = first_prev
 
-        if initial_value is not None:
-            if initial_value in values:
-                self.set(initial_value)
-            else:
-                raise ValueError(f"Invalid initial value: {initial_value}")
+        if initial_value in values:
+            # selection in cb - readonly
+            self.set(initial_value)
+            self.configure(state='readonly')
+        else:
+            if not initial_value.isdigit():
+                raise ValueError("Initial value must be a string of digit")
 
-        self.configure(state='readonly')  # Initially set to read-only
+            # custom
+            self.prev = initial_value
+            self.set(initial_value)
+            self.configure(state='normal')
 
         # Bind the select event to the on_select function
         self.bind("<<ComboboxSelected>>", self.on_select)
@@ -26,8 +39,8 @@ class ComboboxTypeOnCustom(ttk.Combobox):
         selected_item = self.get()
         if selected_item == "Custom":
             if self.prev is None:
-                self.prev = "1"
-                self.set("1")
+                self.prev = self.first_prev
+                self.set(self.prev)
                 self.save_func(self.prev)
             else:
                 self.set(self.prev)
@@ -42,19 +55,19 @@ class ComboboxTypeOnCustom(ttk.Combobox):
         typed_text = self.get()
         if typed_text.isdigit():
             value = int(typed_text)
-            if value < 1:
-                self.set("1")
-                self.prev = "1"
-            elif value > 25:
-                self.set("25")
-                self.prev = "25"
+            if value < int(self.vmin):
+                self.set(self.vmin)
+                self.prev = self.vmin
+            elif value > int(self.vmax):
+                self.set(self.vmax)
+                self.prev = self.vmax
             else:
                 self.prev = typed_text
 
             self.save_func(self.prev)
         elif typed_text == "":
-            self.set("1")
-            self.prev = "1"
+            self.set(self.vmin)
+            self.prev = self.vmin
             self.save_func(self.prev)
         else:
             self.set(self.prev)
