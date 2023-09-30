@@ -31,7 +31,7 @@ from speech_translate.custom_logging import logger
 from speech_translate.globals import gc, sj
 from speech_translate.utils.audio.device import get_db, get_device_details, get_frame_duration, get_speech, resample_sr
 
-from ..helper import cbtn_invoker, generate_temp_filename, nativeNotify
+from ..helper import cbtn_invoker, generate_temp_filename, get_channel_int, nativeNotify
 from ..whisper.helper import (append_dot_en, convert_str_options_to_dict, get_temperature, whisper_verbose_log)
 from ..translate.translator import google_tl, libre_tl, memory_tl
 
@@ -279,7 +279,7 @@ def record_realtime(
         global sr_ori, frame_duration_ms, threshold_enable, threshold_db, threshold_auto_mode
         device_detail = detail["device_detail"]
         sr_ori = detail["sample_rate"]
-        num_of_channels = detail["num_of_channels"]
+        num_of_channels = get_channel_int(detail["num_of_channels"])
         chunk_size = detail["chunk_size"]
         frame_duration_ms = get_frame_duration(chunk_size, sr_ori)
         threshold_enable = sj.cache[f"threshold_enable_{rec_type}"]
@@ -517,7 +517,7 @@ def record_realtime(
                         break_buffer()
                         gc.current_rec_status = "💤 Idle (Buffer Cleared)"
                         if sj.cache["debug_realtime_record"] == 1:
-                            logger.debug("Silence found for more than 1 second. Buffer rested")
+                            logger.debug("Silence found for more than 1 second. Buffer reseted")
                 continue
 
             # update now if there is audio being recorded

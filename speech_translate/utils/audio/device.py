@@ -195,9 +195,9 @@ def get_device_details(device_type: Literal["speaker", "mic"], sj, p: pyaudio.Py
             sample_rate = int(sj.cache[f"sample_rate_{device_type}"])
 
         if sj.cache[f"auto_channels_{device_type}"]:
-            num_of_channels = int(device_detail["maxInputChannels"])
+            num_of_channels = str(device_detail["maxInputChannels"])
         else:
-            num_of_channels = int(sj.cache[f"channels_{device_type}"])
+            num_of_channels = str(sj.cache[f"channels_{device_type}"])
 
         logger.debug(f"Device: ({device_detail['index']}) {device_detail['name']}")
         logger.debug(f"Sample Rate {sample_rate} | channels {num_of_channels} | chunk size {chunk_size}")

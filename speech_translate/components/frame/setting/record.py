@@ -5,6 +5,7 @@ from tkinter import ttk, Toplevel, Frame, LabelFrame, StringVar, IntVar
 from typing import Literal, Union
 
 from webrtcvad import Vad
+from speech_translate.components.custom.combobox import ComboboxTypeOnCustom
 if system() == "Windows":
     import pyaudiowpatch as pyaudio
 else:
@@ -14,7 +15,7 @@ from speech_translate.globals import sj
 from speech_translate._constants import MIN_THRESHOLD, MAX_THRESHOLD, WHISPER_SR
 from speech_translate.custom_logging import logger
 from speech_translate.utils.audio.device import get_db, get_device_details, get_frame_duration, get_speech, resample_sr
-from speech_translate.utils.helper import number_only, max_number, cbtn_invoker, emoji_img, windows_os_only
+from speech_translate.utils.helper import get_channel_int, number_only, max_number, cbtn_invoker, emoji_img, windows_os_only
 from speech_translate.components.custom.audio import AudioMeter
 from speech_translate.components.custom.tooltip import tk_tooltips, tk_tooltip
 
@@ -100,53 +101,31 @@ class SettingRecord:
 
         self.lbl_sr_mic = ttk.Label(self.f_mic_device_1, text="Sample Rate", width=14)
         self.lbl_sr_mic.pack(side="left", padx=5)
-        self.spn_sr_mic = ttk.Spinbox(
+        self.cb_sr_mic = ComboboxTypeOnCustom(
+            self.root,
             self.f_mic_device_1,
-            from_=8_000,
-            to=384_000,
-            validate="key",
-            validatecommand=(self.root.register(number_only), "%P"),
+            ["8000", "16000", "22050", "44100", "48000"],
+            "4000",
+            "384000",
+            lambda x: sj.save_key("sample_rate_mic", int(x)),
+            sj.cache["sample_rate_mic"],
         )
-        self.spn_sr_mic.bind(
-            "<KeyRelease>",
-            lambda e: max_number(
-                self.root,
-                self.spn_sr_mic,
-                8000,
-                48000,
-                lambda: sj.save_key("sample_rate_mic", int(self.spn_sr_mic.get())),
-            ),
-        )
-        self.spn_sr_mic.pack(side="left", padx=5)
+        self.cb_sr_mic.pack(side="left", padx=5)
         tk_tooltips(
-            [self.lbl_sr_mic, self.spn_sr_mic],
+            [self.lbl_sr_mic, self.cb_sr_mic],
             "Set the sample rate for the audio recording. \n\nDefault value is 16000.",
         )
 
-        self.lbl_chunk_size_mic = ttk.Label(self.f_mic_device_1, text="Chunk Size", width=14)
+        self.lbl_chunk_size_mic = ttk.Label(self.f_mic_device_1, text="Chunk Size", width=10)
         self.lbl_chunk_size_mic.pack(side="left", padx=5)
-        self.spn_chunk_size_mic = ttk.Spinbox(
-            self.f_mic_device_1,
-            from_=160,
-            to=1024,
-            validate="key",
-            width=15,
-            validatecommand=(self.root.register(number_only), "%P"),
+        self.cb_chunk_size_mic = ComboboxTypeOnCustom(
+            self.root, self.f_mic_device_1, ["160", "320", "480", "640", "800", "960", "1024", "1280"], "160", "1280",
+            lambda x: sj.save_key("chunk_size_mic", int(x)), sj.cache["chunk_size_mic"]
         )
-        self.spn_chunk_size_mic.bind(
-            "<KeyRelease>",
-            lambda e: max_number(
-                self.root,
-                self.spn_chunk_size_mic,
-                160,
-                1024,
-                lambda: sj.save_key("chunk_size_mic", int(self.spn_chunk_size_mic.get())),
-            ),
-        )
-        self.spn_chunk_size_mic.pack(side="left", padx=5)
+        self.cb_chunk_size_mic.pack(side="left", padx=5)
         tk_tooltips(
-            [self.lbl_chunk_size_mic, self.spn_chunk_size_mic],
-            "Set the chunk size for the audio recording. BiggerA bigger chunk size means that more audio data is processed"
+            [self.lbl_chunk_size_mic, self.cb_chunk_size_mic],
+            "Set the chunk size for the audio recording. Bigger chunk size means that more audio data is processed"
             " at once, which can lead to higher CPU usage"
             "\n\nDefault value is 1024.",
         )
@@ -154,27 +133,14 @@ class SettingRecord:
         # 2
         self.lbl_channels_mic = ttk.Label(self.f_mic_device_2, text="Channels", width=14)
         self.lbl_channels_mic.pack(side="left", padx=5)
-        self.spn_channels_mic = ttk.Spinbox(
-            self.f_mic_device_2,
-            from_=1,
-            to=25,  # not sure what the limit is but we will just settle with 25
-            validate="key",
-            validatecommand=(self.root.register(number_only), "%P"),
+        self.cb_channels_mic = ComboboxTypeOnCustom(
+            self.root, self.f_mic_device_2, ["Mono", "Stereo"], "1", "25", lambda x: sj.save_key("channels_mic", x),
+            sj.cache["channels_mic"]
         )
-        self.spn_channels_mic.bind(
-            "<KeyRelease>",
-            lambda e: max_number(
-                self.root,
-                self.spn_channels_mic,
-                1,
-                25,
-                lambda: sj.save_key("channels_mic", int(self.spn_channels_mic.get())),
-            ),
-        )
-        self.spn_channels_mic.pack(side="left", padx=5)
+        self.cb_channels_mic.pack(side="left", padx=5)
         tk_tooltips(
-            [self.spn_channels_mic, self.lbl_channels_mic],
-            "Set the channels for the audio recording. \n\nDefault value is 1.",
+            [self.cb_channels_mic, self.lbl_channels_mic],
+            "Set the channels for the audio recording. \n\nDefault value is Mono (1).",
         )
 
         # 3
@@ -183,7 +149,8 @@ class SettingRecord:
         tk_tooltip(
             self.cbtn_auto_sr_mic,
             "If checked, the sample rate will be automatically set based on the device's sample rate."
-            "\n\nCheck this option if you are having issues.\n\nDefault is checked",
+            "\n\nInvalid value will cause the program to fail to record, it is better to leave it checked if you are having"
+            " issues\n\nDefault is checked",
             wrapLength=400,
         )
 
@@ -194,7 +161,8 @@ class SettingRecord:
         tk_tooltip(
             self.cbtn_auto_channels_mic,
             "If checked, the channels value will be automatically set based on the device's channels amount."
-            "\n\nCheck this option if you are having issues.\n\nDefault is checked",
+            "\n\nInvalid value will cause the program to fail to record, it is better to leave it checked if you are having"
+            " issues\n\nDefault is checked",
             wrapLength=400,
         )
 
@@ -213,53 +181,26 @@ class SettingRecord:
 
         self.lbl_sr_speaker = ttk.Label(self.f_speaker_device_1, text="Sample Rate", width=14)
         self.lbl_sr_speaker.pack(side="left", padx=5)
-        self.spn_sr_speaker = ttk.Spinbox(
-            self.f_speaker_device_1,
-            from_=8_000,
-            to=384_000,
-            validate="key",
-            validatecommand=(self.root.register(number_only), "%P"),
+        self.cb_sr_speaker = ComboboxTypeOnCustom(
+            self.root, self.f_speaker_device_1, ["8000", "16000", "22050", "44100", "48000"], "4000", "384000",
+            lambda x: sj.save_key("sample_rate_speaker", int(x)), sj.cache["sample_rate_speaker"]
         )
-        self.spn_sr_speaker.bind(
-            "<KeyRelease>",
-            lambda e: max_number(
-                self.root,
-                self.spn_sr_speaker,
-                8000,
-                48000,
-                lambda: sj.save_key("sample_rate_speaker", int(self.spn_sr_speaker.get())),
-            ),
-        )
-        self.spn_sr_speaker.pack(side="left", padx=5)
+        self.cb_sr_speaker.pack(side="left", padx=5)
         tk_tooltips(
-            [self.lbl_sr_speaker, self.spn_sr_speaker],
+            [self.lbl_sr_speaker, self.cb_sr_speaker],
             "Set the sample rate for the audio recording. \n\nDefault value is 41000.",
         )
 
-        self.lbl_chunk_size_speaker = ttk.Label(self.f_speaker_device_1, text="Chunk Size", width=14)
+        self.lbl_chunk_size_speaker = ttk.Label(self.f_speaker_device_1, text="Chunk Size", width=10)
         self.lbl_chunk_size_speaker.pack(side="left", padx=5)
-        self.spn_chunk_size_speaker = ttk.Spinbox(
-            self.f_speaker_device_1,
-            from_=160,
-            to=1024,
-            validate="key",
-            width=15,
-            validatecommand=(self.root.register(number_only), "%P"),
+        self.cb_chunk_size_speaker = ComboboxTypeOnCustom(
+            self.root, self.f_speaker_device_1, ["160", "320", "480", "640", "800", "960", "1024", "1280"], "160", "1280",
+            lambda x: sj.save_key("chunk_size_speaker", int(x)), sj.cache["chunk_size_speaker"]
         )
-        self.spn_chunk_size_speaker.bind(
-            "<KeyRelease>",
-            lambda e: max_number(
-                self.root,
-                self.spn_chunk_size_speaker,
-                160,
-                1024,
-                lambda: sj.save_key("chunk_size_speaker", int(self.spn_chunk_size_speaker.get())),
-            ),
-        )
-        self.spn_chunk_size_speaker.pack(side="left", padx=5)
+        self.cb_chunk_size_speaker.pack(side="left", padx=5)
         tk_tooltips(
-            [self.lbl_chunk_size_speaker, self.spn_chunk_size_speaker],
-            "Set the chunk size for the audio recording. BiggerA bigger chunk size means that more audio data is processed"
+            [self.lbl_chunk_size_speaker, self.cb_chunk_size_speaker],
+            "Set the chunk size for the audio recording. Bigger chunk size means that more audio data is processed"
             " at once, which can lead to higher CPU usage"
             "\n\nDefault value is 1024.",
         )
@@ -267,23 +208,14 @@ class SettingRecord:
         # 2
         self.lbl_channels_speaker = ttk.Label(self.f_speaker_device_2, text="Channels", width=14)
         self.lbl_channels_speaker.pack(side="left", padx=5)
-        self.spn_channels_speaker = ttk.Spinbox(
-            self.f_speaker_device_2, from_=1, to=25, validate="key", validatecommand=(self.root.register(number_only), "%P")
+        self.cb_channels_speaker = ComboboxTypeOnCustom(
+            self.root, self.f_speaker_device_2, ["Mono", "Stereo"], "1", "25", lambda x: sj.save_key("channels_speaker", x),
+            sj.cache["channels_speaker"]
         )
-        self.spn_channels_speaker.bind(
-            "<KeyRelease>",
-            lambda e: max_number(
-                self.root,
-                self.spn_channels_speaker,
-                1,
-                25,
-                lambda: sj.save_key("channels_speaker", int(self.spn_channels_speaker.get())),
-            ),
-        )
-        self.spn_channels_speaker.pack(side="left", padx=5)
+        self.cb_channels_speaker.pack(side="left", padx=5)
         tk_tooltips(
-            [self.lbl_channels_speaker, self.spn_channels_speaker],
-            "Set the channels for the audio recording. \n\nDefault value is 2.",
+            [self.cb_channels_speaker, self.lbl_channels_speaker],
+            "Set the channels for the audio recording. \n\nDefault value is Stereo (2).",
         )
 
         # 3
@@ -294,7 +226,8 @@ class SettingRecord:
         tk_tooltip(
             self.cbtn_auto_sr_speaker,
             "If checked, the sample rate will be automatically set based on the device's sample rate."
-            "\n\nCheck this option if you are having issues.\n\nDefault is checked",
+            "\n\nInvalid value will cause the program to fail to record, it is better to leave it checked if you are having"
+            " issues\n\nDefault is checked",
             wrapLength=400,
         )
 
@@ -305,7 +238,8 @@ class SettingRecord:
         tk_tooltip(
             self.cbtn_auto_channels_speaker,
             "If checked, the channels value will be automatically set based on the device's channels amount."
-            "\n\nCheck this option if you are having issues.\n\nDefault is checked",
+            "\n\nInvalid value will cause the program to fail to record, it is better to leave it checked if you are having"
+            " issues\n\nDefault is checked",
             wrapLength=400,
         )
 
@@ -731,15 +665,9 @@ class SettingRecord:
     def init_setting_once(self):
         """Initialize the setting once"""
         # Device pamaeters
-        self.spn_sr_mic.set(sj.cache["sample_rate_mic"])
-        self.spn_channels_mic.set(sj.cache["channels_mic"])
-        self.spn_chunk_size_mic.set(sj.cache["chunk_size_mic"])
         cbtn_invoker(sj.cache["auto_sample_rate_mic"], self.cbtn_auto_sr_mic)
         cbtn_invoker(sj.cache["auto_channels_mic"], self.cbtn_auto_channels_mic)
 
-        self.spn_sr_speaker.set(sj.cache["sample_rate_speaker"])
-        self.spn_channels_speaker.set(sj.cache["channels_speaker"])
-        self.spn_chunk_size_speaker.set(sj.cache["chunk_size_speaker"])
         cbtn_invoker(sj.cache["auto_sample_rate_speaker"], self.cbtn_auto_sr_speaker)
         cbtn_invoker(sj.cache["auto_channels_speaker"], self.cbtn_auto_channels_speaker)
 
@@ -782,8 +710,8 @@ class SettingRecord:
         # disable
         windows_os_only(
             [
-                self.lbl_sr_speaker, self.spn_sr_speaker, self.lbl_channels_speaker, self.spn_channels_speaker,
-                self.lbl_chunk_size_speaker, self.spn_chunk_size_speaker, self.cbtn_auto_sr_speaker,
+                self.lbl_sr_speaker, self.cb_sr_speaker, self.lbl_channels_speaker, self.cb_channels_speaker,
+                self.lbl_chunk_size_speaker, self.cb_chunk_size_speaker, self.cbtn_auto_sr_speaker,
                 self.cbtn_auto_channels_speaker, self.lbl_hint_buffer_speaker, self.lbl_buffer_speaker,
                 self.spn_buffer_speaker, self.lbl_max_sentences_speaker, self.spn_max_sentences_speaker,
                 self.cbtn_threshold_enable_speaker, self.cbtn_threshold_auto_speaker, self.cbtn_auto_break_buffer_speaker,
@@ -806,9 +734,6 @@ class SettingRecord:
         we need to configure the command just once after the setting is initialized
         """
         # Device parameters
-        self.spn_sr_mic.configure(command=lambda: sj.save_key("sample_rate_mic", int(self.spn_sr_mic.get())))
-        self.spn_channels_mic.configure(command=lambda: sj.save_key("channels_mic", int(self.spn_channels_mic.get())))
-        self.spn_chunk_size_mic.configure(command=lambda: sj.save_key("chunk_size_mic", int(self.spn_chunk_size_mic.get())))
         self.cbtn_auto_sr_mic.configure(
             command=lambda: sj.save_key("auto_sample_rate_mic", self.cbtn_auto_sr_mic.instate(["selected"])) or self.
             toggle_sr("mic", self.cbtn_auto_sr_mic.instate(["selected"]))
@@ -818,13 +743,6 @@ class SettingRecord:
             toggle_channels("mic", self.cbtn_auto_channels_mic.instate(["selected"]))
         )
 
-        self.spn_sr_speaker.configure(command=lambda: sj.save_key("sample_rate_speaker", int(self.spn_sr_speaker.get())))
-        self.spn_channels_speaker.configure(
-            command=lambda: sj.save_key("channels_speaker", int(self.spn_channels_speaker.get()))
-        )
-        self.spn_chunk_size_speaker.configure(
-            command=lambda: sj.save_key("chunk_size_speaker", int(self.spn_chunk_size_speaker.get()))
-        )
         self.cbtn_auto_sr_speaker.configure(
             command=lambda: sj.save_key("auto_sample_rate_speaker", self.cbtn_auto_sr_speaker.instate(["selected"])) or self.
             toggle_sr("speaker", self.cbtn_auto_sr_speaker.instate(["selected"]))
@@ -920,18 +838,20 @@ class SettingRecord:
         Toggle sr spinner disabled or not depending on auto value
         """
         if device == "mic":
-            self.spn_sr_mic.configure(state="disabled" if auto else "normal")
+            self.cb_sr_mic.toggle_disable(auto)
         elif device == "speaker":
-            self.spn_sr_speaker.configure(state="disabled" if auto else "normal")
+            self.cb_sr_speaker.toggle_disable(auto)
 
     def toggle_channels(self, device: Literal["mic", "speaker"], auto: bool) -> None:
         """
         Toggle channels spinner disabled or not depending on auto value
         """
         if device == "mic":
-            self.spn_channels_mic.configure(state="disabled" if auto else "normal")
+            # self.spn_channels_mic.configure(state="disabled" if auto else "normal")
+            self.cb_channels_mic.toggle_disable(auto)
         elif device == "speaker":
-            self.spn_channels_speaker.configure(state="disabled" if auto else "normal")
+            # self.cb_channels_speaker.configure(state="disabled" if auto else stateprev)
+            self.cb_channels_speaker.toggle_disable(auto)
 
     def call_both_with_wait(self, open=True):
         if self.on_start:
@@ -1035,6 +955,7 @@ class SettingRecord:
 
     def set_meter_mic(self, open=True):
         try:
+            self.hidden_padder_mic.configure(text="", width=10, foreground="black")
             # must be enable and not in auto mode
             if open and sj.cache["threshold_enable_mic"]:
                 self.f_mic_recording_4.pack(side="top", fill="x", pady=(10, 5), padx=5)
@@ -1057,7 +978,7 @@ class SettingRecord:
                 self.frame_duration_mic = get_frame_duration(self.detail_mic["sample_rate"], self.detail_mic["chunk_size"])
                 self.stream_mic = self.p_mic.open(
                     format=pyaudio.paInt16,
-                    channels=self.detail_mic["num_of_channels"],
+                    channels=get_channel_int(self.detail_mic["num_of_channels"]),
                     rate=self.detail_mic["sample_rate"],
                     input=True,
                     frames_per_buffer=self.detail_mic["chunk_size"],
@@ -1078,9 +999,9 @@ class SettingRecord:
             # fail because probably no device
             self.close_meter_mic()
 
-            # dont show the meter but keep other things
-            self.f_mic_recording_5.pack_forget()
+            # ddont show the meter, show failed message
             self.audiometer_mic.pack_forget()
+            self.hidden_padder_mic.configure(text="Fail to load device. Check log", width=30, foreground="red")
 
     def call_set_meter_speaker(self, open=True):
         if system() == "Windows" and not self.on_start:
@@ -1107,6 +1028,7 @@ class SettingRecord:
             return
 
         try:
+            self.hidden_padder_speaker.configure(text="", width=10, foreground="black")
             # must be enable and not in auto mode
             if open and sj.cache["threshold_enable_speaker"]:
                 self.f_speaker_recording_4.pack(side="top", fill="x", pady=(10, 5), padx=5)
@@ -1128,7 +1050,7 @@ class SettingRecord:
                 )
                 self.stream_speaker = self.p_speaker.open(
                     format=pyaudio.paInt16,
-                    channels=self.detail_speaker["num_of_channels"],
+                    channels=get_channel_int(self.detail_speaker["num_of_channels"]),
                     rate=self.detail_speaker["sample_rate"],
                     input=True,
                     frames_per_buffer=self.detail_speaker["chunk_size"],
@@ -1148,9 +1070,9 @@ class SettingRecord:
             logger.exception(e)
             self.close_meter_speaker()
 
-            # dont show the meter but keep other things
-            self.f_speaker_recording_5.pack_forget()
+            # dont show the meter, show failed message
             self.audiometer_speaker.pack_forget()
+            self.hidden_padder_speaker.configure(text="Fail to load device. Check log", width=30, foreground="red")
 
     def toggle_enable_threshold_mic(self, open=True):
         if "selected" in self.cbtn_threshold_enable_mic.state():

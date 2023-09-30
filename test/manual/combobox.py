@@ -15,7 +15,7 @@ try:
     initial_value = "Option 2"
     # initial_value = "33"
     # initial_value = "test"
-    editable_combo = ComboboxTypeOnCustom(root, values, "1", "25", lambda x: print(x), initial_value)
+    editable_combo = ComboboxTypeOnCustom(root, root, values, "1", "25", lambda x: print(x), initial_value)
     editable_combo.pack(pady=10)
 
     root.mainloop()

@@ -69,10 +69,10 @@ default_setting = {
     "keep_temp": False,
     # mic - device option
     "sample_rate_mic": 16000,
-    "channels_mic": 1,
+    "channels_mic": "Mono",  # Mono, Stereo, custom -> "1", "2", ...
     "chunk_size_mic": 1024,
-    "auto_sample_rate_mic": False,
-    "auto_channels_mic": False,
+    "auto_sample_rate_mic": True,
+    "auto_channels_mic": True,
     # mic - record option
     "threshold_enable_mic": True,
     "threshold_auto_mic": True,
@@ -83,7 +83,7 @@ default_setting = {
     "max_sentences_mic": 5,
     # speaker - device option
     "sample_rate_speaker": 44100,
-    "channels_speaker": 2,
+    "channels_speaker": "Stereo",
     "chunk_size_speaker": 1024,
     "auto_sample_rate_speaker": True,
     "auto_channels_speaker": True,
