@@ -51,7 +51,7 @@ default_setting = {
     # Tl Settings
     "sourceLang": "Auto Detect",
     "targetLang": "Indonesian",
-    "tl_engine": "Google",
+    "tl_engine": "Google Translate",
     "https_proxy": "",
     "https_proxy_enable": False,
     "http_proxy": "",
@@ -71,8 +71,8 @@ default_setting = {
     "sample_rate_mic": 16000,
     "channels_mic": "Mono",  # Mono, Stereo, custom -> "1", "2", ...
     "chunk_size_mic": 1024,
-    "auto_sample_rate_mic": True,
-    "auto_channels_mic": True,
+    "auto_sample_rate_mic": False,
+    "auto_channels_mic": False,
     # mic - record option
     "threshold_enable_mic": True,
     "threshold_auto_mic": True,
@@ -198,6 +198,8 @@ class SettingJson:
                     "Setting file is outdated. Setting has been reverted to default setting. "
                     "You can find your old setting in the user folder."
                 )
+
+            logger.info("Setting loaded")
         else:
             self.cache = default_setting
             logger.error("Error loading setting file: " + msg)

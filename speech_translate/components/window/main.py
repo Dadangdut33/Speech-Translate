@@ -15,8 +15,9 @@ from torch import cuda
 from speech_translate._constants import APP_NAME
 from speech_translate._path import app_icon
 from speech_translate._version import __version__
+from speech_translate.components.custom.combobox import CategorizedComboBox
 from speech_translate.components.custom.message import mbox
-from speech_translate.components.custom.tooltip import tk_tooltip
+from speech_translate.components.custom.tooltip import tk_tooltip, tk_tooltips
 from speech_translate.components.window.about import AboutWindow
 from speech_translate.components.window.log import LogWindow
 from speech_translate.components.window.setting import SettingWindow
@@ -35,7 +36,7 @@ from speech_translate.utils.helper import (
 from speech_translate.utils.translate.language import (
     engine_select_source_dict, engine_select_target_dict, whisper_compatible
 )
-from speech_translate.utils.whisper.helper import append_dot_en, modelKeys, modelSelectDict
+from speech_translate.utils.whisper.helper import append_dot_en, model_keys, model_select_dict
 from speech_translate.utils.whisper.download import download_model, verify_model
 from speech_translate.utils.audio.record import record_realtime
 from speech_translate.utils.audio.file import import_file
@@ -202,34 +203,46 @@ class MainWindow:
         self.lbl_model = ttk.Label(self.f1_toolbar, text="Transcribe:")
         self.lbl_model.pack(side="left", fill="x", padx=5, pady=5, expand=False)
 
-        self.cb_model = ttk.Combobox(self.f1_toolbar, values=modelKeys, state="readonly")
+        self.cb_model = ttk.Combobox(self.f1_toolbar, values=model_keys, state="readonly")
         self.cb_model.pack(side="left", fill="x", padx=5, pady=5, expand=False)
-        tk_tooltip(
-            self.cb_model,
-            """Model size, larger models are more accurate but slower and require more VRAM/CPU power. 
-            \rIf you have a low end GPU, use Tiny or Base. Don't use large unless you really need it or have super computer.
-            \rModel specs:\n- Tiny: ~1 GB Vram\n- Base: ~1 GB Vram\n- Small: ~2 GB Vram"
-            "\n- Medium: ~5 GB Vram\n- Large: ~10 GB Vram""".strip(),
+        tk_tooltips(
+            [self.lbl_model, self.cb_model],
+            "Larger models are more accurate but are slower and require more power."
+            "\n\nIf you have a low end GPU, use Tiny or Base."
+            "Don't use large unless you really need it or have powerful computer."
+            "\n\nModel specs:\n- Tiny: ~1 GB Vram\n- Base: ~1 GB Vram\n- Small: ~2 GB Vram"
+            "\n- Medium: ~5 GB Vram\n- Large: ~10 GB Vram",
             wrapLength=400,
         )
-        self.cb_model.bind("<<ComboboxSelected>>", lambda _: sj.save_key("model", modelSelectDict[self.cb_model.get()]))
+        self.cb_model.bind("<<ComboboxSelected>>", lambda _: sj.save_key("model", model_select_dict[self.cb_model.get()]))
 
         # engine
         self.lbl_engine = ttk.Label(self.f1_toolbar, text="Translate:")
         self.lbl_engine.pack(side="left", fill="x", padx=5, pady=5, expand=False)
 
-        self.cb_engine = ttk.Combobox(
-            self.f1_toolbar, values=["Whisper", "Google", "LibreTranslate", "MyMemoryTranslator"], state="readonly"
+        self.cb_engine = CategorizedComboBox(
+            self.root, self.f1_toolbar, {
+                "Whisper": model_keys,
+                "Google Translate": [],
+                "LibreTranslate": [],
+                "MyMemoryTranslator": []
+            }, self.cb_engine_change
         )
         self.cb_engine.pack(side="left", fill="x", padx=5, pady=5, expand=True)
-        self.cb_engine.bind("<<ComboboxSelected>>", self.cb_engine_change)
+        tk_tooltips(
+            [self.lbl_engine],
+            "Same as transcribe, larger models are more accurate but are slower and require more power.\n"
+            "It is recommended to use google translate for the best result. If you want full offline capability, "
+            "you can use libretranslate by hosting it yourself locally",
+            wrapLength=400,
+        )
 
         # from
         self.lbl_source = ttk.Label(self.f1_toolbar, text="From:")
         self.lbl_source.pack(side="left", padx=5, pady=5)
 
         self.cb_sourceLang = ttk.Combobox(
-            self.f1_toolbar, values=engine_select_source_dict["Whisper"], state="readonly"
+            self.f1_toolbar, values=engine_select_source_dict["Google Translate"], state="readonly"
         )  # initial value
         self.cb_sourceLang.pack(side="left", padx=5, pady=5, fill="x", expand=True)
         self.cb_sourceLang.bind("<<ComboboxSelected>>", lambda _: sj.save_key("sourceLang", self.cb_sourceLang.get()))
@@ -690,10 +703,10 @@ class MainWindow:
 
     # on start
     def on_init(self):
-        self.cb_model.set({v: k for k, v in modelSelectDict.items()}[sj.cache["model"]])
+        self.cb_model.set({v: k for k, v in model_select_dict.items()}[sj.cache["model"]])
+        self.cb_engine.set(sj.cache["tl_engine"])
         self.cb_sourceLang.set(sj.cache["sourceLang"])
         self.cb_targetLang.set(sj.cache["targetLang"])
-        self.cb_engine.set(sj.cache["tl_engine"])
         cbtn_invoker(sj.cache["transcribe"], self.cbtn_task_transcribe)
         cbtn_invoker(sj.cache["translate"], self.cbtn_task_translate)
         self.strvar_input.set("mic" if sj.cache["input"] == "mic" else "speaker")
@@ -948,8 +961,9 @@ class MainWindow:
             sj.save_key("speaker", self.cb_speaker.get())
 
     def cb_engine_change(self, _event=None):
-        sj.save_key("tl_engine", self.cb_engine.get())
-        self.cb_lang_update()
+        if _event:
+            sj.save_key("tl_engine", _event)
+            self.cb_lang_update()
 
     def cb_lang_update(self):
         """
@@ -1228,6 +1242,30 @@ class MainWindow:
                     child.destroy()
                     break
 
+    def check_model(self, key, is_english, taskname, task):
+        # check model first
+        model_name = append_dot_en(key, is_english)
+        if not verify_model(model_name):
+            if mbox(
+                "Model is not downloaded yet!",
+                f"`{model_name}` Model not found! You will need to download it first!\n\nDo you want to download it now?",
+                3,
+                self.root,
+            ):
+                logger.info("Downloading model...")
+                try:
+                    gc.dl_thread = Thread(
+                        target=download_model,
+                        args=(model_name, self.root, self.modelDownloadCancel, lambda: self.after_model_dl(taskname, task)),
+                        daemon=True,
+                    )
+                    gc.dl_thread.start()
+                except Exception as e:
+                    logger.exception(e)
+                    self.errorNotif(str(e))
+            return False, ""
+        return True, model_name
+
     # ------------------ Rec ------------------
     def rec(self):
         is_speaker = "selected" in self.radio_speaker.state()
@@ -1252,37 +1290,20 @@ class MainWindow:
             return
 
         # Checking args
-        tc, tl, modelKey, engine, sourceLang, targetLang, mic, speaker = self.get_args()
-        if sourceLang == targetLang and (tc and tl):
+        tc, tl, m_key, engine, source, target, mic, speaker = self.get_args()
+        if source == target and (tc and tl):
             mbox("Invalid options!", "Source and target language cannot be the same", 2)
             return
 
         # check model first
-        modelName = append_dot_en(modelKey, sourceLang == "english")
-        if not verify_model(modelName):
-            if mbox(
-                "Model is not downloaded yet!",
-                f"`{modelName}` Model not found! You will need to download it first!\n\nDo you want to download it now?",
-                3,
-                self.root,
-            ):
-                logger.info("Downloading model...")
-                try:
-                    gc.dl_thread = Thread(
-                        target=download_model,
-                        args=(
-                            modelName,
-                            self.root,
-                            self.modelDownloadCancel,
-                            lambda: self.after_model_dl("mic record", self.rec),
-                        ),
-                        daemon=True,
-                    )
-                    gc.dl_thread.start()
-                except Exception as e:
-                    logger.exception(e)
-                    self.errorNotif(str(e))
+        status, model_tc = self.check_model(m_key, source == "english", "mic record", self.rec)
+        if not status:
             return
+
+        if engine in model_keys:
+            status, engine = self.check_model(engine, source == "english", "recording", self.rec)
+            if not status:
+                return
 
         # ui changes
         self.tb_clear()
@@ -1297,7 +1318,7 @@ class MainWindow:
             device = mic if not is_speaker else speaker
             recThread = Thread(
                 target=record_realtime,
-                args=(sourceLang, targetLang, engine, modelKey, device, tc, tl, is_speaker),
+                args=(source, target, engine, model_tc, device, tc, tl, is_speaker),
                 daemon=True,
             )
             recThread.start()
@@ -1333,37 +1354,20 @@ class MainWindow:
             return
 
         # Checking args
-        tc, tl, modelKey, engine, sourceLang, targetLang, mic, speaker = self.get_args()
-        if sourceLang == targetLang and (tc and tl):
+        tc, tl, m_key, engine, source, target, mic, speaker = self.get_args()
+        if source == target and (tc and tl):
             mbox("Invalid options!", "Source and target language cannot be the same", 2)
             return
 
         # check model first
-        modelName = append_dot_en(modelKey, sourceLang == "english")
-        if not verify_model(modelName):
-            if mbox(
-                "Model is not downloaded yet!",
-                f"`{modelName}` Model not found! You will need to download it first!\n\nDo you want to download it now?",
-                3,
-                self.root,
-            ):
-                logger.info("Downloading model...")
-                try:
-                    gc.dl_thread = Thread(
-                        target=download_model,
-                        args=(
-                            modelName,
-                            self.root,
-                            self.modelDownloadCancel,
-                            lambda: self.after_model_dl("file import", self.import_file),
-                        ),
-                        daemon=True,
-                    )
-                    gc.dl_thread.start()
-                except Exception as e:
-                    logger.exception(e)
-                    self.errorNotif(str(e))
+        status, model_tc = self.check_model(m_key, source == "english", "mic record", self.rec)
+        if not status:
             return
+
+        if engine in model_keys:
+            status, engine = self.check_model(engine, source == "english", "recording", self.rec)
+            if not status:
+                return
 
         # get file
         files = filedialog.askopenfilenames(
@@ -1389,7 +1393,7 @@ class MainWindow:
         # Start thread
         try:
             recFileThread = Thread(
-                target=import_file, args=(list(files), modelKey, sourceLang, targetLang, tc, tl, engine), daemon=True
+                target=import_file, args=(list(files), model_tc, source, target, tc, tl, engine), daemon=True
             )
             recFileThread.start()
         except Exception as e:

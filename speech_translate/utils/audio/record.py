@@ -8,7 +8,7 @@ from shlex import quote
 from threading import Lock, Thread
 from time import gmtime, strftime, time, sleep
 from tkinter import IntVar, Toplevel, ttk
-from typing import Dict, Literal
+from typing import Dict
 from wave import Wave_read, Wave_write
 from wave import open as w_open
 
@@ -32,7 +32,7 @@ from speech_translate.globals import gc, sj
 from speech_translate.utils.audio.device import get_db, get_device_details, get_frame_duration, get_speech, resample_sr
 
 from ..helper import cbtn_invoker, generate_temp_filename, get_channel_int, nativeNotify
-from ..whisper.helper import (append_dot_en, convert_str_options_to_dict, get_temperature, whisper_verbose_log)
+from ..whisper.helper import convert_str_options_to_dict, get_temperature, whisper_verbose_log, model_values
 from ..translate.translator import google_tl, libre_tl, memory_tl
 
 
@@ -49,8 +49,8 @@ original_stdout = sys.stdout
 def record_realtime(
     lang_source: str,
     lang_target: str,
-    engine: Literal["Whisper", "Google", "LibreTranslate", "MyMemoryTranslator"],
-    modelKey: str,
+    engine: str,
+    model_name_tc: str,
     device: str,
     transcribe: bool,
     translate: bool,
@@ -66,7 +66,7 @@ def record_realtime(
         Source language
     lang_target: str
         Target language
-    engine: Literal["Whisper", "Google", "LibreTranslate", "MyMemoryTranslator"]
+    engine: str
         Translation engine
     modelKey: str
         The key of the model in modelSelectDict as the selected model to use
@@ -202,15 +202,15 @@ def record_realtime(
     modal_after = None
     try:
         global vad, use_temp
-        src_english = lang_source == "english"
         auto = lang_source == "auto detect"
-        whisperEngine = engine == "Whisper"
-        modelName = append_dot_en(modelKey, src_english)
+        tl_engine_whisper = engine in model_values
         rec_type = "speaker" if speaker else "mic"
         vad = Vad(sj.cache[f"threshold_auto_mode_{rec_type}"])
 
-        # cannot transcribe concurrently. Will need to wait for the previous transcribe to finish
-        if transcribe and whisperEngine:
+        logger.debug(tl_engine_whisper)
+
+        # cannot transcribe and translate concurrently. Will need to wait for the previous transcribe to finish
+        if translate and tl_engine_whisper:
             gc.tc_lock = Lock()
 
         if auto:
@@ -253,17 +253,17 @@ def record_realtime(
             raise Exception("whisper_extra_args must be an object")
 
         # if only translate to english using whisper engine
-        task = "translate" if whisperEngine and translate and not transcribe else "transcribe"
+        task = "translate" if tl_engine_whisper and translate and not transcribe else "transcribe"
 
         # load model
-        model: whisper.Whisper = whisper.load_model(modelName)
+        model_tc = whisper.load_model(model_name_tc)
+        model_tl = whisper.load_model(engine) if tl_engine_whisper else None
 
         gc.mw.stop_loadBar(rec_type)
-
         # ----------------- Get device -----------------
         logger.info("-" * 50)
         logger.info(f"Task: {task}")
-        logger.info(f"Modelname: {modelName}")
+        logger.info(f"TC model: {model_name_tc}")
         logger.info(f"Engine: {engine}")
         logger.info(f"Auto mode: {auto}")
         logger.info(f"Source Languange: {lang_source}")
@@ -603,15 +603,15 @@ def record_realtime(
 
             # Transcribe the audio
             gc.current_rec_status = "▶️ Recording ⟳ Transcribing"
-            if translate and whisperEngine:
+            if translate and tl_engine_whisper:
                 assert gc.tc_lock is not None
                 gc.tc_lock.acquire()
 
             result = whisper.transcribe(
-                model, audio_target, language=lang_source if not auto else None, task=task, **whisper_args
+                model_tc, audio_target, language=lang_source if not auto else None, task=task, **whisper_args
             )
 
-            if translate and whisperEngine:
+            if translate and tl_engine_whisper:
                 assert gc.tc_lock is not None
                 gc.tc_lock.release()
 
@@ -645,10 +645,10 @@ def record_realtime(
                     gc.current_rec_status = "▶️ Recording ⟳ Translating"
 
                     # Using whisper engine
-                    if whisperEngine:
+                    if tl_engine_whisper:
                         tl_thread = Thread(
                             target=whisper_realtime_tl,
-                            args=[audio_target, lang_source, auto, model],
+                            args=[audio_target, lang_source, auto, model_tl],
                             kwargs=whisper_args,
                             daemon=True
                         )
@@ -783,7 +783,7 @@ def record_callback(in_data, frame_count, time_info, status):
 
 
 def whisper_realtime_tl(
-    audio_normalised,
+    audio,
     lang_source: str,
     auto: bool,
     model: whisper.Whisper,
@@ -800,11 +800,7 @@ def whisper_realtime_tl(
         assert gc.tc_lock is not None
         gc.tc_lock.acquire()
         result = whisper.transcribe(
-            model,
-            audio_normalised,
-            language=lang_source if not auto else None,
-            task="translate",
-            **whisper_args,
+            model, audio, language=lang_source if not auto else None, task="translate", **whisper_args
         )
         gc.tc_lock.release()
         text = str(result["text"]).strip()
@@ -841,9 +837,7 @@ def whisper_realtime_tl(
         gc.disable_tl()  # flag processing as done
 
 
-def realtime_tl(
-    text: str, lang_source: str, lang_target: str, engine: Literal["Google", "LibreTranslate", "MyMemoryTranslator"]
-):
+def realtime_tl(text: str, lang_source: str, lang_target: str, engine: str):
     """Translate the result of realtime_recording_thread using translation API"""
     assert gc.mw is not None
     gc.enable_tl()

@@ -205,28 +205,6 @@ def tb_copy_only(event):
     return "break"
 
 
-def number_only(P):
-    return P.isdigit()
-
-
-def number_only_float(P):
-    try:
-        float(P)
-    except ValueError:
-        return False
-    return True
-
-
-def keybind_num_only(event, func):
-    v = event.char
-    try:
-        v = int(v)
-        func()
-    except ValueError:
-        if v != "\x08" and v != "":
-            return "break"
-
-
 def emoji_img(size, text):
     font = ImageFont.truetype("seguiemj.ttf", size=int(round(size * 72 / 96, 0)))
     # pixels = points * 96 / 72 : 96 is windowsDPI
@@ -234,30 +212,6 @@ def emoji_img(size, text):
     draw = ImageDraw.Draw(im)
     draw.text((size / 2, size / 2), text, embedded_color=True, font=font, anchor="mm")
     return ImageTk.PhotoImage(im)
-
-
-def num_check(el, min: int, max: int, cb_func=None, converts_to_float=False):
-    value = el.get()
-
-    converts_to = float if converts_to_float else int
-    if converts_to(value) > max:
-        el.set(max)
-
-    if converts_to(value) < min:
-        el.set(min)
-
-    if cb_func is not None:
-        cb_func()
-
-
-def max_number(root, el, min: int, max: int, cb_func=None):
-    # verify value only after user has finished typing
-    root.after(1000, lambda: num_check(el, min, max, cb_func))
-
-
-def max_number_float(root, el, min: int, max: int, cb_func=None):
-    # verify value only after user has finished typing
-    root.after(1000, lambda: num_check(el, min, max, cb_func, True))
 
 
 def bind_focus_recursively(root, root_widget):

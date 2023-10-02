@@ -6,6 +6,7 @@ from typing import Literal, Union
 
 from webrtcvad import Vad
 from speech_translate.components.custom.combobox import ComboboxTypeOnCustom
+from speech_translate.components.custom.spinbox import SpinboxNumOnly
 if system() == "Windows":
     import pyaudiowpatch as pyaudio
 else:
@@ -15,7 +16,7 @@ from speech_translate.globals import sj
 from speech_translate._constants import MIN_THRESHOLD, MAX_THRESHOLD, WHISPER_SR
 from speech_translate.custom_logging import logger
 from speech_translate.utils.audio.device import get_db, get_device_details, get_frame_duration, get_speech, resample_sr
-from speech_translate.utils.helper import get_channel_int, number_only, max_number, cbtn_invoker, emoji_img, windows_os_only
+from speech_translate.utils.helper import get_channel_int, cbtn_invoker, emoji_img, windows_os_only
 from speech_translate.components.custom.audio import AudioMeter
 from speech_translate.components.custom.tooltip import tk_tooltips, tk_tooltip
 
@@ -305,18 +306,8 @@ class SettingRecord:
 
         self.lbl_max_temp = ttk.Label(self.f_processing_2, text="Max Temp Files", width=14)
         self.lbl_max_temp.pack(side="left", padx=5, pady=(0, 5))
-        self.spn_max_temp = ttk.Spinbox(
-            self.f_processing_2, from_=50, to=1000, validate="key", validatecommand=(self.root.register(number_only), "%P")
-        )
-        self.spn_max_temp.bind(
-            "<KeyRelease>",
-            lambda e: max_number(
-                self.root,
-                self.spn_max_temp,
-                50,
-                1000,
-                lambda: sj.save_key("max_temp", int(self.spn_max_temp.get())),
-            ),
+        self.spn_max_temp = SpinboxNumOnly(
+            self.root, self.f_processing_2, 50, 1000, lambda x: sj.save_key("max_temp", int(x))
         )
         self.spn_max_temp.pack(side="left", padx=5, pady=(0, 5))
         tk_tooltips(
@@ -354,22 +345,8 @@ class SettingRecord:
         # 1
         self.lbl_buffer_mic = ttk.Label(self.f_mic_recording_1, text="Max buffer", width=14)
         self.lbl_buffer_mic.pack(side="left", padx=5)
-        self.spn_buffer_mic = ttk.Spinbox(
-            self.f_mic_recording_1,
-            from_=1,
-            to=30,
-            validate="key",
-            validatecommand=(self.root.register(number_only), "%P"),
-        )
-        self.spn_buffer_mic.bind(
-            "<KeyRelease>",
-            lambda e: max_number(
-                self.root,
-                self.spn_buffer_mic,
-                1,
-                30,
-                lambda: sj.save_key("max_buffer_mic", int(self.spn_buffer_mic.get())),
-            ),
+        self.spn_buffer_mic = SpinboxNumOnly(
+            self.root, self.f_mic_recording_1, 1, 30, lambda x: sj.save_key("max_buffer_mic", int(x))
         )
         self.spn_buffer_mic.pack(side="left", padx=5)
         tk_tooltips(
@@ -385,18 +362,8 @@ class SettingRecord:
         # 2
         self.lbl_max_sentences_mic = ttk.Label(self.f_mic_recording_2, text="Max Sentences", width=14)
         self.lbl_max_sentences_mic.pack(side="left", padx=5)
-        self.spn_max_sentences_mic = ttk.Spinbox(
-            self.f_mic_recording_2, from_=1, to=250, validate="key", validatecommand=(self.root.register(number_only), "%P")
-        )
-        self.spn_max_sentences_mic.bind(
-            "<KeyRelease>",
-            lambda e: max_number(
-                self.root,
-                self.spn_max_sentences_mic,
-                1,
-                250,
-                lambda: sj.save_key("max_sentences_mic", int(self.spn_max_sentences_mic.get())),
-            ),
+        self.spn_max_sentences_mic = SpinboxNumOnly(
+            self.root, self.f_mic_recording_2, 1, 100, lambda x: sj.save_key("max_sentences_mic", int(x))
         )
         self.spn_max_sentences_mic.pack(side="left", padx=5)
         tk_tooltips(
@@ -499,22 +466,8 @@ class SettingRecord:
         # 1
         self.lbl_buffer_speaker = ttk.Label(self.f_speaker_recording_1, text="Max buffer (s)", width=14)
         self.lbl_buffer_speaker.pack(side="left", padx=5)
-        self.spn_buffer_speaker = ttk.Spinbox(
-            self.f_speaker_recording_1,
-            from_=1,
-            to=30,
-            validate="key",
-            validatecommand=(self.root.register(number_only), "%P"),
-        )
-        self.spn_buffer_speaker.bind(
-            "<KeyRelease>",
-            lambda e: max_number(
-                self.root,
-                self.spn_buffer_speaker,
-                1,
-                30,
-                lambda: sj.save_key("max_buffer_speaker", int(self.spn_buffer_speaker.get())),
-            ),
+        self.spn_buffer_speaker = SpinboxNumOnly(
+            self.root, self.f_speaker_recording_1, 1, 30, lambda x: sj.save_key("max_buffer_speaker", int(x))
         )
         self.spn_buffer_speaker.pack(side="left", padx=5)
         tk_tooltips(
@@ -537,22 +490,8 @@ class SettingRecord:
         # 2
         self.lbl_max_sentences_speaker = ttk.Label(self.f_speaker_recording_2, text="Max Sentences", width=14)
         self.lbl_max_sentences_speaker.pack(side="left", padx=5)
-        self.spn_max_sentences_speaker = ttk.Spinbox(
-            self.f_speaker_recording_2,
-            from_=1,
-            to=250,
-            validate="key",
-            validatecommand=(self.root.register(number_only), "%P"),
-        )
-        self.spn_max_sentences_speaker.bind(
-            "<KeyRelease>",
-            lambda e: max_number(
-                self.root,
-                self.spn_max_sentences_speaker,
-                1,
-                250,
-                lambda: sj.save_key("max_sentences_speaker", int(self.spn_max_sentences_speaker.get())),
-            ),
+        self.spn_max_sentences_speaker = SpinboxNumOnly(
+            self.root, self.f_speaker_recording_2, 1, 100, lambda x: sj.save_key("max_sentences_speaker", int(x))
         )
         self.spn_max_sentences_speaker.pack(side="left", padx=5)
         tk_tooltips(
@@ -995,7 +934,9 @@ class SettingRecord:
                 self.f_mic_recording_5.pack_forget()
                 self.audiometer_mic.pack_forget()
         except Exception as e:
-            logger.exception(e)
+            if "main thread is not in main loop" not in str(e):  # on init sometimes it will throw this error
+                logger.exception(e)
+
             # fail because probably no device
             self.close_meter_mic()
 
@@ -1067,7 +1008,9 @@ class SettingRecord:
                 self.f_speaker_recording_5.pack_forget()
                 self.audiometer_speaker.pack_forget()
         except Exception as e:
-            logger.exception(e)
+            if "main thread is not in main loop" not in str(e):  # on init sometimes it will throw this error
+                logger.exception(e)
+
             self.close_meter_speaker()
 
             # dont show the meter, show failed message

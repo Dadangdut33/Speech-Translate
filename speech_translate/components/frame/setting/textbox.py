@@ -2,8 +2,9 @@ from tkinter import ttk, font, Toplevel, Frame, LabelFrame, Text
 from typing import Union
 
 from speech_translate._constants import PREVIEW_WORDS
+from speech_translate.components.custom.spinbox import SpinboxNumOnly
 from speech_translate.globals import sj, gc
-from speech_translate.utils.helper import chooseColor, max_number, number_only
+from speech_translate.utils.helper import chooseColor
 from speech_translate.utils.helper import cbtn_invoker
 from speech_translate.components.custom.tooltip import tk_tooltip, tk_tooltips
 
@@ -105,23 +106,13 @@ class SettingTextbox:
         # 1
         self.lbl_mw_tc_max = ttk.Label(self.f_mw_tc_1, text="Max Length", width=16)
         self.lbl_mw_tc_max.pack(side="left", padx=5)
-        self.spn_mw_tc_max = ttk.Spinbox(
+        self.spn_mw_tc_max = SpinboxNumOnly(
+            self.root,
             self.f_mw_tc_1,
-            from_=0,
-            to=5000,
-            validate="key",
-            validatecommand=(self.root.register(number_only), "%P"),
-            width=38,
-        )
-        self.spn_mw_tc_max.bind(
-            "<KeyRelease>",
-            lambda e: max_number(
-                self.root,
-                self.spn_mw_tc_max,
-                0,
-                5000,
-                lambda: sj.save_key("tb_mw_tc_max", int(self.spn_mw_tc_max.get())),
-            ) or self.preview_changes_tb(),
+            1,
+            5000,
+            lambda x: sj.save_key("tb_mw_tc_max", int(x)) or self.preview_changes_tb(),
+            width=38
         )
         self.spn_mw_tc_max.pack(side="left", padx=5)
         self.cbtn_mw_tc_limit_max = ttk.Checkbutton(self.f_mw_tc_1, text="Enable", style="Switch.TCheckbutton")
@@ -130,23 +121,13 @@ class SettingTextbox:
         # 2
         self.lbl_mw_tc_max_per_line = ttk.Label(self.f_mw_tc_2, text="Max Per Line", width=16)
         self.lbl_mw_tc_max_per_line.pack(side="left", padx=5)
-        self.spn_mw_tc_max_per_line = ttk.Spinbox(
+        self.spn_mw_tc_max_per_line = SpinboxNumOnly(
+            self.root,
             self.f_mw_tc_2,
-            from_=0,
-            to=5000,
-            validate="key",
-            validatecommand=(self.root.register(number_only), "%P"),
-            width=38,
-        )
-        self.spn_mw_tc_max_per_line.bind(
-            "<KeyRelease>",
-            lambda e: max_number(
-                self.root,
-                self.spn_mw_tc_max_per_line,
-                0,
-                5000,
-                lambda: sj.save_key("tb_mw_tc_max_per_line", int(self.spn_mw_tc_max_per_line.get())),
-            ) or self.preview_changes_tb(),
+            1,
+            5000,
+            lambda x: sj.save_key("tb_mw_tc_max_per_line", int(x)) or self.preview_changes_tb(),
+            width=38
         )
         self.spn_mw_tc_max_per_line.pack(side="left", padx=5)
         self.cbtn_mw_tc_limit_max_per_line = ttk.Checkbutton(self.f_mw_tc_2, text="Enable", style="Switch.TCheckbutton")
@@ -161,24 +142,15 @@ class SettingTextbox:
             "<<ComboboxSelected>>",
             lambda e: sj.save_key("tb_mw_tc_font", self.cb_mw_tc_font.get()) or self.preview_changes_tb(),
         )
-        self.spn_mw_tc_font_size = ttk.Spinbox(
+        self.spn_mw_tc_font_size = SpinboxNumOnly(
+            self.root,
             self.f_mw_tc_3,
-            from_=3,
-            to=120,
-            validate="key",
-            validatecommand=(self.root.register(number_only), "%P"),
-            width=3,
+            3,
+            120,
+            lambda x: sj.save_key("tb_mw_tc_font_size", int(x)) or self.preview_changes_tb(),
+            width=3
         )
-        self.spn_mw_tc_font_size.bind(
-            "<KeyRelease>",
-            lambda e: max_number(
-                self.root,
-                self.spn_mw_tc_font_size,
-                3,
-                120,
-                lambda: sj.save_key("tb_mw_tc_font_size", int(self.spn_mw_tc_font_size.get())),
-            ) or self.preview_changes_tb(),
-        )
+        self.spn_mw_tc_font_size.pack(side="left", padx=5)
         tk_tooltip(self.spn_mw_tc_font_size, "Font Size")
         self.spn_mw_tc_font_size.pack(side="left", padx=5)
         self.cbtn_mw_tc_font_bold = ttk.Checkbutton(self.f_mw_tc_3, text="Bold", style="Switch.TCheckbutton")
@@ -189,23 +161,13 @@ class SettingTextbox:
         # 1
         self.lbl_mw_tl_max = ttk.Label(self.f_mw_tl_1, text="Max Length", width=16)
         self.lbl_mw_tl_max.pack(side="left", padx=5)
-        self.spn_mw_tl_max = ttk.Spinbox(
+        self.spn_mw_tl_max = SpinboxNumOnly(
+            self.root,
             self.f_mw_tl_1,
-            from_=0,
-            to=5000,
-            validate="key",
-            validatecommand=(self.root.register(number_only), "%P"),
-            width=38,
-        )
-        self.spn_mw_tl_max.bind(
-            "<KeyRelease>",
-            lambda e: max_number(
-                self.root,
-                self.spn_mw_tl_max,
-                0,
-                5000,
-                lambda: sj.save_key("tb_mw_tl_max", int(self.spn_mw_tl_max.get())),
-            ) or self.preview_changes_tb(),
+            1,
+            5000,
+            lambda x: sj.save_key("tb_mw_tl_max", int(x)) or self.preview_changes_tb(),
+            width=38
         )
         self.spn_mw_tl_max.pack(side="left", padx=5)
         self.cbtn_mw_tl_limit_max = ttk.Checkbutton(self.f_mw_tl_1, text="Enable", style="Switch.TCheckbutton")
@@ -214,23 +176,13 @@ class SettingTextbox:
         # 2
         self.lbl_mw_tl_max_per_line = ttk.Label(self.f_mw_tl_2, text="Max Per Line", width=16)
         self.lbl_mw_tl_max_per_line.pack(side="left", padx=5)
-        self.spn_mw_tl_max_per_line = ttk.Spinbox(
+        self.spn_mw_tl_max_per_line = SpinboxNumOnly(
+            self.root,
             self.f_mw_tl_2,
-            from_=0,
-            to=5000,
-            validate="key",
-            validatecommand=(self.root.register(number_only), "%P"),
-            width=38,
-        )
-        self.spn_mw_tl_max_per_line.bind(
-            "<KeyRelease>",
-            lambda e: max_number(
-                self.root,
-                self.spn_mw_tl_max_per_line,
-                0,
-                5000,
-                lambda: sj.save_key("tb_mw_tl_max_per_line", int(self.spn_mw_tl_max_per_line.get())),
-            ) or self.preview_changes_tb(),
+            1,
+            5000,
+            lambda x: sj.save_key("tb_mw_tl_max_per_line", int(x)) or self.preview_changes_tb(),
+            width=38
         )
         self.spn_mw_tl_max_per_line.pack(side="left", padx=5)
         self.cbtn_mw_tl_limit_max_per_line = ttk.Checkbutton(self.f_mw_tl_2, text="Enable", style="Switch.TCheckbutton")
@@ -245,23 +197,13 @@ class SettingTextbox:
             "<<ComboboxSelected>>",
             lambda e: sj.save_key("tb_mw_tl_font", self.cb_mw_tl_font.get()) or self.preview_changes_tb(),
         )
-        self.spn_mw_tl_font_size = ttk.Spinbox(
+        self.spn_mw_tl_font_size = SpinboxNumOnly(
+            self.root,
             self.f_mw_tl_3,
-            from_=3,
-            to=120,
-            validate="key",
-            validatecommand=(self.root.register(number_only), "%P"),
-            width=3,
-        )
-        self.spn_mw_tl_font_size.bind(
-            "<KeyRelease>",
-            lambda e: max_number(
-                self.root,
-                self.spn_mw_tl_font_size,
-                3,
-                120,
-                lambda: sj.save_key("tb_mw_tl_font_size", int(self.spn_mw_tl_font_size.get())),
-            ) or self.preview_changes_tb(),
+            3,
+            120,
+            lambda x: sj.save_key("tb_mw_tl_font_size", int(x)) or self.preview_changes_tb(),
+            width=3
         )
         tk_tooltip(self.spn_mw_tl_font_size, "Font Size")
         self.spn_mw_tl_font_size.pack(side="left", padx=5)
@@ -273,23 +215,13 @@ class SettingTextbox:
         # 1
         self.lbl_ex_tc_max = ttk.Label(self.f_ex_tc_1, text="Max Length", width=16)
         self.lbl_ex_tc_max.pack(side="left", padx=5)
-        self.spn_ex_tc_max = ttk.Spinbox(
+        self.spn_ex_tc_max = SpinboxNumOnly(
+            self.root,
             self.f_ex_tc_1,
-            from_=0,
-            to=5000,
-            validate="key",
-            validatecommand=(self.root.register(number_only), "%P"),
-            width=38,
-        )
-        self.spn_ex_tc_max.bind(
-            "<KeyRelease>",
-            lambda e: max_number(
-                self.root,
-                self.spn_ex_tc_max,
-                0,
-                5000,
-                lambda: sj.save_key("tb_ex_tc_max", int(self.spn_ex_tc_max.get())),
-            ) or self.preview_changes_tb(),
+            1,
+            5000,
+            lambda x: sj.save_key("tb_ex_tc_max", int(x)) or self.preview_changes_tb(),
+            width=38
         )
         self.spn_ex_tc_max.pack(side="left", padx=5)
         self.cbtn_ex_tc_limit_max = ttk.Checkbutton(self.f_ex_tc_1, text="Enable", style="Switch.TCheckbutton")
@@ -298,23 +230,13 @@ class SettingTextbox:
         # 2
         self.lbl_ex_tc_max_per_line = ttk.Label(self.f_ex_tc_2, text="Max Per Line", width=16)
         self.lbl_ex_tc_max_per_line.pack(side="left", padx=5)
-        self.spn_ex_tc_max_per_line = ttk.Spinbox(
+        self.spn_ex_tc_max_per_line = SpinboxNumOnly(
+            self.root,
             self.f_ex_tc_2,
-            from_=0,
-            to=5000,
-            validate="key",
-            validatecommand=(self.root.register(number_only), "%P"),
-            width=38,
-        )
-        self.spn_ex_tc_max_per_line.bind(
-            "<KeyRelease>",
-            lambda e: max_number(
-                self.root,
-                self.spn_ex_tc_max_per_line,
-                0,
-                5000,
-                lambda: sj.save_key("tb_ex_tc_max_per_line", int(self.spn_ex_tc_max_per_line.get())),
-            ) or self.preview_changes_tb(),
+            1,
+            5000,
+            lambda x: sj.save_key("tb_ex_tc_max_per_line", int(x)) or self.preview_changes_tb(),
+            width=38
         )
         self.spn_ex_tc_max_per_line.pack(side="left", padx=5)
         self.cbtn_ex_tc_limit_max_per_line = ttk.Checkbutton(self.f_ex_tc_2, text="Enable", style="Switch.TCheckbutton")
@@ -329,23 +251,13 @@ class SettingTextbox:
             "<<ComboboxSelected>>",
             lambda e: sj.save_key("tb_ex_tc_font", self.cb_ex_tc_font.get()) or self.preview_changes_tb(),
         )
-        self.spn_ex_tc_font_size = ttk.Spinbox(
+        self.spn_ex_tc_font_size = SpinboxNumOnly(
+            self.root,
             self.f_ex_tc_3,
-            from_=3,
-            to=120,
-            validate="key",
-            validatecommand=(self.root.register(number_only), "%P"),
-            width=3,
-        )
-        self.spn_ex_tc_font_size.bind(
-            "<KeyRelease>",
-            lambda e: max_number(
-                self.root,
-                self.spn_ex_tc_font_size,
-                3,
-                120,
-                lambda: sj.save_key("tb_ex_tc_font_size", int(self.spn_ex_tc_font_size.get())),
-            ) or self.preview_changes_tb(),
+            3,
+            120,
+            lambda x: sj.save_key("tb_ex_tc_font_size", int(x)) or self.preview_changes_tb(),
+            width=3
         )
         tk_tooltip(self.spn_ex_tc_font_size, "Font Size")
         self.spn_ex_tc_font_size.pack(side="left", padx=5)
@@ -379,23 +291,13 @@ class SettingTextbox:
         # detached tl
         self.lbl_ex_tl_max = ttk.Label(self.f_ex_tl_1, text="Max Length", width=16)
         self.lbl_ex_tl_max.pack(side="left", padx=5)
-        self.spn_ex_tl_max = ttk.Spinbox(
+        self.spn_ex_tl_max = SpinboxNumOnly(
+            self.root,
             self.f_ex_tl_1,
-            from_=0,
-            to=5000,
-            validate="key",
-            validatecommand=(self.root.register(number_only), "%P"),
-            width=38,
-        )
-        self.spn_ex_tl_max.bind(
-            "<KeyRelease>",
-            lambda e: max_number(
-                self.root,
-                self.spn_ex_tl_max,
-                0,
-                5000,
-                lambda: sj.save_key("tb_ex_tl_max", int(self.spn_ex_tl_max.get())),
-            ) or self.preview_changes_tb(),
+            1,
+            5000,
+            lambda x: sj.save_key("tb_ex_tl_max", int(x)) or self.preview_changes_tb(),
+            width=38
         )
         self.spn_ex_tl_max.pack(side="left", padx=5)
         self.cbtn_ex_tl_limit_max = ttk.Checkbutton(self.f_ex_tl_1, text="Enable", style="Switch.TCheckbutton")
@@ -404,23 +306,13 @@ class SettingTextbox:
         # 2
         self.lbl_ex_tl_max_per_line = ttk.Label(self.f_ex_tl_2, text="Max Per Line", width=16)
         self.lbl_ex_tl_max_per_line.pack(side="left", padx=5)
-        self.spn_ex_tl_max_per_line = ttk.Spinbox(
+        self.spn_ex_tl_max_per_line = SpinboxNumOnly(
+            self.root,
             self.f_ex_tl_2,
-            from_=0,
-            to=5000,
-            validate="key",
-            validatecommand=(self.root.register(number_only), "%P"),
-            width=38,
-        )
-        self.spn_ex_tl_max_per_line.bind(
-            "<KeyRelease>",
-            lambda e: max_number(
-                self.root,
-                self.spn_ex_tl_max_per_line,
-                0,
-                5000,
-                lambda: sj.save_key("tb_ex_tl_max_per_line", int(self.spn_ex_tl_max_per_line.get())),
-            ) or self.preview_changes_tb(),
+            1,
+            5000,
+            lambda x: sj.save_key("tb_ex_tl_max_per_line", int(x)) or self.preview_changes_tb(),
+            width=38
         )
         self.spn_ex_tl_max_per_line.pack(side="left", padx=5)
         self.cbtn_ex_tl_limit_max_per_line = ttk.Checkbutton(self.f_ex_tl_2, text="Enable", style="Switch.TCheckbutton")
@@ -435,23 +327,13 @@ class SettingTextbox:
             "<<ComboboxSelected>>",
             lambda e: sj.save_key("tb_ex_tl_font", self.cb_ex_tl_font.get()) or self.preview_changes_tb(),
         )
-        self.spn_ex_tl_font_size = ttk.Spinbox(
+        self.spn_ex_tl_font_size = SpinboxNumOnly(
+            self.root,
             self.f_ex_tl_3,
-            from_=3,
-            to=120,
-            validate="key",
-            validatecommand=(self.root.register(number_only), "%P"),
-            width=3,
-        )
-        self.spn_ex_tl_font_size.bind(
-            "<KeyRelease>",
-            lambda e: max_number(
-                self.root,
-                self.spn_ex_tl_font_size,
-                3,
-                120,
-                lambda: sj.save_key("tb_ex_tl_font_size", int(self.spn_ex_tl_font_size.get())),
-            ) or self.preview_changes_tb(),
+            3,
+            120,
+            lambda x: sj.save_key("tb_ex_tl_font_size", int(x)) or self.preview_changes_tb(),
+            width=3
         )
         tk_tooltip(self.spn_ex_tl_font_size, "Font Size")
         self.spn_ex_tl_font_size.pack(side="left", padx=5)

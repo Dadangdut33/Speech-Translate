@@ -1,4 +1,4 @@
-from tkinter import ttk, Tk, Toplevel
+from tkinter import ttk, Tk, Toplevel, Menu
 from typing import List, Union
 
 
@@ -94,3 +94,50 @@ class ComboboxTypeOnCustom(ttk.Combobox):
             self.configure(state='disabled')
         else:
             self.configure(state=self.prev_state)
+
+
+class CategorizedComboBox(ttk.Combobox):
+    """
+    A combobox that allow to displays a dropdown menu with categories and items
+    """
+    def __init__(self, root: Union[Tk, Toplevel], master, categories, callback, *args, **kwargs):
+        super().__init__(master, *args, **kwargs)
+
+        self.root = root
+        self.categories = categories
+        self.callback = callback
+        self.configure(state="readonly")
+        self.menu = Menu(root, tearoff=0)
+
+        for category in categories:
+            category_menu = Menu(self.menu, tearoff=0)
+            if len(categories[category]) == 0:
+                self.menu.add_command(label=category, command=lambda c=category: self.set_item(c))
+            else:
+                self.menu.add_cascade(label=category, menu=category_menu)
+                for item in categories[category]:
+                    category_menu.add_command(label=item, command=lambda i=item: self.set_item(i))
+
+        self.bind("<Button-1>", self.show_menu)
+        self.menu.bind("<FocusOut>", self.unpost_menu)
+        self.root.bind("<Button-1>", self.unpost_menu)
+
+    def show_menu(self, event):
+        """
+        Show the dropdown menu if the combobox is clicked
+        Position it based on the combobox location and height
+        """
+        self.menu.post(self.winfo_rootx(), self.winfo_rooty() + self.winfo_height())
+        self.configure(state="disabled")
+
+    def set_item(self, item):
+        """
+        Set the combobox value to the item selected in the menu
+        """
+        self.set(item)
+        self.callback(item)
+        self.unpost_menu()
+
+    def unpost_menu(self, event=None):
+        self.configure(state="readonly")
+        self.menu.unpost()

@@ -6,7 +6,7 @@ from textwrap import wrap
 from threading import Thread
 from time import gmtime, sleep, strftime, time
 from tkinter import Toplevel, filedialog, ttk
-from typing import Dict, Literal, List
+from typing import Dict, List
 
 import whisper_timestamped as whisper
 
@@ -18,8 +18,8 @@ from speech_translate.globals import gc, sj
 
 from ..helper import cbtn_invoker, get_proxies, nativeNotify, filename_only, save_file_with_dupe_check, start_file
 from ..whisper.helper import (
-    append_dot_en, convert_str_options_to_dict, get_temperature, srt_whisper_to_txt_format_stamps,
-    txt_to_srt_whisper_format_stamps, whisper_result_to_srt, srt_whisper_to_txt_format
+    convert_str_options_to_dict, get_temperature, srt_whisper_to_txt_format_stamps, txt_to_srt_whisper_format_stamps,
+    whisper_result_to_srt, srt_whisper_to_txt_format, model_values
 )
 from ..translate.translator import google_tl, libre_tl, memory_tl
 
@@ -29,11 +29,12 @@ def cancellable_tc(
     audio_name: str,
     lang_source: str,
     lang_target: str,
-    modelName: str,
+    model_loaded: whisper.Whisper,
+    model_tl: whisper.Whisper,
     auto: bool,
     transcribe: bool,
     translate: bool,
-    engine: Literal["Whisper", "Google", "LibreTranslate", "MyMemoryTranslator"],
+    engine: str,
     save_name: str,
     **whisper_args,
 ) -> None:
@@ -49,15 +50,17 @@ def cancellable_tc(
         source language
     lang_target: str
         target language
-    modelName: str
-        name of the model to use
+    model_loaded: whisper.Whisper
+        loaded whisper model for transcribing
+    model_tl: whisper.Whisper
+        loaded whisper model for translating
     auto: bool
         if True, source language will be auto detected
     transcribe: bool
         if True, transcribe the audio
     translate: bool
         if True, translate the transcription
-    engine: Literal["Whisper", "Google", "LibreTranslate", "MyMemoryTranslator"]
+    engine: str
         engine to use for translation
     **whisper_args:
         whisper parameter
@@ -80,7 +83,6 @@ def cancellable_tc(
         logger.info(f"Transcribing: {f_save}")
 
         logger.debug("Source Language: Auto" if auto else f"Source Language: {lang_source}")
-        model: whisper.Whisper = whisper.load_model(modelName)
 
         fail = False
         failMsg = ""
@@ -88,7 +90,7 @@ def cancellable_tc(
         def run_threaded():
             try:
                 result = whisper.transcribe(
-                    model,
+                    model_loaded,
                     audio_name,
                     task="transcribe",
                     language=lang_source if not auto else None,
@@ -137,14 +139,14 @@ def cancellable_tc(
         if translate:
             # send result as srt if not using whisper because it will be send to translation API.
             # If using whisper translation will be done using whisper model
-            to_tl = whisper_result_to_srt(result_Tc) if engine != "Whisper" else audio_name
+            to_tl = whisper_result_to_srt(result_Tc) if engine not in model_values else audio_name
             translateThread = Thread(
                 target=cancellable_tl,
                 args=[
                     to_tl,
                     lang_source,
                     lang_target,
-                    modelName,
+                    model_tl,
                     engine,
                     auto,
                     save_name,
@@ -171,8 +173,8 @@ def cancellable_tl(
     query: str,
     lang_source: str,
     lang_target: str,
-    model_name: str,
-    engine: Literal["Whisper", "Google", "LibreTranslate", "MyMemoryTranslator"],
+    model_loaded: whisper.Whisper,
+    engine: str,
     auto: bool,
     save_name: str,
     **whisper_args,
@@ -192,9 +194,9 @@ def cancellable_tl(
         source language
     lang_target: str
         target language
-    model_name: str
-        name of the whisper model
-    engine: Literal["Whisper", "Google", "LibreTranslate", "MyMemoryTranslator"]
+    model_loaded: whisper.Whisper
+        loaded whisper model
+    engine: str
         engine to use
     auto: bool
         whether to use auto language detection
@@ -221,11 +223,10 @@ def cancellable_tl(
         logger.info("-" * 50)
         logger.info(f"Translating: {f_save}")
 
-        if engine == "Whisper":
+        if engine in model_values:
             try:
                 logger.debug("Translating with whisper")
                 logger.debug("Source Language: Auto" if auto else f"Source Language: {lang_source}")
-                model = whisper.load_model(model_name)
 
                 fail = False
                 failMsg = ""
@@ -233,7 +234,7 @@ def cancellable_tl(
                 def run_threaded():
                     try:
                         result = whisper.transcribe(
-                            model,
+                            model_loaded,
                             query,
                             task="translate",
                             language=lang_source if not auto else None,
@@ -325,6 +326,8 @@ def cancellable_tl(
                     success, result = memory_tl(query, lang_source, lang_target, proxies, debug_log)
                     if not success:
                         nativeNotify("Error: translation with mymemory failed", result)
+                else:
+                    raise Exception("Invalid engine. Got: " + engine)  # should never happen
 
                 result = txt_to_srt_whisper_format_stamps(result, timestamp)
                 result_Tl.append(result)
@@ -359,7 +362,7 @@ def cancellable_tl(
 
 
 def import_file(
-    files: List[str], modelKey: str, lang_source: str, lang_target: str, transcribe: bool, translate: bool, engine: str
+    files: List[str], model_name: str, lang_source: str, lang_target: str, transcribe: bool, translate: bool, engine: str
 ) -> None:
     """Function to transcribe and translate from audio/video files.
 
@@ -467,10 +470,12 @@ def import_file(
         gc.file_tced_counter = 0
         gc.file_tled_counter = 0
 
-        src_english = lang_source == "english"
         auto = lang_source == "auto detect"
-        whisperEngine = engine == "Whisper"
-        model_name = append_dot_en(modelKey, src_english)
+        tl_engine_whisper = engine in model_values
+
+        # load model
+        model_tc = whisper.load_model(model_name)
+        model_tl = whisper.load_model(engine) if tl_engine_whisper else None
 
         temperature = sj.cache["temperature"]
         whisper_args = sj.cache["whisper_extra_args"]
@@ -593,7 +598,7 @@ def import_file(
             save_name = save_name.replace("{model}", model_name)
             save_name = save_name.replace("{engine}", engine)
 
-            if translate and whisperEngine and not transcribe:  # if only translating and using the whisper engine
+            if translate and tl_engine_whisper and not transcribe:  # if only translating and using the whisper engine
                 proc_thread = Thread(
                     target=cancellable_tl,
                     args=[
@@ -617,7 +622,8 @@ def import_file(
                         file,
                         lang_source,
                         lang_target,
-                        model_name,
+                        model_tc,
+                        model_tl,
                         auto,
                         transcribe,
                         translate,

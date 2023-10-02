@@ -2,7 +2,7 @@ from re import sub
 
 from speech_translate.custom_logging import logger
 
-modelSelectDict = {
+model_select_dict = {
     "Tiny (~32x speed)": "tiny",
     "Base (~16x speed)": "base",
     "Small (~6x speed)": "small",
@@ -10,8 +10,8 @@ modelSelectDict = {
     "Large (v1) (1x speed)": "large-v1",
     "Large (v2) (1x speed)": "large-v2",
 }
-modelKeys = list(modelSelectDict.keys())
-modelValues = list(modelSelectDict.values())
+model_keys = list(model_select_dict.keys())
+model_values = list(model_select_dict.values())
 
 
 def whisper_verbose_log(result):
@@ -49,7 +49,7 @@ def whisper_verbose_log(result):
             logger.debug(f"Confidence: {words['confidence']}")
 
 
-def append_dot_en(modelKey: str, src_english: bool):
+def append_dot_en(model_key: str, src_english: bool):
     """
     Append .en to model name if src_english is True and model is not large (large does not have english version)
 
@@ -61,13 +61,13 @@ def append_dot_en(modelKey: str, src_english: bool):
         If the source language is english
     """
     logger.info("Checking model name")
-    logger.debug(f"modelKey: {modelKey}, src_english: {src_english}")
-    modelName = modelSelectDict[modelKey]
-    if "large" not in modelName and src_english:
-        modelName = modelName + ".en"
+    logger.debug(f"modelKey: {model_key}, src_english: {src_english}")
+    name = model_select_dict[model_key]
+    if "large" not in name and src_english:
+        name = name + ".en"
 
-    logger.debug(f"modelName: {modelName}")
-    return modelName
+    logger.debug(f"modelName: {name}")
+    return name
 
 
 def str_to_union_str_list_int(string):

@@ -335,8 +335,13 @@ myMemory_target = list(myMemory_lang.keys())
 myMemory_target.pop(0)
 
 engine_select_target_dict = {
-    "Whisper": ["English"],
-    "Google": [up_first_case(x) for x in gLang_target],
+    "Tiny (~32x speed)": ["English"],
+    "Base (~16x speed)": ["English"],
+    "Small (~6x speed)": ["English"],
+    "Medium (~2x speed)": ["English"],
+    "Large (v1) (1x speed)": ["English"],
+    "Large (v2) (1x speed)": ["English"],
+    "Google Translate": [up_first_case(x) for x in gLang_target],
     "LibreTranslate": [up_first_case(x) for x in libre_target],
     "MyMemoryTranslator": [up_first_case(x) for x in myMemory_target],
 }
@@ -357,9 +362,15 @@ for lang in myMemory_whisper_compatible:
     if lang not in whisper_compatible:
         myMemory_whisper_compatible.remove(lang)
 
+whisper_source = ["Auto detect"] + [up_first_case(x) for x in whisper_compatible]
 engine_select_source_dict = {
-    "Whisper": ["Auto detect"] + [up_first_case(x) for x in whisper_compatible],
-    "Google": ["Auto detect"] + [up_first_case(x) for x in google_whisper_compatible],
+    "Tiny (~32x speed)": whisper_source,
+    "Base (~16x speed)": whisper_source,
+    "Small (~6x speed)": whisper_source,
+    "Medium (~2x speed)": whisper_source,
+    "Large (v1) (1x speed)": whisper_source,
+    "Large (v2) (1x speed)": whisper_source,
+    "Google Translate": ["Auto detect"] + [up_first_case(x) for x in google_whisper_compatible],
     "LibreTranslate": ["Auto detect"] + [up_first_case(x) for x in libre_whisper_compatible],
     "MyMemoryTranslator": ["Auto detect"] + [up_first_case(x) for x in myMemory_whisper_compatible],
 }
