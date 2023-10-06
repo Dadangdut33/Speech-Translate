@@ -21,7 +21,7 @@ AppUpdatesURL={#MyAppURL}
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
-LicenseFile=build\SpeechTranslate\LICENSE.txt
+LicenseFile=build\SpeechTranslate {#MyAppVersion}\LICENSE.txt
 ; Remove the following line to run in administrative install mode (install for all users.)
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=commandline
@@ -39,8 +39,8 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "build\SpeechTranslate\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "build\SpeechTranslate\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "build\SpeechTranslate {#MyAppVersion}\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "build\SpeechTranslate {#MyAppVersion}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]

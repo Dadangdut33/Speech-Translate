@@ -299,7 +299,7 @@ def cancellable_tl(
 
             # translate each part
             for query, timestamp in zip(toTranslates_txt, timestamps):
-                if engine == "Google":
+                if engine == "Google Translate":
                     logger.debug("Translating with google translate")
                     success, result = google_tl(query, lang_source, lang_target, proxies, debug_log)
                     if not success:
@@ -516,6 +516,7 @@ def import_file(
         timerStart = time()
         taskname = "Transcribe & Translate" if transcribe and translate else "Transcribe" if transcribe else "Translate"
         language = f"from {lang_source} to {lang_target}" if translate else lang_source
+        current_file_counter = 0
 
         def add_to_files():
             nonlocal files
@@ -544,12 +545,8 @@ def import_file(
                 gc.mw.from_file_stop()
 
         def update_modal_ui():
-            nonlocal timerStart
+            nonlocal timerStart, current_file_counter
             if gc.recording:
-                if transcribe:
-                    current_file_counter = gc.file_tced_counter
-                else:
-                    current_file_counter = gc.file_tled_counter
 
                 lbl_files.set_text(text=f"{current_file_counter}/{len(files)}")
                 lbl_elapsed.set_text(text=f"{strftime('%H:%M:%S', gmtime(time() - timerStart))}")
@@ -636,6 +633,7 @@ def import_file(
 
             proc_thread.start()
             proc_thread.join()  # wait for thread to finish until continue to next file
+            current_file_counter += 1
 
         if translate:
             # create loop to wait for translation to finish

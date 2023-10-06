@@ -14,18 +14,54 @@
     <a href="https://github.com/Dadangdut33/Speech-Translate/network/members"><img alt="GitHub forks" src="https://img.shields.io/github/forks/Dadangdut33/Speech-Translate?style=social"></a>
 </p>
 
-A speech transcription and translation application using whisper OpenAI model.
+Speech Translate is a practical application that combines OpenAI's Whisper ASR model with free translation APIs. It serves as a versatile tool for both real-time / live speech-to-text and speech translation, allowing the user to seamlessly convert spoken language into written text. Additionally, it has the option to import and transcribe audio / video files effortlessly.
 
-<h1>Jump to</h1>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/1.png" width="700" alt="Speech Translate Preview">
+</p>
+
+<details close>
+  <summary>Preview - Usage</summary>
+  <p align="center">
+    <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/7.png" width="700" alt="Record">
+    <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/8.png" width="700" alt="File import">
+    <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/9.png" width="700" alt="Transcribe mode on subtitle window (English)">
+    Transcribe mode on detached window (English)
+    <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/10.png" width="700" alt="Translate mode on subtitle window (English to Indonesia)">
+    Translate mode on detached window (English to Indonesia)
+  </p>
+</details>
+
+<details close>
+  <summary>Preview - Setting</summary>
+  <p align="center">
+    <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/2.png" width="700" alt="Setting">
+    <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/3.png" width="700" alt="Setting">
+    <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/4.png" width="700" alt="Setting">
+    <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/4.png" width="700" alt="Setting">
+    <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/5.png" width="700" alt="Setting">
+    <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/6.png" width="700" alt="Setting">
+    <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/7.png" width="700" alt="Record preview">
+    <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/8.png" alt="Transcribe mode on subtitle window (English)">
+    Transcribe mode on detached window (English)
+    <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/9.png" alt="Translate mode on subtitle window (English to Indonesia)">
+    Translate mode on detached window (English to Indonesia)
+  </p>
+</details>
+
+<br />
+
+<h1>Table Of Contents</h1>
 
 - [Features](#features)
-- [User Requirements](#user-requirements)
-- [Download \& Installation](#download--installation)
-- [General Usage](#general-usage)
-- [User Settings](#user-settings-and-thing-to-note)
-- [Development](#--development--)
+- [Requirements](#requirements)
+- [Installation](#installation)
+  - [From Prebuilt binary:](#from-prebuilt-binary)
+  - [As module:](#as-module)
+- [More Information](#more-information)
+- [Building / Developing / Compiling Yourself](#building--developing--compiling-yourself)
   - [Setup](#setup)
-  - [Using GPU](#using-gpu)
+  - [Running the app](#running-the-app)
   - [Building](#building)
   - [Compatibility](#compatibility)
 - [Contributing](#contributing)
@@ -36,27 +72,23 @@ A speech transcription and translation application using whisper OpenAI model.
 # Features
 
 - Speech to text
-- Translation of transcribed text (Speech to translated text)
-- Realtime input from mic and speaker
-- Batch file processing with timestamp
-- <details open>
-    <summary>Preview</summary>
-    <p align="center">
-      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/1.png" width="700" alt="Speech Translate Looks">
-      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/2.png" width="700" alt="Setting transcription">
-      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/3.png" width="700" alt="Setting textbox">
-      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/4.png" width="700" alt="About window">
-      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/5.png" alt="Detached window preview">
-      Detached window preview
-      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/6.png" alt="Transcribe mode on detached window (English)">
-      Transcribe mode on detached window (English)
-      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/7.png" alt="Translate mode on detached window (English to Indonesia)">
-      Translate mode on detached window (English to Indonesia)
-    </p>
-  </details>
+- Speech translation (transcribed text can be translated to other languages)
+- Live input from mic and speaker
+- Batch file processing of audio / video files for transcription and translation with output of (.txt .srt .tsv .vtt .json)
 
-# User Requirements
+# Requirements
 
+- Compatible OS: 
+
+|    OS       | Prebuilt binary | As a module |
+|:-----------:|:---------------:|:-----------:|
+|    Windows  |        ✔️       |     ✔️     |
+|    MacOS    |        ❌       |     ✔️     |
+|    Linux    |        ❌       |     ✔️     |
+
+\* Python 3.8 or later (3.10 is recommended) for installation as module.
+
+- Speaker input only work on windows 8 and above.
 - [FFmpeg](https://ffmpeg.org/) is required to be installed and added to the PATH environment variable. You can download it [here](https://ffmpeg.org/download.html) and add it to your path manually OR you can do it automatically using the following commands:
 
 ```
@@ -75,72 +107,57 @@ sudo pacman -S ffmpeg
 # on MacOS using Homebrew (https://brew.sh/)
 brew install ffmpeg
 ```
-- Whisper uses vram/gpu to process the audio, so it is recommended to have a CUDA compatible GPU. If there is no compatible GPU, the application will use the CPU to process the audio (This might make it slower). For each model requirement you can check directly at the [whisper repository](https://github.com/openai/whisper) or you can hover over the model selection in the app (there will be a tooltip about the model info).
-- Speaker input only work on windows 8 and above.
+
+- Recommended to have capable GPU with CUDA compatibility to run each model. Each model has different requirements, for more information you can check it directly at the [whisper repository](https://github.com/openai/whisper).
+
+|  Size  | Parameters | English-only model | Multilingual model | Required VRAM | Relative speed |
+|:------:|:----------:|:------------------:|:------------------:|:-------------:|:--------------:|
+|  tiny  |    39 M    |     `tiny.en`      |       `tiny`       |     ~1 GB     |      ~32x      |
+|  base  |    74 M    |     `base.en`      |       `base`       |     ~1 GB     |      ~16x      |
+| small  |   244 M    |     `small.en`     |      `small`       |     ~2 GB     |      ~6x       |
+| medium |   769 M    |    `medium.en`     |      `medium`      |     ~5 GB     |      ~2x       |
+| large  |   1550 M   |        N/A         |      `large`       |    ~10 GB     |       1x       |
+
+\* This information is also available in the app (hover over the model selection in the app and there will be a tooltip about the model info). 
 
 
-# Download & Installation
+# Installation
 
 > [!IMPORTANT]  
-> Make sure that you have installed [FFmpeg](https://ffmpeg.org/) and added it to the PATH environment variable. [See here](#user-requirements) for more info
+> Make sure that you have installed [FFmpeg](https://ffmpeg.org/) and added it to the PATH environment variable. [See here](#requirements) for more info
 
 ## From Prebuilt binary:
-  1. Download the [latest release](https://github.com/Dadangdut33/Speech-Translate/releases/latest) (There are 2 versions, CPU and GPU)
-  2. Install/extract the downloaded file
-  3. Run the program
-  
+
+1. Download the [latest release](https://github.com/Dadangdut33/Speech-Translate/releases/latest) (There are 2 versions, CPU and GPU)
+2. Install/extract the downloaded file
+3. Run the program
+4. Enjoy!
+
 ## As module:
-  
-  To install as module, we can use pip. Here is how to do it: 
-  
-  with **GPU (Cuda compatible)** support: 
+
+To install as module, we can use pip, with the following command.
+
+- Install with **GPU (Cuda compatible)** support:
   
   `pip install -U git+https://github.com/Dadangdut33/Speech-Translate.git --extra-index-url https://download.pytorch.org/whl/cu118`
 
-  **CPU** only:
+- **CPU** only:
   
   `pip install -U git+https://github.com/Dadangdut33/Speech-Translate.git`
-  
-  You can then run the program by typing `speech-translate` in your terminal/console. Alternatively, when installing as a module, you can also clone the repo and install it locally by running `pip install -e .` in the project directory. (Don't forget to add `--extra-index-url` if you want to install with GPU support)
-  
-  **Notes:**
-  
-  -  If you want to install from a specific branch or commit, you can do it by adding `@branch_name` or `@commit_hash` at the end of the url. Example: `pip install -U git+https://github.com/Dadangdut33/Speech-Translate.git@dev --extra-index-url https://download.pytorch.org/whl/cu118`
-  -  The --extra-index-url shown here might not always be up to date, so you can check the latest version of pytorch [here](https://pytorch.org/get-started/locally/). You can also check the available version of pytorch [here](https://download.pytorch.org/whl/torch_stable.html).
-  -  If you are updating from an older version, you can add `--upgrade --no-deps --force-reinstall` at the end of the command.
-   
-# General Usage
 
-- Live speech to text and speech translation:
+You can then run the program by typing `speech-translate` in your terminal/console. Alternatively, when installing as a module, you can also clone the repo and install it locally by running `pip install -e .` in the project directory. (Don't forget to add `--extra-index-url` if you want to install with GPU support)
 
-  1. Set user setting
-  2. Select model, mode, and language
-  3. Click the record from mic / system button
-  4. Open the subtitle window
-  5. Stop record
+**Notes:**
 
-- File import:
+- If you are updating from an older version, you need to add `--upgrade --no-deps --force-reinstall` at the end of the command.
+- If you want to install from a specific branch or commit, you can do it by adding `@branch_name` or `@commit_hash` at the end of the url. Example: `pip install -U git+https://github.com/Dadangdut33/Speech-Translate.git@dev --extra-index-url https://download.pytorch.org/whl/cu118`
+- The --extra-index-url here might not always be up to date, so you can check the latest version of pytorch [here](https://pytorch.org/get-started/locally/). You can also check the available version of pytorch [here](https://download.pytorch.org/whl/torch_stable.html).
 
-  1. Set user setting
-  2. Select model, mode, and language
-  3. Click the import file button
-  4. Wait for the process to finish or cancel it
+# More Information
 
-# User Settings and Thing to Note
+Check out the [wiki](https://github.com/Dadangdut33/Speech-Translate/wiki) for more information about the app, the user settings, and how to use it.
 
-- You can change the settings by clicking the settings button on the menubar of the app. Alternatively, you can press F2 to open the menu window when in focus or you could also edit the settings file manually located at `$project_dir/user/setting.json`.
-- If the terminal/console is still showing, you will need to set your `default terminal application` to `windows console host` in your `windows terminal` setting. 
-![image](https://user-images.githubusercontent.com/57717531/226117592-e10ebdf3-fb09-44b2-b6be-1a445dc8c265.png)
-
----
-
-<h1 align="center">- Development -</h1>
-
-> [!WARNING]  
-> As of right now (4th of November 2022) I guess pytorch is not compatible with python 3.11 so you can't use python 3.11. I tried with 3.11 but it doesn't work so i rollback to python 3.10.9.
-
-> [!NOTE]  
-> Ignore all this if you are using the prebuilt/compiled version.
+# Building / Developing / Compiling Yourself
 
 ## Setup
 
@@ -153,35 +170,19 @@ brew install ffmpeg
 4. Make sure to have ffmpeg installed and added to your PATH
 5. Get to root directory and Run the script by typing `python Main.py`
 
-## Using GPU
-
-> [!NOTE]  
-> The `--extra-index-url` here might not always be up to date, so you can check the latest version of pytorch [here](https://pytorch.org/get-started/locally/). You can also check the available version of pytorch [here](https://download.pytorch.org/whl/torch_stable.html).
-
-Make sure that you add `--extra-index-url https://download.pytorch.org/whl/cu118` when installing the dependencies if you want to use GPU for pytorch.
-
 ## Running the app
 
-You can run the app by running the [`Run.py`](./Run.py) located in **root directory**. Alternatively you can also run it using `python -m speech_translate` in the **root directory**. 
+You can run the app by running the [`Run.py`](./Run.py) located in **root directory**. Alternatively you can also run it using `python -m speech_translate` in the **root directory**.
 
 ## Building
 
-Before compiling the project, make sure you have installed all the dependencies and setup your pytorch correctly. Your pytorch version will control wether the app will use GPU or CPU (that's why it's recommended to make virtual environment for the project).
-
-I have provided a `[build script](./build_pyinstaller.py)` that will build the project for you. You can run it by typing `python build_pyinstaller.py` in the **root directory**. This will produce an executable file in the `dist` directory. An active python virtual environment is required to run the script. Alternatively you can use the following commands to build the project:
-
-```bash
-pyinstaller --noconfirm --onedir --console --icon "./assets/icon.ico" --name "Speech Translate" --clean --add-data "./assets;assets/" --copy-metadata "tqdm" --copy-metadata "regex" --copy-metadata "requests" --copy-metadata "packaging" --copy-metadata "filelock" --copy-metadata "numpy" --copy-metadata "tokenizers" --add-data "./venv/Lib/site-packages/whisper/assets;whisper/assets/"  "./Run.py"
-```
-
-**Note: Replace the __venv__ with your actual venv / python path**
+Before compiling the project, make sure you have installed all the dependencies and setup your pytorch correctly. Your pytorch version will control wether the app will use GPU or CPU (that's why it's recommended to make virtual environment for the project). The pre compiled version in this project is built using cx_freeze, i have provided the script in [build.py](./build.py). To compile it into an exe run `python build.py build` in the **root directory**. This will produce an executable file in the `build` directory. After that, use innosetup script to create an installer. You can use the provided [installer.iss](./installer.iss) to create an installer. 
 
 ## Compatibility
 
-This project should be compatible with Windows (preferrably windows 10 or later) and other platforms. But I haven't tested it on platform other than windows.
+This project should be compatible with Windows (preferrably windows 10 or later) and other platforms. But I haven't tested it extensively on other platforms. If you find any bugs or issues, feel free to create an issue.
 
 ---
-
 
 # Contributing
 

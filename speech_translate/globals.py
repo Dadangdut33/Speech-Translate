@@ -88,7 +88,6 @@ class GlobalClass:
         self.dl_thread: Optional[Thread] = None
         self.cancel_dl: bool = False
 
-        self.cw: Optional[int] = None  # Console window
         # References to class
         self.tray: Optional[AppTray] = None
         """Tray app class"""

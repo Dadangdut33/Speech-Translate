@@ -36,6 +36,7 @@ default_setting = {
     "auto_open_dir_export": True,
     # {file} {task} {task-short} {lang-source} {lang-target} {model} {engine}
     "export_format": "%Y-%m-%d %H_%M {file}_{task}",
+    "export_to": ["txt", "srt", "vtt", "tsv", "json"],
     "file_slice_start": "",  # empty will be read as None
     "file_slice_end": "",  # empty will be read as None
     "parse_arabic": False,

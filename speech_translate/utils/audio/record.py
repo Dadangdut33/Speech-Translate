@@ -411,8 +411,8 @@ def record_realtime(
                 modal_after = root.after(modal_update_rate, update_modal_ui)
 
         transcribe_rate = timedelta(seconds=sj.cache["transcribe_rate"] / 1000)
-        max_record_time = int(sj.cache["max_buffer_speaker"]) if speaker else int(sj.cache["max_buffer_mic"])
-        max_sentences = int(sj.cache["max_sentences_speaker"]) if speaker else int(sj.cache["max_sentences_mic"])
+        max_record_time = int(sj.cache[f"max_buffer_{rec_type}"])
+        max_sentences = int(sj.cache[f"max_sentences_{rec_type}"])
 
         lbl_sample_rate.set_text(sr_ori)
         lbl_channels.set_text(num_of_channels)
@@ -848,7 +848,7 @@ def realtime_tl(text: str, lang_source: str, lang_target: str, engine: str):
         tl_res = ""
         debug_log = sj.cache["debug_translate"]
 
-        if engine == "Google":
+        if engine == "Google Translate":
             success, tl_res = google_tl(text, lang_source, lang_target, debug_log)
             if not success:
                 nativeNotify("Error: translation with google failed", tl_res)
@@ -871,6 +871,8 @@ def realtime_tl(text: str, lang_source: str, lang_target: str, engine: str):
             success, tl_res = memory_tl(text, lang_source, lang_target, debug_log)
             if not success:
                 nativeNotify("Error: translation with mymemory failed", str(tl_res))
+        else:
+            raise Exception("Invalid translation engine. Got: " + engine)
 
         tl_res = tl_res.strip()
         if len(tl_res) > 0:

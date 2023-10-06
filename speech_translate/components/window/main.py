@@ -42,31 +42,6 @@ from speech_translate.utils.audio.record import record_realtime
 from speech_translate.utils.audio.file import import_file
 from speech_translate.utils.ui.style import get_current_theme, get_theme_list, init_theme, set_ui_style
 
-# Terminal window hide/showing
-try:
-    if system() != "Windows":
-        raise Exception("Console window is not hidden automatically because Not running on Windows")
-
-    import ctypes
-
-    import win32.lib.win32con as win32con
-    import win32gui
-
-    kernel32 = ctypes.WinDLL("kernel32")
-    user32 = ctypes.WinDLL("user32")
-
-    hWnd = kernel32.GetConsoleWindow()
-    win32gui.ShowWindow(hWnd, win32con.SW_HIDE)
-    logger.info(
-        "Console window hidden. If it is not hidden (only minimized), try changing your"
-        " default windows terminal to windows cmd."
-    )
-    gc.cw = hWnd
-except Exception as e:
-    logger.debug("Ignore this error if not running on Windows OR if not run directly from terminal (e.g. run from IDE)")
-    logger.exception(e)
-    pass
-
 
 # Function to handle Ctrl+C and exit just like clicking the exit button
 def signal_handler(sig, frame):
@@ -512,8 +487,6 @@ class MainWindow:
         self.fm_view = Menu(self.menubar, tearoff=0)
         self.fm_view.add_command(label="Settings", command=self.open_setting, accelerator="F2")
         self.fm_view.add_command(label="Log", command=self.open_log)
-        if system() == "Windows":
-            self.fm_view.add_checkbutton(label="Console/Terminal", command=self.toggle_console)
         self.menubar.add_cascade(label="View", menu=self.fm_view)
 
         self.fm_generate = Menu(self.menubar, tearoff=0)
@@ -589,13 +562,6 @@ class MainWindow:
         self.save_win_size()
         gc.sw.save_win_size()  # type: ignore
 
-        if system() == "Windows":
-            try:
-                if gc.cw:
-                    win32gui.ShowWindow(gc.cw, win32con.SW_SHOW)
-            except Exception:
-                pass
-
         self.cleanup()
         logger.info("Exiting...")
         try:
@@ -662,19 +628,6 @@ class MainWindow:
     def open_log(self, _event=None):
         assert gc.lw is not None
         gc.lw.show()
-
-    def toggle_console(self):
-        if system() != "Windows":
-            logger.info("Console toggling is only available on Windows")
-            return
-
-        if not self.console_opened:
-            win32gui.ShowWindow(gc.cw, win32con.SW_SHOW)
-        else:
-            win32gui.ShowWindow(gc.cw, win32con.SW_HIDE)
-
-        self.console_opened = not self.console_opened
-        logger.debug(f"Console toggled, now {'opened' if self.console_opened else 'closed'}")
 
     def open_detached_tcw(self, _event=None):
         assert gc.ex_tcw is not None
@@ -1416,7 +1369,7 @@ class MainWindow:
             mbox(
                 "Cancelled",
                 f"Cancelled file import processing\n\nTranscribed {gc.file_tced_counter} "
-                " and translated {gc.file_tled_counter} file",
+                f"and translated {gc.file_tled_counter} file",
                 0,
                 self.root,
             )
