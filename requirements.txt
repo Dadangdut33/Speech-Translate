@@ -12,7 +12,8 @@ pystray==0.19.4
 requests==2.28.2
 scipy==1.10.1 
 sounddevice==0.4.6
-soundfile==0.11.0
+soundfile==0.12.1
+webrtcvad==2.0.10
 darkdetect==0.8.0
 arabic-reshaper==3.0.0
 python-bidi==0.4.2
