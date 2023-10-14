@@ -6,6 +6,14 @@ def number_only(P):
     return P.isdigit()
 
 
+def number_only_float(P):
+    try:
+        float(P)
+    except ValueError:
+        return False
+    return True
+
+
 def num_check(el, min, max, cb_func=None, converts_to_float=False):
     value = el.get()
 
@@ -62,6 +70,9 @@ class SpinboxNumOnly(ttk.Spinbox):
 
         self.prev = None
         self.verify_after = None
+
+        if num_float:
+            self.configure(increment=0.1, format="%.2f", validatecommand=(root.register(number_only_float), "%P"))
 
         # Bind the KeyRelease event to capture text input
         maxFunc = max_number_float if num_float else max_number

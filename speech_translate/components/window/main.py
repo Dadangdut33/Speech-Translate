@@ -38,7 +38,7 @@ from speech_translate.utils.translate.language import (
 )
 from speech_translate.utils.whisper.helper import append_dot_en, model_keys, model_select_dict
 from speech_translate.utils.whisper.download import download_model, verify_model
-from speech_translate.utils.audio.record import record_realtime
+from speech_translate.utils.audio.record import record_session
 from speech_translate.utils.audio.file import import_file
 from speech_translate.utils.ui.style import get_current_theme, get_theme_list, init_theme, set_ui_style
 
@@ -129,6 +129,7 @@ class MainWindow:
         self.root.title(APP_NAME)
         self.root.geometry(sj.cache["mw_size"])
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
+        self.root.minsize(600, 300)
         self.root.wm_attributes("-topmost", False)  # Default False
 
         # Flags
@@ -183,7 +184,7 @@ class MainWindow:
         tk_tooltips(
             [self.lbl_model, self.cb_model],
             "Larger models are more accurate but are slower and require more power."
-            "\n\nIf you have a low end GPU, use Tiny or Base."
+            "\n\nIf you have a low end GPU, use Tiny or Base. "
             "Don't use large unless you really need it or have powerful computer."
             "\n\nModel specs:\n- Tiny: ~1 GB Vram\n- Base: ~1 GB Vram\n- Small: ~2 GB Vram"
             "\n- Medium: ~5 GB Vram\n- Large: ~10 GB Vram",
@@ -216,21 +217,21 @@ class MainWindow:
         self.lbl_source = ttk.Label(self.f1_toolbar, text="From:")
         self.lbl_source.pack(side="left", padx=5, pady=5)
 
-        self.cb_sourceLang = ttk.Combobox(
+        self.cb_source_lang = ttk.Combobox(
             self.f1_toolbar, values=engine_select_source_dict["Google Translate"], state="readonly"
         )  # initial value
-        self.cb_sourceLang.pack(side="left", padx=5, pady=5, fill="x", expand=True)
-        self.cb_sourceLang.bind("<<ComboboxSelected>>", lambda _: sj.save_key("sourceLang", self.cb_sourceLang.get()))
+        self.cb_source_lang.pack(side="left", padx=5, pady=5, fill="x", expand=True)
+        self.cb_source_lang.bind("<<ComboboxSelected>>", lambda _: sj.save_key("sourceLang", self.cb_source_lang.get()))
 
         # to
         self.lbl_to = ttk.Label(self.f1_toolbar, text="To:")
         self.lbl_to.pack(side="left", padx=5, pady=5)
 
-        self.cb_targetLang = ttk.Combobox(
+        self.cb_target_lang = ttk.Combobox(
             self.f1_toolbar, values=[up_first_case(x) for x in whisper_compatible], state="readonly"
         )  # initial value
-        self.cb_targetLang.pack(side="left", padx=5, pady=5, fill="x", expand=True)
-        self.cb_targetLang.bind("<<ComboboxSelected>>", lambda _: sj.save_key("targetLang", self.cb_targetLang.get()))
+        self.cb_target_lang.pack(side="left", padx=5, pady=5, fill="x", expand=True)
+        self.cb_target_lang.bind("<<ComboboxSelected>>", lambda _: sj.save_key("targetLang", self.cb_target_lang.get()))
 
         # swap
         self.btn_swap = ttk.Button(self.f1_toolbar, text="Swap", command=self.cb_swap_lang)
@@ -658,8 +659,8 @@ class MainWindow:
     def on_init(self):
         self.cb_model.set({v: k for k, v in model_select_dict.items()}[sj.cache["model"]])
         self.cb_engine.set(sj.cache["tl_engine"])
-        self.cb_sourceLang.set(sj.cache["sourceLang"])
-        self.cb_targetLang.set(sj.cache["targetLang"])
+        self.cb_source_lang.set(sj.cache["sourceLang"])
+        self.cb_target_lang.set(sj.cache["targetLang"])
         cbtn_invoker(sj.cache["transcribe"], self.cbtn_task_transcribe)
         cbtn_invoker(sj.cache["translate"], self.cbtn_task_translate)
         self.strvar_input.set("mic" if sj.cache["input"] == "mic" else "speaker")
@@ -923,30 +924,27 @@ class MainWindow:
         update the target cb list with checks
         """
         # update the target cb list
-        self.cb_targetLang["values"] = engine_select_target_dict[self.cb_engine.get()]
+        self.cb_target_lang["values"] = engine_select_target_dict[self.cb_engine.get()]
 
         # update source only if mode is not transcribe only
         if "selected" in self.cbtn_task_translate.state():
-            self.cb_sourceLang["values"] = engine_select_source_dict[self.cb_engine.get()]
+            self.cb_source_lang["values"] = engine_select_source_dict[self.cb_engine.get()]
 
         # check if the target lang is not in the new list
-        if self.cb_targetLang.get() not in self.cb_targetLang["values"]:
-            self.cb_targetLang.current(0)
+        if self.cb_target_lang.get() not in self.cb_target_lang["values"]:
+            self.cb_target_lang.current(0)
 
         # check if the source lang is not in the new list
-        if self.cb_sourceLang.get() not in self.cb_sourceLang["values"]:
-            self.cb_sourceLang.current(0)
+        if self.cb_source_lang.get() not in self.cb_source_lang["values"]:
+            self.cb_source_lang.current(0)
 
         # save
-        sj.save_key("sourceLang", self.cb_sourceLang.get())
-        sj.save_key("targetLang", self.cb_targetLang.get())
+        sj.save_key("sourceLang", self.cb_source_lang.get())
+        sj.save_key("targetLang", self.cb_target_lang.get())
 
     # clear textboxes
     def tb_clear(self):
-        gc.clear_mw_tc()
-        gc.clear_mw_tl()
-        gc.clear_ex_tc()
-        gc.clear_ex_tl()
+        gc.clear_all()
 
     # Swap textboxes
     def tb_swap_content(self):
@@ -959,17 +957,17 @@ class MainWindow:
     # swap select language and textbox
     def cb_swap_lang(self):
         # swap lang
-        tmpTarget = self.cb_targetLang.get()
-        tmpSource = self.cb_sourceLang.get()
-        self.cb_sourceLang.set(tmpTarget)
-        self.cb_targetLang.set(tmpSource)
+        tmpTarget = self.cb_target_lang.get()
+        tmpSource = self.cb_source_lang.get()
+        self.cb_source_lang.set(tmpTarget)
+        self.cb_target_lang.set(tmpSource)
 
-        if self.cb_targetLang.get() == "Auto detect":
-            self.cb_targetLang.current(0)
+        if self.cb_target_lang.get() == "Auto detect":
+            self.cb_target_lang.current(0)
 
         # save
-        sj.save_key("sourceLang", self.cb_sourceLang.get())
-        sj.save_key("targetLang", self.cb_targetLang.get())
+        sj.save_key("sourceLang", self.cb_source_lang.get())
+        sj.save_key("targetLang", self.cb_target_lang.get())
 
         # swap text only if mode is transcribe and translate
         if "selected" in self.cbtn_task_transcribe.state() and "selected" in self.cbtn_task_translate.state():
@@ -990,8 +988,8 @@ class MainWindow:
             self.tb_translated_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
             self.tb_translated.pack(fill="both", expand=True, padx=1, pady=1)
 
-            self.cb_sourceLang.configure(state="readonly")
-            self.cb_targetLang.configure(state="readonly")
+            self.cb_source_lang.configure(state="readonly")
+            self.cb_target_lang.configure(state="readonly")
             self.cb_engine.configure(state="readonly")
             self.enable_processing()
 
@@ -1003,8 +1001,8 @@ class MainWindow:
             self.tb_translated_bg.pack_forget()
             self.tb_translated.pack_forget()
 
-            self.cb_sourceLang.configure(state="readonly")
-            self.cb_targetLang.configure(state="disabled")
+            self.cb_source_lang.configure(state="readonly")
+            self.cb_target_lang.configure(state="disabled")
             self.cb_engine.configure(state="disabled")
             self.enable_processing()
 
@@ -1016,14 +1014,14 @@ class MainWindow:
             self.tb_translated_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
             self.tb_translated.pack(fill="both", expand=True, padx=1, pady=1)
 
-            self.cb_sourceLang.configure(state="readonly")
-            self.cb_targetLang.configure(state="readonly")
+            self.cb_source_lang.configure(state="readonly")
+            self.cb_target_lang.configure(state="readonly")
             self.cb_engine.configure(state="readonly")
             self.enable_processing()
 
-        else:  # bot not selected
-            self.cb_sourceLang.configure(state="readonly")
-            self.cb_targetLang.configure(state="readonly")
+        else:  # both not selected
+            self.cb_source_lang.configure(state="readonly")
+            self.cb_target_lang.configure(state="readonly")
             self.cb_engine.configure(state="readonly")
             self.disable_processing()
 
@@ -1050,8 +1048,8 @@ class MainWindow:
         self.btn_import_file.configure(state="disabled")
         self.cb_model.configure(state="disabled")
         self.cb_engine.configure(state="disabled")
-        self.cb_sourceLang.configure(state="disabled")
-        self.cb_targetLang.configure(state="disabled")
+        self.cb_source_lang.configure(state="disabled")
+        self.cb_target_lang.configure(state="disabled")
 
     def enable_interactions(self):
         self.cbtn_task_transcribe.configure(state="normal")
@@ -1064,11 +1062,11 @@ class MainWindow:
         self.btn_import_file.configure(state="normal")
         self.cb_model.configure(state="readonly")
         self.cb_engine.configure(state="readonly")
-        self.cb_sourceLang.configure(state="readonly")
+        self.cb_source_lang.configure(state="readonly")
         if "selected" not in self.cbtn_task_translate.state():
-            self.cb_targetLang.configure(state="disabled")
+            self.cb_target_lang.configure(state="disabled")
         else:
-            self.cb_targetLang.configure(state="readonly")
+            self.cb_target_lang.configure(state="readonly")
 
     def start_loadBar(self):
         self.loadBar.configure(mode="indeterminate")
@@ -1093,8 +1091,8 @@ class MainWindow:
             "selected" in self.cbtn_task_translate.state(),
             self.cb_model.get(),
             self.cb_engine.get(),
-            self.cb_sourceLang.get().lower(),
-            self.cb_targetLang.get().lower(),
+            self.cb_source_lang.get().lower(),
+            self.cb_target_lang.get().lower(),
             self.cb_mic.get(),
             self.cb_speaker.get(),
         )
@@ -1270,7 +1268,7 @@ class MainWindow:
         try:
             device = mic if not is_speaker else speaker
             recThread = Thread(
-                target=record_realtime,
+                target=record_session,
                 args=(source, target, engine, model_tc, device, tc, tl, is_speaker),
                 daemon=True,
             )

@@ -4,7 +4,7 @@ from platform import system
 from shlex import quote
 from threading import Lock, Thread
 from tkinter import ttk
-from typing import TYPE_CHECKING, List, Literal, Optional, Union
+from typing import TYPE_CHECKING, List, Literal, Optional, Union, Dict
 from warnings import simplefilter
 
 import tqdm
@@ -110,6 +110,8 @@ class GlobalClass:
         self.current_rec_status: str = ""
         self.auto_detected_lang: str = "~"
         self.tc_lock: Optional[Lock] = None
+        self.tc_sentences = []
+        self.tl_sentences = []
 
         # file process
         self.file_tced_counter: int = 0
@@ -258,6 +260,40 @@ class GlobalClass:
         ex.lbl_text.configure(text=textToAppend)
         ex.check_height_resize()
 
+    def update_tc(self, new_text: str, separator: str):
+        # Clear the textbox first, then insert the new text.
+        self.clear_mw_tc()
+        self.clear_ex_tc()
+        to_ex_tc = ""
+
+        # insert previous sentences first if there are any
+        for sentence in self.tc_sentences:
+            if isinstance(sentence, Dict):
+                sentence = sentence["text"]
+            self.insert_result_mw(sentence.strip(), "tc")
+            to_ex_tc += sentence + separator
+
+        # insert the current sentence after previous sentences
+        self.insert_result_mw(new_text, "tc")
+        self.insert_result_ex(to_ex_tc + new_text, "tc")
+
+    def update_tl(self, new_text: str, separator: str):
+        # Clear the textbox first, then insert the new text.
+        self.clear_mw_tl()
+        self.clear_ex_tl()
+        to_ex_tl = ""
+
+        # insert previous sentences first if there are any
+        for sentence in self.tl_sentences:
+            if isinstance(sentence, Dict):
+                sentence = sentence["text"]
+            self.insert_result_mw(sentence.strip(), "tl")
+            to_ex_tl += sentence + separator
+
+        # insert the current sentence after previous sentences
+        self.insert_result_mw(new_text, "tl")
+        self.insert_result_ex(to_ex_tl + new_text, "tl")
+
     def get_mw_tc(self) -> str:
         assert self.mw is not None
         return self.mw.tb_transcribed.get("1.0", "end")
@@ -289,6 +325,14 @@ class GlobalClass:
     def clear_ex_tl(self):
         assert self.ex_tlw is not None
         self.ex_tlw.lbl_text.configure(text=SUBTITLE_PLACEHOLDER)
+
+    def clear_all(self):
+        self.tc_sentences = []
+        self.tl_sentences = []
+        self.clear_mw_tc()
+        self.clear_mw_tl()
+        self.clear_ex_tc()
+        self.clear_ex_tl()
 
 
 # ------------------ #

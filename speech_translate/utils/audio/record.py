@@ -31,7 +31,7 @@ from speech_translate.custom_logging import logger
 from speech_translate.globals import gc, sj
 from speech_translate.utils.audio.device import get_db, get_device_details, get_frame_duration, get_speech, resample_sr
 
-from ..helper import cbtn_invoker, generate_temp_filename, get_channel_int, nativeNotify
+from ..helper import cbtn_invoker, generate_temp_filename, get_channel_int, nativeNotify, unique_list
 from ..whisper.helper import convert_str_options_to_dict, get_temperature, whisper_verbose_log, model_values
 from ..translate.translator import google_tl, libre_tl, memory_tl
 
@@ -46,7 +46,7 @@ class NullIO:
 original_stdout = sys.stdout
 
 
-def record_realtime(
+def record_session(
     lang_source: str,
     lang_target: str,
     engine: str,
@@ -57,7 +57,7 @@ def record_realtime(
     speaker: bool = False,
 ) -> None:
     """
-    Function to record audio and translate it in real time. Speaker as input can only be used on Windows.
+    Function to record audio and translate it in real time / live. Speaker as input can only be used on Windows.
     Other OS need to use mic, speaker can be used only by using Loopback software such as PulseAudio, blackhole, etc.
 
     Parameters
@@ -452,12 +452,12 @@ def record_realtime(
 
         # ----------------- Start recording -----------------
         # recording session init
-        global prev_tc_text, prev_tl_text, sentences_tc, sentences_tl, max_db, min_db, is_silence, was_recording, t_silence
+        gc.tc_sentences = []
+        gc.tl_sentences = []
+        global prev_tl_res, max_db, min_db, is_silence, was_recording, t_silence
         temp_list = []
-        sentences_tc = []
-        sentences_tl = []
-        prev_tc_text = ""
-        prev_tl_text = ""
+        prev_tc_res = None
+        prev_tl_res = None
         next_transcribe_time = None
         last_sample = bytes()
         samp_width = p.get_sample_size(pyaudio.paInt16)
@@ -476,30 +476,34 @@ def record_realtime(
             input=True,
             frames_per_buffer=chunk_size,
             input_device_index=int(device_detail["index"]),
-            stream_callback=record_callback,
+            stream_callback=record_cb,
         )
 
         logger.debug("Record Session Started")
 
-        def break_buffer():
-            global sentences_tc, sentences_tl, prev_tc_text, prev_tl_text
-            nonlocal last_sample, duration_seconds
+        def break_buffer_store_text():
+            """
+            Break the buffer (last_sample). Resetting the buffer means that the buffer will be cleared and
+            it will be stored in the currently transcribed or translated text.
+            """
+            global prev_tl_res
+            nonlocal prev_tc_res, last_sample, duration_seconds
             last_sample = bytes()
             duration_seconds = 0
 
             # append and remove text that is exactly the same same
             # Some dupe might accidentally happened so we need to remove it
             if transcribe:
-                sentences_tc.append(prev_tc_text)
-                sentences_tc = list(dict.fromkeys(sentences_tc))
-                if len(sentences_tc) >= max_sentences:
-                    sentences_tc.pop(0)
+                gc.tc_sentences.append(prev_tc_res)
+                gc.tc_sentences = unique_list(gc.tc_sentences)
+                if len(gc.tc_sentences) >= max_sentences:
+                    gc.tc_sentences.pop(0)
 
             if translate:
-                sentences_tl.append(prev_tl_text)
-                sentences_tl = list(dict.fromkeys(sentences_tl))
-                if len(sentences_tl) >= max_sentences:
-                    sentences_tl.pop(0)
+                gc.tl_sentences.append(prev_tl_res)
+                gc.tl_sentences = unique_list(gc.tl_sentences)
+                if len(gc.tl_sentences) >= max_sentences:
+                    gc.tl_sentences.pop(0)
 
         # transcribing loop
         while gc.recording:
@@ -514,7 +518,7 @@ def record_realtime(
                     # if silence has been detected for more than 1 second, break the buffer (last_sample)
                     if is_silence and time() - t_silence > 1:
                         is_silence = False
-                        break_buffer()
+                        break_buffer_store_text()
                         gc.current_rec_status = "💤 Idle (Buffer Cleared)"
                         if sj.cache["debug_realtime_record"] == 1:
                             logger.debug("Silence found for more than 1 second. Buffer reseted")
@@ -619,7 +623,7 @@ def record_realtime(
             gc.auto_detected_lang = str(result["language"])
 
             if len(text) > 0:
-                prev_tc_text = text
+                prev_tc_res = result
                 if transcribe:
                     if sj.cache["debug_realtime_record"] == 1:
                         if sj.cache["verbose"]:
@@ -627,19 +631,7 @@ def record_realtime(
                         else:
                             logger.debug(f"New text: {text}")
 
-                    # Clear the textbox first, then insert the new text.
-                    gc.clear_mw_tc()
-                    gc.clear_ex_tc()
-                    to_ex_tc = ""
-
-                    # insert previous sentences first if there are any
-                    for sentence in sentences_tc:
-                        gc.insert_result_mw(sentence, "tc")
-                        to_ex_tc += sentence + separator
-
-                    # insert the current sentence after previous sentences
-                    gc.insert_result_mw(text, "tc")
-                    gc.insert_result_ex(to_ex_tc + text, "tc")
+                    gc.update_tc(text, separator)
                 if translate:
                     # Start translate thread
                     gc.current_rec_status = "▶️ Recording ⟳ Translating"
@@ -647,20 +639,21 @@ def record_realtime(
                     # Using whisper engine
                     if tl_engine_whisper:
                         tl_thread = Thread(
-                            target=whisper_realtime_tl,
+                            target=tl_whisper,
                             args=[audio_target, lang_source, auto, model_tl],
                             kwargs=whisper_args,
                             daemon=True
                         )
                     # Using translation API
                     else:
-                        tl_thread = Thread(target=realtime_tl, args=[text, lang_source, lang_target, engine], daemon=True)
+                        tl_thread = Thread(target=tl_api, args=[text, lang_source, lang_target, engine], daemon=True)
 
                     tl_thread.start()
+                    tl_thread.join()  # wait so its more consistent in the result
 
             # break up the buffer If we've reached max recording time
             if duration_seconds > max_record_time:
-                break_buffer()
+                break_buffer_store_text()
 
             gc.current_rec_status = "▶️ Recording"  # reset status
         else:
@@ -724,7 +717,7 @@ def record_realtime(
             root.destroy()  # close if not destroyed
 
 
-def record_callback(in_data, frame_count, time_info, status):
+def record_cb(in_data, frame_count, time_info, status):
     """
     Record Audio From stream buffer and save it to queue in global class
     Will also check for sample rate and threshold setting 
@@ -782,7 +775,7 @@ def record_callback(in_data, frame_count, time_info, status):
     return (in_data, pyaudio.paContinue)
 
 
-def whisper_realtime_tl(
+def tl_whisper(
     audio,
     lang_source: str,
     auto: bool,
@@ -793,7 +786,7 @@ def whisper_realtime_tl(
     assert gc.mw is not None
     gc.enable_tl()
 
-    global prev_tl_text, sentences_tl
+    global prev_tl_res
     try:
         separator = literal_eval(quote(sj.cache["separate_with"]))
 
@@ -807,7 +800,7 @@ def whisper_realtime_tl(
         gc.auto_detected_lang = str(result["language"])
 
         if len(text) > 0:
-            prev_tl_text = text
+            prev_tl_res = result
 
             if sj.cache["debug_realtime_record"] == 1:
                 logger.debug("New translated text (Whisper)")
@@ -816,19 +809,7 @@ def whisper_realtime_tl(
                 else:
                     logger.debug(f"{text}")
 
-            # Clear the textbox first, then insert the new text.
-            gc.clear_mw_tl()
-            gc.clear_ex_tl()
-            to_ex_tb = ""
-
-            # insert previous sentences if there are any
-            for sentence in sentences_tl:
-                gc.insert_result_mw(sentence, "tl")
-                to_ex_tb += sentence + separator
-
-            # insert the current sentence after previous sentences
-            gc.insert_result_mw(text, "tl")
-            gc.insert_result_ex(to_ex_tb + text, "tl")
+            gc.update_tl(text, separator)
 
     except Exception as e:
         logger.exception(e)
@@ -837,13 +818,13 @@ def whisper_realtime_tl(
         gc.disable_tl()  # flag processing as done
 
 
-def realtime_tl(text: str, lang_source: str, lang_target: str, engine: str):
+def tl_api(text: str, lang_source: str, lang_target: str, engine: str):
     """Translate the result of realtime_recording_thread using translation API"""
     assert gc.mw is not None
     gc.enable_tl()
 
     try:
-        global prev_tl_text, sentences_tl
+        global prev_tl_res, sentences_tl
         separator = literal_eval(quote(sj.cache["separate_with"]))
         tl_res = ""
         debug_log = sj.cache["debug_translate"]
@@ -874,22 +855,9 @@ def realtime_tl(text: str, lang_source: str, lang_target: str, engine: str):
         else:
             raise Exception("Invalid translation engine. Got: " + engine)
 
-        tl_res = tl_res.strip()
-        if len(tl_res) > 0:
-            prev_tl_text = tl_res
-            # Clear the textbox first, then insert the new text.
-            gc.clear_mw_tl()
-            gc.clear_ex_tl()
-            to_ex_tb = ""
-
-            # insert previous sentences if there are any
-            for sentence in sentences_tl:
-                gc.insert_result_mw(sentence, "tl")
-                to_ex_tb += sentence + separator
-
-            # insert the current sentence after previous sentences
-            gc.insert_result_mw(tl_res, "tl")
-            gc.insert_result_ex(to_ex_tb + tl_res, "tl")
+        if tl_res and len(tl_res) > 0:
+            prev_tl_res = tl_res.strip()
+            gc.update_tl(tl_res.strip(), separator)
 
     except Exception as e:
         logger.exception(e)

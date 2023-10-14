@@ -108,6 +108,7 @@ class CategorizedComboBox(ttk.Combobox):
         self.callback = callback
         self.configure(state="readonly")
         self.menu = Menu(root, tearoff=0)
+        self.is_posted = False
 
         for category in categories:
             category_menu = Menu(self.menu, tearoff=0)
@@ -127,6 +128,12 @@ class CategorizedComboBox(ttk.Combobox):
         Show the dropdown menu if the combobox is clicked
         Position it based on the combobox location and height
         """
+        # check state first, if disabled then do nothing
+        print(str(self.cget('state')))
+        if str(self.cget('state')) == 'disabled':
+            return
+
+        self.is_posted = True
         self.menu.post(self.winfo_rootx(), self.winfo_rooty() + self.winfo_height())
         self.configure(state="disabled")
 
@@ -139,5 +146,9 @@ class CategorizedComboBox(ttk.Combobox):
         self.unpost_menu()
 
     def unpost_menu(self, event=None):
+        if not self.is_posted:
+            return
+
+        self.is_posted = False
         self.configure(state="readonly")
         self.menu.unpost()

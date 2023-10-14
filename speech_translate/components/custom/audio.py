@@ -86,10 +86,13 @@ class AudioMeter(Canvas):
         """
         When on auto mode we want it to just show flashing and only when its recording
         """
-        if self.recording:
-            self.flash()
-        else:
-            self.delete("all")
+        try:
+            if self.recording:
+                self.flash()
+            else:
+                self.delete("all")
+        except Exception:
+            pass
 
     def flash(self):
         # Map loudness to the canvas width

@@ -62,6 +62,9 @@ class SettingRecord:
         self.lf_recording = LabelFrame(self.master, text="• Recording Options")
         self.lf_recording.pack(side="top", fill="x", padx=5, pady=5)
 
+        self.f_recording_0 = ttk.Frame(self.lf_recording)
+        self.f_recording_0.pack(side="top", fill="x", pady=5, padx=5)
+
         self.f_recording_1 = ttk.Frame(self.lf_recording)
         self.f_recording_1.pack(side="top", fill="x", pady=5, padx=5)
 
@@ -245,6 +248,21 @@ class SettingRecord:
         )
 
         # ------------------ Recording ------------------
+        self.lbl_tc_rate = ttk.Label(self.f_recording_0, text="Transcribe Rate (ms)", width=18)
+        self.lbl_tc_rate.pack(side="left", padx=5)
+        self.spn_tc_rate = SpinboxNumOnly(
+            self.root, self.f_recording_0, 1, 1000, lambda x: sj.save_key("transcribe_rate", int(x))
+        )
+        self.spn_tc_rate.pack(side="left", padx=5)
+        tk_tooltips(
+            [self.spn_tc_rate, self.lbl_tc_rate],
+            "Set the transcribe rate or the time between each transcribe check."
+            "\n\nFor more real time experience you can lower it more. The lower the value, the more resource it will use."
+            "\n\nIf you lower the transcribe rate, you should also lower the max buffer for a better experience."
+            "\n\nDefault value is 300ms.",
+            wrapLength=350,
+        )
+
         # ----- procesing
         self.lf_processing = ttk.LabelFrame(self.f_recording_1, text="Audio Processing")
         self.lf_processing.pack(side="top", padx=5, fill="x", expand=True)
@@ -611,6 +629,7 @@ class SettingRecord:
         cbtn_invoker(sj.cache["auto_channels_speaker"], self.cbtn_auto_channels_speaker)
 
         # recording options
+        self.spn_tc_rate.set(sj.cache["transcribe_rate"])
         self.var_conversion.set("temp" if sj.cache["use_temp"] else "numpy")
         self.spn_max_temp.set(sj.cache["max_temp"])
         cbtn_invoker(sj.cache["keep_temp"], self.cbtn_keep_temp)
@@ -692,6 +711,7 @@ class SettingRecord:
         )
 
         # recording options
+        self.spn_tc_rate.configure(command=lambda: sj.save_key("transcribe_rate", int(self.spn_tc_rate.get())))
         self.radio_numpy_array.configure(command=lambda: sj.save_key("use_temp", False) or self.toggle_use_temp(False))
         self.radio_temp_file.configure(command=lambda: sj.save_key("use_temp", True) or self.toggle_use_temp(True))
         self.spn_max_temp.configure(command=lambda: sj.save_key("max_temp", int(self.spn_max_temp.get())))

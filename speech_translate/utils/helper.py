@@ -1,4 +1,6 @@
 import tkinter as tk
+import json
+from collections import OrderedDict
 from datetime import datetime
 from os import path, startfile
 from platform import system
@@ -24,6 +26,26 @@ def up_first_case(string: str):
 
 def get_similar_keys(_dict: Dict, key: str):
     return [k for k in _dict.keys() if key.lower() in k.lower()]
+
+
+def unique_list(list_of_dicts: List):
+    # chec first, if the list is empty
+    if len(list_of_dicts) == 0:
+        return list_of_dicts
+
+    # check wether the list contains dictionaries
+    if isinstance(list_of_dicts[0], dict):
+        # Convert the dictionaries to JSON strings for hashing
+        # unique_set = set(json.dumps(d, sort_keys=True) for d in list_of_dicts)
+        # Convert them back to list of dictionaries
+        # unique_lists = [json.loads(s) for s in unique_set]
+        # unique_lists = [OrderedDict(json.loads(s, object_pairs_hook=OrderedDict)) for s in unique_set]
+        unique_lists = list(OrderedDict((json.dumps(d, sort_keys=True), d) for d in list_of_dicts).values())
+    else:
+        # Convert the list to a set to get unique values then convert them back to a list
+        unique_lists = list(OrderedDict.fromkeys(list_of_dicts))
+
+    return unique_lists
 
 
 def get_proxies(proxy_http: str, proxy_https: str):

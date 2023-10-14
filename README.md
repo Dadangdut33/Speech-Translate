@@ -182,7 +182,6 @@ Before compiling the project, make sure you have installed all the dependencies 
 
 This project should be compatible with Windows (preferrably windows 10 or later) and other platforms. But I haven't tested it extensively on other platforms. If you find any bugs or issues, feel free to create an issue.
 
----
 
 # Contributing
 

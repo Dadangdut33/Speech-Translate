@@ -635,8 +635,8 @@ class SettingGeneral:
             assert gc.mw is not None
             save_name = datetime.now().strftime(self.entry_export_format.get())
             save_name = save_name.replace("{file}", filename[slice_start:slice_end])
-            save_name = save_name.replace("{lang-source}", gc.mw.cb_sourceLang.get())
-            save_name = save_name.replace("{lang-target}", gc.mw.cb_targetLang.get())
+            save_name = save_name.replace("{lang-source}", gc.mw.cb_source_lang.get())
+            save_name = save_name.replace("{lang-target}", gc.mw.cb_target_lang.get())
             save_name = save_name.replace("{model}", gc.mw.cb_model.get())
             save_name = save_name.replace("{engine}", gc.mw.cb_engine.get())
             save_name = save_name.replace("{task}", task)
