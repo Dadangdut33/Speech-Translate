@@ -222,7 +222,7 @@ def record_session(
         separator = literal_eval(quote(sj.cache["separate_with"]))
         use_temp = sj.cache["use_temp"]
         temperature = sj.cache["temperature"]
-        whisper_args = sj.cache["whisper_extra_args"]
+        whisper_args = sj.cache["whisper_args"]
 
         success, data = get_temperature(temperature)
         if not success:
@@ -234,8 +234,8 @@ def record_session(
         if isinstance(temperature, str):
             raise Exception("temperature must be a floating point number")
 
-        # parse whisper_extra_args
-        success, data = convert_str_options_to_dict(sj.cache["whisper_extra_args"])
+        # parse whisper_args
+        success, data = convert_str_options_to_dict(sj.cache["whisper_args"])
         if not success:
             raise Exception(data)
         else:
@@ -248,9 +248,9 @@ def record_session(
             whisper_args["logprob_threshold"] = sj.cache["logprob_threshold"]
             whisper_args["no_speech_threshold"] = sj.cache["no_speech_threshold"]
 
-        # assert whisper_extra_args is an object
+        # assert whisper_args is an object
         if not isinstance(whisper_args, dict):
-            raise Exception("whisper_extra_args must be an object")
+            raise Exception("whisper_args must be an object")
 
         # if only translate to english using whisper engine
         task = "translate" if tl_engine_whisper and translate and not transcribe else "transcribe"

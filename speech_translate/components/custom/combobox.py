@@ -129,7 +129,6 @@ class CategorizedComboBox(ttk.Combobox):
         Position it based on the combobox location and height
         """
         # check state first, if disabled then do nothing
-        print(str(self.cget('state')))
         if str(self.cget('state')) == 'disabled':
             return
 

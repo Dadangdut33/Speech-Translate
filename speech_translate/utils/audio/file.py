@@ -478,7 +478,7 @@ def import_file(
         model_tl = whisper.load_model(engine) if tl_engine_whisper else None
 
         temperature = sj.cache["temperature"]
-        whisper_args = sj.cache["whisper_extra_args"]
+        whisper_args = sj.cache["whisper_args"]
         export_format: str = sj.cache["export_format"]
         file_slice_start = (None if sj.cache["file_slice_start"] == "" else int(sj.cache["file_slice_start"]))
         file_slice_end = None if sj.cache["file_slice_end"] == "" else int(sj.cache["file_slice_end"])
@@ -493,7 +493,7 @@ def import_file(
         if isinstance(temperature, str):
             raise Exception("temperature must be a floating point number")
 
-        success, data = convert_str_options_to_dict(sj.cache["whisper_extra_args"])
+        success, data = convert_str_options_to_dict(sj.cache["whisper_args"])
         if not success:
             raise Exception(data)
         else:
@@ -506,9 +506,9 @@ def import_file(
             whisper_args["logprob_threshold"] = sj.cache["logprob_threshold"]
             whisper_args["no_speech_threshold"] = sj.cache["no_speech_threshold"]
 
-        # assert whisper_extra_args is an object
+        # assert whisper_args is an object
         if not isinstance(whisper_args, dict):
-            raise Exception("whisper_extra_args must be an object")
+            raise Exception("whisper_args must be an object")
 
         # update button text
         gc.mw.btn_import_file.configure(text="Cancel")

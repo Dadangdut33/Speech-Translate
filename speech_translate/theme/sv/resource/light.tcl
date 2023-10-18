@@ -345,8 +345,8 @@ namespace eval ttk::theme::sv_light {
 			hover $I(textbox-hover) \
 			] -border 5 -sticky nsew
 
-		ttk::style element create Spinbox.uparrow image $I(up) -width 16 -sticky {}
-		ttk::style element create Spinbox.downarrow image $I(down) -width 16  -sticky {}
+		ttk::style element create Spinbox.uparrow image $I(up) -width 15 -sticky {}
+		ttk::style element create Spinbox.downarrow image $I(down) -width 15  -sticky {}
 
 		# ----------------------------------------------------------------------------------------
 		# Progressbar

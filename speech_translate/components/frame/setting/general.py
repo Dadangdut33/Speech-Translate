@@ -1,17 +1,17 @@
 from os import listdir, remove, path
 from threading import Thread
-from tkinter import ttk, filedialog, Menu, Toplevel, Frame, Event, LabelFrame
+from tkinter import ttk, filedialog, Menu, Toplevel, Frame, LabelFrame
 from typing import Union
-from datetime import datetime
+from speech_translate.components.custom.checkbutton import CustomCheckButton
 
 from speech_translate.globals import sj, gc
-from speech_translate._path import dir_log, dir_temp, dir_export, dir_debug
+from speech_translate._path import dir_log, dir_temp, dir_debug
 from speech_translate.custom_logging import logger, current_log
-from speech_translate.utils.helper import filename_only, popup_menu, emoji_img, up_first_case
+from speech_translate.utils.helper import popup_menu, emoji_img, up_first_case
 from speech_translate.utils.whisper.download import verify_model, download_model, get_default_download_root
-from speech_translate.utils.helper import start_file, cbtn_invoker
+from speech_translate.utils.helper import start_file
 from speech_translate.utils.ui.style import set_ui_style
-from speech_translate.components.custom.message import MBoxText, mbox
+from speech_translate.components.custom.message import mbox
 from speech_translate.components.custom.tooltip import tk_tooltip, tk_tooltips
 
 
@@ -31,7 +31,6 @@ class SettingGeneral:
         self.trash_emoji = emoji_img(13, "     🗑️")
         self.reset_emoji = emoji_img(13, " 🔄")
         self.wrench_emoji = emoji_img(16, "     🛠️")
-        self.question_emoji = emoji_img(16, "❓")
 
         # ------------------ General ------------------
         # app
@@ -47,18 +46,30 @@ class SettingGeneral:
         self.f_application_3 = ttk.Frame(self.lf_application)
         self.f_application_3.pack(side="top", fill="x", padx=5)
 
-        self.cbtn_update_on_start = ttk.Checkbutton(
-            self.f_application_1, text="Check for update on start", style="Switch.TCheckbutton"
+        self.cbtn_update_on_start = CustomCheckButton(
+            self.f_application_1,
+            sj.cache["checkUpdateOnStart"],
+            lambda x: sj.save_key("checkUpdateOnStart", x),
+            text="Check for update on start",
+            style="Switch.TCheckbutton"
         )
         self.cbtn_update_on_start.pack(side="left", padx=5, pady=5)
 
-        self.cbtn_supress_hidden_to_tray = ttk.Checkbutton(
-            self.f_application_1, text="Supress hidden to tray notif", style="Switch.TCheckbutton"
+        self.cbtn_supress_hidden_to_tray = CustomCheckButton(
+            self.f_application_1,
+            sj.cache["supress_hidden_to_tray"],
+            lambda x: sj.save_key("supress_hidden_to_tray", x),
+            text="Supress hidden to tray notif",
+            style="Switch.TCheckbutton"
         )
         self.cbtn_supress_hidden_to_tray.pack(side="left", padx=5, pady=5)
 
-        self.cbtn_supress_device_warning = ttk.Checkbutton(
-            self.f_application_1, text="Supress device warning", style="Switch.TCheckbutton"
+        self.cbtn_supress_device_warning = CustomCheckButton(
+            self.f_application_1,
+            sj.cache["supress_device_warning"],
+            lambda x: sj.save_key("supress_device_warning", x),
+            text="Supress device warning",
+            style="Switch.TCheckbutton"
         )
         self.cbtn_supress_device_warning.pack(side="left", padx=5, pady=5)
         tk_tooltip(
@@ -111,166 +122,6 @@ class SettingGeneral:
             wrapLength=500,
         )
 
-        # --------------------
-        # export
-        self.lf_export = LabelFrame(self.master, text="• Export")
-        self.lf_export.pack(side="top", fill="x", padx=5, pady=5)
-
-        self.f_export_1 = ttk.Frame(self.lf_export)
-        self.f_export_1.pack(side="top", fill="x", padx=5, pady=5)
-
-        self.f_export_2 = ttk.Frame(self.lf_export)
-        self.f_export_2.pack(side="top", fill="x", padx=5, pady=5)
-
-        self.f_export_3 = ttk.Frame(self.lf_export)
-        self.f_export_3.pack(side="top", fill="x", padx=5, pady=5)
-
-        self.f_export_4 = ttk.Frame(self.lf_export)
-        self.f_export_4.pack(side="top", fill="x", padx=5, pady=5)
-
-        self.lbl_export = ttk.Label(self.f_export_1, text="Export Folder", width=16)
-        self.lbl_export.pack(side="left", padx=5)
-
-        self.entry_export = ttk.Entry(self.f_export_1)
-        self.entry_export.pack(side="left", padx=5, fill="x", expand=True)
-        tk_tooltip(self.entry_export, "The folder where exported text from import file are saved.")
-
-        self.btn_export_config = ttk.Button(
-            self.f_export_1,
-            image=self.wrench_emoji,
-            compound="center",
-            width=3,
-            command=lambda: popup_menu(self.root, self.menu_config_export),
-        )
-        self.btn_export_config.pack(side="left", padx=5)
-
-        self.menu_config_export = Menu(self.master, tearoff=0)
-        self.menu_config_export.add_command(
-            label="Open", image=self.open_emoji, compound="left", command=lambda: start_file(self.entry_export.get())
-        )
-        self.menu_config_export.add_separator()
-        self.menu_config_export.add_command(
-            label="Change Folder",
-            image=self.folder_emoji,
-            compound="left",
-            command=lambda: self.change_path("dir_export", self.entry_export),
-        )
-        self.menu_config_export.add_command(
-            label="Set Back to Default",
-            image=self.reset_emoji,
-            compound="left",
-            command=lambda: self.path_default("dir_export", self.entry_export, dir_export),
-        )
-        self.menu_config_export.add_separator()
-        self.menu_config_export.add_command(
-            label="Empty Export Folder", image=self.trash_emoji, compound="left", command=lambda: self.clear_export()
-        )
-
-        self.cbtn_auto_open_export = ttk.Checkbutton(self.f_export_1, text="Auto open", style="Switch.TCheckbutton")
-        self.cbtn_auto_open_export.pack(side="left", padx=5)
-        tk_tooltip(
-            self.cbtn_auto_open_export,
-            "Auto open the export folder after file import and the transcribe/translate process is done.",
-            wrapLength=300,
-        )
-
-        def keybind_num(event: Event, widget: ttk.Entry):
-            vsym = event.keysym
-            vw = widget.get()
-            v = event.char
-            try:
-                # check number or not
-                int(v)  # pressed key
-            except ValueError:
-                # check value
-                if vw == "":  # if empty
-                    logger.debug("Empty")
-                    return "break"
-                elif vsym == "minus":  # if minus
-                    logger.debug("Minus")
-                    if "-" in vw:
-                        replaced = vw.replace("-", "")
-                        widget.delete(0, "end")
-                        widget.insert(0, replaced)
-                        return "break"
-                    else:
-                        replaced = "-" + vw
-                        widget.delete(0, "end")
-                        widget.insert(0, replaced)
-                        return "break"
-
-                # check pressed key
-                if v != "\x08" and v != "":  # other than backspace and empty is not allowed
-                    return "break"
-
-        self.lbl_slice_file_start = ttk.Label(self.f_export_2, text="Slice file start", width=16)
-        self.lbl_slice_file_start.pack(side="left", padx=5)
-        self.entry_slice_file_start = ttk.Entry(self.f_export_2)
-        self.entry_slice_file_start.bind("<Key>", lambda e: keybind_num(e, self.entry_slice_file_start))
-        self.entry_slice_file_start.bind(
-            "<KeyRelease>",
-            lambda e: self.update_preview_export_format() or sj.
-            save_key("file_slice_start", self.entry_slice_file_start.get()),
-        )
-        self.entry_slice_file_start.pack(side="left", padx=5)
-
-        self.lbl_slice_file_end = ttk.Label(self.f_export_2, text="Slice file end", width=16)
-        self.lbl_slice_file_end.pack(side="left", padx=5)
-        self.entry_slice_file_end = ttk.Entry(self.f_export_2)
-        self.entry_slice_file_end.bind("<Key>", lambda e: keybind_num(e, self.entry_slice_file_end))
-        self.entry_slice_file_end.bind(
-            "<KeyRelease>",
-            lambda e: self.update_preview_export_format() or sj.
-            save_key("file_slice_end", self.entry_slice_file_start.get()),
-        )
-        self.entry_slice_file_end.pack(side="left", padx=5)
-
-        self.lbl_export_format = ttk.Label(self.f_export_3, text="Export format", width=16)
-        self.lbl_export_format.pack(side="left", padx=5)
-        self.entry_export_format = ttk.Entry(self.f_export_3)
-        self.entry_export_format.bind(
-            "<KeyRelease>",
-            lambda e: sj.save_key("export_format", self.entry_export_format.get()) or self.update_preview_export_format(),
-        )
-        self.entry_export_format.pack(side="left", padx=5, fill="x", expand=True)
-
-        available_params = (
-            "Default value: %Y-%m-%d %H_%M {file}_{task}"
-            "\n\nAvailable parameters:"
-            "{file}"
-            "\nWill be replaced with the file name"
-            "\n\n{task}"
-            "\nWill be replaced with the task name. (transcribe or translate)"
-            "\n\n{task-short}"
-            "\nWill be replaced with the task name but shorten. (tc or tl)"
-            "\n\n{lang-source}"
-            "\nWill be replaced with the source language"
-            "\n\n{lang-target}"
-            "\nWill be replaced with the target language"
-            "\n\n{model}"
-            "\nWill be replaced with the model name"
-            "\n\n{engine}"
-            "\nWill be replaced with the translation engine name"
-        )
-        self.btn_help_export_format = ttk.Button(
-            self.f_export_3,
-            image=self.question_emoji,
-            command=lambda: MBoxText("export-format", self.root, "Export formats", available_params),
-            width=3,
-        )
-        self.btn_help_export_format.pack(side="left", padx=5)
-
-        self.lbl_preview_export_format = ttk.Label(self.f_export_4, text="", width=16)  # padding helper
-        self.lbl_preview_export_format.pack(side="left", padx=5, pady=(0, 5))
-
-        self.lbl_preview_export_format_result = ttk.Label(self.f_export_4, text="...", foreground="gray")
-        self.lbl_preview_export_format_result.pack(side="left", padx=5, pady=(0, 5))
-        tk_tooltip(
-            self.lbl_preview_export_format_result,
-            "Preview of the export format with and the current settings\n"
-            "Filename: this is an example video or audio file.mp4",
-            wrapLength=350,
-        )
         # --------------------
         # log
         self.lf_logging = LabelFrame(self.master, text="• Logging")
@@ -326,12 +177,22 @@ class SettingGeneral:
             label="Empty Log Folder", image=self.trash_emoji, compound="left", command=lambda: self.promptDeleteLog()
         )
 
-        self.cbtn_verbose = ttk.Checkbutton(
-            self.f_logging_2, text="Verbose logging for whisper", style="Switch.TCheckbutton"
+        self.cbtn_verbose = CustomCheckButton(
+            self.f_logging_2,
+            sj.cache["verbose"],
+            lambda x: sj.save_key("verbose", x),
+            text="Verbose logging for whisper",
+            style="Switch.TCheckbutton"
         )
         self.cbtn_verbose.pack(side="left", padx=5)
 
-        self.cbtn_keep_log = ttk.Checkbutton(self.f_logging_3, text="Keep log files", style="Switch.TCheckbutton")
+        self.cbtn_keep_log = CustomCheckButton(
+            self.f_logging_3,
+            sj.cache["keep_log"],
+            lambda x: sj.save_key("keep_log", x),
+            text="Keep log files",
+            style="Switch.TCheckbutton"
+        )
         self.cbtn_keep_log.pack(side="left", padx=5)
 
         self.lbl_loglevel = ttk.Label(self.f_logging_3, text="— Log level")
@@ -343,8 +204,12 @@ class SettingGeneral:
         self.cb_log_level.pack(side="left", padx=0)
         self.cb_log_level.bind("<<ComboboxSelected>>", self.log_level_change)
 
-        self.cbtn_debug_realtime_record = ttk.Checkbutton(
-            self.f_logging_4, text="Debug recording", style="Switch.TCheckbutton"
+        self.cbtn_debug_realtime_record = CustomCheckButton(
+            self.f_logging_4,
+            sj.cache["debug_realtime_record"],
+            lambda x: sj.save_key("debug_realtime_record", x),
+            text="Debug recording",
+            style="Switch.TCheckbutton"
         )
         self.cbtn_debug_realtime_record.pack(side="left", padx=5, pady=(0, 5))
         tk_tooltip(
@@ -353,8 +218,12 @@ class SettingGeneral:
             "Enabling will probably slow down the app.",
         )
 
-        self.cbtn_debug_recorded_audio = ttk.Checkbutton(
-            self.f_logging_4, text="Debug recorded audio", style="Switch.TCheckbutton"
+        self.cbtn_debug_recorded_audio = CustomCheckButton(
+            self.f_logging_4,
+            sj.cache["debug_recorded_audio"],
+            lambda x: sj.save_key("debug_recorded_audio", x),
+            text="Debug recorded audio",
+            style="Switch.TCheckbutton"
         )
         self.cbtn_debug_recorded_audio.pack(side="left", padx=5, pady=(0, 5))
         tk_tooltip(
@@ -365,7 +234,13 @@ class SettingGeneral:
             wrapLength=300,
         )
 
-        self.cbtn_debug_translate = ttk.Checkbutton(self.f_logging_4, text="Debug translate", style="Switch.TCheckbutton")
+        self.cbtn_debug_translate = CustomCheckButton(
+            self.f_logging_4,
+            sj.cache["debug_translate"],
+            lambda x: sj.save_key("debug_translate", x),
+            text="Debug translate",
+            style="Switch.TCheckbutton"
+        )
         self.cbtn_debug_translate.pack(side="left", padx=5, pady=(0, 5))
 
         # model
@@ -554,28 +429,7 @@ class SettingGeneral:
     # ------------------ Functions ------------------
     def init_setting_once(self):
         logger.setLevel(sj.cache["log_level"])
-        # app
-        cbtn_invoker(sj.cache["keep_log"], self.cbtn_keep_log)
-        cbtn_invoker(sj.cache["debug_realtime_record"], self.cbtn_debug_realtime_record)
-        cbtn_invoker(sj.cache["debug_recorded_audio"], self.cbtn_debug_recorded_audio)
-        cbtn_invoker(sj.cache["debug_translate"], self.cbtn_debug_translate)
-        cbtn_invoker(sj.cache["verbose"], self.cbtn_verbose)
-        cbtn_invoker(sj.cache["checkUpdateOnStart"], self.cbtn_update_on_start)
-        cbtn_invoker(sj.cache["supress_hidden_to_tray"], self.cbtn_supress_hidden_to_tray)
-        cbtn_invoker(sj.cache["supress_device_warning"], self.cbtn_supress_device_warning)
-        cbtn_invoker(sj.cache["auto_open_dir_export"], self.cbtn_auto_open_export)
-
-        self.entry_slice_file_start.insert(0, sj.cache["file_slice_start"])
-        self.entry_slice_file_end.insert(0, sj.cache["file_slice_end"])
-        self.entry_export_format.insert(0, sj.cache["export_format"])
-        self.update_preview_export_format()
-
-        if sj.cache["dir_export"] == "auto":
-            self.path_default("dir_export", self.entry_export, dir_export, save=False, prompt=False)
-        else:
-            self.entry_export.configure(state="normal")
-            self.entry_export.insert(0, sj.cache["dir_export"])
-            self.entry_export.configure(state="readonly")
+        self.cb_log_level.set(sj.cache["log_level"])
 
         if sj.cache["dir_log"] == "auto":
             self.path_default("dir_log", self.entry_log, dir_log, save=False, prompt=False)
@@ -591,60 +445,7 @@ class SettingGeneral:
             self.entry_model.insert(0, sj.cache["dir_model"])
             self.entry_model.configure(state="readonly")
 
-        self.cb_log_level.set(sj.cache["log_level"])
         self.fill_theme()
-        self.configure_commands()
-
-    def configure_commands(self):
-        """
-        To prevent the command from being called multiple times, 
-        we need to configure the command just once after the setting is initialized
-        """
-        self.cbtn_keep_log.configure(command=lambda: sj.save_key("keep_log", self.cbtn_keep_log.instate(["selected"])))
-        self.cbtn_debug_realtime_record.configure(
-            command=lambda: sj.save_key("debug_realtime_record", self.cbtn_debug_realtime_record.instate(["selected"]))
-        )
-        self.cbtn_debug_recorded_audio.configure(
-            command=lambda: sj.save_key("debug_recorded_audio", self.cbtn_debug_recorded_audio.instate(["selected"]))
-        )
-        self.cbtn_debug_translate.configure(
-            command=lambda: sj.save_key("debug_translate", self.cbtn_debug_translate.instate(["selected"]))
-        )
-        self.cbtn_verbose.configure(command=lambda: sj.save_key("verbose", self.cbtn_verbose.instate(["selected"])))
-        self.cbtn_update_on_start.configure(
-            command=lambda: sj.save_key("checkUpdateOnStart", self.cbtn_update_on_start.instate(["selected"]))
-        )
-        self.cbtn_supress_hidden_to_tray.configure(
-            command=lambda: sj.save_key("supress_hidden_to_tray", self.cbtn_supress_hidden_to_tray.instate(["selected"]))
-        )
-        self.cbtn_supress_device_warning.configure(
-            command=lambda: sj.save_key("supress_device_warning", self.cbtn_supress_device_warning.instate(["selected"]))
-        )
-        self.cbtn_auto_open_export.configure(
-            command=lambda: sj.save_key("auto_open_dir_export", self.cbtn_auto_open_export.instate(["selected"]))
-        )
-
-    def update_preview_export_format(self):
-        try:
-            filename = filename_only("this is an example video or audio file.mp4")
-            task = "transcribe"
-            short_task = "tc"
-            slice_start = int(self.entry_slice_file_start.get()) if self.entry_slice_file_start.get() != "" else None
-            slice_end = int(self.entry_slice_file_end.get()) if self.entry_slice_file_end.get() != "" else None
-
-            assert gc.mw is not None
-            save_name = datetime.now().strftime(self.entry_export_format.get())
-            save_name = save_name.replace("{file}", filename[slice_start:slice_end])
-            save_name = save_name.replace("{lang-source}", gc.mw.cb_source_lang.get())
-            save_name = save_name.replace("{lang-target}", gc.mw.cb_target_lang.get())
-            save_name = save_name.replace("{model}", gc.mw.cb_model.get())
-            save_name = save_name.replace("{engine}", gc.mw.cb_engine.get())
-            save_name = save_name.replace("{task}", task)
-            save_name = save_name.replace("{task-short}", short_task)
-
-            self.lbl_preview_export_format_result.configure(text=save_name)
-        except Exception:
-            pass
 
     def delete_log(self):
         # delete all log files
@@ -892,10 +693,3 @@ class SettingGeneral:
         element.configure(state="readonly")
         if save:
             sj.save_key(key, "auto")
-
-    def clear_export(self):
-        if mbox("Clear Export Folder", "Are you sure you want to clear the export folder?", 3, self.root):
-            # get all the files in the export folder
-            files = listdir(sj.cache["dir_export"])
-            for file in files:
-                remove(path.join(sj.cache["dir_export"], file))

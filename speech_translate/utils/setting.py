@@ -32,14 +32,9 @@ default_setting = {
     "sw_size": "1000x620",
     "dir_log": "auto",
     "dir_model": "auto",
-    "dir_export": "auto",
-    "auto_open_dir_export": True,
-    # {file} {task} {task-short} {lang-source} {lang-target} {model} {engine}
-    "export_format": "%Y-%m-%d %H_%M {file}_{task}",
-    "export_to": ["txt", "srt", "vtt", "tsv", "json"],
     "file_slice_start": "",  # empty will be read as None
     "file_slice_end": "",  # empty will be read as None
-    "parse_arabic": False,
+    "parse_arabic": True,
     # ------------------ #
     # logging
     "keep_log": False,
@@ -97,14 +92,24 @@ default_setting = {
     "max_buffer_speaker": 10,
     "max_sentences_speaker": 5,
     # Transcribe settings
+    "dir_export": "auto",
+    "auto_open_dir_export": True,
+    # {file} {task} {task-short} {lang-source} {lang-target} {model} {engine}
+    "export_format": "%Y-%m-%d %H_%M {file}_{task}",
+    # txt srt srt.words vtt vtt.words tsv tsv.words csv csv.words json
+    "export_to": ["txt", "srt", "srt.words"],
     "transcribe_rate": 300,
-    "whisper_extra_args": "",
-    "temperature": "0.0, 0.2, 0.4, 0.6, 0.8, 1.0",
+    "decoding_preset": "beam search",  # greedy, beam search, custom
+    "temperature": "0.0, 0.2, 0.4, 0.6, 0.8, 1.0",  # 0.0 - 1.0
+    "best_of": 5,
+    "beam_size": 5,
     "compression_ratio_threshold": 2.4,
     "logprob_threshold": -1.0,
     "no_speech_threshold": 0.6,
-    "condition_on_previous_text": True,
+    "suppress_tokens": "-1",
     "initial_prompt": "",
+    "condition_on_previous_text": True,
+    "whisper_args": "",
     # ------------------ #
     # Textboxes
     # mw tc

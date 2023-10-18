@@ -15,6 +15,7 @@ from torch import cuda
 from speech_translate._constants import APP_NAME
 from speech_translate._path import app_icon
 from speech_translate._version import __version__
+from speech_translate.components.custom.checkbutton import CustomCheckButton
 from speech_translate.components.custom.combobox import CategorizedComboBox
 from speech_translate.components.custom.message import mbox
 from speech_translate.components.custom.tooltip import tk_tooltip, tk_tooltips
@@ -30,8 +31,8 @@ from speech_translate.utils.audio.device import (
     get_output_devices
 )
 from speech_translate.utils.helper import (
-    bind_focus_recursively, cbtn_invoker, emoji_img, nativeNotify, popup_menu, similar, start_file, tb_copy_only,
-    up_first_case, windows_os_only
+    bind_focus_recursively, emoji_img, nativeNotify, popup_menu, similar, start_file, tb_copy_only, up_first_case,
+    windows_os_only
 )
 from speech_translate.utils.translate.language import (
     engine_select_source_dict, engine_select_target_dict, whisper_compatible
@@ -123,8 +124,14 @@ class MainWindow:
         # ------------------ Window ------------------
         # UI
         self.root = Tk()
-        self.wrench_emoji = emoji_img(16, "     🛠️")
+        gc.wrench_emoji = emoji_img(16, "     🛠️")
+        gc.folder_emoji = emoji_img(13, " 📂")
+        gc.open_emoji = emoji_img(13, "     ↗️")
+        gc.trash_emoji = emoji_img(13, "     🗑️")
+        gc.reset_emoji = emoji_img(13, " 🔄")
+        gc.question_emoji = emoji_img(16, "❓")
         gc.cuda = check_cuda_and_gpu()
+        gc.mw = self
 
         self.root.title(APP_NAME)
         self.root.geometry(sj.cache["mw_size"])
@@ -136,7 +143,6 @@ class MainWindow:
         self.always_on_top: bool = False
         self.notified_hidden: bool = False
         self.console_opened: bool = False
-        gc.mw = self
 
         # Styles
         self.style = ttk.Style()
@@ -180,7 +186,9 @@ class MainWindow:
         self.lbl_model.pack(side="left", fill="x", padx=5, pady=5, expand=False)
 
         self.cb_model = ttk.Combobox(self.f1_toolbar, values=model_keys, state="readonly")
+        self.cb_model.set({v: k for k, v in model_select_dict.items()}[sj.cache["model"]])
         self.cb_model.pack(side="left", fill="x", padx=5, pady=5, expand=False)
+        self.cb_model.bind("<<ComboboxSelected>>", lambda _: sj.save_key("model", model_select_dict[self.cb_model.get()]))
         tk_tooltips(
             [self.lbl_model, self.cb_model],
             "Larger models are more accurate but are slower and require more power."
@@ -190,7 +198,6 @@ class MainWindow:
             "\n- Medium: ~5 GB Vram\n- Large: ~10 GB Vram",
             wrapLength=400,
         )
-        self.cb_model.bind("<<ComboboxSelected>>", lambda _: sj.save_key("model", model_select_dict[self.cb_model.get()]))
 
         # engine
         self.lbl_engine = ttk.Label(self.f1_toolbar, text="Translate:")
@@ -204,6 +211,7 @@ class MainWindow:
                 "MyMemoryTranslator": []
             }, self.cb_engine_change
         )
+        self.cb_engine.set(sj.cache["tl_engine"])
         self.cb_engine.pack(side="left", fill="x", padx=5, pady=5, expand=True)
         tk_tooltips(
             [self.lbl_engine],
@@ -220,6 +228,7 @@ class MainWindow:
         self.cb_source_lang = ttk.Combobox(
             self.f1_toolbar, values=engine_select_source_dict["Google Translate"], state="readonly"
         )  # initial value
+        self.cb_source_lang.set(sj.cache["sourceLang"])
         self.cb_source_lang.pack(side="left", padx=5, pady=5, fill="x", expand=True)
         self.cb_source_lang.bind("<<ComboboxSelected>>", lambda _: sj.save_key("sourceLang", self.cb_source_lang.get()))
 
@@ -230,6 +239,7 @@ class MainWindow:
         self.cb_target_lang = ttk.Combobox(
             self.f1_toolbar, values=[up_first_case(x) for x in whisper_compatible], state="readonly"
         )  # initial value
+        self.cb_target_lang.set(sj.cache["targetLang"])
         self.cb_target_lang.pack(side="left", padx=5, pady=5, fill="x", expand=True)
         self.cb_target_lang.bind("<<ComboboxSelected>>", lambda _: sj.save_key("targetLang", self.cb_target_lang.get()))
 
@@ -309,7 +319,7 @@ class MainWindow:
 
         self.btn_config_hostAPI = ttk.Button(
             self.f3_1_row1,
-            image=self.wrench_emoji,
+            image=gc.wrench_emoji,
             compound="center",
             width=3,
             command=lambda: popup_menu(self.root, self.menu_hostAPI),
@@ -328,7 +338,7 @@ class MainWindow:
 
         self.btn_config_mic = ttk.Button(
             self.f3_1_row2,
-            image=self.wrench_emoji,
+            image=gc.wrench_emoji,
             compound="center",
             width=3,
             command=lambda: popup_menu(self.root, self.menu_mic),
@@ -348,7 +358,7 @@ class MainWindow:
 
         self.btn_config_speaker = ttk.Button(
             self.f3_1_row3,
-            image=self.wrench_emoji,
+            image=gc.wrench_emoji,
             compound="center",
             width=3,
             command=lambda: popup_menu(self.root, self.menu_speaker),
@@ -383,19 +393,19 @@ class MainWindow:
         self.lbl_task = ttk.Label(self.f3_2_row1, text="Task:", font="TkDefaultFont 9 bold", width=10)
         self.lbl_task.pack(side="left", padx=5, pady=5, ipady=0)
 
-        self.cbtn_task_transcribe = ttk.Checkbutton(
+        self.cbtn_task_transcribe = CustomCheckButton(
             self.f3_2_row2,
-            text="Transcribe",
-            width=10,
-            command=lambda: self.mode_change() or sj.save_key("transcribe", "selected" in self.cbtn_task_transcribe.state()),
+            sj.cache["transcribe"],
+            lambda x: sj.save_key("transcribe", x) or self.mode_change(),
+            text="Transcribe"
         )
         self.cbtn_task_transcribe.pack(side="left", padx=5, pady=2.5, ipady=0)
 
-        self.cbtn_task_translate = ttk.Checkbutton(
+        self.cbtn_task_translate = CustomCheckButton(
             self.f3_2_row3,
-            text="Translate",
-            width=10,
-            command=lambda: self.mode_change() or sj.save_key("translate", "selected" in self.cbtn_task_translate.state()),
+            sj.cache["translate"],
+            lambda x: sj.save_key("translate", x) or self.mode_change(),
+            text="Translate"
         )
         self.cbtn_task_translate.pack(side="left", padx=5, pady=2.5, ipady=0)
 
@@ -435,6 +445,7 @@ class MainWindow:
             variable=self.strvar_input,
         )
         self.radio_speaker.pack(side="left", padx=5, pady=2.5, ipady=0)
+        self.strvar_input.set("mic" if sj.cache["input"] == "mic" else "speaker")
 
         # ------
         self.f3_4 = ttk.Frame(self.f3_toolbar)
@@ -657,14 +668,6 @@ class MainWindow:
 
     # on start
     def on_init(self):
-        self.cb_model.set({v: k for k, v in model_select_dict.items()}[sj.cache["model"]])
-        self.cb_engine.set(sj.cache["tl_engine"])
-        self.cb_source_lang.set(sj.cache["sourceLang"])
-        self.cb_target_lang.set(sj.cache["targetLang"])
-        cbtn_invoker(sj.cache["transcribe"], self.cbtn_task_transcribe)
-        cbtn_invoker(sj.cache["translate"], self.cbtn_task_translate)
-        self.strvar_input.set("mic" if sj.cache["input"] == "mic" else "speaker")
-
         if system() != "Windows":
             self.radio_speaker.configure(state="disabled")
 

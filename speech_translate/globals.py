@@ -4,6 +4,7 @@ from platform import system
 from shlex import quote
 from threading import Lock, Thread
 from tkinter import ttk
+from PIL import ImageTk
 from typing import TYPE_CHECKING, List, Literal, Optional, Union, Dict
 from warnings import simplefilter
 
@@ -116,6 +117,16 @@ class GlobalClass:
         # file process
         self.file_tced_counter: int = 0
         self.file_tled_counter: int = 0
+
+        # photoimage
+        self.help_emoji: Union[ImageTk.PhotoImage, str] = ""
+        self.wrench_emoji: Union[ImageTk.PhotoImage, str] = ""
+        self.folder_emoji: Union[ImageTk.PhotoImage, str] = ""
+        self.file_emoji: Union[ImageTk.PhotoImage, str] = ""
+        self.open_emoji: Union[ImageTk.PhotoImage, str] = ""
+        self.trash_emoji: Union[ImageTk.PhotoImage, str] = ""
+        self.reset_emoji: Union[ImageTk.PhotoImage, str] = ""
+        self.question_emoji: Union[ImageTk.PhotoImage, str] = ""
 
     def enable_rec(self):
         self.recording = True
