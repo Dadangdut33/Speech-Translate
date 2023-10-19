@@ -17,5 +17,7 @@ webrtcvad==2.0.10
 darkdetect==0.8.0
 arabic-reshaper==3.0.0
 python-bidi==0.4.2
+onnxruntime==1.16.1
+matplotlib==3.8.0
 openai-whisper==20230314
 whisper-timestamped @ git+https://github.com/linto-ai/whisper-timestamped.git

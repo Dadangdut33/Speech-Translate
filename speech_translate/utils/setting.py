@@ -109,7 +109,7 @@ default_setting = {
     "suppress_tokens": "-1",
     "initial_prompt": "",
     "condition_on_previous_text": True,
-    "whisper_args": "",
+    "whisper_args": "--vad True",
     # ------------------ #
     # Textboxes
     # mw tc

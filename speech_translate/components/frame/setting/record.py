@@ -791,10 +791,8 @@ class SettingRecord:
         Toggle channels spinner disabled or not depending on auto value
         """
         if device == "mic":
-            # self.spn_channels_mic.configure(state="disabled" if auto else "normal")
             self.cb_channels_mic.toggle_disable(auto)
         elif device == "speaker":
-            # self.cb_channels_speaker.configure(state="disabled" if auto else stateprev)
             self.cb_channels_speaker.toggle_disable(auto)
 
     def call_both_with_wait(self, open=True):

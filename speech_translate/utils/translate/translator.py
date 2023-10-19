@@ -225,3 +225,34 @@ def libre_tl(
             logger.debug("Query: " + text.strip())
             logger.debug("Translation Get: " + result)
         return is_Success, result
+
+
+tl_dict = {
+    "Google Translate": google_tl,
+    "MyMemoryTranslator": memory_tl,
+    "LibreTranslate": libre_tl,
+}
+
+
+def translate(engine: str, text: str, from_lang: str, to_lang: str, proxies: Dict, debug_log: bool = False, **libre_kwargs):
+    """Translate
+
+    Args
+    ----
+        engine (str): Engine to use
+        text (str): Text to translate
+        from_lang (str): Language From
+        to_lang (str): Language to translate
+        proxies (Dict): Proxies. Defaults to None.
+        debug_log (bool, optional): Debug Log. Defaults to False.
+        **libre_kwargs: LibreTranslate kwargs
+
+    Returns
+    -------
+        is_Success: Success or not
+        result: Translation result
+    """
+    if engine not in tl_dict:
+        raise ValueError(f"Invalid engine. Engine {engine} not found")
+
+    return tl_dict[engine](text, from_lang, to_lang, proxies, debug_log, **libre_kwargs)

@@ -1,3 +1,4 @@
+import logging
 import sys
 from ast import literal_eval
 from datetime import datetime, timedelta
@@ -14,6 +15,7 @@ from wave import open as w_open
 
 import numpy as np
 import scipy.io.wavfile as wav
+import torch
 import whisper_timestamped as whisper
 
 from speech_translate.components.custom.audio import AudioMeter
@@ -31,9 +33,9 @@ from speech_translate.custom_logging import logger
 from speech_translate.globals import gc, sj
 from speech_translate.utils.audio.device import get_db, get_device_details, get_frame_duration, get_speech, resample_sr
 
-from ..helper import cbtn_invoker, generate_temp_filename, get_channel_int, nativeNotify, unique_list
-from ..whisper.helper import convert_str_options_to_dict, get_temperature, whisper_verbose_log, model_values
-from ..translate.translator import google_tl, libre_tl, memory_tl
+from ..helper import cbtn_invoker, generate_temp_filename, get_channel_int, get_proxies, nativeNotify, unique_list
+from ..whisper.helper import get_temperature, parse_args_whisper_timestamped, whisper_verbose_log, model_values
+from ..translate.translator import translate
 
 
 # -------------------------------------------------------------------------------------------------------------------------
@@ -230,23 +232,29 @@ def record_session(
         else:
             temperature = data
 
-        # assert temperature is not string
-        if isinstance(temperature, str):
-            raise Exception("temperature must be a floating point number")
-
         # parse whisper_args
-        success, data = convert_str_options_to_dict(sj.cache["whisper_args"])
-        if not success:
-            raise Exception(data)
+        data = parse_args_whisper_timestamped(sj.cache["whisper_args"])
+        if not data.pop("success"):
+            raise Exception(data["msg"])
         else:
             whisper_args = data
             assert isinstance(whisper_args, Dict)
+            whisper_args.pop("plot")
+            threads = whisper_args.pop("threads")
+            if threads:
+                torch.set_num_threads(threads)
+            if whisper_args.pop("debug"):
+                logging.getLogger("WHISPER").setLevel(logging.DEBUG)
+
             whisper_args["temperature"] = temperature
-            whisper_args["initial_prompt"] = sj.cache["initial_prompt"]
-            whisper_args["condition_on_previous_text"] = sj.cache["condition_on_previous_text"]
+            whisper_args["best_of"] = sj.cache["best_of"]
+            whisper_args["beam_size"] = sj.cache["beam_size"]
             whisper_args["compression_ratio_threshold"] = sj.cache["compression_ratio_threshold"]
             whisper_args["logprob_threshold"] = sj.cache["logprob_threshold"]
             whisper_args["no_speech_threshold"] = sj.cache["no_speech_threshold"]
+            whisper_args["suppress_tokens"] = sj.cache["suppress_tokens"]
+            whisper_args["initial_prompt"] = sj.cache["initial_prompt"]
+            whisper_args["condition_on_previous_text"] = sj.cache["condition_on_previous_text"]
 
         # assert whisper_args is an object
         if not isinstance(whisper_args, dict):
@@ -826,39 +834,23 @@ def tl_api(text: str, lang_source: str, lang_target: str, engine: str):
     try:
         global prev_tl_res, sentences_tl
         separator = literal_eval(quote(sj.cache["separate_with"]))
-        tl_res = ""
         debug_log = sj.cache["debug_translate"]
+        proxies = get_proxies(sj.cache["http_proxy"], sj.cache["https_proxy"])
+        kwargs = {}
+        if engine == "LibreTranslate":
+            kwargs["libre_https"] = sj.cache["libre_https"],
+            kwargs["libre_host"] = sj.cache["libre_host"],
+            kwargs["libre_port"] = sj.cache["libre_port"],
+            kwargs["libre_api_key"] = sj.cache["libre_api_key"],
 
-        if engine == "Google Translate":
-            success, tl_res = google_tl(text, lang_source, lang_target, debug_log)
-            if not success:
-                nativeNotify("Error: translation with google failed", tl_res)
+        success, result = translate(engine, text, lang_source, lang_target, proxies, debug_log, **kwargs)
+        if not success:
+            nativeNotify(f"Error: translation with {engine} failed", result)
+            raise Exception(result)
 
-        elif engine == "LibreTranslate":
-            success, tl_res = libre_tl(
-                text,
-                lang_source,
-                lang_target,
-                sj.cache["libre_https"],
-                sj.cache["libre_host"],
-                sj.cache["libre_port"],
-                sj.cache["libre_api_key"],
-                debug_log,
-            )
-            if not success:
-                nativeNotify("Error: translation with libre failed", tl_res)
-
-        elif engine == "MyMemoryTranslator":
-            success, tl_res = memory_tl(text, lang_source, lang_target, debug_log)
-            if not success:
-                nativeNotify("Error: translation with mymemory failed", str(tl_res))
-        else:
-            raise Exception("Invalid translation engine. Got: " + engine)
-
-        if tl_res and len(tl_res) > 0:
-            prev_tl_res = tl_res.strip()
-            gc.update_tl(tl_res.strip(), separator)
-
+        if result and len(result) > 0:
+            prev_tl_res = result.strip()
+            gc.update_tl(result.strip(), separator)
     except Exception as e:
         logger.exception(e)
         nativeNotify("Error: translating failed", str(e))

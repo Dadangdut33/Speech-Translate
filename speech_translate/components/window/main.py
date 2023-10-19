@@ -187,7 +187,7 @@ class MainWindow:
 
         self.cb_model = ttk.Combobox(self.f1_toolbar, values=model_keys, state="readonly")
         self.cb_model.set({v: k for k, v in model_select_dict.items()}[sj.cache["model"]])
-        self.cb_model.pack(side="left", fill="x", padx=5, pady=5, expand=False)
+        self.cb_model.pack(side="left", fill="x", padx=5, pady=5, expand=True)
         self.cb_model.bind("<<ComboboxSelected>>", lambda _: sj.save_key("model", model_select_dict[self.cb_model.get()]))
         tk_tooltips(
             [self.lbl_model, self.cb_model],
@@ -1053,6 +1053,8 @@ class MainWindow:
         self.cb_engine.configure(state="disabled")
         self.cb_source_lang.configure(state="disabled")
         self.cb_target_lang.configure(state="disabled")
+        self.radio_mic.configure(state="disabled")
+        self.radio_speaker.configure(state="disabled")
 
     def enable_interactions(self):
         self.cbtn_task_transcribe.configure(state="normal")
@@ -1070,6 +1072,8 @@ class MainWindow:
             self.cb_target_lang.configure(state="disabled")
         else:
             self.cb_target_lang.configure(state="readonly")
+        self.radio_mic.configure(state="normal")
+        self.radio_speaker.configure(state="normal")
 
     def start_loadBar(self):
         self.loadBar.configure(mode="indeterminate")

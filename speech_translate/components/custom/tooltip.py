@@ -142,6 +142,8 @@ class CreateToolTipOnText:
         opacity=0.9,
         always_on_top=True,
         geometry=None,
+        auto_width=True,
+        focus_out_bind=None
     ):
         self.waitTime = delay  # miliseconds
         self.widget = widget
@@ -149,6 +151,8 @@ class CreateToolTipOnText:
         self.opacity = opacity
         self.always_on_top = always_on_top
         self.geometry = geometry
+        self.auto_width = auto_width
+        self.focus_out_bind = focus_out_bind
         self.widget.bind("<FocusIn>", self.enter)
         self.widget.bind("<FocusOut>", self.leave)
 
@@ -161,6 +165,8 @@ class CreateToolTipOnText:
     def leave(self, event=None):
         self.unschedule()
         self.hidetip()
+        if self.focus_out_bind:
+            self.focus_out_bind()
 
     def schedule(self):
         self.unschedule()
@@ -173,12 +179,9 @@ class CreateToolTipOnText:
             self.widget.after_cancel(id)
 
     def showTip(self, event=None):
-        x = y = 0
-        x, y, width, _ = self.widget.bbox("insert")  # type: ignore
-
         # make position to be on the bottom side of the widget
-        x += self.widget.winfo_rootx()
-        y += self.widget.winfo_rooty() + 20
+        x = self.widget.winfo_rootx()
+        y = self.widget.winfo_rooty() + 20
 
         # creates a toplevel window
         self.root = Toplevel(self.widget)
@@ -187,6 +190,9 @@ class CreateToolTipOnText:
         self.root.wm_overrideredirect(True)  # Leaves only the label and removes the app window
 
         if self.geometry:
+            if self.auto_width:
+                self.geometry = f"{self.widget.winfo_width()}x{self.geometry.split('x')[1]}"
+
             self.root.wm_geometry(f"{self.geometry}+{x}+{y}")  # position
         else:
             self.root.wm_geometry(f"+{x}+{y}")  # position

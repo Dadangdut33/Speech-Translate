@@ -35,11 +35,6 @@ def unique_list(list_of_dicts: List):
 
     # check wether the list contains dictionaries
     if isinstance(list_of_dicts[0], dict):
-        # Convert the dictionaries to JSON strings for hashing
-        # unique_set = set(json.dumps(d, sort_keys=True) for d in list_of_dicts)
-        # Convert them back to list of dictionaries
-        # unique_lists = [json.loads(s) for s in unique_set]
-        # unique_lists = [OrderedDict(json.loads(s, object_pairs_hook=OrderedDict)) for s in unique_set]
         unique_lists = list(OrderedDict((json.dumps(d, sort_keys=True), d) for d in list_of_dicts).values())
     else:
         # Convert the list to a set to get unique values then convert them back to a list
@@ -95,24 +90,6 @@ def start_file(filename: str):
         except Exception as e:
             logger.exception("Error: " + str(e))
             nativeNotify("Error", f"Uncaught error {str(e)}")
-
-
-def save_file_with_dupe_check(filename: str, extension: str, data):
-    try:
-        # check if file already exists
-        if path.exists(filename + extension):
-            # add (2) to the filename, but if that already exists, add (3) and so on
-            i = 2
-            while path.exists(filename + f" ({i})"):
-                i += 1
-
-            filename += f" ({i})"
-
-        with open(filename + extension, "w", encoding="utf-8") as f:
-            f.write(data)
-    except Exception as e:
-        logger.exception(e)
-        nativeNotify("Error: Fail to save file", f"{e}")
 
 
 def OpenUrl(url: str):

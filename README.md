@@ -86,7 +86,7 @@ Speech Translate is a practical application that combines OpenAI's Whisper ASR m
 |    MacOS    |        ❌       |     ✔️     |
 |    Linux    |        ❌       |     ✔️     |
 
-\* Python 3.8 or later (3.10 is recommended) for installation as module.
+\* Python 3.8 or later (3.11 is recommended) for installation as module.
 
 - Speaker input only work on windows 8 and above.
 - [FFmpeg](https://ffmpeg.org/) is required to be installed and added to the PATH environment variable. You can download it [here](https://ffmpeg.org/download.html) and add it to your path manually OR you can do it automatically using the following commands:
@@ -135,6 +135,9 @@ brew install ffmpeg
 
 ## As module:
 
+> [!NOTE]  
+> Use python 3.11 for best compatibility and performance
+
 To install as module, we can use pip, with the following command.
 
 - Install with **GPU (Cuda compatible)** support:
@@ -158,6 +161,9 @@ You can then run the program by typing `speech-translate` in your terminal/conso
 Check out the [wiki](https://github.com/Dadangdut33/Speech-Translate/wiki) for more information about the app, the user settings, and how to use it.
 
 # Building / Developing / Compiling Yourself
+
+> [!NOTE]  
+> I use python 3.11.6 for development, but it should work with python 3.8 or later
 
 ## Setup
 

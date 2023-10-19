@@ -18,7 +18,8 @@ class MBoxText:
         self.root = Toplevel(parent)
         self.root.title(title)
         self.root.transient(parent)
-        self.root.geometry(geometry if geometry else "+{}+{}".format(parent.winfo_rootx() + 50, parent.winfo_rooty() + 50))
+        relative_pos = "+{}+{}".format(parent.winfo_rootx() + 50, parent.winfo_rooty() + 50)
+        self.root.geometry(geometry + relative_pos if geometry else relative_pos)
 
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 

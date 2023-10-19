@@ -8,7 +8,7 @@ from datetime import datetime
 from speech_translate.globals import sj, gc
 from speech_translate._path import dir_export
 from speech_translate.utils.helper import filename_only, popup_menu, start_file, up_first_case
-from speech_translate.utils.whisper.helper import convert_str_options_to_dict, get_temperature
+from speech_translate.utils.whisper.helper import get_temperature, parse_args_whisper_timestamped
 from speech_translate.components.custom.tooltip import CreateToolTipOnText, tk_tooltip, tk_tooltips
 from speech_translate.components.custom.spinbox import SpinboxNumOnly
 
@@ -60,7 +60,7 @@ class SettingTranscribe:
             text="Greedy (Efficient)",
             variable=self.radio_decoding_var,
             value="greedy",
-            command=lambda: sj.save_key("decoding_preset", self.radio_decoding_var.get()),
+            command=lambda: self.change_decoding_preset(self.radio_decoding_var.get()),
         )
         self.radio_decoding_1.pack(side="left", padx=5)
         self.radio_decoding_2 = ttk.Radiobutton(
@@ -68,7 +68,7 @@ class SettingTranscribe:
             text="Beam Search (Accurate)",
             variable=self.radio_decoding_var,
             value="beam search",
-            command=lambda: sj.save_key("decoding_preset", self.radio_decoding_var.get()),
+            command=lambda: self.change_decoding_preset(self.radio_decoding_var.get()),
         )
         self.radio_decoding_2.pack(side="left", padx=5)
         self.radio_decoding_3 = ttk.Radiobutton(
@@ -76,7 +76,7 @@ class SettingTranscribe:
             text="Custom",
             variable=self.radio_decoding_var,
             value="custom",
-            command=lambda: sj.save_key("decoding_preset", self.radio_decoding_var.get()),
+            command=lambda: self.change_decoding_preset(self.radio_decoding_var.get()),
         )
         self.radio_decoding_3.pack(side="left", padx=5)
 
@@ -86,12 +86,12 @@ class SettingTranscribe:
         self.entry_temperature = ttk.Entry(self.f_decoding_2)
         self.entry_temperature.insert(0, sj.cache["temperature"])
         self.entry_temperature.pack(side="left", padx=5, fill="x", expand=True)
-        self.entry_temperature.bind("<KeyRelease>", lambda e: sj.save_key("temperature", self.entry_temperature.get()))
+        self.entry_temperature.bind("<FocusOut>", lambda e: self.verify_temperature(self.entry_temperature.get()))
+        self.entry_temperature.bind("<Return>", lambda e: self.verify_temperature(self.entry_temperature.get()))
         tk_tooltips(
             [self.lbl_temperature, self.entry_temperature],
             "Temperature for sampling. It can be a tuple of temperatures, which will be successively used upon failures "
             "according to either `compression_ratio_threshold` or `logprob_threshold`."
-            "\n\nDefault is 0.0",
         )
 
         # 3
@@ -224,66 +224,55 @@ class SettingTranscribe:
         self.entry_whisper_args = ttk.Entry(self.f_whisper_args_2)
         self.entry_whisper_args.insert(0, sj.cache["whisper_args"])
         self.entry_whisper_args.pack(side="left", fill="x", expand=True, padx=5)
-        self.entry_whisper_args.bind("<KeyRelease>", lambda e: sj.save_key("whisper_args", self.entry_whisper_args.get()))
+        self.entry_whisper_args.bind("<Return>", lambda e: self.verify_raw_args(self.entry_whisper_args.get()))
         tk_tooltip(self.entry_whisper_args, "Whisper extra arguments.\n\nDefault is empty")
 
         hint = (
-            "Command line arguments to be used."
-            "\n(Usage value shown as example here are only for reference)"
+            "Command line arguments to be used. (Usage value shown as example here are only for reference)"
             #
-            "\n\n# Maximum number of tokens to sample"
-            "\nsample_len: int\n--sample_len 0"
-            #
-            "\n\n# Number of independent samples to collect, when t > 0"
-            "\nbest_of: int\n--best_of 0"
-            #
-            "\n\n# Number of beams in beam search, when t == 0"
-            "\nbeam_size: int\n--beam_size 0"
-            #
-            "\n\n# Patience in beam search (https://arxiv.org/abs/2204.05424)"
-            "\npatience: float\n--patience 0.0"
-            #
-            "\n\n# Options for ranking generations (either beams or best-of-N samples)"
-            "\n# 'alpha' in Google NMT, None defaults to length norm"
-            "\nlength_penalty: float = None\n--length_penalty 0.0"
-            #
-            "\n\n# Text or tokens for the previous context"
-            '\nprompt: str or [int]\n--prompt "hello world" or --prompt [1, 2, 3]'
-            #
-            "\n\n# Text or tokens to prefix the current context"
-            '\nprefix: str or [int]\n--prefix "hello world" or --prefix [1, 2, 3]'
-            #
-            "\n\n# Text or tokens for the previous context"
-            "\nsuppress_blank: bool\n--suppress_blank true"
-            #
-            '\n\n# List of tokens ids (or comma-separated token ids) to suppress\n# "-1" will suppress a set of symbols as '
-            "defined in `tokenizer.non_speech_tokens()`"
-            '\nsuppress_tokens: str or [int]\n--suppress_tokens "-1" or --suppress_tokens [-1, 0]'
-            #
-            "\n\n# Timestamp sampling options"
-            "\nwithout_timestamps: bool\n--without_timestamps true"
-            #
-            "\n\n# The initial timestamp cannot be later than this"
-            "\nmax_initial_timestamp: float\n--max_initial_timestamp 1.0"
-            #
-            "\n\n# Implementation details"
-            "\n# Use fp16 for most of the calculation"
-            "\nfp16: bool\n--fp16 true"
+            "\n\n# [vad]\n* description: Whether to run Voice Activity Detection (VAD) to remove non-speech segment before applying Whisper model (removes hallucinations)"
+            "\n* type: bool, default False \n* usage: --vad True"
+            "\n\n# [detect_disfluencies]\n* description: Whether to try to detect disfluencies, marking them as special words [*]"
+            "\n* type: bool, default False \n* usage: --detect_disfluencies True"
+            "\n\n# [recompute_all_timestamps]\n* description: Do not rely at all on Whisper timestamps (Experimental option: did not bring any improvement, but could be useful in cases where Whipser segment timestamp are wrong by more than 0.5 seconds)"
+            "\n* type: bool, default False \n* usage: --recompute_all_timestamps True"
+            "\n\n# [punctuations_with_words]\n*Whether to include punctuations in the words"
+            "\n* type: bool, default True \n* usage: --detect_disfluencies False"
+            "\n\n# [patience]\n* description: Optional patience value to use in beam decoding, as in https://arxiv.org/abs/2204.05424, 1.0 is equivalent to conventional beam search"
+            "\n* type: float, default None \n* usage: --patience 1.0"
+            "\n\n# [length_penalty]\n* description: optional token length penalty coefficient (alpha) as in https://arxiv.org/abs/1609.08144, uses simple length normalization by default"
+            "\n* type: float, default None \n* usage: --length_penalty 0.0"
+            "\n\n# [fp16]\n* description: Whether to perform inference in fp16; Automatic by default (True if GPU available, False otherwise)"
+            "\n* type: bool, default None \n* usage: --fp16 true"
+            "\n\n# [threads]\n* description: Number of threads used by torch for CPU inference; supercedes MKL_NUM_THREADS/OMP_NUM_THREADS"
+            "\n* type: int, default 0 \n* usage: --threads 2"
+            "\n\n# [compute_confidence]\n*description: Whether to compute confidence scores for words"
+            "\n* type: bool, default True \n* usage: --compute_confidence False"
+            "\n\n# [verbose]\n*description: Whether to print out the progress and debug messages of Whisper"
+            "\n* type: bool, default False \n* usage: --verbose True"
+            "\n\n# [plot]\n* description: Show plot of word alignments (result will be saved automatically in output folder)"
+            "\n* type: bool, default False \n* usage: --plot"
+            "\n\n# [debug]\n* description: Print some debug information about word alignment"
+            "\n* type: bool, default False \n* usage: --debug"
+            "\n\n# [naive]\n* description: Use naive approach, doing inference twice (once to get the transcription, once to get word timestamps and confidence scores)"
+            "\n* type: bool, default False \n* usage: --naive"
         )
-        CreateToolTipOnText(self.entry_whisper_args, hint, geometry="700x250")
+        CreateToolTipOnText(
+            self.entry_whisper_args,
+            hint,
+            geometry="800x250",
+            opacity=1.0,
+            focus_out_bind=lambda: self.verify_raw_args(self.entry_whisper_args.get())
+        )
 
         self.btn_help = ttk.Button(
             self.f_whisper_args_2,
             text="❔",
-            command=lambda: MBoxText("whisper-params", self.root, "Whisper Args", hint),
+            command=lambda: MBoxText("whisper-params", self.root, "Whisper Args", hint, "700x300"),
             width=5,
         )
         self.btn_help.pack(side="left", padx=5)
         tk_tooltip(self.btn_help, "Click to see the available arguments.")
-
-        self.btn_verify = ttk.Button(self.f_whisper_args_2, text="Verify", command=lambda: self.verifyWhisperArgs())
-        self.btn_verify.pack(side="left", padx=5)
-        tk_tooltip(self.btn_verify, "Verify the arguments.")
 
         # --------------------
         # export
@@ -354,7 +343,7 @@ class SettingTranscribe:
             self.f_export_2,
             "srt.words" in sj.cache["export_to"],
             lambda x: self.callback_export_to("srt.words", x),
-            text="Per words",
+            text="Per word",
             state="disabled" if "srt" not in sj.cache["export_to"] else "normal",
             width=8
         )
@@ -373,7 +362,7 @@ class SettingTranscribe:
             self.f_export_2,
             "vtt.words" in sj.cache["export_to"],
             lambda x: self.callback_export_to("vtt.words", x),
-            text="Per words",
+            text="Per word",
             state="disabled" if "vtt" not in sj.cache["export_to"] else "normal",
             width=8
         )
@@ -392,7 +381,7 @@ class SettingTranscribe:
             self.f_export_2,
             "tsv.words" in sj.cache["export_to"],
             lambda x: self.callback_export_to("tsv.words", x),
-            text="Per words",
+            text="Per word",
             state="disabled" if "tsv" not in sj.cache["export_to"] else "normal",
             width=8
         )
@@ -401,7 +390,7 @@ class SettingTranscribe:
         self.cbtn_export_csv = CustomCheckButton(
             self.f_export_1,
             "csv" in sj.cache["export_to"],
-            lambda x: self.callback_export_to("csv.words", x) or toggle_export_cbtn(x, self.cbtn_export_csv_word),
+            lambda x: self.callback_export_to("csv", x) or toggle_export_cbtn(x, self.cbtn_export_csv_word),
             text="CSV",
             width=8
         )
@@ -411,7 +400,7 @@ class SettingTranscribe:
             self.f_export_2,
             "csv.words" in sj.cache["export_to"],
             lambda x: self.callback_export_to("csv.words", x),
-            text="Per Words",
+            text="Per word",
             state="disabled" if "csv" not in sj.cache["export_to"] else "normal",
             width=8
         )
@@ -419,7 +408,7 @@ class SettingTranscribe:
 
         tk_tooltips(
             [self.cbtn_export_srt_word, self.cbtn_export_vtt_word, self.cbtn_export_tsv_word, self.cbtn_export_csv_word],
-            "Enable word level transcription, will export the text per words instead of per sentence to its own separated file."
+            "Enable word level transcription, will export the text Per word instead of per sentence to its own separated file."
         )
 
         self.lbl_export = ttk.Label(self.f_export_3, text="Export Folder", width=17)
@@ -582,6 +571,7 @@ class SettingTranscribe:
 
     # ------------------ Functions ------------------
     def init_setting_once(self):
+        self.change_decoding_preset(sj.cache["decoding_preset"])
         self.update_preview_export_format()
 
         if sj.cache["dir_export"] == "auto":
@@ -626,8 +616,10 @@ class SettingTranscribe:
             self.spn_beam_size.configure(state="disabled")
 
             if value == "greedy":
+                self.entry_temperature.configure(state="normal")
                 self.entry_temperature.delete(0, "end")
                 self.entry_temperature.insert(0, "0.0")
+                self.entry_temperature.configure(state="disabled")
                 sj.save_key("temperature", "0.0")
 
                 self.spn_best_of.set("")
@@ -636,8 +628,10 @@ class SettingTranscribe:
                 self.spn_beam_size.set("")
                 sj.save_key("beam_size", None)
             elif value == "beam search":
+                self.entry_temperature.configure(state="normal")
                 self.entry_temperature.delete(0, "end")
-                self.entry_temperature.insert(0, "1.0")
+                self.entry_temperature.insert(0, "0.0, 0.2, 0.4, 0.6, 0.8, 1.0")
+                self.entry_temperature.configure(state="disabled")
                 sj.save_key("temperature", "0.0, 0.2, 0.4, 0.6, 0.8, 1.0")
 
                 self.spn_best_of.set(5)
@@ -647,13 +641,16 @@ class SettingTranscribe:
                 sj.save_key("beam_size", 5)
 
     def callback_export_to(self, value: str, add: bool):
-        export_list = sj.cache["export_to"].copy()
-        if add:
-            export_list.append(value)
-        else:
-            export_list.remove(value)
+        try:
+            export_list = sj.cache["export_to"].copy()
+            if add:
+                export_list.append(value)
+            else:
+                export_list.remove(value)
 
-        sj.save_key("export_to", export_list)
+            sj.save_key("export_to", export_list)
+        except Exception:
+            pass
 
     def change_path(self, key: str, element: ttk.Entry):
         path = filedialog.askdirectory()
@@ -688,20 +685,21 @@ class SettingTranscribe:
             for file in files:
                 remove(path.join(sj.cache["dir_export"], file))
 
-    def verifyWhisperArgs(self):
-        # get the values
-        success, data = convert_str_options_to_dict(self.entry_whisper_args.get())
+    def verify_temperature(self, value: str):
+        status, msg = get_temperature(value)
+        if not status:
+            self.entry_temperature.delete(0, "end")
+            self.entry_temperature.insert(0, sj.cache["temperature"])
+            mbox("Invalid Temperature Options", f"{msg}", 2, self.root)
 
-        if not success:
-            mbox("Error", f"Invalid arguments detected.\nDetails: {data}", 0, self.root)
-        else:
-            mbox("Success", f"Arguments are valid\nParsed: {data}", 0, self.root)
+            return
 
-    def verifyTemp(self):
-        # get values
-        success, data = get_temperature(self.entry_temperature.get())
+        sj.save_key("temperature", value)
 
-        if not success:
-            mbox("Error", f"Invalid arguments detected.\nDetails: {data}", 0, self.root)
-        else:
-            mbox("Success", f"Arguments are valid\nParsed: {data}", 0, self.root)
+    def verify_raw_args(self, value: str):
+        res = parse_args_whisper_timestamped(value)
+        if not res["success"]:
+            mbox("Invalid Whisper Arguments", f"{res['msg']}", 2, self.root)
+            return
+
+        sj.save_key("whisper_args", value)
