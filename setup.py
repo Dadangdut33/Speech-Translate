@@ -37,7 +37,7 @@ setup(
         "speech_translate.utils.ui",
         "speech_translate.utils.whisper",
         "speech_translate.components",
-        "speech_translate.components.abstract",
+        "speech_translate.components.template",
         "speech_translate.components.custom",
         "speech_translate.components.window",
         "speech_translate.components.frame",
