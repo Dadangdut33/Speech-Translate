@@ -9,12 +9,13 @@
     <a href="https://github.com/Dadangdut33/Speech-Translate/pulls"><img alt="GitHub pull requests" src="https://img.shields.io/github/issues-pr/Dadangdut33/Speech-Translate"></a>
     <a href="https://github.com/Dadangdut33/Speech-Translate/releases/latest"><img alt="github downloads"  src="https://img.shields.io/github/downloads/Dadangdut33/Speech-Translate/total?label=downloads (github)"></a> 
     <a href="https://github.com/Dadangdut33/Speech-Translate/releases/latest"><img alt="GitHub release (latest SemVer)" src="https://img.shields.io/github/v/release/Dadangdut33/Speech-Translate"></a>
-    <a href="https://github.com/Dadangdut33/Speech-Translate/commits/main"><img alt="GitHub commits since latest release (by date)" src="https://img.shields.io/github/commits-since/Dadangdut33/Speech-Translate/latest"></a><Br>
+    <a href="https://github.com/Dadangdut33/Speech-Translate/commits/main"><img alt="GitHub commits since latest release (by date)" src="https://img.shields.io/github/commits-since/Dadangdut33/Speech-Translate/latest"></a>
+    <a href="https://github.com/Dadangdut33/Speech-Translate/compare/master...dev"><img alt="GitHub commits difference between master and dev branch" src="hhttps://img.shields.io/github/commits-difference/dadangdut33/speech-translate?base=master&head=dev&label=commits%20difference%20with%20%40dev%20branch"></a><Br>
     <a href="https://github.com/Dadangdut33/Speech-Translate/stargazers"><img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/Dadangdut33/Speech-Translate?style=social"></a>
     <a href="https://github.com/Dadangdut33/Speech-Translate/network/members"><img alt="GitHub forks" src="https://img.shields.io/github/forks/Dadangdut33/Speech-Translate?style=social"></a>
 </p>
 
-Speech Translate is a practical application that combines OpenAI's Whisper ASR model with free translation APIs. It serves as a versatile tool for both real-time / live speech-to-text and speech translation, allowing the user to seamlessly convert spoken language into written text. Additionally, it has the option to import and transcribe audio / video files effortlessly.
+Speech Translate is a practical application that combines OpenAI's Whisper ASR model with free translation APIs. It serves as a versatile tool for both real-time / live speech-to-text and speech translation, allowing the user to seamlessly convert spoken language into written text. Additionally, it has the option to import and transcribe audio / video files effortlessly. This application aims to expand whisper ability by combining it with some translation APIs while also providing a simple and easy to use interface to create a more practical application. This application is also open source, so you can contribute to this project if you want to. 
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/1.png" width="700" alt="Speech Translate Preview">
@@ -56,8 +57,8 @@ Speech Translate is a practical application that combines OpenAI's Whisper ASR m
 - [Features](#features)
 - [Requirements](#requirements)
 - [Installation](#installation)
-  - [From Prebuilt binary:](#from-prebuilt-binary)
-  - [As module:](#as-module)
+  - [From Prebuilt Binary](#from-prebuilt-binary)
+  - [As A Module](#as-a-module)
 - [More Information](#more-information)
 - [Building / Developing / Compiling Yourself](#building--developing--compiling-yourself)
   - [Setup](#setup)
@@ -92,6 +93,13 @@ Speech Translate is a practical application that combines OpenAI's Whisper ASR m
 - [FFmpeg](https://ffmpeg.org/) is required to be installed and added to the PATH environment variable. You can download it [here](https://ffmpeg.org/download.html) and add it to your path manually OR you can do it automatically using the following commands:
 
 ```
+# on Windows using powershell (Also included in the release page, and can be run by right clicking and selecting "Run with PowerShell")
+Set-ExecutionPolicy RemoteSigned -Scope CurrentUser # Optional: Needed to run a remote script the first time
+irm https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/install_ffmpeg.ps1 | iex
+
+# on Windows using Winget (Default package manager for Windows 10 and above)
+winget install --id=Gyan.FFmpeg  -e
+
 # on Windows using Chocolatey (https://chocolatey.org/)
 choco install ffmpeg
 
@@ -126,17 +134,20 @@ brew install ffmpeg
 > [!IMPORTANT]  
 > Make sure that you have installed [FFmpeg](https://ffmpeg.org/) and added it to the PATH environment variable. [See here](#requirements) for more info
 
-## From Prebuilt binary:
+## From Prebuilt Binary
 
 1. Download the [latest release](https://github.com/Dadangdut33/Speech-Translate/releases/latest) (There are 2 versions, CPU and GPU)
 2. Install/extract the downloaded file
 3. Run the program
 4. Enjoy!
 
-## As module:
+## As A Module
 
 > [!NOTE]  
 > Use python 3.11 for best compatibility and performance
+
+> [!WARNING]  
+> You might need to have [Build tools for Visual Studio](https://visualstudio.microsoft.com/visual-cpp-build-tools/) (or the equivalent of it on your OS) installed
 
 To install as module, we can use pip, with the following command.
 
@@ -150,25 +161,31 @@ To install as module, we can use pip, with the following command.
 
 You can then run the program by typing `speech-translate` in your terminal/console. Alternatively, when installing as a module, you can also clone the repo and install it locally by running `pip install -e .` in the project directory. (Don't forget to add `--extra-index-url` if you want to install with GPU support)
 
-**Notes:**
+**Notes For Installation as Module:**
 
-- If you are updating from an older version, you need to add `--upgrade --no-deps --force-reinstall` at the end of the command.
-- If you want to install from a specific branch or commit, you can do it by adding `@branch_name` or `@commit_hash` at the end of the url. Example: `pip install -U git+https://github.com/Dadangdut33/Speech-Translate.git@dev --extra-index-url https://download.pytorch.org/whl/cu118`
-- The --extra-index-url here might not always be up to date, so you can check the latest version of pytorch [here](https://pytorch.org/get-started/locally/). You can also check the available version of pytorch [here](https://download.pytorch.org/whl/torch_stable.html).
+- If you are u**pdating from an older version**, you need to add `--upgrade --no-deps --force-reinstall` at the end of the command.
+- If you want to **install** from a **specific branch or commit**, you can do it by adding `@branch_name` or `@commit_hash` at the end of the url. Example: `pip install -U git+https://github.com/Dadangdut33/Speech-Translate.git@dev --extra-index-url https://download.pytorch.org/whl/cu118`
+- The **--extra-index-url here might not always be up to date**, so you can check the latest version of pytorch [here](https://pytorch.org/get-started/locally/). You can also check the available version of pytorch [here](https://download.pytorch.org/whl/torch_stable.html).
 
 # More Information
 
-Check out the [wiki](https://github.com/Dadangdut33/Speech-Translate/wiki) for more information about the app, the user settings, and how to use it.
+Check out the [wiki](https://github.com/Dadangdut33/Speech-Translate/wiki) for more information about the app, the user settings, how to use it, and more.
 
 # Building / Developing / Compiling Yourself
 
+> [!IMPORTANT]  
+> Make sure that you have installed [FFmpeg](https://ffmpeg.org/) and added it to the PATH environment variable. [See here](#requirements) for more info
+
 > [!NOTE]  
-> I use python 3.11.6 for development, but it should work with python 3.8 or later
+> Check the [wiki](https://github.com/Dadangdut33/Speech-Translate/wiki) for more details
 
 ## Setup
 
 > [!NOTE]  
-> It is recommended to create a virtual environment, but it is not required.
+> It is recommended to create a virtual environment, but it is not required. I also use python 3.11.6 for development, but it should work with python 3.8 or later
+
+> [!WARNING]  
+> You might need to have [Build tools for Visual Studio](https://visualstudio.microsoft.com/visual-cpp-build-tools/) installed
 
 1. Create your virtual environment by running `python -m venv venv`
 2. Activate your virtual environment by running `source venv/bin/activate`

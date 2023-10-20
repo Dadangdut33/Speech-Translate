@@ -65,6 +65,11 @@ with open("README.md", "r", encoding="utf-8") as f:
 with open(f"{folder_name}/version.txt", "w", encoding="utf-8") as f:
     f.write(version())
 
+# copy install_ffmpeg.ps1 to build folder
+with open("install_ffmpeg.ps1", "r", encoding="utf-8") as f:
+    with open(f"{folder_name}/install_ffmpeg.ps1", "w", encoding="utf-8") as f2:
+        f2.write(f.read())
+
 # create link to repo
 with open(f"{folder_name}/homepage.url", "w", encoding="utf-8") as f:
     f.write("[InternetShortcut]\n")
