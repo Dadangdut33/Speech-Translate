@@ -16,7 +16,7 @@ from speech_translate._constants import APP_NAME
 from speech_translate._path import app_icon
 from speech_translate._version import __version__
 from speech_translate.components.custom.checkbutton import CustomCheckButton
-from speech_translate.components.custom.combobox import CategorizedComboBox
+from speech_translate.components.custom.combobox import CategorizedComboBox, ComboboxWithKeyNav
 from speech_translate.components.custom.message import mbox
 from speech_translate.components.custom.tooltip import tk_tooltip, tk_tooltips
 from speech_translate.components.window.about import AboutWindow
@@ -185,7 +185,7 @@ class MainWindow:
         self.lbl_model = ttk.Label(self.f1_toolbar, text="Transcribe:")
         self.lbl_model.pack(side="left", fill="x", padx=5, pady=5, expand=False)
 
-        self.cb_model = ttk.Combobox(self.f1_toolbar, values=model_keys, state="readonly")
+        self.cb_model = ComboboxWithKeyNav(self.f1_toolbar, values=model_keys, state="readonly")
         self.cb_model.set({v: k for k, v in model_select_dict.items()}[sj.cache["model"]])
         self.cb_model.pack(side="left", fill="x", padx=5, pady=5, expand=True)
         self.cb_model.bind("<<ComboboxSelected>>", lambda _: sj.save_key("model", model_select_dict[self.cb_model.get()]))
@@ -225,7 +225,7 @@ class MainWindow:
         self.lbl_source = ttk.Label(self.f1_toolbar, text="From:")
         self.lbl_source.pack(side="left", padx=5, pady=5)
 
-        self.cb_source_lang = ttk.Combobox(
+        self.cb_source_lang = ComboboxWithKeyNav(
             self.f1_toolbar, values=engine_select_source_dict["Google Translate"], state="readonly"
         )  # initial value
         self.cb_source_lang.set(sj.cache["sourceLang"])
@@ -236,7 +236,7 @@ class MainWindow:
         self.lbl_to = ttk.Label(self.f1_toolbar, text="To:")
         self.lbl_to.pack(side="left", padx=5, pady=5)
 
-        self.cb_target_lang = ttk.Combobox(
+        self.cb_target_lang = ComboboxWithKeyNav(
             self.f1_toolbar, values=[up_first_case(x) for x in whisper_compatible], state="readonly"
         )  # initial value
         self.cb_target_lang.set(sj.cache["targetLang"])
@@ -311,7 +311,7 @@ class MainWindow:
             wrapLength=350,
         )
 
-        self.cb_hostAPI = ttk.Combobox(self.f3_1_row1, values=[], state="readonly")
+        self.cb_hostAPI = ComboboxWithKeyNav(self.f3_1_row1, values=[], state="readonly")
         self.cb_hostAPI.bind(
             "<<ComboboxSelected>>", lambda _: sj.save_key("hostAPI", self.cb_hostAPI.get()) or self.hostAPI_change()
         )
@@ -332,7 +332,7 @@ class MainWindow:
         self.lbl_mic.pack(side="left", padx=5, pady=0, ipady=0)
         tk_tooltip(self.lbl_mic, "Microphone for the input device.")
 
-        self.cb_mic = ttk.Combobox(self.f3_1_row2, values=[], state="readonly")
+        self.cb_mic = ComboboxWithKeyNav(self.f3_1_row2, values=[], state="readonly")
         self.cb_mic.bind("<<ComboboxSelected>>", lambda _: sj.save_key("mic", self.cb_mic.get()))
         self.cb_mic.pack(side="left", padx=5, pady=0, ipady=0, expand=True, fill="x")
 
@@ -352,7 +352,7 @@ class MainWindow:
         self.lbl_speaker.pack(side="left", padx=5, pady=0, ipady=0)
         tk_tooltip(self.lbl_speaker, "Speaker to record the system audio")
 
-        self.cb_speaker = ttk.Combobox(self.f3_1_row3, values=[], state="readonly")
+        self.cb_speaker = ComboboxWithKeyNav(self.f3_1_row3, values=[], state="readonly")
         self.cb_speaker.bind("<<ComboboxSelected>>", lambda _: sj.save_key("speaker", self.cb_speaker.get()))
         self.cb_speaker.pack(side="left", padx=5, pady=0, ipady=0, expand=True, fill="x")
 

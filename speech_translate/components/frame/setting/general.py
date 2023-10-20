@@ -3,6 +3,7 @@ from threading import Thread
 from tkinter import ttk, filedialog, Menu, Toplevel, Frame, LabelFrame
 from typing import Union
 from speech_translate.components.custom.checkbutton import CustomCheckButton
+from speech_translate.components.custom.combobox import ComboboxWithKeyNav
 
 from speech_translate.globals import sj, gc
 from speech_translate._path import dir_log, dir_temp, dir_debug
@@ -91,7 +92,7 @@ class SettingGeneral:
         self.lbl_theme = ttk.Label(self.f_application_2, text="Theme")
         self.lbl_theme.pack(side="left", padx=5, pady=5)
 
-        self.cb_theme = ttk.Combobox(self.f_application_2, values=["dummy list"], state="readonly")
+        self.cb_theme = ComboboxWithKeyNav(self.f_application_2, values=["dummy list"], state="readonly")
         self.cb_theme.pack(side="left", padx=5, pady=5)
         self.cb_theme.bind("<<ComboboxSelected>>", self.cb_theme_change)
         tk_tooltips(
@@ -198,7 +199,7 @@ class SettingGeneral:
         self.lbl_loglevel = ttk.Label(self.f_logging_3, text="— Log level")
         self.lbl_loglevel.pack(side="left", padx=(0, 5))
 
-        self.cb_log_level = ttk.Combobox(
+        self.cb_log_level = ComboboxWithKeyNav(
             self.f_logging_3, values=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], state="readonly"
         )
         self.cb_log_level.pack(side="left", padx=0)
@@ -618,6 +619,11 @@ class SettingGeneral:
             self.entry_theme.delete(0, "end")
             self.btn_theme_add.pack(side="left", padx=5, pady=5)
         else:
+            prev = sj.cache["theme"]
+            # check if the theme is the same as the previous one
+            if prev == self.cb_theme.get():
+                return
+
             self.entry_theme.pack_forget()
             self.entry_theme.delete(0, "end")
             self.btn_theme_add.pack_forget()

@@ -6,6 +6,7 @@ from bidi.algorithm import get_display
 
 from speech_translate._constants import PREVIEW_WORDS
 from speech_translate.components.custom.checkbutton import CustomCheckButton
+from speech_translate.components.custom.combobox import ComboboxWithKeyNav
 from speech_translate.components.custom.spinbox import SpinboxNumOnly
 from speech_translate.globals import sj, gc
 from speech_translate.utils.helper import chooseColor
@@ -153,7 +154,7 @@ class SettingTextbox:
         # 3
         self.lbl_mw_tc_font = ttk.Label(self.f_mw_tc_3, text="Font", width=16)
         self.lbl_mw_tc_font.pack(side="left", padx=5)
-        self.cb_mw_tc_font = ttk.Combobox(self.f_mw_tc_3, values=self.fonts, state="readonly", width=30)
+        self.cb_mw_tc_font = ComboboxWithKeyNav(self.f_mw_tc_3, values=self.fonts, state="readonly", width=30)
         self.cb_mw_tc_font.set(sj.cache["tb_mw_tc_font"])
         self.cb_mw_tc_font.pack(side="left", padx=5)
         self.cb_mw_tc_font.bind(
@@ -230,7 +231,7 @@ class SettingTextbox:
         # 3
         self.lbl_mw_tl_font = ttk.Label(self.f_mw_tl_3, text="Font", width=16)
         self.lbl_mw_tl_font.pack(side="left", padx=5)
-        self.cb_mw_tl_font = ttk.Combobox(self.f_mw_tl_3, values=self.fonts, state="readonly", width=30)
+        self.cb_mw_tl_font = ComboboxWithKeyNav(self.f_mw_tl_3, values=self.fonts, state="readonly", width=30)
         self.cb_mw_tl_font.set(sj.cache["tb_mw_tl_font"])
         self.cb_mw_tl_font.pack(side="left", padx=5)
         self.cb_mw_tl_font.bind(
@@ -306,7 +307,7 @@ class SettingTextbox:
         # 3
         self.lbl_ex_tc_font = ttk.Label(self.f_ex_tc_3, text="Font", width=16)
         self.lbl_ex_tc_font.pack(side="left", padx=5)
-        self.cb_ex_tc_font = ttk.Combobox(self.f_ex_tc_3, values=self.fonts, state="readonly", width=30)
+        self.cb_ex_tc_font = ComboboxWithKeyNav(self.f_ex_tc_3, values=self.fonts, state="readonly", width=30)
         self.cb_ex_tc_font.set(sj.cache["tb_ex_tc_font"])
         self.cb_ex_tc_font.pack(side="left", padx=5)
         self.cb_ex_tc_font.bind(
@@ -406,7 +407,7 @@ class SettingTextbox:
         # 3
         self.lbl_ex_tl_font = ttk.Label(self.f_ex_tl_3, text="Font", width=16)
         self.lbl_ex_tl_font.pack(side="left", padx=5)
-        self.cb_ex_tl_font = ttk.Combobox(self.f_ex_tl_3, values=self.fonts, state="readonly", width=30)
+        self.cb_ex_tl_font = ComboboxWithKeyNav(self.f_ex_tl_3, values=self.fonts, state="readonly", width=30)
         self.cb_ex_tl_font.set(sj.cache["tb_ex_tl_font"])
         self.cb_ex_tl_font.pack(side="left", padx=5)
         self.cb_ex_tl_font.bind(
