@@ -1,0 +1,17 @@
+Thanks for downloading Speech Translate. 
+Speech Translate is a practical application that combines OpenAI's Whisper ASR model with free translation APIs. It serves as a versatile tool for both real-time / live speech-to-text and speech translation, allowing the user to seamlessly convert spoken language into written text. Additionally, it has the option to import and transcribe audio / video files effortlessly. This application aims to expand whisper ability by combining it with some translation APIs while also providing a simple and easy to use interface to create a more practical application. This application is also open source, so you can contribute to this project if you want to. 
+
+Requirements:
+- Windows 8.1 or higher for speaker input
+- FFmpeg installed in your system (you can use the powershell script provided in the release page to install it automatically)
+- Internet connection (for translation with API)
+- Each whisper model requires the following VRAM:
+  * tiny (~1 GB)
+  * base (~1 GB)
+  * small (~2 GB)
+  * medium (~5 GB)
+  * large (~10 GB)
+
+  Whisper can be used with CPU but will be very limited, so it is recommended to use a cuda compatible GPU for better performance.
+
+For more information about the app, user settings, how to use it, and more please visit the wiki at https://github.com/Dadangdut33/Speech-Translate/wiki

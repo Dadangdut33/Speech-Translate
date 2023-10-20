@@ -57,7 +57,7 @@ with open("LICENSE", "r", encoding="utf-8") as f:
         f2.write(f.read())
 
 # copy README.md as README.txt to build folder
-with open("README.md", "r", encoding="utf-8") as f:
+with open("pre_install_note.txt", "r", encoding="utf-8") as f:
     with open(f"{folder_name}/README.txt", "w", encoding="utf-8") as f2:
         f2.write(f.read())
 

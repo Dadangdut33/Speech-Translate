@@ -1,9 +1,21 @@
-# MUST BE RUN AS ADMINISTRATOR
-if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator"))  
+param (
+    [switch]$webdl
+)
+
+$isAdministrator = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+$arguments = [System.Environment]::GetCommandLineArgs()
+
+# MUST BE RUN AS ADMINISTRATOR, but when run from a webdl, it will not be forced
+if (-NOT $isAdministrator -AND -NOT $webdl)
 {  
   $arguments = "& '" +$myinvocation.mycommand.definition + "'"
   Start-Process powershell -Verb runAs -ArgumentList $arguments
   Break
+}
+
+if (-NOT $isAdministrator)
+{
+  Write-Host "WARNING: This script must be run as administrator to correctly add ffmpeg to the system path."
 }
 
 # modified a little from https://adamtheautomator.com/install-ffmpeg/
@@ -23,6 +35,7 @@ ForEach-Object {
 }
 
 # # Clean up
+Write-Host "Cleaning up..."
 Remove-Item .\ffmpeg\ -Recurse
 Remove-Item .\ffmpeg.zip
 
@@ -30,10 +43,14 @@ Remove-Item .\ffmpeg.zip
 Get-ChildItem
 
 # Prepend the FFmpeg folder path to the system path variable
+Write-Host "Adding ffmpeg to the system path..."
 [System.Environment]::SetEnvironmentVariable(
     "PATH",
     "C:\ffmpeg\;$([System.Environment]::GetEnvironmentVariable('PATH','MACHINE'))",
     "Machine"
 )
+Write-Host "ffmpeg has been added to the system path."
 
 $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
+
+Write-Host "check it by running ffmpeg -version"

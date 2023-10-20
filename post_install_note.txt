@@ -1,0 +1,1 @@
+The app has been successfully installed, for more information about its usage please visit the wiki at https://github.com/Dadangdut33/Speech-Translate/wiki.

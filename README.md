@@ -90,12 +90,16 @@ Speech Translate is a practical application that combines OpenAI's Whisper ASR m
 \* Python 3.8 or later (3.11 is recommended) for installation as module.
 
 - Speaker input only work on windows 8 and above.
+- Internet connection (for translation with API)
 - [FFmpeg](https://ffmpeg.org/) is required to be installed and added to the PATH environment variable. You can download it [here](https://ffmpeg.org/download.html) and add it to your path manually OR you can do it automatically using the following commands:
 
 ```
 # on Windows using powershell (Also included in the release page, and can be run by right clicking and selecting "Run with PowerShell")
+# Must be run in an elevated PowerShell prompt (Run as administrator)
 Set-ExecutionPolicy RemoteSigned -Scope CurrentUser # Optional: Needed to run a remote script the first time
-irm https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/install_ffmpeg.ps1 | iex
+& ([scriptblock]::Create(
+     (New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/install_ffmpeg.ps1')
+  )) -webdl
 
 # on Windows using Winget (Default package manager for Windows 10 and above)
 winget install --id=Gyan.FFmpeg  -e
@@ -169,7 +173,7 @@ You can then run the program by typing `speech-translate` in your terminal/conso
 
 # More Information
 
-Check out the [wiki](https://github.com/Dadangdut33/Speech-Translate/wiki) for more information about the app, the user settings, how to use it, and more.
+Check out the [wiki](https://github.com/Dadangdut33/Speech-Translate/wiki) for more information about the app, user settings, how to use it, and more.
 
 # Building / Developing / Compiling Yourself
 
