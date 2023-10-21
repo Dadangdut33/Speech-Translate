@@ -15,7 +15,7 @@ from notifypy import Notify, exceptions
 from PIL import Image, ImageDraw, ImageFont, ImageTk
 
 from speech_translate._constants import APP_NAME
-from speech_translate._path import app_icon, app_icon_missing
+from speech_translate._path import app_icon, app_icon_missing, ffmpeg_ps_script
 from speech_translate.components.custom.tooltip import tk_tooltip
 from speech_translate.custom_logging import logger
 
@@ -90,6 +90,162 @@ def start_file(filename: str):
         except Exception as e:
             logger.exception("Error: " + str(e))
             nativeNotify("Error", f"Uncaught error {str(e)}")
+
+
+def check_ffmpeg_in_path():
+    """
+    Check if ffmpeg is in the path
+    """
+    success = True
+    msg = ""
+    try:
+        Popen(["ffmpeg", "-version"])
+        msg = "ffmpeg is in the path."
+    except FileNotFoundError:
+        success = False
+        msg = "ffmpeg is not in the path."
+    except Exception as e:
+        success = False
+        msg = str(e)
+    finally:
+        return success, msg
+
+
+def install_ffmpeg_windows():
+    """
+    Install ffmpeg on windows
+    """
+    success = True
+    msg = ""
+    # first check if the script is in the path
+    if not path.exists(ffmpeg_ps_script):
+        logger.debug("ffmpeg_ps_script not found. Creating it...")
+        # create it directly
+        with open(ffmpeg_ps_script, "w") as f:
+            f.write(
+                r"""
+param (
+    [switch]$webdl
+)
+
+$isAdministrator = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+$arguments = [System.Environment]::GetCommandLineArgs()
+
+# MUST BE RUN AS ADMINISTRATOR, but when run from a webdl, it will not be forced
+if (-NOT $isAdministrator -AND -NOT $webdl)
+{  
+  $arguments = "& '" +$myinvocation.mycommand.definition + "'"
+  Start-Process powershell -Verb runAs -ArgumentList $arguments
+  Break
+}
+
+if (-NOT $isAdministrator)
+{
+  Write-Host "WARNING: This script must be run as administrator to correctly add ffmpeg to the system path."
+}
+
+# modified a little from https://adamtheautomator.com/install-ffmpeg/
+New-Item -Type Directory -Path C:\ffmpeg 
+Set-Location C:\ffmpeg
+curl.exe -L 'https://github.com/GyanD/codexffmpeg/releases/download/6.0/ffmpeg-6.0-essentials_build.zip' -o 'ffmpeg.zip'
+
+# Expand the Zip
+Expand-Archive .\ffmpeg.zip -Force -Verbose
+
+# Move the executable (*.exe) files to the top folder
+Get-ChildItem -Recurse -Path .\ffmpeg -Filter *.exe |
+ForEach-Object {
+    $source = $_.FullName
+    $destination = Join-Path -Path . -ChildPath $_.Name
+    Move-Item -Path $source -Destination $destination -Force -Verbose
+}
+
+# # Clean up
+Write-Host "Cleaning up..."
+Remove-Item .\ffmpeg\ -Recurse
+Remove-Item .\ffmpeg.zip
+
+# List the directory contents
+Get-ChildItem
+
+# Prepend the FFmpeg folder path to the system path variable
+Write-Host "Adding ffmpeg to the system path..."
+[System.Environment]::SetEnvironmentVariable(
+    "PATH",
+    "C:\ffmpeg\;$([System.Environment]::GetEnvironmentVariable('PATH','MACHINE'))",
+    "Machine"
+)
+Write-Host "ffmpeg has been added to the system path."
+
+$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
+
+Write-Host "check it by running ffmpeg -version"    
+            """
+            )
+    logger.debug("Running ps script...")
+    # run the script
+    p = Popen(
+        [
+            "powershell", "-ExecutionPolicy", "-noprofile", "-c",
+            rf"""Start-Process -Verb RunAs -Wait powershell.exe -Args "-noprofile -c Set-Location \`"$PWD\`"; & {ffmpeg_ps_script}"
+            """
+        ]
+    )
+    status = p.wait()
+
+    if status != 0:
+        success = False
+        msg = "Error installing ffmpeg. Please install it manually."
+    else:
+        success = True
+        msg = "ffmpeg installed successfully."
+    return success, msg
+
+
+def install_ffmpeg_linux():
+    """
+    Install ffmpeg on linux
+    """
+    p = Popen(["sudo", "apt", "install", "ffmpeg"])
+    status = p.wait()
+    if status != 0:
+        success = False
+        msg = "Error installing ffmpeg. Please install it manually."
+    else:
+        success = True
+        msg = "ffmpeg installed successfully."
+
+    return success, msg
+
+
+def install_ffmpeg_macos():
+    """
+    Install ffmpeg on macos
+    """
+    p = Popen(["brew", "install", "ffmpeg"])
+    status = p.wait()
+    if status != 0:
+        success = False
+        msg = "Error installing ffmpeg. Please install it manually."
+    else:
+        success = True
+        msg = "ffmpeg installed successfully."
+
+    return success, msg
+
+
+def install_ffmpeg():
+    """
+    Install ffmpeg on all platforms
+    """
+    if system() == "Windows":
+        return install_ffmpeg_windows()
+    elif system() == "Linux":
+        return install_ffmpeg_linux()
+    elif system() == "Darwin":
+        return install_ffmpeg_macos()
+    else:
+        return False, "Unknown OS."
 
 
 def OpenUrl(url: str):

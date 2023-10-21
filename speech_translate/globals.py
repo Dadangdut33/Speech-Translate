@@ -73,6 +73,7 @@ class GlobalClass:
     def __init__(self):
         self.cuda: str = ""
         self.running_after_id: str = ""
+        self.has_ffmpeg: bool = False
 
         # Flags
         self.running: bool = True

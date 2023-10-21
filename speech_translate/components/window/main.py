@@ -32,7 +32,7 @@ from speech_translate.utils.audio.device import (
 )
 from speech_translate.utils.helper import (
     bind_focus_recursively, emoji_img, nativeNotify, popup_menu, similar, start_file, tb_copy_only, up_first_case,
-    windows_os_only
+    windows_os_only, check_ffmpeg_in_path, install_ffmpeg
 )
 from speech_translate.utils.translate.language import (
     engine_select_source_dict, engine_select_target_dict, whisper_compatible
@@ -678,6 +678,25 @@ class MainWindow:
 
         windows_os_only([self.radio_speaker, self.cb_speaker, self.lbl_speaker, self.btn_config_speaker])
 
+        # check ffmpeg
+        gc.has_ffmpeg = check_ffmpeg_in_path()[0]
+        self.root.after(2000, self.check_ffmpeg, gc.has_ffmpeg)
+
+    def check_ffmpeg(self, has_ffmpeg: bool):
+        if not has_ffmpeg:
+            # prompt to install ffmpeg
+            if mbox(
+                "FFmpeg is not found in your system path!",
+                "FFmpeg is essential for the app to work properly.\n\nDo you want to install it now?",
+                3,
+            ):
+                success, msg = install_ffmpeg()
+                if not success:
+                    mbox("Error", msg, 2)
+
+                gc.has_ffmpeg = True
+                return success
+
     # mic
     def cb_input_device_init(self):
         """
@@ -1263,6 +1282,17 @@ class MainWindow:
             if not status:
                 return
 
+        # check ffmpeg
+        success = self.check_ffmpeg(check_ffmpeg_in_path()[0])
+        if not success:
+            # ask if user want to continue processing
+            if not mbox(
+                "Fail to install ffmpeg",
+                "The program fail to install and add ffmpeg to path. Do you still want to continue regardless of it?", 3,
+                self.root
+            ):
+                return
+
         # ui changes
         self.tb_clear()
         self.start_loadBar()
@@ -1325,6 +1355,17 @@ class MainWindow:
         if engine in model_keys:
             status, engine = self.check_model(engine, source == "english", "recording", self.rec)
             if not status:
+                return
+
+        # check ffmpeg
+        success = self.check_ffmpeg(check_ffmpeg_in_path()[0])
+        if not success:
+            # ask if user want to continue processing
+            if not mbox(
+                "Fail to install ffmpeg",
+                "The program fail to install and add ffmpeg to path. Do you still want to continue regardless of it?", 3,
+                self.root
+            ):
                 return
 
         # get file

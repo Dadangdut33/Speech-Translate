@@ -22,8 +22,8 @@ DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 LicenseFile=build\SpeechTranslate {#MyAppVersion}\LICENSE.txt
-InfoBeforeFile=pre_install_note.txt
-InfoAfterFile=post_install_note.txt
+InfoBeforeFile=build\pre_install_note.txt
+InfoAfterFile=build\post_install_note.txt
 ; Remove the following line to run in administrative install mode (install for all users.)
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=commandline

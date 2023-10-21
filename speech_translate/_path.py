@@ -10,6 +10,7 @@ dir_log: str = os.path.abspath(os.path.join(dir_project, "log"))
 dir_assets: str = os.path.abspath(os.path.join(dir_project, "assets"))
 dir_export: str = os.path.abspath(os.path.join(dir_project, "export"))
 app_icon: str = os.path.abspath(os.path.join(dir_assets, "icon.ico"))
+ffmpeg_ps_script: str = os.path.abspath(os.path.join(dir_project, "..", "install_ffmpeg.ps1"))
 
 # verify app_icon exist or not
 if not os.path.exists(app_icon):

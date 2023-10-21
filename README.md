@@ -15,20 +15,22 @@
     <a href="https://github.com/Dadangdut33/Speech-Translate/network/members"><img alt="GitHub forks" src="https://img.shields.io/github/forks/Dadangdut33/Speech-Translate?style=social"></a>
 </p>
 
-Speech Translate is a practical application that combines OpenAI's Whisper ASR model with free translation APIs. It serves as a versatile tool for both real-time / live speech-to-text and speech translation, allowing the user to seamlessly convert spoken language into written text. Additionally, it has the option to import and transcribe audio / video files effortlessly. This application aims to expand whisper ability by combining it with some translation APIs while also providing a simple and easy to use interface to create a more practical application. This application is also open source, so you can contribute to this project if you want to. 
+Speech Translate is a practical application that combines OpenAI's Whisper ASR model with free translation APIs. It serves as a versatile tool for both real-time / live speech-to-text and speech translation, allowing the user to seamlessly convert spoken language into written text. Additionally, it has the option to import and transcribe audio / video files effortlessly. 
+
+Speech Translate aims to expand whisper ability by combining it with some translation APIs while also providing a simple and easy to use interface to create a more practical application. This application is also open source, so you can contribute to this project if you want to. 
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/1.png" width="700" alt="Speech Translate Preview">
+  <img src="speech_translate/assets/1.png" width="700" alt="Speech Translate Preview">
 </p>
 
 <details close>
   <summary>Preview - Usage</summary>
   <p align="center">
-    <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/7.png" width="700" alt="Record">
-    <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/8.png" width="700" alt="File import">
-    <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/9.png" width="700" alt="Transcribe mode on subtitle window (English)">
+    <img src="speech_translate/assets/7.png" width="700" alt="Record">
+    <img src="speech_translate/assets/8.png" width="700" alt="File import">
+    <img src="speech_translate/assets/9.png" width="700" alt="Transcribe mode on subtitle window (English)">
     Transcribe mode on detached window (English)
-    <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/10.png" width="700" alt="Translate mode on subtitle window (English to Indonesia)">
+    <img src="speech_translate/assets/10.png" width="700" alt="Translate mode on subtitle window (English to Indonesia)">
     Translate mode on detached window (English to Indonesia)
   </p>
 </details>
@@ -36,16 +38,16 @@ Speech Translate is a practical application that combines OpenAI's Whisper ASR m
 <details close>
   <summary>Preview - Setting</summary>
   <p align="center">
-    <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/2.png" width="700" alt="Setting">
-    <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/3.png" width="700" alt="Setting">
-    <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/4.png" width="700" alt="Setting">
-    <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/4.png" width="700" alt="Setting">
-    <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/5.png" width="700" alt="Setting">
-    <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/6.png" width="700" alt="Setting">
-    <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/7.png" width="700" alt="Record preview">
-    <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/8.png" alt="Transcribe mode on subtitle window (English)">
+    <img src="speech_translate/assets/2.png" width="700" alt="Setting">
+    <img src="speech_translate/assets/3.png" width="700" alt="Setting">
+    <img src="speech_translate/assets/4.png" width="700" alt="Setting">
+    <img src="speech_translate/assets/4.png" width="700" alt="Setting">
+    <img src="speech_translate/assets/5.png" width="700" alt="Setting">
+    <img src="speech_translate/assets/6.png" width="700" alt="Setting">
+    <img src="speech_translate/assets/7.png" width="700" alt="Record preview">
+    <img src="speech_translate/assets/8.png" alt="Transcribe mode on subtitle window (English)">
     Transcribe mode on detached window (English)
-    <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/9.png" alt="Translate mode on subtitle window (English to Indonesia)">
+    <img src="speech_translate/assets/9.png" alt="Translate mode on subtitle window (English to Indonesia)">
     Translate mode on detached window (English to Indonesia)
   </p>
 </details>
@@ -93,7 +95,7 @@ Speech Translate is a practical application that combines OpenAI's Whisper ASR m
 - Internet connection (for translation with API)
 - [FFmpeg](https://ffmpeg.org/) is required to be installed and added to the PATH environment variable. You can download it [here](https://ffmpeg.org/download.html) and add it to your path manually OR you can do it automatically using the following commands:
 
-```
+```bash
 # on Windows using powershell (Also included in the release page, and can be run by right clicking and selecting "Run with PowerShell")
 # Must be run in an elevated PowerShell prompt (Run as administrator)
 Set-ExecutionPolicy RemoteSigned -Scope CurrentUser # Optional: Needed to run a remote script the first time
