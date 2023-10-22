@@ -19,6 +19,7 @@ import torch
 import whisper_timestamped as whisper
 
 from speech_translate.components.custom.audio import AudioMeter
+from speech_translate.utils.custom_types import WhisperResult
 if system() == "Windows":
     import pyaudiowpatch as pyaudio
 else:
@@ -33,7 +34,7 @@ from speech_translate.custom_logging import logger
 from speech_translate.globals import gc, sj
 from speech_translate.utils.audio.device import get_db, get_device_details, get_frame_duration, get_speech, resample_sr
 
-from ..helper import cbtn_invoker, generate_temp_filename, get_channel_int, get_proxies, nativeNotify, unique_list
+from ..helper import cbtn_invoker, generate_temp_filename, get_channel_int, get_proxies, nativeNotify, separator_to_html, unique_list
 from ..whisper.helper import get_temperature, parse_args_whisper_timestamped, whisper_verbose_log, model_values
 from ..translate.translator import translate
 
@@ -221,7 +222,7 @@ def record_session(
 
         # read from settings
         max_int16 = 2**15  # bit depth of 16 bit audio (32768)
-        separator = literal_eval(quote(sj.cache["separate_with"]))
+        separator = separator_to_html(literal_eval(quote(sj.cache["separate_with"])))
         use_temp = sj.cache["use_temp"]
         temperature = sj.cache["temperature"]
         whisper_args = sj.cache["whisper_args"]
@@ -502,13 +503,13 @@ def record_session(
             # append and remove text that is exactly the same same
             # Some dupe might accidentally happened so we need to remove it
             if transcribe:
-                gc.tc_sentences.append(prev_tc_res)
+                gc.tc_sentences.append(prev_tc_res)  # type: ignore
                 gc.tc_sentences = unique_list(gc.tc_sentences)
                 if len(gc.tc_sentences) >= max_sentences:
                     gc.tc_sentences.pop(0)
 
             if translate:
-                gc.tl_sentences.append(prev_tl_res)
+                gc.tl_sentences.append(prev_tl_res)  # type: ignore
                 gc.tl_sentences = unique_list(gc.tl_sentences)
                 if len(gc.tl_sentences) >= max_sentences:
                     gc.tl_sentences.pop(0)
@@ -619,7 +620,7 @@ def record_session(
                 assert gc.tc_lock is not None
                 gc.tc_lock.acquire()
 
-            result = whisper.transcribe(
+            result: WhisperResult = whisper.transcribe(
                 model_tc, audio_target, language=lang_source if not auto else None, task=task, **whisper_args
             )
 
@@ -639,7 +640,7 @@ def record_session(
                         else:
                             logger.debug(f"New text: {text}")
 
-                    gc.update_tc(text, separator)
+                    gc.update_tc(result, separator)
                 if translate:
                     # Start translate thread
                     gc.current_rec_status = "▶️ Recording ⟳ Translating"
@@ -796,11 +797,11 @@ def tl_whisper(
 
     global prev_tl_res
     try:
-        separator = literal_eval(quote(sj.cache["separate_with"]))
+        separator = separator_to_html(literal_eval(quote(sj.cache["separate_with"])))
 
         assert gc.tc_lock is not None
         gc.tc_lock.acquire()
-        result = whisper.transcribe(
+        result: WhisperResult = whisper.transcribe(
             model, audio, language=lang_source if not auto else None, task="translate", **whisper_args
         )
         gc.tc_lock.release()
@@ -817,7 +818,7 @@ def tl_whisper(
                 else:
                     logger.debug(f"{text}")
 
-            gc.update_tl(text, separator)
+            gc.update_tl(result, separator)
 
     except Exception as e:
         logger.exception(e)
@@ -833,7 +834,7 @@ def tl_api(text: str, lang_source: str, lang_target: str, engine: str):
 
     try:
         global prev_tl_res, sentences_tl
-        separator = literal_eval(quote(sj.cache["separate_with"]))
+        separator = separator_to_html(literal_eval(quote(sj.cache["separate_with"])))
         debug_log = sj.cache["debug_translate"]
         proxies = get_proxies(sj.cache["http_proxy"], sj.cache["https_proxy"])
         kwargs = {}

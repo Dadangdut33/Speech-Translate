@@ -118,9 +118,9 @@ def cancellable_tc(
             if len(resultTxt) > 0:
                 gc.file_tced_counter += 1
                 save_output(result_tc, path.join(export_to, f_name), sj.cache["export_to"])
-                gc.insert_result_mw(f"{f_name} - Transcribed", "tc")
+                gc.insert_to_mw(f"{f_name} - Transcribed", "tc")
             else:
-                gc.insert_result_mw(f"{f_name} - Failed to save. It is empty (no text get from transcription)", "tc")
+                gc.insert_to_mw(f"{f_name} - Failed to save. It is empty (no text get from transcription)", "tc")
                 logger.warning("Transcribed Text is empty")
 
         # start translation thread if translate mode is on
@@ -258,14 +258,14 @@ def cancellable_tl(
             if len(resultTxt) > 0:
                 gc.file_tled_counter += 1
                 save_output(result_Tl_whisper, path.join(export_to, f_name), sj.cache["export_to"])
-                gc.insert_result_mw(f"{f_name} - Translated", "tl")
+                gc.insert_to_mw(f"{f_name} - Translated", "tl")
             else:
-                gc.insert_result_mw(f"{f_name} - Failed to save. It is empty (no text get from transcription)", "tl")
+                gc.insert_to_mw(f"{f_name} - Failed to save. It is empty (no text get from transcription)", "tl")
                 logger.warning("Translated Text is empty")
         else:
             assert isinstance(query, Dict)
             if len(query["text"].strip()) == 0:
-                gc.insert_result_mw(f"{f_name} - Failed to save. It is empty (no text get from transcription)", "tl")
+                gc.insert_to_mw(f"{f_name} - Failed to save. It is empty (no text get from transcription)", "tl")
                 return
 
             debug_log = sj.cache["debug_translate"]
@@ -289,19 +289,24 @@ def cancellable_tl(
                 segment["text"] = result
                 text_all += result + " "
 
-                # tl words in that segment
-                for word in segment["words"]:
-                    success, result = translate(engine, word["text"], lang_source, lang_target, proxies, debug_log, **kwargs)
-                    if not success:
-                        nativeNotify(f"Error: translation with {engine} failed", result)
-                        raise Exception(result)
+                # check if any of the items in the list end with ".words"
+                # meaning export to per words is enabled, making us have to translate the words in the segment
+                if any(item.endswith(".words") for item in sj.cache["export_to"]):
+                    # tl words in that segment
+                    for word in segment["words"]:
+                        success, result = translate(
+                            engine, word["text"], lang_source, lang_target, proxies, debug_log, **kwargs
+                        )
+                        if not success:
+                            nativeNotify(f"Error: translation with {engine} failed", result)
+                            raise Exception(result)
 
-                    word["text"] = result
+                        word["text"] = result
 
             gc.file_tled_counter += 1
             query["text"] = text_all.strip()
             save_output(query, path.join(export_to, f_name), sj.cache["export_to"])
-            gc.insert_result_mw(f"{f_name} - Translated", "tl")
+            gc.insert_to_mw(f"{f_name} - Translated", "tl")
 
         logger.debug(f"Translated: {f_name} | Time Taken: {time() - start:.2f}s")
     except Exception as e:

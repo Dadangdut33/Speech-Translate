@@ -112,6 +112,9 @@ default_setting = {
     "whisper_args": "--vad True",
     # ------------------ #
     # Textboxes
+    "colorize_per": "segment",  # segment, word, off 
+    "gradient_low_conf": "#FF0000",
+    "gradient_high_conf": "#00FF00",
     # mw tc
     "tb_mw_tc_limit_max": False,
     "tb_mw_tc_limit_max_per_line": False,
@@ -129,35 +132,37 @@ default_setting = {
     "tb_mw_tl_font_bold": False,
     "tb_mw_tl_font_size": 10,
     # Tc sub
-    "ex_tc_bg": "#00ff00",
+    "ex_tc_geometry": "800x200",
     "ex_tc_always_on_top": 1,
-    "ex_tc_click_through": 1,
+    "ex_tc_click_through": 0,
     "ex_tc_no_title_bar": 1,
-    "ex_tc_no_tooltip": 1,
+    "ex_tc_no_tooltip": 0,
     "tb_ex_tc_limit_max": False,
     "tb_ex_tc_limit_max_per_line": False,
     "tb_ex_tc_max": 120,
     "tb_ex_tc_max_per_line": 30,
     "tb_ex_tc_font": "Arial",
     "tb_ex_tc_font_bold": True,
-    "tb_ex_tc_font_size": 12,
+    "tb_ex_tc_font_size": 13,
     "tb_ex_tc_font_color": "#FFFFFF",
     "tb_ex_tc_bg_color": "#000000",
+    "tb_ex_tc_use_conf_color_for_fg": True,
     # Tl sub
-    "ex_tl_bg": "#00ff00",
+    "ex_tl_geometry": "800x200",
     "ex_tl_always_on_top": 1,
-    "ex_tl_click_through": 1,
+    "ex_tl_click_through": 0,
     "ex_tl_no_title_bar": 1,
-    "ex_tl_no_tooltip": 1,
+    "ex_tl_no_tooltip": 0,
     "tb_ex_tl_limit_max": False,
     "tb_ex_tl_limit_max_per_line": False,
     "tb_ex_tl_max": 120,
     "tb_ex_tl_max_per_line": 30,
     "tb_ex_tl_font": "Arial",
     "tb_ex_tl_font_bold": True,
-    "tb_ex_tl_font_size": 12,
+    "tb_ex_tl_font_size": 13,
     "tb_ex_tl_font_color": "#FFFFFF",
     "tb_ex_tl_bg_color": "#000000",
+    "tb_ex_tl_use_conf_color_for_fg": True
 }
 
 

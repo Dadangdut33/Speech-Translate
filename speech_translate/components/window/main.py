@@ -3,7 +3,7 @@ from platform import processor, release, system, version
 from signal import SIGINT, signal  # Import the signal module to handle Ctrl+C
 from threading import Thread
 from time import strftime
-from tkinter import Frame, Menu, StringVar, Text, Tk, Toplevel, filedialog, ttk
+from tkinter import Frame, Menu, StringVar, Tk, Toplevel, filedialog, ttk
 from typing import Dict, Literal
 
 from PIL import Image, ImageDraw
@@ -18,6 +18,7 @@ from speech_translate._version import __version__
 from speech_translate.components.custom.checkbutton import CustomCheckButton
 from speech_translate.components.custom.combobox import CategorizedComboBox, ComboboxWithKeyNav
 from speech_translate.components.custom.message import mbox
+from speech_translate.components.custom.text import ColoredText
 from speech_translate.components.custom.tooltip import tk_tooltip, tk_tooltips
 from speech_translate.components.window.about import AboutWindow
 from speech_translate.components.window.log import LogWindow
@@ -258,7 +259,7 @@ class MainWindow:
         self.sb_transcribed = ttk.Scrollbar(self.tb_transcribed_bg)
         self.sb_transcribed.pack(side="right", fill="y")
 
-        self.tb_transcribed = Text(
+        self.tb_transcribed = ColoredText(
             self.tb_transcribed_bg,
             height=5,
             width=25,
@@ -276,7 +277,7 @@ class MainWindow:
         self.sb_translated = ttk.Scrollbar(self.tb_translated_bg)
         self.sb_translated.pack(side="right", fill="y")
 
-        self.tb_translated = Text(
+        self.tb_translated = ColoredText(
             self.tb_translated_bg,
             height=5,
             width=25,
@@ -696,6 +697,8 @@ class MainWindow:
 
                 gc.has_ffmpeg = True
                 return success
+        else:
+            return True
 
     # mic
     def cb_input_device_init(self):
@@ -970,11 +973,7 @@ class MainWindow:
 
     # Swap textboxes
     def tb_swap_content(self):
-        tmp = self.tb_transcribed.get(1.0, "end")
-        self.tb_transcribed.delete(1.0, "end")
-        self.tb_transcribed.insert("end", self.tb_translated.get(1.0, "end"))
-        self.tb_translated.delete(1.0, "end")
-        self.tb_translated.insert("end", tmp)
+        gc.swap_textbox()
 
     # swap select language and textbox
     def cb_swap_lang(self):
@@ -992,8 +991,8 @@ class MainWindow:
         sj.save_key("targetLang", self.cb_target_lang.get())
 
         # swap text only if mode is transcribe and translate
-        if "selected" in self.cbtn_task_transcribe.state() and "selected" in self.cbtn_task_translate.state():
-            self.tb_swap_content()
+        # if "selected" in self.cbtn_task_transcribe.state() and "selected" in self.cbtn_task_translate.state():
+        gc.swap_textbox()
 
     # change mode
     def mode_change(self, _event=None):

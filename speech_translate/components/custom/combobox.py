@@ -1,15 +1,7 @@
 from tkinter import ttk, Tk, Toplevel, Menu
 from typing import List, Union
 
-
-class ComboboxWithKeyNav(ttk.Combobox):
-    """:class:`ttk.Combobox` widget that features autocompletion."""
-    def __init__(self, master, **kwargs):
-        super().__init__(master, **kwargs)
-        # navigate on keypress in the dropdown:
-        # code taken from https://wiki.tcl-lang.org/page/ttk%3A%3Acombobox by Pawel Salawa, copyright 2011
-        self.tk.eval(
-            """
+nav_key_script = r"""
 proc ComboListKeyPressed {w key} {
     if {[string length $key] > 1 && [string tolower $key] != $key} {
         return
@@ -40,8 +32,16 @@ proc ComboListKeyPressed {w key} {
 
 set popdown [ttk::combobox::PopdownWindow %s]
 bind $popdown.f.l <KeyPress> [list ComboListKeyPressed %%W %%K]
-""" % (self)
-        )
+"""
+
+
+class ComboboxWithKeyNav(ttk.Combobox):
+    """:class:`ttk.Combobox` widget that features autocompletion."""
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs)
+        # navigate on keypress in the dropdown:
+        # code taken from https://wiki.tcl-lang.org/page/ttk%3A%3Acombobox by Pawel Salawa, copyright 2011
+        self.tk.eval(nav_key_script % (self))
 
 
 class ComboboxTypeOnCustom(ttk.Combobox):
@@ -91,40 +91,7 @@ class ComboboxTypeOnCustom(ttk.Combobox):
 
         # navigate on keypress in the dropdown:
         # code taken from https://wiki.tcl-lang.org/page/ttk%3A%3Acombobox by Pawel Salawa, copyright 2011
-        self.tk.eval(
-            """
-proc ComboListKeyPressed {w key} {
-    if {[string length $key] > 1 && [string tolower $key] != $key} {
-        return
-    }
-
-    set cb [winfo parent [winfo toplevel $w]]
-    set text [string map [list {[} {\[} {]} {\]}] $key]
-    if {[string equal $text ""]} {
-        return
-    }
-
-    set values [$cb cget -values]
-    set x [lsearch -glob -nocase $values $text*]
-    if {$x < 0} {
-        return
-    }
-
-    set current [$w curselection]
-    if {$current == $x && [string match -nocase $text* [lindex $values [expr {$x+1}]]]} {
-        incr x
-    }
-
-    $w selection clear 0 end
-    $w selection set $x
-    $w activate $x
-    $w see $x
-}
-
-set popdown [ttk::combobox::PopdownWindow %s]
-bind $popdown.f.l <KeyPress> [list ComboListKeyPressed %%W %%K]
-""" % (self)
-        )
+        self.tk.eval(nav_key_script % (self))
 
     def on_select(self, event):
         selected_item = self.get()

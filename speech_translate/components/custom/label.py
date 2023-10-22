@@ -1,8 +1,5 @@
-# make a custom ttk label that have bold font for its title, format is like this:
-# [title] text
-# combination of 2 packed labels
-
-from tkinter import Label, ttk
+from tkinter import ttk
+from tkhtmlview import HTMLLabel
 
 
 class LabelTitleText:
@@ -33,7 +30,7 @@ class LabelTitleText:
         self.lbl_text.configure(font=font)
 
 
-class DraggableLabel(Label):
+class DraggableHtmlLabel(HTMLLabel):
     def __init__(self, parent, root, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
         self.root = root

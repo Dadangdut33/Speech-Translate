@@ -471,7 +471,7 @@ class SettingTextbox:
         tk_tooltip(
             self.cbtn_parse_arabic,
             "Check this option if you want to transcribe Arabic character. "
-            "This will fix the display issue of Arabic character",
+            "This will fix the display issue of Arabic character on tkinter textbox",
         )
 
         # ------------------ Preview ------------------
@@ -629,15 +629,7 @@ class SettingTextbox:
         )
 
         assert gc.ex_tcw is not None
-        gc.ex_tcw.lbl_text.configure(
-            font=(
-                self.cb_ex_tc_font.get(),
-                int(self.spn_ex_tc_font_size.get()),
-                "bold" if self.cbtn_ex_tc_font_bold.instate(["selected"]) else "normal",
-            ),
-            foreground=self.entry_ex_tc_font_color.get(),
-            background=self.entry_ex_tc_bg_color.get(),
-        )
+        gc.ex_tcw.update_window_bg()
         self.tb_preview_3.configure(
             font=(
                 self.cb_ex_tc_font.get(),
@@ -649,15 +641,7 @@ class SettingTextbox:
         )
 
         assert gc.ex_tlw is not None
-        gc.ex_tlw.lbl_text.configure(
-            font=(
-                self.cb_ex_tl_font.get(),
-                int(self.spn_ex_tl_font_size.get()),
-                "bold" if self.cbtn_ex_tl_font_bold.instate(["selected"]) else "normal",
-            ),
-            foreground=self.entry_ex_tl_font_color.get(),
-            background=self.entry_ex_tl_bg_color.get(),
-        )
+        gc.ex_tlw.update_window_bg()
         self.tb_preview_4.configure(
             font=(
                 self.cb_ex_tl_font.get(),

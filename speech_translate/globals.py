@@ -1,11 +1,12 @@
-import os
 from ast import literal_eval
+import os
+import copy
 from platform import system
 from shlex import quote
 from threading import Lock, Thread
 from tkinter import ttk
 from PIL import ImageTk
-from typing import TYPE_CHECKING, List, Literal, Optional, Union, Dict
+from typing import TYPE_CHECKING, List, Literal, Optional, Sequence, Union, Dict
 from warnings import simplefilter
 
 import tqdm
@@ -13,19 +14,18 @@ from arabic_reshaper import reshape
 from bidi.algorithm import get_display
 from numba.core.errors import NumbaDeprecationWarning, NumbaPendingDeprecationWarning
 
-from ._constants import SUBTITLE_PLACEHOLDER
+from speech_translate.utils.custom_types import ToInsert, WhisperResult
+from speech_translate.utils.helper import generate_color, html_to_separator, wrap_result
 from ._path import dir_debug, dir_export, dir_log, dir_temp, dir_user
 from .utils.setting import SettingJson
 
 if system() == "Windows":
     from multiprocessing import Queue
-
     import pyaudiowpatch as pyaudio
 else:
-    import pyaudio  # type: ignore
-
     # to get qsize on platform other than windows
     from .utils.custom_queue import MyQueue as Queue
+    import pyaudio  # type: ignore
 
 # remove numba warnings
 simplefilter("ignore", category=NumbaDeprecationWarning)
@@ -112,8 +112,8 @@ class GlobalClass:
         self.current_rec_status: str = ""
         self.auto_detected_lang: str = "~"
         self.tc_lock: Optional[Lock] = None
-        self.tc_sentences = []
-        self.tl_sentences = []
+        self.tc_sentences: List[Union[WhisperResult, str]] = []
+        self.tl_sentences: List[Union[WhisperResult, str]] = []
 
         # file process
         self.file_tced_counter: int = 0
@@ -147,196 +147,247 @@ class GlobalClass:
     def disable_tl(self):
         self.translating = False
 
-    def get_separator(self):
-        return literal_eval(quote(sj.cache["separate_with"]))
-
-    def insert_result_mw(self, textToAppend, mode: Literal["tc", "tl"]):
-        """Insert text to transcribed textbox. Will also check if the text is too long and will truncate it if it is.
-
+    def parse_to_tb(self, text: str):
+        """Do some preprocessing to the text before inserting it to the text box.
+        
+        It will do the following:
+        - replace html back to normal text.
+        - Parse arabic text to be displayed correctly in tkinter text box if enabled.
         Parameters
-        ---
-        textToAppend
-            Text to append
-        mode: Literal["tc", "tl"]
-            Mode to insert the text to. "tc" for transcribed textbox, "tl" for translated textbox
+        ----------
+        text : str
+            Text to be parsed.
+        
+        Returns
+        -------
+        str
+            Parsed text.
         """
+        text = html_to_separator(text)
+        if sj.cache["parse_arabic"]:
+            return str(get_display(reshape(text)))
+
+        return text
+
+    def insert_to_mw(self, text: str, mode: Literal["tc", "tl"]):
         assert self.mw is not None
-        op_dic = {"tc": [self.get_mw_tc, self.mw.tb_transcribed], "tl": [self.get_mw_tl, self.mw.tb_translated]}
-        get_text = op_dic[mode][0]
-        tb = op_dic[mode][1]
+        separator = literal_eval(quote(sj.cache["separate_with"]))
+        if mode == "tc":
+            self.mw.tb_transcribed.insert("end", text + separator)
+        elif mode == "tl":
+            self.mw.tb_translated.insert("end", text + separator)
 
-        separator = self.get_separator()
-        currentText = get_text()
+    def update_result_display(
+        self, total_len: int, res_with_conf: List[ToInsert], mode: Literal["mw_tc", "ex_tc", "mw_tl", "ex_tl"]
+    ):
+        copied_res = copy.deepcopy(res_with_conf)
+
         # if not infinite and text too long
-        # remove words from the start with length of the new text
-        # then add new text to the end
-        if sj.cache[f"tb_mw_{mode}_limit_max"] and len(currentText) > sj.cache[f"tb_mw_{mode}_max"]:
-            currentText = currentText[len(textToAppend):]
-            currentText += textToAppend
-            textToAppend = currentText
-            tb.delete("1.0", "end")
+        # remove words from the start based on how over the limit it is
+        if sj.cache[f"tb_{mode}_limit_max"] and total_len > sj.cache[f"tb_{mode}_max"]:
+            over_for = total_len - sj.cache[f"tb_{mode}_max"]
+            index = 0
 
-        if sj.cache["parse_arabic"]:
-            textToAppend = str(get_display(reshape(textToAppend)))
+            while over_for > 0:
+                # first get the sentence / word
+                temp = copied_res[index]["text"]
 
-        # if it has limit per sentence, break it into multiple sentences with
-        # character limitation for each sentence set by the user.
-        if sj.cache[f"tb_mw_{mode}_limit_max_per_line"]:
-            currentText = currentText.split("\n")  # split it by line
-            lastLine = currentText[-1]  # get the last line
-            if lastLine != "":  # if the last line is not empty, add a new line
-                tb.insert("end", "\n")
+                # get amount of characters to delete, while also decrementing the over_for
+                delete_for = len(temp) if over_for > len(temp) else over_for
+                over_for -= delete_for
 
-            # split the text to append by line
-            textToAppend = textToAppend.split("\n")
+                # now delete the characters in the sentence and reassign it to the list of sentences with confidence
+                temp = temp[delete_for:]
+                copied_res[index]["text"] = temp
 
-            # loop through the text to append
-            for line in textToAppend:
-                if line != "":  # line is not empty
-                    # too long, cut it into multiple lines
-                    if len(line) > sj.cache[f"tb_mw_{mode}_max_per_line"]:
-                        # split the line into multiple lines with the max length of the line set by the user
-                        line = [
-                            line[i:i + sj.cache[f"tb_mw_{mode}_max_per_line"]]
-                            for i in range(0, len(line), sj.cache[f"tb_mw_{mode}_max_per_line"])
-                        ]
-                        # loop through the new lines
-                        for newLine in line:
-                            if newLine != "":  # not empty
-                                # insert the new line
-                                tb.insert("end", newLine + separator)
-                    else:
-                        # if the line is not too long, insert it
-                        tb.insert("end", line + separator)
+                index += 1
+
+        # wrap result with the max length of the line set by the user
+        if sj.cache[f"tb_{mode}_limit_max_per_line"]:
+            # Previously is_last is None, but now its either True or False
+            # is last will determine the line break
+            copied_res = wrap_result(copied_res, sj.cache[f"tb_{mode}_max_per_line"])
+
+        # insert to each respective area
+        # before inserting check some value:
+        # if last, there will be a separator already so no need to add line break
+        if "mw" in mode:
+            assert self.mw is not None
+            mw = self.mw.tb_transcribed if "tc" in mode else self.mw.tb_translated
+            for res in copied_res:
+                temp = res["text"] + "\n" if res["is_last"] is False else res["text"]
+                if res["color"] is not None:
+                    mw.insert_with_color(self.parse_to_tb(res["text"]), res["color"])
+                else:
+                    mw.insert("end", self.parse_to_tb(res["text"]))
         else:
-            tb.insert("end", textToAppend + separator)
+            assert self.ex_tcw and self.ex_tlw is not None
+            ex = self.ex_tcw.lbl_text if "tc" in mode else self.ex_tlw.lbl_text
+            to_insert = ""
+            for res in copied_res:
+                temp = res["text"] + "<br />" if res["is_last"] is False else res["text"]
+                color = res["color"] if {sj.cache[f"tb_{mode}_use_conf_color_for_fg"]} else sj.cache[f"tb_{mode}_font_color"]
+                if res["color"] is not None:
+                    to_insert += f'''<span style="color: {color}">{temp}</span>'''
+                else:
+                    to_insert += f'''<span style="color: {sj.cache[f"tb_{mode}_font_color"]}">{temp}</span>'''
 
-        tb.see("end")
+            # Update the text
+            ex.set_html(
+                f'''<div style='font-family: {sj.cache[f"tb_{mode}_font"]}; font-size: {sj.cache[f"tb_{mode}_font_size"]}px; text-align: left; 
+                background-color: {sj.cache[f"tb_{mode}_bg_color"]}; font-weight: {"bold" if sj.cache[f"tb_{mode}_font_bold"] else "normal"};'>
+                        {to_insert}
+                    </div>'''
+            )
 
-    def insert_result_ex(self, textToAppend, mode: Literal["tc", "tl"]):
+    def map_result_lists(self, source_list: Sequence[Union[WhisperResult, str]], store_list: List[ToInsert], separator: str):
         """
-        Insert text to detached transcribed textbox. Will also check if
-        the text is too long and will truncate it if it is. Separator is also added here.
-
+        Map List of whisper result according to user setting while also calculating its color based on the confidence value.
+        
         Parameters
-        ---
-        textToAppend
-            Text to append
+        ----------
+        source_list : Sequence[Union[WhisperResult, str]]
+            Source list to be mapped, can be either a list of whisper result or a list of string.
+        store_list : List[ToInsert]
+            List to store the mapped result.
+        separator : str
+            Separator to be added to the end of the result.
+
+        Returns
+        -------
+        total_len : int
+            Total word length of the mapped result.
         """
-        assert self.ex_tcw and self.ex_tlw is not None
-        op_dic = {"tc": [self.get_ex_tc, self.ex_tcw], "tl": [self.get_ex_tl, self.ex_tlw]}
-        get_text = op_dic[mode][0]
-        ex: Union[TcsWindow, TlsWindow] = op_dic[mode][1]
+        total_len = 0
+        low_color = sj.cache["gradient_low_conf"]
+        high_color = sj.cache["gradient_high_conf"]
+        for sentence in source_list:
+            # if it's not a dict, it's a string, so confidence is None
+            if not isinstance(sentence, Dict):
+                # already a full sentence, add separator directly
+                sentence = sentence.strip() + separator
+                total_len += len(sentence)
+                store_list.append({"text": sentence, "color": None, "is_last": None})
 
-        separator = self.get_separator()
-        currentText = get_text()
-        # if not infinite and text too long
-        # remove words from the start with length of the new text
-        # then add new text to the end
-        if sj.cache[f"tb_ex_{mode}_limit_max"] and len(currentText) > sj.cache[f"tb_ex_{mode}_max"]:
-            currentText = currentText[len(textToAppend):]
-            currentText += textToAppend
-            textToAppend = currentText
+            # no colorization based on confidence. just append the sentence (the full sentence)
+            elif sj.cache["colorize_per"] == "off":
+                # already a full sentence, add separator directly
+                temp = sentence["text"].strip() + separator
+                total_len += len(sentence)
+                store_list.append({"text": temp, "color": None, "is_last": None})
 
-        if sj.cache["parse_arabic"]:
-            textToAppend = str(get_display(reshape(textToAppend)))
+            # colorization based on confidence per sentence, so get the confidence value from the segment
+            elif sj.cache["colorize_per"] == "segment":
+                for segment in sentence["segments"]:
+                    temp = segment["text"].strip()
+                    store_list.append(
+                        {
+                            "text": temp,
+                            "color": generate_color(segment["confidence"], low_color, high_color),
+                            "is_last": None
+                        }
+                    )
+                    total_len += len(temp)
 
-        # if it has limit per sentence, break it into multiple sentences with
-        # character limitation for each sentence set by the user.
-        if sj.cache[f"tb_ex_{mode}_limit_max_per_line"]:
-            # split the text to append by line
-            splited = textToAppend.split("\n")
-            textToAppend = ""
+                # add separator on the last group of segments in the sentence
+                last_item = store_list[-1]
+                last_item["text"] += separator
 
-            # loop through the text to append
-            for line in splited:
-                if line != "":  # line is not empty
-                    # too long, cut it into multiple lines
-                    if len(line) > sj.cache[f"tb_ex_{mode}_max_per_line"]:
-                        # split the line into multiple lines with the max length of the line set by the user
-                        line = [
-                            line[i:i + sj.cache[f"tb_ex_{mode}_max_per_line"]]
-                            for i in range(0, len(line), sj.cache["tb_mw_tc_max_per_line"])
-                        ]
-                        # loop through the new lines
-                        for newLine in line:
-                            if newLine != "":  # not empty
-                                # insert the new line
-                                textToAppend += newLine + separator
-                    else:
-                        # if the line is not too long, insert it
-                        textToAppend += line + separator
-        else:
-            textToAppend += separator
+            # colorization based on confidence per word, so get the confidence value from the word
+            elif sj.cache["colorize_per"] == "word":
+                for segment in sentence["segments"]:
+                    for word in segment["words"]:
+                        temp = word["text"].strip()
+                        store_list.append(
+                            {
+                                "text": temp,
+                                "color": generate_color(segment["confidence"], low_color, high_color),
+                                "is_last": None
+                            }
+                        )
+                        total_len += len(temp)
 
-        ex.lbl_text.configure(text=textToAppend)
-        ex.check_height_resize()
+                # add separator on the last group of words from the segment in the sentence
+                last_item = store_list[-1]
+                last_item["text"] += separator
 
-    def update_tc(self, new_text: str, separator: str):
-        # Clear the textbox first, then insert the new text.
+        return total_len
+
+    def swap_textbox(self):
+        """Swap the text box between the transcribed and translated"""
+        assert self.mw is not None
+        separator = literal_eval(quote(sj.cache["separate_with"]))
+        tc_res_with_conf: List[ToInsert] = []
         self.clear_mw_tc()
         self.clear_ex_tc()
-        to_ex_tc = ""
+        self.map_result_lists(self.tc_sentences, tc_res_with_conf, separator)
 
-        # insert previous sentences first if there are any
-        for sentence in self.tc_sentences:
-            if isinstance(sentence, Dict):
-                sentence = sentence["text"]
-            self.insert_result_mw(sentence.strip(), "tc")
-            to_ex_tc += sentence + separator
-
-        # insert the current sentence after previous sentences
-        self.insert_result_mw(new_text, "tc")
-        self.insert_result_ex(to_ex_tc + new_text, "tc")
-
-    def update_tl(self, new_text: str, separator: str):
-        # Clear the textbox first, then insert the new text.
+        tl_res_with_conf: List[ToInsert] = []
         self.clear_mw_tl()
         self.clear_ex_tl()
-        to_ex_tl = ""
+        self.map_result_lists(self.tl_sentences, tl_res_with_conf, separator)
 
-        # insert previous sentences first if there are any
-        for sentence in self.tl_sentences:
-            if isinstance(sentence, Dict):
-                sentence = sentence["text"]
-            self.insert_result_mw(sentence.strip(), "tl")
-            to_ex_tl += sentence + separator
+        self.tc_sentences, self.tl_sentences = self.tl_sentences, self.tc_sentences
 
-        # insert the current sentence after previous sentences
-        self.insert_result_mw(new_text, "tl")
-        self.insert_result_ex(to_ex_tl + new_text, "tl")
+        # 0 total len because we are just swapping here
+        self.update_result_display(0, tc_res_with_conf, "mw_tc")
+        self.update_result_display(0, tc_res_with_conf, "ex_tc")
+        self.update_result_display(0, tl_res_with_conf, "mw_tl")
+        self.update_result_display(0, tl_res_with_conf, "ex_tl")
 
-    def get_mw_tc(self) -> str:
-        assert self.mw is not None
-        return self.mw.tb_transcribed.get("1.0", "end")
+    def update_tc(self, new_res: Union[WhisperResult, str], separator: str):
+        """Update the transcribed text box with the new text.
 
-    def get_mw_tl(self) -> str:
-        assert self.mw is not None
-        return self.mw.tb_translated.get("1.0", "end")
+        Parameters
+        ----------
+        new_res : Union[WhisperResult, str]
+            New result to be added to the transcribed text box.
+        separator : str
+            Separator to be added to the end of the new result.
+        """
+        res_with_conf: List[ToInsert] = []
+        total_len = self.map_result_lists(self.tc_sentences, res_with_conf, separator)
+        total_len += self.map_result_lists([new_res], res_with_conf, separator)
 
-    def get_ex_tc(self) -> str:
-        assert self.ex_tcw is not None
-        return self.ex_tcw.lbl_text.cget("text")
+        self.clear_mw_tc()
+        self.clear_ex_tc()
+        self.update_result_display(total_len, res_with_conf, "mw_tc")
+        self.update_result_display(total_len, res_with_conf, "ex_tc")
 
-    def get_ex_tl(self) -> str:
-        assert self.ex_tlw is not None
-        return self.ex_tlw.lbl_text.cget("text")
+    def update_tl(self, new_res: Union[WhisperResult, str], separator: str):
+        """Update the translated text box with the new text.
+
+        Parameters
+        ----------
+        new_res : Union[WhisperResult, str]
+            New result to be added to the translated text box.
+        separator : 
+            Separator to be added to the end of the new result.
+        """
+        res_with_conf: List[ToInsert] = []
+        total_len = self.map_result_lists(self.tl_sentences, res_with_conf, separator)
+        total_len += self.map_result_lists([new_res], res_with_conf, separator)
+
+        self.clear_mw_tl()
+        self.clear_ex_tl()
+        self.update_result_display(total_len, res_with_conf, "mw_tl")
+        self.update_result_display(total_len, res_with_conf, "ex_tl")
 
     def clear_mw_tc(self):
         assert self.mw is not None
-        self.mw.tb_transcribed.delete("1.0", "end")
+        self.mw.tb_transcribed.clear_text_and_tags()
 
     def clear_mw_tl(self):
         assert self.mw is not None
-        self.mw.tb_translated.delete("1.0", "end")
+        self.mw.tb_translated.clear_text_and_tags()
 
     def clear_ex_tc(self):
         assert self.ex_tcw is not None
-        self.ex_tcw.lbl_text.configure(text=SUBTITLE_PLACEHOLDER)
+        self.ex_tcw.lbl_text.delete("1.0", "end")
 
     def clear_ex_tl(self):
         assert self.ex_tlw is not None
-        self.ex_tlw.lbl_text.configure(text=SUBTITLE_PLACEHOLDER)
+        self.ex_tlw.lbl_text.delete("1.0", "end")
 
     def clear_all(self):
         self.tc_sentences = []

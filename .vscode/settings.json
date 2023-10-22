@@ -19,5 +19,9 @@
 		"--line-length",
 		"125"
 	],
+	"ruff.format.args": [
+		"--line-length",
+		"125"
+	],
 	"python.analysis.autoImportCompletions": false,
 }

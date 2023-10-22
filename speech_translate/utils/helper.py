@@ -1,3 +1,5 @@
+import html
+import textwrap
 import tkinter as tk
 import json
 from collections import OrderedDict
@@ -18,6 +20,7 @@ from speech_translate._constants import APP_NAME
 from speech_translate._path import app_icon, app_icon_missing, ffmpeg_ps_script
 from speech_translate.components.custom.tooltip import tk_tooltip
 from speech_translate.custom_logging import logger
+from speech_translate.utils.custom_types import ToInsert
 
 
 def up_first_case(string: str):
@@ -41,6 +44,104 @@ def unique_list(list_of_dicts: List):
         unique_lists = list(OrderedDict.fromkeys(list_of_dicts))
 
     return unique_lists
+
+
+def generate_color(accuracy, low_color, high_color):
+    low_color = low_color[1:]  # Remove the # from the hexadecimal color
+    high_color = high_color[1:]  # Remove the # from the hexadecimal color
+    # Map accuracy to a custom gradient color between low_color and high_color
+    r_low, g_low, b_low = int(low_color[0:2], 16), int(low_color[2:4], 16), int(low_color[4:6], 16)
+    r_high, g_high, b_high = int(high_color[0:2], 16), int(high_color[2:4], 16), int(high_color[4:6], 16)
+
+    r = int(r_low + (r_high - r_low) * accuracy)
+    g = int(g_low + (g_high - g_low) * accuracy)
+    b = int(b_low + (b_high - b_low) * accuracy)
+
+    color = f"#{r:02X}{g:02X}{b:02X}"  # Convert RGB to a hexadecimal color
+
+    return color
+
+
+def separator_to_html(separator: str):
+    # Define the mapping for escape sequences.
+    html_equivalents = {
+        '\t': '&nbsp;&nbsp;&nbsp;&nbsp;',  # Replace tabs with four non-breaking spaces.
+        '\n': '<br>',  # Replace newlines with <br> elements.
+        ' ': '&nbsp;',  # Replace regular spaces with non-breaking spaces.
+    }
+    # render it as safe html
+    separator = html.escape(separator)
+
+    # Iterate through the text and apply replacements.
+    for char, html_equiv in html_equivalents.items():
+        separator = separator.replace(char, html_equiv)
+
+    return separator
+
+
+def html_to_separator(separator: str):
+    # Define the mapping for escape sequences.
+    html_equivalents = {
+        '&nbsp;&nbsp;&nbsp;&nbsp;': '\t',  # Replace tabs with four non-breaking spaces.
+        '<br>': '\n',  # Replace newlines with <br> elements.
+        '<br/>': '\n',  # Replace newlines with <br> elements.
+        '<br />': '\n',  # Replace newlines with <br> elements.
+        '&nbsp;': ' ',  # Replace regular spaces with non-breaking spaces.
+    }
+
+    # Iterate through the text and apply replacements.
+    for char, html_equiv in html_equivalents.items():
+        separator = separator.replace(char, html_equiv)
+
+    return separator
+
+
+def get_bg_color(window: tk.Tk):
+    """
+    Get the background color of the window
+    """
+    bg = window.cget("bg")
+    if bg == "SystemButtonFace":
+        bg_rgb = window.winfo_rgb("SystemButtonFace")
+        background_color = "#{:02X}{:02X}{:02X}".format(bg_rgb[0] // 256, bg_rgb[1] // 256, bg_rgb[2] // 256)
+    else:
+        background_color = bg
+
+    return background_color
+
+
+def wrap_result(res: List[ToInsert], max_line_length: int):
+    """
+    Wrap the result text to a certain length, each sentences should already have its separator in it
+
+    Parameters
+    ----------
+    res : List[ToInsert]
+        List of results to wrap
+    max_line_length : int
+        Maximum line length
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
+    wrapped_res: List[ToInsert] = []
+    for sentence in res:
+        text = sentence['text']
+        color = sentence['color']
+
+        # Use textwrap.wrap to wrap the text
+        wrapped_text = textwrap.wrap(text, width=max_line_length, break_long_words=False)
+
+        # Create a list of dictionaries with wrapped text and the same color
+        wrapped_res.extend([{'text': line, 'color': color, 'is_last': False} for line in wrapped_text])
+
+        if len(wrapped_res) > 0:
+            # mark last part of each sentence
+            wrapped_res[-1]['is_last'] = True
+
+    return wrapped_res
 
 
 def get_proxies(proxy_http: str, proxy_https: str):

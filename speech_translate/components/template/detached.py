@@ -1,10 +1,9 @@
 from platform import system
-from tkinter import IntVar, Menu, Tk, Toplevel, ttk
+from tkinter import IntVar, Menu, Tk, Toplevel
 from typing import Literal
 
-from speech_translate._constants import SUBTITLE_PLACEHOLDER
 from speech_translate._path import app_icon
-from speech_translate.components.custom.label import DraggableLabel
+from speech_translate.components.custom.label import DraggableHtmlLabel
 from speech_translate.components.custom.message import mbox
 from speech_translate.components.custom.tooltip import tk_tooltip
 from speech_translate.globals import gc, sj
@@ -29,7 +28,9 @@ class SubtitleWindow:
         self.title = title
         self.root = Toplevel(master)
         self.root.title(title)
-        self.root.geometry("800x200")
+        self.root.geometry(sj.cache[f"ex_{winType}_geometry"])
+        self.root.minsize(200, 50)
+        self.root.configure(background=sj.cache[f"tb_ex_{winType}_bg_color"])
         self.root.wm_withdraw()
 
         # ------------------ #
@@ -49,36 +50,16 @@ class SubtitleWindow:
             gc.ex_tlw = self  # type: ignore
             self.winString = "Translate"
 
-        # Window option
-        assert gc.style is not None
-        gc.style.configure("TranslatedSub.TFrame", background=sj.cache[f"ex_{winType}_bg"])
-
-        # Top frame
-        self.frame_1 = ttk.Frame(self.root, style="TranslatedSub.TFrame")
-        self.frame_1.pack(side="top", fill="both", expand=True)
+        self.lbl_text = DraggableHtmlLabel(self.root, self.root)
+        self.lbl_text.configure(background=sj.cache[f"tb_ex_{winType}_bg_color"], state="disabled")
+        self.lbl_text.pack(side="top", fill="both", expand=True)
         self.fTooltip = tk_tooltip(
-            self.frame_1,
-            "Right click for interaction menu. You can also drag this window by dragging the label (text result).",
-            wrapLength=400,
+            self.lbl_text,
+            "Right click for interaction menu and help ❓\n\nTo resize this window you will need to show the title bar first",
+            wrapLength=250,
         )
 
-        self.lbl_text = DraggableLabel(
-            self.frame_1,
-            self.root,
-            font=(
-                sj.cache[f"tb_ex_{winType}_font"],
-                sj.cache[f"tb_ex_{winType}_font_size"],
-                "bold" if sj.cache[f"tb_ex_{winType}_font_bold"] else "normal",
-            ),
-            fg=sj.cache[f"tb_ex_{winType}_font_color"],
-            bg=sj.cache[f"tb_ex_{winType}_bg_color"],
-            wraplength=600,
-            justify="left",
-            text=SUBTITLE_PLACEHOLDER,  # This is to prevent the label from being too small
-        )
-        self.lbl_text.pack(side="top")
-
-        self.menuDropdown = Menu(self.root, tearoff=0)
+        self.menuDropdown = Menu(self.root, tearoff=0, fg="white")
         self.menuDropdown.add_command(label=self.title, command=self.open_menu, image=self.title_emoji, compound="left")
         self.menuDropdown.add_command(label="Help", command=self.show_help, image=self.help_emoji, compound="left")
         self.menuDropdown.add_command(
@@ -161,9 +142,6 @@ class SubtitleWindow:
         self.root.bind("<Alt-KeyPress-x>", lambda event: self.toggle_tooltip())
         self.root.bind("<Alt-MouseWheel>", lambda event: self.change_opacity(event))
 
-        # bind resize
-        self.frame_1.bind("<Configure>", lambda event: self.on_resize(event))
-
         # ------------------ Set Icon ------------------
         try:
             self.root.iconbitmap(app_icon)
@@ -182,21 +160,6 @@ class SubtitleWindow:
 
         self.no_tooltip.set(int(sj.cache[f"ex_{self.winType}_no_tooltip"]))
         self.toggle_tooltip(fromKeyBind=False, onInit=True)
-
-    def on_resize(self, event):
-        """
-        Method to resize the window.
-        """
-        # update wraplength
-        if event.width >= 300:  # minimum width
-            self.lbl_text.configure(wraplength=event.width)
-
-    def check_height_resize(self):
-        """
-        Method to resize the window height if label text height is more than the window height.
-        """
-        if self.lbl_text.winfo_height() > self.frame_1.winfo_height():
-            self.root.geometry(f"{self.root.winfo_width()}x{self.lbl_text.winfo_height()}")
 
     def open_menu(self, event=None):
         """
@@ -246,7 +209,8 @@ class SubtitleWindow:
             self.fTooltip.hidetip()
             self.fTooltip.opacity = 0
         else:
-            self.fTooltip.showTip()
+            if not onInit:
+                self.fTooltip.showTip()
             self.fTooltip.opacity = self.currentOpacity
 
     # show/hide title bar
@@ -265,6 +229,18 @@ class SubtitleWindow:
 
         self.root.overrideredirect(True if self.no_title_bar.get() == 1 else False)
 
+    def update_window_bg(self):
+        assert gc.style is not None
+        self.root.configure(background=sj.cache[f"tb_ex_{self.winType}_bg_color"])
+        self.lbl_text.configure(background=sj.cache[f"tb_ex_{self.winType}_bg_color"])
+
+        # check window is transparent or not
+        if system() != "Windows":
+            return
+
+        if self.click_through.get() == 1:
+            self.root.wm_attributes("-transparentcolor", sj.cache[f"tb_ex_{self.winType}_bg_color"])
+
     def toggle_click_through(self, fromKeyBind=True, onInit=False):
         """
         Method to toggle click through. Only on windows.
@@ -281,7 +257,7 @@ class SubtitleWindow:
             sj.save_key(f"ex_{self.winType}_click_through", self.click_through.get())
 
         if self.click_through.get() == 1:
-            self.root.wm_attributes("-transparentcolor", sj.cache[f"ex_{self.winType}_bg"])
+            self.root.wm_attributes("-transparentcolor", sj.cache[f"tb_ex_{self.winType}_bg_color"])
         else:
             self.root.wm_attributes("-transparentcolor", "")
 
@@ -307,6 +283,11 @@ class SubtitleWindow:
         self.root.wm_deiconify()
         self.root.attributes("-alpha", 1)
         self.show_relative_to_master()
+        # disaable click through
+        if self.click_through.get() == 1:
+            self.click_through.set(0)
+            self.root.wm_attributes("-transparentcolor", "")
+            sj.save_key(f"ex_{self.winType}_click_through", self.click_through.get())
 
     def show_relative_to_master(self):
         x = self.master.winfo_x()
@@ -315,6 +296,7 @@ class SubtitleWindow:
         self.root.geometry("+%d+%d" % (x + 100, y + 200))
 
     def on_closing(self):
+        sj.save_key(f"ex_{self.winType}_geometry", f"{self.root.winfo_width()}x{self.root.winfo_height()}")
         self.root.wm_withdraw()
 
     def increase_opacity(self):

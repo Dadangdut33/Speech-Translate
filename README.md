@@ -28,9 +28,9 @@ Speech Translate aims to expand whisper ability by combining it with some transl
   <p align="center">
     <img src="speech_translate/assets/7.png" width="700" alt="Record">
     <img src="speech_translate/assets/8.png" width="700" alt="File import">
-    <img src="speech_translate/assets/9.png" width="700" alt="Transcribe mode on subtitle window (English)">
-    Transcribe mode on detached window (English)
-    <img src="speech_translate/assets/10.png" width="700" alt="Translate mode on subtitle window (English to Indonesia)">
+    <img src="speech_translate/assets/9.png" width="700" alt="Transcribe mode on subtitle window (English)"><br />
+    Transcribe mode on detached window (English)    
+    <img src="speech_translate/assets/10.png" width="700" alt="Translate mode on subtitle window (English to Indonesia)"><br />
     Translate mode on detached window (English to Indonesia)
   </p>
 </details>
@@ -38,17 +38,11 @@ Speech Translate aims to expand whisper ability by combining it with some transl
 <details close>
   <summary>Preview - Setting</summary>
   <p align="center">
-    <img src="speech_translate/assets/2.png" width="700" alt="Setting">
-    <img src="speech_translate/assets/3.png" width="700" alt="Setting">
-    <img src="speech_translate/assets/4.png" width="700" alt="Setting">
-    <img src="speech_translate/assets/4.png" width="700" alt="Setting">
-    <img src="speech_translate/assets/5.png" width="700" alt="Setting">
-    <img src="speech_translate/assets/6.png" width="700" alt="Setting">
-    <img src="speech_translate/assets/7.png" width="700" alt="Record preview">
-    <img src="speech_translate/assets/8.png" alt="Transcribe mode on subtitle window (English)">
-    Transcribe mode on detached window (English)
-    <img src="speech_translate/assets/9.png" alt="Translate mode on subtitle window (English to Indonesia)">
-    Translate mode on detached window (English to Indonesia)
+    <img src="speech_translate/assets/2.png" width="700" alt="Setting - General">
+    <img src="speech_translate/assets/3.png" width="700" alt="Setting - Record">
+    <img src="speech_translate/assets/4.png" width="700" alt="Setting - Transcribe">
+    <img src="speech_translate/assets/5.png" width="700" alt="Setting - Translate">
+    <img src="speech_translate/assets/6.png" width="700" alt="Setting - Textbox">
   </p>
 </details>
 
