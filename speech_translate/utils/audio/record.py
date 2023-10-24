@@ -91,7 +91,7 @@ def record_session(
     root = Toplevel(master)
     root.title("Loading...")
     root.transient(master)
-    root.geometry("450x250")
+    root.geometry("450x275")
     root.protocol("WM_DELETE_WINDOW", lambda: master.state("iconic"))  # minimize window when click close button
     root.geometry("+{}+{}".format(master.winfo_rootx() + 50, master.winfo_rooty() + 50))
     root.maxsize(600, 325)
@@ -210,8 +210,6 @@ def record_session(
         rec_type = "speaker" if speaker else "mic"
         vad = Vad(sj.cache[f"threshold_auto_mode_{rec_type}"])
 
-        logger.debug(tl_engine_whisper)
-
         # cannot transcribe and translate concurrently. Will need to wait for the previous transcribe to finish
         if translate and tl_engine_whisper:
             gc.tc_lock = Lock()
@@ -272,12 +270,13 @@ def record_session(
         # ----------------- Get device -----------------
         logger.info("-" * 50)
         logger.info(f"Task: {task}")
-        logger.info(f"TC model: {model_name_tc}")
+        logger.info(f"Model: {model_name_tc}")
         logger.info(f"Engine: {engine}")
         logger.info(f"Auto mode: {auto}")
         logger.info(f"Source Languange: {lang_source}")
         if translate:
             logger.info(f"Target Language: {lang_target}")
+        logger.info(f"Args: {whisper_args}")
 
         p = pyaudio.PyAudio()
         success, detail = get_device_details(rec_type, sj, p)
@@ -465,8 +464,8 @@ def record_session(
         gc.tl_sentences = []
         global prev_tl_res, max_db, min_db, is_silence, was_recording, t_silence
         temp_list = []
-        prev_tc_res = None
-        prev_tl_res = None
+        prev_tc_res = ""
+        prev_tl_res = ""
         next_transcribe_time = None
         last_sample = bytes()
         samp_width = p.get_sample_size(pyaudio.paInt16)
@@ -490,7 +489,7 @@ def record_session(
 
         logger.debug("Record Session Started")
 
-        def break_buffer_store_text():
+        def break_buffer_store_update():
             """
             Break the buffer (last_sample). Resetting the buffer means that the buffer will be cleared and
             it will be stored in the currently transcribed or translated text.
@@ -507,12 +506,13 @@ def record_session(
                 gc.tc_sentences = unique_list(gc.tc_sentences)
                 if len(gc.tc_sentences) >= max_sentences:
                     gc.tc_sentences.pop(0)
-
+                gc.update_tc(None, separator)
             if translate:
                 gc.tl_sentences.append(prev_tl_res)  # type: ignore
                 gc.tl_sentences = unique_list(gc.tl_sentences)
                 if len(gc.tl_sentences) >= max_sentences:
                     gc.tl_sentences.pop(0)
+                gc.update_tl(None, separator)
 
         # transcribing loop
         while gc.recording:
@@ -527,7 +527,7 @@ def record_session(
                     # if silence has been detected for more than 1 second, break the buffer (last_sample)
                     if is_silence and time() - t_silence > 1:
                         is_silence = False
-                        break_buffer_store_text()
+                        break_buffer_store_update()
                         gc.current_rec_status = "💤 Idle (Buffer Cleared)"
                         if sj.cache["debug_realtime_record"] == 1:
                             logger.debug("Silence found for more than 1 second. Buffer reseted")
@@ -611,29 +611,59 @@ def record_session(
                     remove(temp_list[0])
                     temp_list.pop(0)
 
-            if sj.cache["debug_realtime_record"] == 1:
-                logger.info("Transcribing")
+            if translate and tl_engine_whisper and not transcribe:
+                # If only translating and its using whisper engine
+                if sj.cache["debug_realtime_record"] == 1:
+                    logger.info("Translating")
+                gc.current_rec_status = "▶️ Recording ⟳ Translating"
 
-            # Transcribe the audio
-            gc.current_rec_status = "▶️ Recording ⟳ Transcribing"
-            if translate and tl_engine_whisper:
-                assert gc.tc_lock is not None
-                gc.tc_lock.acquire()
+                # translate
+                result: WhisperResult = whisper.transcribe(
+                    model_tl, audio_target, language=lang_source if not auto else None, task="translate", **whisper_args
+                )
+                text = str(result["text"]).strip()
+                gc.auto_detected_lang = str(result["language"])
 
-            result: WhisperResult = whisper.transcribe(
-                model_tc, audio_target, language=lang_source if not auto else None, task=task, **whisper_args
-            )
+                if len(text) > 0:
+                    prev_tl_res = result
 
-            if translate and tl_engine_whisper:
-                assert gc.tc_lock is not None
-                gc.tc_lock.release()
+                    if sj.cache["debug_realtime_record"] == 1:
+                        logger.debug("New translated text (Whisper)")
+                        if sj.cache["verbose"]:
+                            logger.debug(whisper_verbose_log(result))
+                        else:
+                            logger.debug(f"{text}")
 
-            text = str(result["text"]).strip()
-            gc.auto_detected_lang = str(result["language"])
+                    gc.update_tl(result, separator)
+            else:
+                # transcribing and maybe translating
+                if sj.cache["debug_realtime_record"] == 1:
+                    logger.info("Transcribing")
 
-            if len(text) > 0:
-                prev_tc_res = result
-                if transcribe:
+                gc.current_rec_status = "▶️ Recording ⟳ Transcribing"
+                # ----------------------------------
+                # checking for lock
+                if translate and tl_engine_whisper:
+                    assert gc.tc_lock is not None
+                    gc.tc_lock.acquire()
+
+                # transcribe
+                result: WhisperResult = whisper.transcribe(
+                    model_tc, audio_target, language=lang_source if not auto else None, task=task, **whisper_args
+                )
+
+                # ----------------------------------
+                # checking for lock
+                if translate and tl_engine_whisper:
+                    assert gc.tc_lock is not None
+                    gc.tc_lock.release()
+
+                text = str(result["text"]).strip()
+                gc.auto_detected_lang = str(result["language"])
+
+                if len(text) > 0:
+                    prev_tc_res = result
+
                     if sj.cache["debug_realtime_record"] == 1:
                         if sj.cache["verbose"]:
                             logger.debug(whisper_verbose_log(result))
@@ -641,28 +671,27 @@ def record_session(
                             logger.debug(f"New text: {text}")
 
                     gc.update_tc(result, separator)
-                if translate:
-                    # Start translate thread
-                    gc.current_rec_status = "▶️ Recording ⟳ Translating"
 
-                    # Using whisper engine
-                    if tl_engine_whisper:
-                        tl_thread = Thread(
-                            target=tl_whisper,
-                            args=[audio_target, lang_source, auto, model_tl],
-                            kwargs=whisper_args,
-                            daemon=True
-                        )
-                    # Using translation API
-                    else:
-                        tl_thread = Thread(target=tl_api, args=[text, lang_source, lang_target, engine], daemon=True)
+                    # check translating or not
+                    if translate:
+                        if tl_engine_whisper:
+                            tl_thread = Thread(
+                                target=tl_whisper_threaded,
+                                args=[audio_target, lang_source, auto, model_tl, separator],
+                                kwargs=whisper_args,
+                                daemon=True
+                            )
+                        else:
+                            tl_thread = Thread(
+                                target=tl_api, args=[text, lang_source, lang_target, engine, separator], daemon=True
+                            )
 
-                    tl_thread.start()
-                    tl_thread.join()  # wait so its more consistent in the result
+                        tl_thread.start()
+                        tl_thread.join()
 
             # break up the buffer If we've reached max recording time
             if duration_seconds > max_record_time:
-                break_buffer_store_text()
+                break_buffer_store_update()
 
             gc.current_rec_status = "▶️ Recording"  # reset status
         else:
@@ -784,20 +813,20 @@ def record_cb(in_data, frame_count, time_info, status):
     return (in_data, pyaudio.paContinue)
 
 
-def tl_whisper(
+def tl_whisper_threaded(
     audio,
     lang_source: str,
     auto: bool,
     model: whisper.Whisper,
+    separator: str,
     **whisper_args,
 ):
-    """Translate the result of realtime_recording_thread using whisper model"""
+    """Translate using whisper but run in thread"""
     assert gc.mw is not None
     gc.enable_tl()
 
     global prev_tl_res
     try:
-        separator = separator_to_html(literal_eval(quote(sj.cache["separate_with"])))
 
         assert gc.tc_lock is not None
         gc.tc_lock.acquire()
@@ -827,14 +856,13 @@ def tl_whisper(
         gc.disable_tl()  # flag processing as done
 
 
-def tl_api(text: str, lang_source: str, lang_target: str, engine: str):
+def tl_api(text: str, lang_source: str, lang_target: str, engine: str, separator: str):
     """Translate the result of realtime_recording_thread using translation API"""
     assert gc.mw is not None
     gc.enable_tl()
 
     try:
         global prev_tl_res, sentences_tl
-        separator = separator_to_html(literal_eval(quote(sj.cache["separate_with"])))
         debug_log = sj.cache["debug_translate"]
         proxies = get_proxies(sj.cache["http_proxy"], sj.cache["https_proxy"])
         kwargs = {}
@@ -849,7 +877,7 @@ def tl_api(text: str, lang_source: str, lang_target: str, engine: str):
             nativeNotify(f"Error: translation with {engine} failed", result)
             raise Exception(result)
 
-        if result and len(result) > 0:
+        if result is not None and len(result) > 0:
             prev_tl_res = result.strip()
             gc.update_tl(result.strip(), separator)
     except Exception as e:

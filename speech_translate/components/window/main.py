@@ -941,6 +941,14 @@ class MainWindow:
 
     def cb_engine_change(self, _event=None):
         if _event:
+            # check if engine is whisper and currently in translate only mode
+            # if yes, will make the transcribe model combobox disabled
+            if _event in model_keys and "selected" in self.cbtn_task_translate.state(
+            ) and "selected" not in self.cbtn_task_transcribe.state():
+                self.cb_model.configure(state="disabled")
+            else:
+                self.cb_model.configure(state="readonly")
+
             sj.save_key("tl_engine", _event)
             self.cb_lang_update()
 
@@ -1012,6 +1020,7 @@ class MainWindow:
             self.cb_source_lang.configure(state="readonly")
             self.cb_target_lang.configure(state="readonly")
             self.cb_engine.configure(state="readonly")
+            self.cb_model.configure(state="readonly")
             self.enable_processing()
 
         elif "selected" in self.cbtn_task_transcribe.state() and "selected" not in self.cbtn_task_translate.state():
@@ -1025,6 +1034,7 @@ class MainWindow:
             self.cb_source_lang.configure(state="readonly")
             self.cb_target_lang.configure(state="disabled")
             self.cb_engine.configure(state="disabled")
+            self.cb_model.configure(state="readonly")
             self.enable_processing()
 
         elif "selected" in self.cbtn_task_translate.state() and "selected" not in self.cbtn_task_transcribe.state():
@@ -1038,12 +1048,17 @@ class MainWindow:
             self.cb_source_lang.configure(state="readonly")
             self.cb_target_lang.configure(state="readonly")
             self.cb_engine.configure(state="readonly")
+            if self.cb_engine.get() in model_keys:
+                self.cb_model.configure(state="disabled")
+            else:
+                self.cb_model.configure(state="readonly")
             self.enable_processing()
 
         else:  # both not selected
-            self.cb_source_lang.configure(state="readonly")
-            self.cb_target_lang.configure(state="readonly")
-            self.cb_engine.configure(state="readonly")
+            self.cb_source_lang.configure(state="disabled")
+            self.cb_target_lang.configure(state="disabled")
+            self.cb_engine.configure(state="disabled")
+            self.cb_model.configure(state="disabled")
             self.disable_processing()
 
     def disable_processing(self):

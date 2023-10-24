@@ -1,15 +1,16 @@
-from tkinter import ttk, font, Toplevel, Frame, LabelFrame, Text
+from tkinter import StringVar, ttk, font, Toplevel, Frame, LabelFrame, Text
 from typing import Union
 
 from arabic_reshaper import reshape
 from bidi.algorithm import get_display
+from matplotlib import pyplot as plt
 
 from speech_translate._constants import PREVIEW_WORDS
 from speech_translate.components.custom.checkbutton import CustomCheckButton
 from speech_translate.components.custom.combobox import ComboboxWithKeyNav
 from speech_translate.components.custom.spinbox import SpinboxNumOnly
 from speech_translate.globals import sj, gc
-from speech_translate.utils.helper import chooseColor
+from speech_translate.utils.helper import chooseColor, generate_color, emoji_img
 from speech_translate.components.custom.tooltip import tk_tooltip, tk_tooltips
 
 
@@ -23,6 +24,7 @@ class SettingTextbox:
         self.fonts = list(font.families())
         self.fonts.append("TKDefaultFont")
         self.fonts.sort()
+        self.eye_emoji = emoji_img(16, "👀")
 
         # ------------------ Textbox ------------------
         self.f_tb_param = ttk.Frame(self.master)
@@ -56,6 +58,9 @@ class SettingTextbox:
         self.f_mw_tc_3 = ttk.Frame(self.lf_param_mw_tc)
         self.f_mw_tc_3.pack(side="top", fill="x", pady=5, padx=5)
 
+        self.f_mw_tc_4 = ttk.Frame(self.lf_param_mw_tc)
+        self.f_mw_tc_4.pack(side="top", fill="x", pady=(0, 10), padx=5)
+
         self.lf_param_mw_tl = LabelFrame(self.f_tb_param_1, text="• Main Window Translated Speech")
         self.lf_param_mw_tl.pack(side="left", fill="x", expand=True, padx=5, pady=5)
 
@@ -67,6 +72,9 @@ class SettingTextbox:
 
         self.f_mw_tl_3 = ttk.Frame(self.lf_param_mw_tl)
         self.f_mw_tl_3.pack(side="top", fill="x", pady=5, padx=5)
+
+        self.f_mw_tl_4 = ttk.Frame(self.lf_param_mw_tl)
+        self.f_mw_tl_4.pack(side="top", fill="x", pady=(0, 10), padx=5)
 
         self.lf_param_ex_tc = LabelFrame(self.f_tb_param_2, text="• Subtitle Window Transcribed Speech")
         self.lf_param_ex_tc.pack(side="left", fill="x", expand=True, padx=5, pady=5)
@@ -83,6 +91,9 @@ class SettingTextbox:
         self.f_ex_tc_4 = ttk.Frame(self.lf_param_ex_tc)
         self.f_ex_tc_4.pack(side="top", fill="x", pady=5, padx=5)
 
+        self.f_ex_tc_5 = ttk.Frame(self.lf_param_ex_tc)
+        self.f_ex_tc_5.pack(side="top", fill="x", pady=(0, 10), padx=5)
+
         self.lf_param_ex_tl = LabelFrame(self.f_tb_param_2, text="• Subtitle Window Translated Speech")
         self.lf_param_ex_tl.pack(side="left", fill="x", expand=True, padx=5, pady=5)
 
@@ -98,13 +109,30 @@ class SettingTextbox:
         self.f_ex_tl_4 = ttk.Frame(self.lf_param_ex_tl)
         self.f_ex_tl_4.pack(side="top", fill="x", pady=5, padx=5)
 
+        self.f_ex_tl_5 = ttk.Frame(self.lf_param_ex_tl)
+        self.f_ex_tl_5.pack(side="top", fill="x", pady=(0, 10), padx=5)
+
         # -----
         self.lf_param_other = LabelFrame(self.f_tb_param_3, text="• Other")
         self.lf_param_other.pack(side="left", fill="x", expand=True, padx=5, pady=5)
 
-        self.f_other_1 = ttk.Frame(self.lf_param_other)
-        self.f_other_1.pack(side="top", fill="x", pady=5, padx=5)
+        self.lf_confidence = ttk.LabelFrame(self.lf_param_other, text="• Confidence")
+        self.lf_confidence.pack(side="left", fill="x", expand=False, padx=5, pady=5)
 
+        self.f_confidence_1 = ttk.Frame(self.lf_confidence)
+        self.f_confidence_1.pack(side="top", fill="x", pady=5, padx=5)
+
+        self.f_confidence_2 = ttk.Frame(self.lf_confidence)
+        self.f_confidence_2.pack(side="top", fill="x", pady=(0, 5), padx=5)
+
+        self.lf_parsing = ttk.LabelFrame(self.lf_param_other, text="• Parsing")
+        self.lf_parsing.pack(side="left", fill="x", expand=False, padx=5, pady=5)
+
+        self.f_parsing_1 = ttk.Frame(self.lf_parsing)
+        self.f_parsing_1.pack(side="top", fill="x", pady=5, padx=5)
+
+        self.f_parsing_2 = ttk.Frame(self.lf_parsing)
+        self.f_parsing_2.pack(side="top", fill="x", pady=(0, 5), padx=5)
         # -------------
         # mw tc
         # 1
@@ -182,6 +210,14 @@ class SettingTextbox:
         )
         self.cbtn_mw_tc_font_bold.pack(side="left", padx=5)
 
+        self.cbtn_mw_tc_use_conf_color = CustomCheckButton(
+            self.f_mw_tc_4,
+            sj.cache["tb_mw_tc_use_conf_color"],
+            lambda x: sj.save_key("tb_mw_tc_use_conf_color", x) or self.preview_changes_tb(),
+            text="Colorize text based on confidence value when available"
+        )
+        self.cbtn_mw_tc_use_conf_color.pack(side="left", padx=5)
+
         # -------------
         # mw tl
         # 1
@@ -257,6 +293,14 @@ class SettingTextbox:
             style="Switch.TCheckbutton"
         )
         self.cbtn_mw_tl_font_bold.pack(side="left", padx=5)
+
+        self.cbtn_mw_tl_use_conf_color = CustomCheckButton(
+            self.f_mw_tl_4,
+            sj.cache["tb_mw_tl_use_conf_color"],
+            lambda x: sj.save_key("tb_mw_tl_use_conf_color", x) or self.preview_changes_tb(),
+            text="Colorize text based on confidence value when available"
+        )
+        self.cbtn_mw_tl_use_conf_color.pack(side="left", padx=5)
 
         # -------------
         # detached tc
@@ -359,6 +403,15 @@ class SettingTextbox:
         )
         self.entry_ex_tc_bg_color.bind("<Key>", lambda e: "break")
 
+        # 5
+        self.cbtn_ex_tc_use_conf_color = CustomCheckButton(
+            self.f_ex_tc_5,
+            sj.cache["tb_ex_tc_use_conf_color"],
+            lambda x: sj.save_key("tb_ex_tc_use_conf_color", x) or self.preview_changes_tb(),
+            text="Colorize text based on confidence value when available"
+        )
+        self.cbtn_ex_tc_use_conf_color.pack(side="left", padx=5)
+
         # -------------
         # detached tl
         self.lbl_ex_tl_max = ttk.Label(self.f_ex_tl_1, text="Max Length", width=16)
@@ -459,26 +512,102 @@ class SettingTextbox:
         )
         self.entry_ex_tl_bg_color.bind("<Key>", lambda e: "break")
 
+        # 5
+        self.cbtn_ex_tl_use_conf_color = CustomCheckButton(
+            self.f_ex_tl_5,
+            sj.cache["tb_ex_tl_use_conf_color"],
+            lambda x: sj.save_key("tb_ex_tl_use_conf_color", x) or self.preview_changes_tb(),
+            text="Colorize text based on confidence value when available"
+        )
+        self.cbtn_ex_tl_use_conf_color.pack(side="left", padx=5)
+
         # ------------------ Other ------------------
+        self.lbl_radio_colorize_per = ttk.Label(self.f_confidence_1, text="Colorize Confidence Per", width=21)
+        self.lbl_radio_colorize_per.pack(side="left", padx=5)
+
+        self.var_colorize_per = StringVar(self.root, sj.cache["colorize_per"])
+        self.radio_colorize_per_segment = ttk.Radiobutton(
+            self.f_confidence_1,
+            text="Segment",
+            variable=self.var_colorize_per,
+            value="segment",
+            command=lambda: sj.save_key("colorize_per", "segment"),
+        )
+        self.radio_colorize_per_segment.pack(side="left", padx=5)
+        tk_tooltip(self.radio_colorize_per_segment, "Colorize text based on confidence value per segment")
+        self.radio_colorize_per_word = ttk.Radiobutton(
+            self.f_confidence_1,
+            text="Word",
+            variable=self.var_colorize_per,
+            value="word",
+            command=lambda: sj.save_key("colorize_per", "word"),
+        )
+        self.radio_colorize_per_word.pack(side="left", padx=5)
+        tk_tooltip(self.radio_colorize_per_word, "Colorize text based on confidence value per word")
+        self.radio_colorize_per_off = ttk.Radiobutton(
+            self.f_confidence_1,
+            text="Off",
+            variable=self.var_colorize_per,
+            value="off",
+            command=lambda: sj.save_key("colorize_per", "off"),
+        )
+        self.radio_colorize_per_off.pack(side="left", padx=5)
+        tk_tooltip(self.radio_colorize_per_off, "Disable colorize text based on confidence value")
+
+        self.lbl_gradient_low_conf = ttk.Label(self.f_confidence_2, text="Low Confidence", width=16)
+        self.lbl_gradient_low_conf.pack(side="left", padx=5)
+
+        self.entry_gradient_low_conf = ttk.Entry(self.f_confidence_2, width=10)
+        self.entry_gradient_low_conf.insert("end", sj.cache["gradient_low_conf"])
+        self.entry_gradient_low_conf.pack(side="left", padx=5)
+        self.entry_gradient_low_conf.bind(
+            "<Button-1>",
+            lambda e: chooseColor(self.entry_gradient_low_conf, self.entry_gradient_low_conf.get(), self.root) or sj.
+            save_key("gradient_low_conf", self.entry_gradient_low_conf.get()) or self.preview_changes_tb(),
+        )
+        self.entry_gradient_low_conf.bind("<Key>", lambda e: "break")
+
+        self.lbl_gradient_high_conf = ttk.Label(self.f_confidence_2, text="High Confidence", width=16)
+        self.lbl_gradient_high_conf.pack(side="left", padx=5)
+
+        self.entry_gradient_high_conf = ttk.Entry(self.f_confidence_2, width=10)
+        self.entry_gradient_high_conf.insert("end", sj.cache["gradient_high_conf"])
+        self.entry_gradient_high_conf.pack(side="left", padx=5)
+        self.entry_gradient_high_conf.bind(
+            "<Button-1>",
+            lambda e: chooseColor(self.entry_gradient_high_conf, self.entry_gradient_high_conf.get(), self.root) or sj.
+            save_key("gradient_high_conf", self.entry_gradient_high_conf.get()) or self.preview_changes_tb(),
+        )
+        self.entry_gradient_high_conf.bind("<Key>", lambda e: "break")
+
+        self.btn_preview_gradient = ttk.Button(
+            self.f_confidence_2, image=self.eye_emoji, command=lambda: self.preview_gradient()
+        )
+        self.btn_preview_gradient.pack(side="left", padx=5)
+        tk_tooltip(self.btn_preview_gradient, "Preview gradient")
+
         self.cbtn_parse_arabic = CustomCheckButton(
-            self.f_other_1,
+            self.f_parsing_1,
             sj.cache["parse_arabic"],
             lambda x: sj.save_key("parse_arabic", x) or self.preview_changes_tb(),
             text="Parse Arabic character",
             style="Switch.TCheckbutton"
         )
-        self.cbtn_parse_arabic.pack(side="left", padx=5, pady=5)
+        self.cbtn_parse_arabic.pack(side="left", padx=5)
         tk_tooltip(
             self.cbtn_parse_arabic,
             "Check this option if you want to transcribe Arabic character. "
             "This will fix the display issue of Arabic character on tkinter textbox",
         )
 
+        self.invis_padder = ttk.Label(self.f_parsing_2, text="", width=1)
+        self.invis_padder.pack(side="left", padx=5, pady=5)
+
         # ------------------ Preview ------------------
         # tb 1
         self.tb_preview_1 = Text(
             self.f_tb_1,
-            height=5,
+            height=3,
             width=27,
             wrap="word",
             font=(
@@ -492,7 +621,7 @@ class SettingTextbox:
 
         self.tb_preview_2 = Text(
             self.f_tb_1,
-            height=5,
+            height=3,
             width=27,
             wrap="word",
             font=(
@@ -508,7 +637,7 @@ class SettingTextbox:
         # tb 2
         self.tb_preview_3 = Text(
             self.f_tb_2,
-            height=5,
+            height=3,
             width=27,
             wrap="word",
             font=(
@@ -525,7 +654,7 @@ class SettingTextbox:
 
         self.tb_preview_4 = Text(
             self.f_tb_2,
-            height=5,
+            height=3,
             width=27,
             wrap="word",
             font=(
@@ -651,3 +780,19 @@ class SettingTextbox:
             foreground=self.entry_ex_tl_font_color.get(),
             background=self.entry_ex_tl_bg_color.get(),
         )
+
+    def preview_gradient(self):
+        colors = [
+            generate_color(i / 100, self.entry_gradient_low_conf.get(), self.entry_gradient_high_conf.get())
+            for i in range(101)
+        ]
+
+        rgb_colors = [tuple(int(colors[i:i + 2], 16) for i in (1, 3, 5)) for colors in colors]
+
+        plt.figure(figsize=(10, 5))
+        plt.imshow([rgb_colors], interpolation="nearest", extent=[0, 1, 0, 1])  # type: ignore
+        plt.title(
+            f'Gradient Between {self.entry_gradient_low_conf.get()} as Low and {self.entry_gradient_high_conf.get()} as High'
+        )
+        plt.axis("off")
+        plt.show()

@@ -72,7 +72,7 @@ default_setting = {
     # mic - record option
     "threshold_enable_mic": True,
     "threshold_auto_mic": True,
-    "threshold_auto_mode_mic": 2,
+    "threshold_auto_mode_mic": 3,
     "threshold_db_mic": -20.0,
     "auto_break_buffer_mic": True,
     "max_buffer_mic": 10,
@@ -123,6 +123,7 @@ default_setting = {
     "tb_mw_tc_font": "TKDefaultFont",
     "tb_mw_tc_font_bold": False,
     "tb_mw_tc_font_size": 10,
+    "tb_mw_tc_use_conf_color": True,
     # mw tl
     "tb_mw_tl_limit_max": False,
     "tb_mw_tl_limit_max_per_line": False,
@@ -131,6 +132,7 @@ default_setting = {
     "tb_mw_tl_font": "TKDefaultFont",
     "tb_mw_tl_font_bold": False,
     "tb_mw_tl_font_size": 10,
+    "tb_mw_tl_use_conf_color": True,
     # Tc sub
     "ex_tc_geometry": "800x200",
     "ex_tc_always_on_top": 1,
@@ -146,7 +148,7 @@ default_setting = {
     "tb_ex_tc_font_size": 13,
     "tb_ex_tc_font_color": "#FFFFFF",
     "tb_ex_tc_bg_color": "#000000",
-    "tb_ex_tc_use_conf_color_for_fg": True,
+    "tb_ex_tc_use_conf_color": True,
     # Tl sub
     "ex_tl_geometry": "800x200",
     "ex_tl_always_on_top": 1,
@@ -162,7 +164,7 @@ default_setting = {
     "tb_ex_tl_font_size": 13,
     "tb_ex_tl_font_color": "#FFFFFF",
     "tb_ex_tl_bg_color": "#000000",
-    "tb_ex_tl_use_conf_color_for_fg": True
+    "tb_ex_tl_use_conf_color": True
 }
 
 

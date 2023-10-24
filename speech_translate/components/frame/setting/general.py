@@ -26,7 +26,6 @@ class SettingGeneral:
         self.initial_theme = ""
         self.checkingModel = False
         self.model_checked = False
-        self.first_check = True
         self.folder_emoji = emoji_img(13, " 📂")
         self.open_emoji = emoji_img(13, "     ↗️")
         self.trash_emoji = emoji_img(13, "     🗑️")
@@ -583,14 +582,9 @@ class SettingGeneral:
             self.model_btn_checker("large-v1", self.btn_interact_large_v1)
             self.model_btn_checker("large-v2", self.btn_interact_large_v2)
             self.model_checked = True
-            self.first_check = False
         except Exception as e:
             logger.error("Failed to check model on first setting open")
             logger.exception(e)
-            if self.first_check:
-                # run this function again if it failed on first check but after 3 second
-                logger.warning("Retrying to check model on first setting open")
-                self.root.after(3000, lambda: Thread(target=self.check_model_on_first_open, daemon=True).start())
         finally:
             self.checkingModel = False
 

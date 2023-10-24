@@ -169,9 +169,8 @@ class GlobalClass:
 
         return text
 
-    def insert_to_mw(self, text: str, mode: Literal["tc", "tl"]):
+    def insert_to_mw(self, text: str, mode: Literal["tc", "tl"], separator: str):
         assert self.mw is not None
-        separator = literal_eval(quote(sj.cache["separate_with"]))
         if mode == "tc":
             self.mw.tb_transcribed.insert("end", text + separator)
         elif mode == "tl":
@@ -216,7 +215,7 @@ class GlobalClass:
             mw = self.mw.tb_transcribed if "tc" in mode else self.mw.tb_translated
             for res in copied_res:
                 temp = res["text"] + "\n" if res["is_last"] is False else res["text"]
-                if res["color"] is not None:
+                if res["color"] is not None and {sj.cache[f"tb_{mode}_use_conf_color"]}:
                     mw.insert_with_color(self.parse_to_tb(res["text"]), res["color"])
                 else:
                     mw.insert("end", self.parse_to_tb(res["text"]))
@@ -226,7 +225,7 @@ class GlobalClass:
             to_insert = ""
             for res in copied_res:
                 temp = res["text"] + "<br />" if res["is_last"] is False else res["text"]
-                color = res["color"] if {sj.cache[f"tb_{mode}_use_conf_color_for_fg"]} else sj.cache[f"tb_{mode}_font_color"]
+                color = res["color"] if {sj.cache[f"tb_{mode}_use_conf_color"]} else sj.cache[f"tb_{mode}_font_color"]
                 if res["color"] is not None:
                     to_insert += f'''<span style="color: {color}">{temp}</span>'''
                 else:
@@ -335,7 +334,7 @@ class GlobalClass:
         self.update_result_display(0, tl_res_with_conf, "mw_tl")
         self.update_result_display(0, tl_res_with_conf, "ex_tl")
 
-    def update_tc(self, new_res: Union[WhisperResult, str], separator: str):
+    def update_tc(self, new_res: Union[WhisperResult, str, None], separator: str):
         """Update the transcribed text box with the new text.
 
         Parameters
@@ -347,14 +346,15 @@ class GlobalClass:
         """
         res_with_conf: List[ToInsert] = []
         total_len = self.map_result_lists(self.tc_sentences, res_with_conf, separator)
-        total_len += self.map_result_lists([new_res], res_with_conf, separator)
+        if new_res is not None:
+            total_len += self.map_result_lists([new_res], res_with_conf, separator)
 
         self.clear_mw_tc()
         self.clear_ex_tc()
         self.update_result_display(total_len, res_with_conf, "mw_tc")
         self.update_result_display(total_len, res_with_conf, "ex_tc")
 
-    def update_tl(self, new_res: Union[WhisperResult, str], separator: str):
+    def update_tl(self, new_res: Union[WhisperResult, str, None], separator: str):
         """Update the translated text box with the new text.
 
         Parameters
@@ -366,7 +366,8 @@ class GlobalClass:
         """
         res_with_conf: List[ToInsert] = []
         total_len = self.map_result_lists(self.tl_sentences, res_with_conf, separator)
-        total_len += self.map_result_lists([new_res], res_with_conf, separator)
+        if new_res is not None:
+            total_len += self.map_result_lists([new_res], res_with_conf, separator)
 
         self.clear_mw_tl()
         self.clear_ex_tl()

@@ -118,9 +118,9 @@ def cancellable_tc(
             if len(resultTxt) > 0:
                 gc.file_tced_counter += 1
                 save_output(result_tc, path.join(export_to, f_name), sj.cache["export_to"])
-                gc.insert_to_mw(f"{f_name} - Transcribed", "tc")
+                gc.insert_to_mw(f"{f_name} - Transcribed", "tc", "\n")
             else:
-                gc.insert_to_mw(f"{f_name} - Failed to save. It is empty (no text get from transcription)", "tc")
+                gc.insert_to_mw(f"{f_name} - Failed to save. It is empty (no text get from transcription)", "tc", "\n")
                 logger.warning("Transcribed Text is empty")
 
         # start translation thread if translate mode is on
@@ -258,14 +258,14 @@ def cancellable_tl(
             if len(resultTxt) > 0:
                 gc.file_tled_counter += 1
                 save_output(result_Tl_whisper, path.join(export_to, f_name), sj.cache["export_to"])
-                gc.insert_to_mw(f"{f_name} - Translated", "tl")
+                gc.insert_to_mw(f"{f_name} - Translated", "tl", "\n")
             else:
-                gc.insert_to_mw(f"{f_name} - Failed to save. It is empty (no text get from transcription)", "tl")
+                gc.insert_to_mw(f"{f_name} - Failed to save. It is empty (no text get from transcription)", "tl", "\n")
                 logger.warning("Translated Text is empty")
         else:
             assert isinstance(query, Dict)
             if len(query["text"].strip()) == 0:
-                gc.insert_to_mw(f"{f_name} - Failed to save. It is empty (no text get from transcription)", "tl")
+                gc.insert_to_mw(f"{f_name} - Failed to save. It is empty (no text get from transcription)", "tl", "\n")
                 return
 
             debug_log = sj.cache["debug_translate"]
@@ -306,7 +306,7 @@ def cancellable_tl(
             gc.file_tled_counter += 1
             query["text"] = text_all.strip()
             save_output(query, path.join(export_to, f_name), sj.cache["export_to"])
-            gc.insert_to_mw(f"{f_name} - Translated", "tl")
+            gc.insert_to_mw(f"{f_name} - Translated", "tl", "\n")
 
         logger.debug(f"Translated: {f_name} | Time Taken: {time() - start:.2f}s")
     except Exception as e:
