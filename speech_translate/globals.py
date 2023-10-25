@@ -14,7 +14,7 @@ from arabic_reshaper import reshape
 from bidi.algorithm import get_display
 from numba.core.errors import NumbaDeprecationWarning, NumbaPendingDeprecationWarning
 
-from speech_translate.utils.custom_types import ToInsert, WhisperResult
+from speech_translate.utils.custom_types import ToInsert, StableTsResultDict
 from speech_translate.utils.helper import generate_color, html_to_separator, wrap_result
 from ._path import dir_debug, dir_export, dir_log, dir_temp, dir_user
 from .utils.setting import SettingJson
@@ -31,10 +31,13 @@ else:
 simplefilter("ignore", category=NumbaDeprecationWarning)
 simplefilter("ignore", category=NumbaPendingDeprecationWarning)
 
+
 # Disabling tqdm globally by Defining a custom dummy class that suppresses tqdm's behavior
-
-
 class DummyTqdm:
+    n: int = 0
+    total: int = 0
+    disable: bool = True
+
     def __init__(self, *args, **kwargs):
         pass
 
@@ -45,6 +48,9 @@ class DummyTqdm:
         pass
 
     def update(self, n=1):
+        pass
+
+    def write(self, *args, **kwargs):
         pass
 
 
@@ -64,7 +70,7 @@ if TYPE_CHECKING:
 sj: SettingJson = SettingJson(os.path.join(dir_user, "setting.json"), dir_user, [dir_temp, dir_log, dir_export, dir_debug])
 
 
-class GlobalClass:
+class BridgeClass:
     """
     Class containing all the static variables for the UI. It also contains some methods for the stuff to works.
 
@@ -106,14 +112,14 @@ class GlobalClass:
         self.ex_tlw: Optional[TlsWindow] = None
         """Detached translated window class"""
 
-        # record stream
+        # stream / transcribe
         self.stream: Optional[pyaudio.Stream] = None
-        self.data_queue: Queue[bytes] = Queue()  # type: ignore
+        self.data_queue = Queue()
         self.current_rec_status: str = ""
         self.auto_detected_lang: str = "~"
         self.tc_lock: Optional[Lock] = None
-        self.tc_sentences: List[Union[WhisperResult, str]] = []
-        self.tl_sentences: List[Union[WhisperResult, str]] = []
+        self.tc_sentences: List[Union[StableTsResultDict, str]] = []
+        self.tl_sentences: List[Union[StableTsResultDict, str]] = []
 
         # file process
         self.file_tced_counter: int = 0
@@ -201,7 +207,7 @@ class GlobalClass:
 
                 index += 1
 
-        # wrap result with the max length of the line set by the user
+        # # wrap result with the max length of the line set by the user
         if sj.cache[f"tb_{mode}_limit_max_per_line"]:
             # Previously is_last is None, but now its either True or False
             # is last will determine the line break
@@ -239,13 +245,15 @@ class GlobalClass:
                     </div>'''
             )
 
-    def map_result_lists(self, source_list: Sequence[Union[WhisperResult, str]], store_list: List[ToInsert], separator: str):
+    def map_result_lists(
+        self, source_list: Sequence[Union[StableTsResultDict, str]], store_list: List[ToInsert], separator: str
+    ):
         """
         Map List of whisper result according to user setting while also calculating its color based on the confidence value.
         
         Parameters
         ----------
-        source_list : Sequence[Union[WhisperResult, str]]
+        source_list : Sequence[Union[StableTsResultDict, str]]
             Source list to be mapped, can be either a list of whisper result or a list of string.
         store_list : List[ToInsert]
             List to store the mapped result.
@@ -268,21 +276,19 @@ class GlobalClass:
                 total_len += len(sentence)
                 store_list.append({"text": sentence, "color": None, "is_last": None})
 
-            # no colorization based on confidence. just append the sentence (the full sentence)
-            elif sj.cache["colorize_per"] == "off":
-                # already a full sentence, add separator directly
-                temp = sentence["text"].strip() + separator
-                total_len += len(sentence)
-                store_list.append({"text": temp, "color": None, "is_last": None})
-
             # colorization based on confidence per sentence, so get the confidence value from the segment
-            elif sj.cache["colorize_per"] == "segment":
+            elif sj.cache["colorize_per_segment"]:
                 for segment in sentence["segments"]:
-                    temp = segment["text"].strip()
+                    temp = segment["text"].lstrip()
+                    confidence_total_word = 0
+                    for word in segment["words"]:
+                        confidence_total_word += word["probability"]
+                    confidence = confidence_total_word / len(segment["words"])
+
                     store_list.append(
                         {
                             "text": temp,
-                            "color": generate_color(segment["confidence"], low_color, high_color),
+                            "color": generate_color(confidence, low_color, high_color),
                             "is_last": None
                         }
                     )
@@ -293,14 +299,14 @@ class GlobalClass:
                 last_item["text"] += separator
 
             # colorization based on confidence per word, so get the confidence value from the word
-            elif sj.cache["colorize_per"] == "word":
+            elif sj.cache["colorize_per_word"]:
                 for segment in sentence["segments"]:
                     for word in segment["words"]:
-                        temp = word["text"].strip()
+                        temp = word["word"].lstrip()
                         store_list.append(
                             {
                                 "text": temp,
-                                "color": generate_color(segment["confidence"], low_color, high_color),
+                                "color": generate_color(word["probability"], low_color, high_color),
                                 "is_last": None
                             }
                         )
@@ -310,36 +316,29 @@ class GlobalClass:
                 last_item = store_list[-1]
                 last_item["text"] += separator
 
+            # no colorization based on confidence. just append the sentence (the full sentence)
+            else:
+                # already a full sentence, add separator directly
+                temp = sentence["text"].strip() + separator
+                total_len += len(sentence)
+                store_list.append({"text": temp, "color": None, "is_last": None})
+
         return total_len
 
     def swap_textbox(self):
         """Swap the text box between the transcribed and translated"""
         assert self.mw is not None
         separator = literal_eval(quote(sj.cache["separate_with"]))
-        tc_res_with_conf: List[ToInsert] = []
-        self.clear_mw_tc()
-        self.clear_ex_tc()
-        self.map_result_lists(self.tc_sentences, tc_res_with_conf, separator)
-
-        tl_res_with_conf: List[ToInsert] = []
-        self.clear_mw_tl()
-        self.clear_ex_tl()
-        self.map_result_lists(self.tl_sentences, tl_res_with_conf, separator)
-
         self.tc_sentences, self.tl_sentences = self.tl_sentences, self.tc_sentences
+        self.update_tc(None, separator)
+        self.update_tl(None, separator)
 
-        # 0 total len because we are just swapping here
-        self.update_result_display(0, tc_res_with_conf, "mw_tc")
-        self.update_result_display(0, tc_res_with_conf, "ex_tc")
-        self.update_result_display(0, tl_res_with_conf, "mw_tl")
-        self.update_result_display(0, tl_res_with_conf, "ex_tl")
-
-    def update_tc(self, new_res: Union[WhisperResult, str, None], separator: str):
+    def update_tc(self, new_res: Union[StableTsResultDict, str, None], separator: str):
         """Update the transcribed text box with the new text.
 
         Parameters
         ----------
-        new_res : Union[WhisperResult, str]
+        new_res : Union[StableTsResultDict, str]
             New result to be added to the transcribed text box.
         separator : str
             Separator to be added to the end of the new result.
@@ -354,12 +353,12 @@ class GlobalClass:
         self.update_result_display(total_len, res_with_conf, "mw_tc")
         self.update_result_display(total_len, res_with_conf, "ex_tc")
 
-    def update_tl(self, new_res: Union[WhisperResult, str, None], separator: str):
+    def update_tl(self, new_res: Union[StableTsResultDict, str, None], separator: str):
         """Update the translated text box with the new text.
 
         Parameters
         ----------
-        new_res : Union[WhisperResult, str]
+        new_res : Union[StableTsResultDict, str]
             New result to be added to the translated text box.
         separator : 
             Separator to be added to the end of the new result.
@@ -400,4 +399,4 @@ class GlobalClass:
 
 
 # ------------------ #
-gc: GlobalClass = GlobalClass()
+gc = BridgeClass()

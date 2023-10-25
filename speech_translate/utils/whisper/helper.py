@@ -1,12 +1,18 @@
 import argparse
-import os
 import csv
 import json
-from typing import List
+import os
+from typing import List, Literal, Optional, Union
 
-from whisper.utils import str2bool, optional_int, get_writer
+import torch
+import stable_whisper
+from stable_whisper.alignment import align, refine
+from stable_whisper.utils import str_to_valid_type, isolate_useful_options
+from whisper.utils import optional_int, optional_float
+from whisper import DecodingOptions
 
 from speech_translate.custom_logging import logger
+from speech_translate.utils.custom_types import StableTsResultDict
 
 model_select_dict = {
     "Tiny (~32x speed)": "tiny",
@@ -21,61 +27,348 @@ model_values = list(model_select_dict.values())
 USE_EFFICIENT_BY_DEFAULT = True
 TRUST_WHISPER_TIMESTAMP_BY_DEFAULT = True
 
+str2val = {"true": True, "false": False, "1": True, "0": False}
 
-def parse_args_whisper_timestamped(arguments: str):
-    parser = argparse.ArgumentParser()
+
+def str2bool(string: str) -> bool:
+    string = string.lower()
+    if string in str2val:
+        return str2val[string]
+    raise ValueError(f"Expected one of {set(str2val.keys())}, got {string}")
+
+
+class ArgumentParserWithErrors(argparse.ArgumentParser):
+    def error(self, message):
+        raise ValueError(message)
+
+
+def parse_args_stable_ts(
+    arguments: str, mode: Union[Literal["load", "transcribe", "align", "refine", "save"], str], method=None, **kwargs
+):
+    """Parse arguments to be passed onto stable ts with each mode in mind
+
+    Pass in kwargs if needed
+
+    Parameters
+    ----------
+    arguments : str
+        arguments to be parsed
+    mode : Literal[&quot;load&quot;, &quot;transcribe&quot;, &quot;align&quot;, &quot;refine&quot;, &quot;save&quot;]
+        mode to parse arguments for
+    pass_method : _type_, optional
+        method to pass arguments to, by default None
+
+    Returns
+    -------
+    dict
+        parsed arguments
+
+    Raises
+    ------
+    ValueError
+        if there are missing values or invalid values
+    """
+
+    parser = ArgumentParserWithErrors(
+        description="Example Argument Parser", formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
     args = {}
+
+    def update_options_with_args(arg_key: str, options: Optional[dict] = None, pop: bool = False):
+        extra_options = args.pop(arg_key) if pop else args.get(arg_key)
+        if not extra_options:
+            return
+        extra_options = [kv.split('=', maxsplit=1) for kv in extra_options]
+        missing_val = [kv[0] for kv in extra_options if len(kv) == 1]
+        if missing_val:
+            raise ValueError(f'Following expected values for the following custom options: {missing_val}')
+        extra_options = dict(
+            (k.replace('"', "").replace("'", ""), str_to_valid_type(v.replace('"', '').replace("'", "")))
+            for k, v in extra_options
+        )
+        if options is None:
+            return extra_options
+        options.update(extra_options)
+
     try:
         # ruff: noqa: E501
         # yapf: disable
-        parser.add_argument('--vad', default=False, help="whether to run Voice Activity Detection (VAD) to remove non-speech segment before applying Whisper model (removes hallucinations)", type=str2bool)
-        parser.add_argument('--detect_disfluencies', default=False, help="whether to try to detect disfluencies, marking them as special words [*]", type=str2bool)
-        parser.add_argument('--recompute_all_timestamps', default=not TRUST_WHISPER_TIMESTAMP_BY_DEFAULT, help="Do not rely at all on Whisper timestamps (Experimental option: did not bring any improvement, but could be useful in cases where Whipser segment timestamp are wrong by more than 0.5 seconds)", type=str2bool)
-        parser.add_argument("--punctuations_with_words", default=True, help="whether to include punctuations in the words", type=str2bool)
+        parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu",
+                            help="device to use for PyTorch inference")
+        parser.add_argument("--cpu_preload", type=str2bool, default=True,
+                            help="load model into CPU memory first then move model to specified device; "
+                                "this reduces GPU memory usage when loading model.")
 
-        # parser.add_argument("--temperature", default=0.0, help="temperature to use for sampling", type=float)
-        # parser.add_argument("--best_of", type=optional_int, default=None if USE_EFFICIENT_BY_DEFAULT else 5, help="number of candidates when sampling with non-zero temperature")
-        # parser.add_argument("--beam_size", type=optional_int, default=None if USE_EFFICIENT_BY_DEFAULT else 5, help="number of beams in beam search, only applicable when temperature is zero")
-        parser.add_argument("--patience", type=float, default=None, help="optional patience value to use in beam decoding, as in https://arxiv.org/abs/2204.05424, the default (1.0) is equivalent to conventional beam search")
-        parser.add_argument("--length_penalty", type=float, default=None, help="optional token length penalty coefficient (alpha) as in https://arxiv.org/abs/1609.08144, uses simple length normalization by default")
+        parser.add_argument("--dynamic_quantization", "-dq", action='store_true',
+                        help="whether to apply Dynamic Quantization to model "
+                             "to reduced memory usage (~half less) and increase inference speed "
+                             "at cost of slight decrease in accuracy; Only for CPU; "
+                             "NOTE: overhead might make inference slower for models smaller than 'large'")
 
-        # parser.add_argument("--suppress_tokens", default="-1", help="comma-separated list of token ids to suppress during sampling; '-1' will suppress most special characters except common punctuations", type=str)
-        # parser.add_argument("--initial_prompt", default=None, help="optional text to provide as a prompt for the first window.", type=str)
-        # parser.add_argument("--condition_on_previous_text", default=True, help="if True, provide the previous output of the model as a prompt for the next window; disabling may make the text inconsistent across windows, but the model becomes less prone to getting stuck in a failure loop", type=str2bool)
-        parser.add_argument("--fp16", default=None, help="whether to perform inference in fp16; Automatic by default (True if GPU available, False otherwise)", type=str2bool)
+        parser.add_argument("--prepend_punctuations", '-pp', type=str, default="\"'“¿([{-",
+                            help="Punctuations to prepend to next word")
+        parser.add_argument("--append_punctuations", '-ap', type=str, default="\"'.。,，!！?？:：”)]}、",
+                            help="Punctuations to append to previous word")
 
-        # parser.add_argument("--temperature_increment_on_fallback", default=0.0 if USE_EFFICIENT_BY_DEFAULT else 0.2, help="Temperature to increase when falling back when the decoding fails to meet either of the thresholds below", type=optional_float)
-        # parser.add_argument("--compression_ratio_threshold", default=2.4, help="if the gzip compression ratio is higher than this value, treat the decoding as failed", type=optional_float)
-        # parser.add_argument("--logprob_threshold", default=-1.0, help="if the average log probability is lower than this value, treat the decoding as failed", type=optional_float)
-        # parser.add_argument("--no_speech_threshold", default=0.6, help="if the probability of the <|nospeech|> token is higher than this value AND the decoding has failed due to `logprob_threshold`, consider the segment as silence", type=optional_float)
-        parser.add_argument("--threads", default=0, help="number of threads used by torch for CPU inference; supercedes MKL_NUM_THREADS/OMP_NUM_THREADS", type=optional_int)
+        parser.add_argument("--gap_padding", type=str, default=" ...",
+                            help="padding prepend to each segments for word timing alignment;"
+                                "used to reduce the probability of model predicting timestamps "
+                                "earlier than the first utterance")
 
-        parser.add_argument("--compute_confidence", default=True, help="whether to compute confidence scores for words", type=str2bool)
-        parser.add_argument("--verbose", type=str2bool, default=False, help="whether to print out the progress and debug messages of Whisper")
-        parser.add_argument('--plot', help="plot word alignments (save the figures if an --output_dir is specified, otherwhise just show figures that have to be closed to continue)", default=False, action="store_true")
-        parser.add_argument('--debug', help="print some debug information about word alignement", default=False, action="store_true")
+        parser.add_argument("--word_timestamps", type=str2bool, default=True,
+                            help="extract word-level timestamps using the cross-attention pattern and dynamic time warping,"
+                             "and include the timestamps for each word in each segment;"
+                             "disabling this will prevent segments from splitting/merging properly.")
 
-        # parser.add_argument('--accurate', help="Shortcut to use the same default option as in Whisper (best_of=5, beam_search=5, temperature_increment_on_fallback=0.2)", action=ActionSetAccurate)
-        # parser.add_argument('--efficient', help="Shortcut to disable beam size and options that requires to sample several times, for an efficient decoding", action=ActionSetEfficient)
+        parser.add_argument("--regroup", type=str, default="True",
+                            help="whether to regroup all words into segments with more natural boundaries;"
+                                "specify string for customizing the regrouping algorithm"
+                                "ignored if [word_timestamps]=False.")
 
-        parser.add_argument('--naive', help="use naive approach, doing inference twice (once to get the transcription, once to get word timestamps and confidence scores).", default=False, action="store_true")
+        parser.add_argument('--ts_num', type=int, default=0,
+                            help="number of extra inferences to perform to find the mean timestamps")
+        parser.add_argument('--ts_noise', type=float, default=0.1,
+                            help="percentage of noise to add to audio_features to perform inferences for [ts_num]")
+
+        parser.add_argument('--suppress_silence', type=str2bool, default=True,
+                            help="whether to suppress timestamp where audio is silent at segment-level"
+                                "and word-level if [suppress_word_ts]=True")
+        parser.add_argument('--suppress_word_ts', type=str2bool, default=True,
+                            help="whether to suppress timestamps where audio is silent at word-level; "
+                                "ignored if [suppress_silence]=False")
+
+        parser.add_argument('--suppress_ts_tokens', type=str2bool, default=False,
+                            help="whether to use silence mask to suppress silent timestamp tokens during inference; "
+                                "increases word accuracy in some cases, but tends reduce 'verbatimness' of the transcript"
+                                "ignored if [suppress_silence]=False")
+
+        parser.add_argument("--q_levels", type=int, default=20,
+                            help="quantization levels for generating timestamp suppression mask; "
+                                "acts as a threshold to marking sound as silent;"
+                                "fewer levels will increase the threshold of volume at which to mark a sound as silent")
+
+        parser.add_argument("--k_size", type=int, default=5,
+                            help="Kernel size for average pooling waveform to generate suppression mask; "
+                                "recommend 5 or 3; higher sizes will reduce detection of silence")
+
+        parser.add_argument('--time_scale', type=float,
+                            help="factor for scaling audio duration for inference;"
+                                "greater than 1.0 'slows down' the audio; "
+                                "less than 1.0 'speeds up' the audio; "
+                                "1.0 is no scaling")
+
+        parser.add_argument('--vad', type=str2bool, default=False,
+                            help='whether to use Silero VAD to generate timestamp suppression mask; '
+                                'Silero VAD requires PyTorch 1.12.0+;'
+                                'Official repo: https://github.com/snakers4/silero-vad')
+        parser.add_argument('--vad_threshold', type=float, default=0.35,
+                            help='threshold for detecting speech with Silero VAD. (Default: 0.35); '
+                                'low threshold reduces false positives for silence detection')
+        parser.add_argument('--vad_onnx', type=str2bool, default=False,
+                            help='whether to use ONNX for Silero VAD')
+
+        parser.add_argument('--min_word_dur', type=float, default=0.1,
+                            help="only allow suppressing timestamps that result in word durations greater than this value")
+
+        parser.add_argument('--max_chars', type=int,
+                            help="maximum number of character allowed in each segment")
+        parser.add_argument('--max_words', type=int,
+                            help="maximum number of words allowed in each segment")
+
+        parser.add_argument('--demucs', type=str2bool, default=False,
+                            help='whether to reprocess the audio track with Demucs to isolate vocals/remove noise; '
+                                'Demucs official repo: https://github.com/facebookresearch/demucs')
+        # parser.add_argument('--demucs_output', action="extend", nargs="+", type=str,
+        #                 help='path(s) to save the vocals isolated by Demucs as WAV file(s); '
+        #                      'ignored if [demucs]=False')
+        parser.add_argument('--only_voice_freq', '-ovf', action='store_true',
+                            help='whether to only use sound between 200 - 5000 Hz, where majority of human speech are.')
+
+        parser.add_argument('--strip', type=str2bool, default=True,
+                            help="whether to remove spaces before and after text on each segment for output")
+
+        parser.add_argument('--tag', type=str, action="extend", nargs="+",
+                            help="a pair tags used to change the properties a word at its predicted time"
+                                "SRT Default: '<font color=\"#00ff00\">', '</font>'"
+                                "VTT Default: '<u>', '</u>'"
+                                "ASS Default: '{\\1c&HFF00&}', '{\\r}'")
+        # parser.add_argument('--segment_level', type=str2bool, default=True,
+        #                     help="whether to use segment-level timestamps in output")
+        # parser.add_argument('--word_level', type=str2bool, default=True,
+        #                     help="whether to use word-level timestamps in output")
+
+        parser.add_argument('--reverse_text', type=str2bool, default=False,
+                            help="whether to reverse the order of words for each segment of text output")
+
+        # ass output
+        parser.add_argument('--font', type=str, default='Arial',
+                            help="word font for ASS output(s)")
+        parser.add_argument('--font_size', type=int, default=48,
+                            help="word font size for ASS output(s)")
+        parser.add_argument('--karaoke', type=str2bool, default=False,
+                            help="whether to use progressive filling highlights for karaoke effect (only for ASS outputs)")
+
+        parser.add_argument("--temperature", type=float, default=0,
+                            help="temperature to use for sampling")
+        parser.add_argument("--best_of", type=optional_int,
+                            help="number of candidates when sampling with non-zero temperature")
+        parser.add_argument("--beam_size", type=optional_int,
+                            help="number of beams in beam search, only applicable when temperature is zero")
+        parser.add_argument("--patience", type=float, default=None,
+                            help="optional patience value to use in beam decoding, "
+                                "as in https://arxiv.org/abs/2204.05424, "
+                                "the default (1.0) is equivalent to conventional beam search")
+        parser.add_argument("--length_penalty", type=float, default=None,
+                            help="optional token length penalty coefficient (alpha) "
+                                "as in https://arxiv.org/abs/1609.08144, uses simple length normalization by default")
+
+        parser.add_argument("--fp16", type=str2bool, default=True,
+                            help="whether to perform inference in fp16; True by default")
+
+        parser.add_argument("--compression_ratio_threshold", type=optional_float, default=2.4,
+                            help="if the gzip compression ratio is higher than this value, treat the decoding as failed")
+        parser.add_argument("--logprob_threshold", type=optional_float, default=-1.0,
+                            help="if the average log probability is lower than this value, treat the decoding as failed")
+        parser.add_argument("--no_speech_threshold", type=optional_float, default=0.6,
+                            help="if the probability of the <|nospeech|> token is higher than this value AND the decoding "
+                                "has failed due to `logprob_threshold`, consider the segment as silence")
+        parser.add_argument("--threads", type=optional_int, default=0,
+                            help="number of threads used by torch for CPU inference; "
+                                "supercedes MKL_NUM_THREADS/OMP_NUM_THREADS")
+
+        parser.add_argument('--mel_first', action='store_true',
+                            help='process entire audio track into log-Mel spectrogram first instead in chunks')
+
+        # parser.add_argument('--align', '-a', action="extend", nargs='+', type=str,
+        #                     help='path(s) to TXT file(s) or JSON previous result(s)')
+
+        # parser.add_argument('--refine', '-r', action='store_true',
+        #                     help='Refine timestamps to increase precision of timestamps')
+
+        parser.add_argument('--demucs_option', '-do', action="extend", nargs='+', type=str,
+                        help='Extra option(s) to use for demucs; Replace True/False with 1/0; '
+                             'E.g. --demucs_option "shifts=3" --demucs_options "overlap=0.5"')
+
+        parser.add_argument('--refine_option', '-ro', action="extend", nargs='+', type=str,
+                            help='Extra option(s) to use for refining timestamps; Replace True/False with 1/0; '
+                                'E.g. --refine_option "steps=sese" --refine_options "rel_prob_decrease=0.05"')
+        parser.add_argument('--model_option', '-mo', action="extend", nargs='+', type=str,
+                            help='Extra option(s) to use for loading model; Replace True/False with 1/0; '
+                                'E.g. --model_option "download_root=./downloads"')
+        parser.add_argument('--transcribe_option', '-to', action="extend", nargs='+', type=str,
+                            help='Extra option(s) to use for transcribing/alignment; Replace True/False with 1/0; '
+                                'E.g. --transcribe_option "ignore_compatibility=1"')
+        parser.add_argument('--save_option', '-so', action="extend", nargs='+', type=str,
+                            help='Extra option(s) to use for text outputs; Replace True/False with 1/0; '
+                                'E.g. --save_option "highlight_color=ffffff"')
         # yapf: enable
-
         args = parser.parse_args(arguments.split()).__dict__
-        args["naive_approach"] = args.pop("naive")
-        args["remove_punctuation_from_words"] = not args.pop("punctuations_with_words")
-        args["compute_word_confidence"] = args.pop("compute_confidence")
-        args["trust_whisper_timestamps"] = not args.pop("recompute_all_timestamps")
+        threads = args.pop('threads')  # pop to be added in certain mode -> transcribe, align, refine
+
+        args['demucs_options'] = update_options_with_args('demucs_option', pop=True)
+        if dq := args.pop('dynamic_quantization', False):
+            args['device'] = 'cpu'
+            args['dq'] = dq
+        if args['reverse_text']:
+            args['reverse_text'] = (args.get('prepend_punctuations'), args.get('append_punctuations'))
+
+        regroup = args.pop('regroup')
+        if regroup:
+            try:
+                args["regroup"] = str2bool(regroup)
+            except ValueError:
+                pass
+
+        if tag := args.get('tag'):
+            assert tag == ['-1'] or len(tag) == 2, f'[tag] must be a pair of str but got {tag}'
+
+        # need to hard code it a bit, to get the same result as stable ts from cli
+        if mode == "load":
+            method = stable_whisper.load_model if method is None else method
+            temp = args["model_option"]
+
+            args = isolate_useful_options(args, method)
+            args["model_option"] = temp
+
+            update_options_with_args('model_option', args)
+            args.pop('model_option')
+        elif mode == "transcribe":
+            # should be ok when using faster whisper too
+            method = stable_whisper.whisper_word_level.transcribe_stable if method is None else method
+            temp = args["transcribe_option"]
+            args.update(kwargs)  # pass in kwargs
+
+            args = isolate_useful_options(args, method)
+            args["transcribe_option"] = temp
+
+            update_options_with_args('transcribe_option', args)
+            args.pop('transcribe_option')
+            args.update(isolate_useful_options(args, DecodingOptions))
+            args["threads"] = threads
+
+        elif mode == "align":
+            method = align if method is None else method
+            temp = args["transcribe_option"]
+
+            args = isolate_useful_options(args, method)
+            args["transcribe_option"] = temp
+
+            update_options_with_args('transcribe_option', args)
+            args.pop('transcribe_option')
+            args.update(isolate_useful_options(args, DecodingOptions))
+            args["threads"] = threads
+
+        elif mode == "refine":
+            method = refine if method is None else method
+            temp = args["refine_option"]
+
+            args = isolate_useful_options(args, method)
+            args["refine_option"] = temp
+
+            update_options_with_args('refine_option', args)
+            args.pop('refine_option')
+            args["threads"] = threads
+
+        elif mode == "save":
+            temp = args["save_option"]
+            args['filepath'] = kwargs.get('save_path')
+            args['path'] = kwargs.get('save_path')
+            args["word_level"] = kwargs.get('word_level')
+            args["segment_level"] = kwargs.get('segment_level')
+
+            args = isolate_useful_options(args, method)
+            args["save_option"] = temp
+
+            update_options_with_args('save_option', args)
+            args.pop('save_option')
+
+        # pop stuff already set in gui setting
+        args.pop('download_root', None)
+        args.pop('temperature', None)
+        args.pop('best_of', None)
+        args.pop('beam_size', None)
+        args.pop('compression_ratio_threshold', None)
+        args.pop('logprob_threshold', None)
+        args.pop('no_speech_threshold', None)
+        args.pop('suppress_tokens', None)
+        args.pop('initial_prompt', None)
+        args.pop('condition_on_previous_text', None)
+        args.pop('word_level', None)
+        args.pop('segment_level', None)
+
         args["success"] = True
+
+        if kwargs.pop('show_parsed', True):
+            logger.debug(f"Mode {mode} args get: {args}")
+    except ValueError as e:
+        logger.exception(e)
+        args["success"] = False
+        args["msg"] = str(e)
     except Exception as e:
         logger.exception(e)
         args["success"] = False
         args["msg"] = str(e)
     finally:
-        if args == {}:
-            args["success"] = False
-            args["msg"] = "Fail to parse arguments, please check again"
-
         return args
 
 
@@ -90,7 +383,9 @@ def remove_keys(list_of_dicts, key):
         yield {k: d[k] for k in d.keys() - {key}}
 
 
-def write_csv(transcript, file, sep=",", text_first=True, format_timestamps=None, header=False):
+def write_csv(
+    transcript: stable_whisper.WhisperResult, file, sep=",", text_first=True, format_timestamps=None, header=False
+):
     writer = csv.writer(file, delimiter=sep)
     if format_timestamps is None:
         format_timestamps = lambda x: x  # noqa
@@ -101,23 +396,19 @@ def write_csv(transcript, file, sep=",", text_first=True, format_timestamps=None
     if text_first:
         writer.writerows(
             [
-                [segment["text"].strip(),
-                 format_timestamps(segment["start"]),
-                 format_timestamps(segment["end"])] for segment in transcript
+                [segment.text.strip(),
+                 format_timestamps(segment.start),
+                 format_timestamps(segment.end)] for segment in transcript.segments
             ]
         )
     else:
         writer.writerows(
             [
-                [format_timestamps(segment["start"]),
-                 format_timestamps(segment["end"]), segment["text"].strip()] for segment in transcript
+                [format_timestamps(segment.start),
+                 format_timestamps(segment.end),
+                 segment.text.strip()] for segment in transcript.segments
             ]
         )
-
-
-def do_write(transcript, file, output_format):
-    writer = get_writer(output_format, os.path.curdir)
-    return writer.write_result({"segments": transcript}, file)
 
 
 def fname_dupe_check(filename: str, extension: str):
@@ -133,49 +424,44 @@ def fname_dupe_check(filename: str, extension: str):
     return filename
 
 
-def save_output(result, outname, output_formats: List[str]):
-    for format in output_formats:
-        # check if the current format have its "format.words" counterpart
-        per_word = output_formats.count(format + ".words") > 0
-        if ".words" in format:
-            continue
+def save_output_stable_ts(result: stable_whisper.WhisperResult, outname, output_formats: List, sj):
+    OUTPUT_FORMATS_METHODS = {
+        "srt": "to_srt_vtt",
+        "ass": "to_ass",
+        "json": "save_as_json",
+        "vtt": "to_srt_vtt",
+        "tsv": "to_tsv"
+    }
 
-        if format == "json":
-            # Save JSON
-            with open(fname_dupe_check(outname, format) + ".words.json", "w", encoding="utf-8") as js:
-                json.dump(result, js, indent=2, ensure_ascii=False)
+    for format in output_formats:
+        outname = fname_dupe_check(outname, format)
+
+        if format == "txt":
+            # save txt
+            with open(outname + ".txt", "w", encoding="utf-8") as f:
+                f.write(result.text)
         elif format == "csv":
             # Save CSV
-            with open(fname_dupe_check(outname, format) + ".csv", "w", encoding="utf-8") as csv:
-                write_csv(result["segments"], file=csv)
-            if per_word:
-                with open(fname_dupe_check(outname, format) + ".words.csv", "w", encoding="utf-8") as csv:
-                    write_csv(flatten(result["segments"], "words"), file=csv)
+            with open(outname + ".csv", "w", encoding="utf-8") as csv:
+                write_csv(result, file=csv)
+        elif format == "json":
+            # Save JSON
+            with open(fname_dupe_check(outname, format) + ".json", "w", encoding="utf-8") as js:
+                json.dump(result.to_dict(), js, indent=2, allow_nan=True)
         else:
+            # Save other formats (SRT, ASS, VTT, TSV)
+            save_method = getattr(result, OUTPUT_FORMATS_METHODS[format])
+            kwargs_to_pass = {
+                "save_path": outname,
+                "segment_level": sj.cache["segment_level"],
+                "word_level": sj.cache["word_level"]
+            }
+            if format == "vtt":
+                kwargs_to_pass["vtt"] = True
 
-            def get_writer_func(output_format):
-                return lambda transcript, file: do_write(transcript, file, output_format)
-
-            writers = {format: get_writer_func(format) for format in output_formats}
-            writer = writers.get(format)
-            if writer is None:
-                raise ValueError(f"Unknown output format: {format}")
-
-            if format == "txt":
-                with open(f"{fname_dupe_check(outname, format)}.txt", "w", encoding="utf-8") as f:
-                    writer(result["segments"], file=f)
-            elif format == "vtt" or "srt":
-                with open(f"{fname_dupe_check(outname, format)}.{format}", "w", encoding="utf-8") as f:
-                    writer(remove_keys(result["segments"], "words"), file=f)
-                if per_word:
-                    with open(f"{fname_dupe_check(outname, format)}.words.{format}", "w", encoding="utf-8") as f:
-                        writer(flatten(result["segments"], "words"), file=f)
-            else:
-                with open(f"{fname_dupe_check(outname, format)}.{format}", "w", encoding="utf-8") as f:
-                    writer(result["segments"], file=f)
-                if per_word:
-                    with open(f"{fname_dupe_check(outname, format)}.words.{format}", "w", encoding="utf-8") as f:
-                        writer(flatten(result["segments"], "words"), file=f)
+            args = parse_args_stable_ts(sj.cache["whisper_args"], "save", save_method, **kwargs_to_pass)
+            args.pop('success')  # no need to check, because it probably have been checked before since this is the last step
+            save_method(**args)  # run the method
 
 
 def append_dot_en(model_key: str, src_english: bool):
@@ -199,7 +485,7 @@ def append_dot_en(model_key: str, src_english: bool):
     return name
 
 
-def whisper_verbose_log(result):
+def stablets_verbose_log(result: stable_whisper.WhisperResult):
     """
     This will log the result of the whisper engine in a verbose way.
 
@@ -208,12 +494,13 @@ def whisper_verbose_log(result):
     result:
         whisper result
     """
-    logger.debug(f"Language: {result['language']}")
-    logger.debug(f"Text: {result['text']}")
+    res = result.to_dict()
+    assert isinstance(res, StableTsResultDict)
+    logger.debug(f"Language: {res['language']}")
+    logger.debug(f"Text: {res['text']}")
     logger.debug("Segments:")
-    for index, segment in enumerate(result["segments"]):
-        logger.debug(f"Segment {index}")
-        logger.debug(f"ID: {segment['id']}")
+    for segment in res["segments"]:
+        logger.debug(f"Segment {segment['id']}")
         logger.debug(f"Seek: {segment['seek']}")
         logger.debug(f"Start: {segment['start']}")
         logger.debug(f"End: {segment['end']}")
@@ -223,15 +510,15 @@ def whisper_verbose_log(result):
         logger.debug(f"Avg Logprob: {segment['avg_logprob']}")
         logger.debug(f"Compression Ratio: {segment['compression_ratio']}")
         logger.debug(f"No Speech Prob: {segment['no_speech_prob']}")
-        logger.debug(f"Confidence: {segment['confidence']}")
 
         logger.debug("Words:")
-        for index, words in enumerate(segment["words"]):
-            logger.debug(f"Word {index}")
-            logger.debug(f"Text: {words['text']}")
+        for words in segment["words"]:
+            logger.debug(f"Word {words['id']} | Segment {words['segment_id']}")
             logger.debug(f"Start: {words['start']}")
             logger.debug(f"End: {words['end']}")
-            logger.debug(f"Confidence: {words['confidence']}")
+            logger.debug(f"Word: {words['word']}")
+            logger.debug(f"Tokens: {words['tokens']}")
+            logger.debug(f"Probability: {words['probability']}")
 
 
 def get_temperature(args):
@@ -251,3 +538,20 @@ def get_temperature(args):
         if "could not convert" in str(e):
             return False, "Input must be a number or collection of numbers separated with commas. Ex: 0.2, 0.3, 0.4 ..."
         return False, str(e)
+
+
+def _result_to_dict(res: stable_whisper.WhisperResult):
+    """Just a little funtion to help keeping the type hinting when converting result to dict
+
+    Parameters
+    ----------
+    res : WhisperResult
+        Result from stable whisper
+
+    Returns
+    -------
+    StableTsResultDict
+        Result in dict format
+    """
+    x: StableTsResultDict = res.to_dict()  # type: ignore
+    return x

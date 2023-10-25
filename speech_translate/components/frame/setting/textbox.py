@@ -1,4 +1,4 @@
-from tkinter import StringVar, ttk, font, Toplevel, Frame, LabelFrame, Text
+from tkinter import ttk, font, Toplevel, Frame, LabelFrame, Text
 from typing import Union
 
 from arabic_reshaper import reshape
@@ -522,37 +522,45 @@ class SettingTextbox:
         self.cbtn_ex_tl_use_conf_color.pack(side="left", padx=5)
 
         # ------------------ Other ------------------
-        self.lbl_radio_colorize_per = ttk.Label(self.f_confidence_1, text="Colorize Confidence Per", width=21)
-        self.lbl_radio_colorize_per.pack(side="left", padx=5)
+        def keep_one_disabled(value: bool, other_widget: ttk.Checkbutton):
+            if value:
+                other_widget.configure(state="disabled")
+            else:
+                other_widget.configure(state="normal")
 
-        self.var_colorize_per = StringVar(self.root, sj.cache["colorize_per"])
-        self.radio_colorize_per_segment = ttk.Radiobutton(
+        self.cbtn_colorize_per_segment = CustomCheckButton(
             self.f_confidence_1,
-            text="Segment",
-            variable=self.var_colorize_per,
-            value="segment",
-            command=lambda: sj.save_key("colorize_per", "segment"),
+            sj.cache["colorize_per_segment"],
+            lambda x: sj.save_key("colorize_per_segment", x) or keep_one_disabled(x, self.cbtn_colorize_per_word),
+            text="Colorize per segment",
+            style="Switch.TCheckbutton"
         )
-        self.radio_colorize_per_segment.pack(side="left", padx=5)
-        tk_tooltip(self.radio_colorize_per_segment, "Colorize text based on confidence value per segment")
-        self.radio_colorize_per_word = ttk.Radiobutton(
+        self.cbtn_colorize_per_segment.pack(side="left", padx=5)
+        tk_tooltip(
+            self.cbtn_colorize_per_segment,
+            "Check this option if you want to colorize the text based on the total probability value of words in each segment. "
+            "This color will be set based on the color below",
+        )
+
+        self.cbtn_colorize_per_word = CustomCheckButton(
             self.f_confidence_1,
-            text="Word",
-            variable=self.var_colorize_per,
-            value="word",
-            command=lambda: sj.save_key("colorize_per", "word"),
+            sj.cache["colorize_per_word"],
+            lambda x: sj.save_key("colorize_per_word", x) or keep_one_disabled(x, self.cbtn_colorize_per_segment),
+            text="Colorize per word",
+            style="Switch.TCheckbutton"
         )
-        self.radio_colorize_per_word.pack(side="left", padx=5)
-        tk_tooltip(self.radio_colorize_per_word, "Colorize text based on confidence value per word")
-        self.radio_colorize_per_off = ttk.Radiobutton(
-            self.f_confidence_1,
-            text="Off",
-            variable=self.var_colorize_per,
-            value="off",
-            command=lambda: sj.save_key("colorize_per", "off"),
+        self.cbtn_colorize_per_word.pack(side="left", padx=5)
+        tk_tooltip(
+            self.cbtn_colorize_per_word,
+            "Check this option if you want to colorize the text based on the probability value of each word. "
+            "This color will be set based on the color below",
         )
-        self.radio_colorize_per_off.pack(side="left", padx=5)
-        tk_tooltip(self.radio_colorize_per_off, "Disable colorize text based on confidence value")
+
+        # on init disable the other option if one is enabled
+        if sj.cache["colorize_per_segment"]:
+            self.cbtn_colorize_per_word.configure(state="disabled")
+        elif sj.cache["colorize_per_word"]:
+            self.cbtn_colorize_per_segment.configure(state="disabled")
 
         self.lbl_gradient_low_conf = ttk.Label(self.f_confidence_2, text="Low Confidence", width=16)
         self.lbl_gradient_low_conf.pack(side="left", padx=5)

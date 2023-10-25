@@ -20,7 +20,6 @@ default_setting = {
     "input": "mic",  # mic, speaker
     "model": "tiny",
     "verbose": False,
-    "hide_console_window_on_start": False,
     "separate_with": "\\n",
     "mic": "",
     "speaker": "",
@@ -53,7 +52,7 @@ default_setting = {
     "http_proxy": "",
     "http_proxy_enable": False,
     "libre_api_key": "",
-    "libre_host": "translate.argosopentech.com",
+    "libre_host": "",
     "libre_port": "",
     "libre_https": True,
     # ------------------ #
@@ -84,9 +83,9 @@ default_setting = {
     "auto_sample_rate_speaker": True,
     "auto_channels_speaker": True,
     # speaker - record option
-    "threshold_enable_speaker": False,
+    "threshold_enable_speaker": True,
     "threshold_auto_speaker": True,
-    "threshold_auto_mode_speaker": 2,
+    "threshold_auto_mode_speaker": 3,
     "threshold_db_speaker": -20.0,
     "auto_break_buffer_speaker": False,
     "max_buffer_speaker": 10,
@@ -96,8 +95,12 @@ default_setting = {
     "auto_open_dir_export": True,
     # {file} {task} {task-short} {lang-source} {lang-target} {model} {engine}
     "export_format": "%Y-%m-%d %H_%M {file}_{task}",
-    # txt srt srt.words vtt vtt.words tsv tsv.words csv csv.words json
-    "export_to": ["txt", "srt", "srt.words"],
+    # txt csv json srt ass vtt tsv
+    "export_to": ["txt", "srt", "json"],
+    "segment_level": True,  # 1 of this must be true
+    "word_level": True,  # 1 of this must be true
+    "visualize_suppression": False,
+    "use_faster_whisper": True,
     "transcribe_rate": 300,
     "decoding_preset": "beam search",  # greedy, beam search, custom
     "temperature": "0.0, 0.2, 0.4, 0.6, 0.8, 1.0",  # 0.0 - 1.0
@@ -109,10 +112,11 @@ default_setting = {
     "suppress_tokens": "-1",
     "initial_prompt": "",
     "condition_on_previous_text": True,
-    "whisper_args": "--vad True",
+    "whisper_args": "",
     # ------------------ #
     # Textboxes
-    "colorize_per": "segment",  # segment, word, off 
+    "colorize_per_segment": True,
+    "colorize_per_word": False,
     "gradient_low_conf": "#FF0000",
     "gradient_high_conf": "#00FF00",
     # mw tc

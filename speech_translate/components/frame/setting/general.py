@@ -275,7 +275,11 @@ class SettingGeneral:
 
         self.menu_config_model = Menu(self.master, tearoff=0)
         self.menu_config_model.add_command(
-            label="Open", image=self.open_emoji, compound="left", command=lambda: start_file(sj.cache["dir_model"])
+            label="Open",
+            image=self.open_emoji,
+            compound="left",
+            command=lambda:
+            start_file(sj.cache["dir_model"] if sj.cache["dir_model"] != "auto" else get_default_download_root())
         )
         self.menu_config_model.add_separator()
         self.menu_config_model.add_command(
@@ -529,10 +533,14 @@ class SettingGeneral:
             def after_func():
                 btn.configure(text="Downloaded", state="disabled")
 
+            kwargs = {}
+            if sj.cache["dir_model"] != "auto":
+                kwargs = {"download_root": sj.cache["dir_model"]}
             gc.dl_thread = Thread(
                 target=download_model,
                 args=(model, self.root, lambda: self.cancel_download(model, btn), after_func),
                 daemon=True,
+                kwargs=kwargs,
             )
             gc.dl_thread.start()
 

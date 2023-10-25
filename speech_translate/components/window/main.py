@@ -1245,9 +1245,13 @@ class MainWindow:
             ):
                 logger.info("Downloading model...")
                 try:
+                    kwargs = {}
+                    if sj.cache["dir_model"] != "auto":
+                        kwargs = {"download_root": sj.cache["dir_model"]}
                     gc.dl_thread = Thread(
                         target=download_model,
                         args=(model_name, self.root, self.modelDownloadCancel, lambda: self.after_model_dl(taskname, task)),
+                        kwargs=kwargs,
                         daemon=True,
                     )
                     gc.dl_thread.start()
@@ -1362,12 +1366,12 @@ class MainWindow:
             return
 
         # check model first
-        status, model_tc = self.check_model(m_key, source == "english", "mic record", self.rec)
+        status, model_tc = self.check_model(m_key, source == "english", "file import", self.import_file)
         if not status:
             return
 
         if engine in model_keys:
-            status, engine = self.check_model(engine, source == "english", "recording", self.rec)
+            status, engine = self.check_model(engine, source == "english", "file import", self.import_file)
             if not status:
                 return
 

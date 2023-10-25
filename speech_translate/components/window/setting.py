@@ -11,8 +11,6 @@ from speech_translate.components.frame.setting.translate import SettingTranslate
 from speech_translate.globals import gc, sj
 from speech_translate.utils.helper import bind_focus_recursively
 
-# TODO: whisper option
-
 
 class SettingWindow:
     """

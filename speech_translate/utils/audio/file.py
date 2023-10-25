@@ -1,22 +1,22 @@
-import logging
 from os import path
 from datetime import datetime
 from threading import Thread
 from time import gmtime, sleep, strftime, time
 from tkinter import Toplevel, filedialog, ttk
-from typing import Dict, List, Union
-import torch
+from typing import List, Union
 
-import whisper_timestamped as whisper
+import torch
+import stable_whisper  # https://github.com/jianfch/stable-ts # has no static annotation hence many type ignore
 
 from speech_translate._path import app_icon, dir_export
 from speech_translate.components.custom.label import LabelTitleText
 from speech_translate.components.custom.message import mbox
 from speech_translate.custom_logging import logger
 from speech_translate.globals import gc, sj
+from speech_translate.utils.whisper.download import get_default_download_root
 
 from ..helper import cbtn_invoker, get_proxies, nativeNotify, filename_only, start_file
-from ..whisper.helper import get_temperature, parse_args_whisper_timestamped, save_output, model_values
+from ..whisper.helper import get_temperature, parse_args_stable_ts, save_output_stable_ts, model_values
 from ..translate.translator import translate
 
 
@@ -25,14 +25,13 @@ def cancellable_tc(
     audio_name: str,
     lang_source: str,
     lang_target: str,
-    model_loaded: whisper.Whisper,
-    model_tl: whisper.Whisper,
+    stable_tc,
+    stable_tl,
     auto: bool,
     transcribe: bool,
     translate: bool,
     engine: str,
     save_name: str,
-    plot: bool,
     **whisper_args,
 ) -> None:
     """
@@ -69,15 +68,13 @@ def cancellable_tc(
     assert gc.mw is not None
     start = time()
     gc.enable_tc()
-    gc.mw.start_loadBar()
 
     try:
-        result_tc = ""
         f_name = save_name.replace("{task}", "transcribe")
         f_name = f_name.replace("{task-short}", "tc")
 
         logger.info("-" * 50)
-        logger.info(f"Transcribing: {f_name}")
+        logger.info("Transcribing")
         logger.debug("Source Language: Auto" if auto else f"Source Language: {lang_source}")
 
         fail = False
@@ -86,12 +83,8 @@ def cancellable_tc(
 
         def run_threaded():
             try:
-                if plot:
-                    whisper_args["plot_word_alignment"] = path.join(export_to, f_name)
-                result = whisper.transcribe(
-                    model_loaded, audio_name, task="transcribe", language=lang_source if not auto else None, **whisper_args
-                )
-                gc.data_queue.put(result)
+                result = stable_tc(audio_name, task="transcribe", **whisper_args)
+                gc.data_queue.put(result)  # borrow gc_data_queue to pass result
             except Exception as e:
                 nonlocal fail, failMsg
                 fail = True
@@ -109,15 +102,15 @@ def cancellable_tc(
         if fail:
             raise Exception(failMsg)
 
-        result_tc = gc.data_queue.get()
+        result_tc: stable_whisper.WhisperResult = gc.data_queue.get()
 
         # export if transcribe mode is on
         if transcribe:
-            resultTxt = result_tc["text"].strip()  # type: ignore
+            result_text = result_tc.text.strip()
 
-            if len(resultTxt) > 0:
+            if len(result_text) > 0:
                 gc.file_tced_counter += 1
-                save_output(result_tc, path.join(export_to, f_name), sj.cache["export_to"])
+                save_output_stable_ts(result_tc, path.join(export_to, f_name), sj.cache["export_to"], sj)
                 gc.insert_to_mw(f"{f_name} - Transcribed", "tc", "\n")
             else:
                 gc.insert_to_mw(f"{f_name} - Failed to save. It is empty (no text get from transcription)", "tc", "\n")
@@ -130,7 +123,7 @@ def cancellable_tc(
             to_tl = result_tc if engine not in model_values else audio_name
             translateThread = Thread(
                 target=cancellable_tl,
-                args=[to_tl, lang_source, lang_target, model_tl, engine, auto, save_name, plot],
+                args=[to_tl, lang_source, lang_target, stable_tl, engine, auto, save_name],
                 kwargs=whisper_args,
                 daemon=True,
             )
@@ -146,18 +139,16 @@ def cancellable_tc(
             nativeNotify("Error: Transcribing Audio", str(e))
     finally:
         gc.disable_tc()
-        gc.mw.stop_loadBar()
 
 
 def cancellable_tl(
-    query: Union[str, Dict],
+    query: Union[str, stable_whisper.WhisperResult],
     lang_source: str,
     lang_target: str,
-    model_loaded: whisper.Whisper,
+    stable_tl,
     engine: str,
     auto: bool,
     save_name: str,
-    plot: bool,
     **whisper_args,
 ):
     """
@@ -193,7 +184,6 @@ def cancellable_tl(
     assert gc.mw is not None
     start = time()
     gc.enable_tl()
-    gc.mw.start_loadBar()
 
     try:
         export_to = dir_export if sj.cache["dir_export"] == "auto" else sj.cache["dir_export"]
@@ -201,7 +191,7 @@ def cancellable_tl(
         f_name = f_name.replace("{task-short}", "tl")
 
         logger.info("-" * 50)
-        logger.info(f"Translating: {f_name}")
+        logger.info("Translating")
 
         if engine in model_values:
             try:
@@ -212,16 +202,8 @@ def cancellable_tl(
                 failMsg = ""
 
                 def run_threaded():
-                    if plot:
-                        whisper_args["plot_word_alignment"] = path.join(export_to, f_name)
                     try:
-                        result = whisper.transcribe(
-                            model_loaded,
-                            query,
-                            task="translate",
-                            language=lang_source if not auto else None,
-                            **whisper_args
-                        )
+                        result = stable_tl(query, task="translate", **whisper_args)
                         gc.data_queue.put(result)
                     except Exception as e:
                         nonlocal fail, failMsg
@@ -240,11 +222,10 @@ def cancellable_tl(
                 if fail:
                     raise Exception(failMsg)
 
-                result_Tl_whisper = gc.data_queue.get()
+                result_tl: stable_whisper.WhisperResult = gc.data_queue.get()
 
             except Exception as e:
                 gc.disable_tl()  # flag processing as done if error
-                gc.mw.stop_loadBar()
                 if str(e) == "Cancelled":
                     logger.info("Translation cancelled")
                 else:
@@ -253,18 +234,18 @@ def cancellable_tl(
                 return
 
             # if whisper, sended text (toTranslate) is the audio file path
-            resultTxt = result_Tl_whisper["text"].strip()  # type: ignore
+            resultTxt = result_tl.text.strip()
 
             if len(resultTxt) > 0:
                 gc.file_tled_counter += 1
-                save_output(result_Tl_whisper, path.join(export_to, f_name), sj.cache["export_to"])
+                save_output_stable_ts(result_tl, path.join(export_to, f_name), sj.cache["export_to"], sj)
                 gc.insert_to_mw(f"{f_name} - Translated", "tl", "\n")
             else:
                 gc.insert_to_mw(f"{f_name} - Failed to save. It is empty (no text get from transcription)", "tl", "\n")
                 logger.warning("Translated Text is empty")
         else:
-            assert isinstance(query, Dict)
-            if len(query["text"].strip()) == 0:
+            assert isinstance(query, stable_whisper.WhisperResult)
+            if len(query.text.strip()) == 0:
                 gc.insert_to_mw(f"{f_name} - Failed to save. It is empty (no text get from transcription)", "tl", "\n")
                 return
 
@@ -278,34 +259,46 @@ def cancellable_tl(
                 kwargs["libre_api_key"] = sj.cache["libre_api_key"],
 
             # translate every text and words in each segments, replace it
-            text_all = ""
-            for segment in query["segments"]:
-                # tl text in that segment
-                success, result = translate(engine, segment["text"], lang_source, lang_target, proxies, debug_log, **kwargs)
-                if not success:
-                    nativeNotify(f"Error: translation with {engine} failed", result)
-                    raise Exception(result)
+            segment_texts = [segment.text for segment in query.segments]
+            # tl text in that segment
+            success, result = translate(engine, segment_texts, lang_source, lang_target, proxies, debug_log, **kwargs)
+            if not success:
+                nativeNotify(f"Error: translation with {engine} failed", result)
+                raise Exception(result)
 
-                segment["text"] = result
-                text_all += result + " "
+            # replace
+            word_replaced_segment_id = []
+            for segment in query.segments:
+                segment.text = result.pop(0)
 
-                # check if any of the items in the list end with ".words"
-                # meaning export to per words is enabled, making us have to translate the words in the segment
-                if any(item.endswith(".words") for item in sj.cache["export_to"]):
+                # because each word is taken from the text, we can replace the word with the translated text
+                # but we fierst need to check wether the length of splitted translated text is same as the length of words
+                if sj.cache["word_level"]:
+                    temp = segment.text.split()
+                    if len(temp) == len(segment.words):
+                        word_replaced_segment_id.append(segment.id)
+                        for word in segment.words:
+                            word.word = temp.pop(0)  # replace
+
+            if sj.cache["word_level"]:
+                for segment in query.segments:
+                    # if already replaced, skip
+                    if segment.id in word_replaced_segment_id:
+                        continue
+
                     # tl words in that segment
-                    for word in segment["words"]:
-                        success, result = translate(
-                            engine, word["text"], lang_source, lang_target, proxies, debug_log, **kwargs
-                        )
-                        if not success:
-                            nativeNotify(f"Error: translation with {engine} failed", result)
-                            raise Exception(result)
+                    word_texts = [word.word for word in segment.words]
+                    success, result = translate(engine, word_texts, lang_source, lang_target, proxies, debug_log, **kwargs)
+                    if not success:
+                        nativeNotify(f"Error: translation with {engine} failed", result)
+                        raise Exception(result)
 
-                        word["text"] = result
+                    # replace
+                    for word in segment.words:
+                        word.word = result.pop(0)
 
             gc.file_tled_counter += 1
-            query["text"] = text_all.strip()
-            save_output(query, path.join(export_to, f_name), sj.cache["export_to"])
+            save_output_stable_ts(query, path.join(export_to, f_name), sj.cache["export_to"], sj)
             gc.insert_to_mw(f"{f_name} - Translated", "tl", "\n")
 
         logger.debug(f"Translated: {f_name} | Time Taken: {time() - start:.2f}s")
@@ -314,11 +307,10 @@ def cancellable_tl(
         nativeNotify("Error: translating failed", str(e))
     finally:
         gc.disable_tl()  # flag processing as done. No need to check for transcription because it is done before this
-        gc.mw.stop_loadBar()
 
 
 def import_file(
-    files: List[str], model_name: str, lang_source: str, lang_target: str, transcribe: bool, translate: bool, engine: str
+    files: List[str], model_name_tc: str, lang_source: str, lang_target: str, transcribe: bool, translate: bool, engine: str
 ) -> None:
     """Function to transcribe and translate from audio/video files.
 
@@ -326,8 +318,8 @@ def import_file(
     ----
     files (list[str])
         The path to the audio/video file.
-    modelKey (str)
-        The key of the model in modelSelectDict as the selected model to use
+    model_name_tc (str)
+        The model to use for transcribing.
     lang_source (str)
         The language of the input.
     lang_target (str)
@@ -430,15 +422,54 @@ def import_file(
         tl_engine_whisper = engine in model_values
 
         # load model
-        model_tc = whisper.load_model(model_name)
-        model_tl = whisper.load_model(engine) if tl_engine_whisper else None
+        model_args = parse_args_stable_ts(
+            sj.cache["whisper_args"], "load",
+            stable_whisper.load_faster_whisper if sj.cache["use_faster_whisper"] else stable_whisper.load_model
+        )
+        if not model_args.pop("success"):
+            raise Exception(model_args["msg"])
+
+        if sj.cache["dir_model"] != "auto":
+            model_args["download_root"] = sj.cache["dir_model"]
+        else:
+            model_args["download_root"] = get_default_download_root()
+
+        model_tc, model_tl, stable_tc, stable_tl = None, None, None, None
+        if sj.cache["use_faster_whisper"]:
+            if model_name_tc == engine:
+                # same model for both transcribe and translate. Load only once
+                model_tc = stable_whisper.load_faster_whisper(model_name_tc, **model_args)
+                stable_tc = model_tc.transcribe_stable  # type: ignore
+                stable_tl = stable_tc
+            else:
+                if transcribe:
+                    model_tc = stable_whisper.load_faster_whisper(model_name_tc, **model_args)
+                    stable_tc = model_tc.transcribe_stable  # type: ignore
+                if translate:
+                    model_tl = stable_whisper.load_faster_whisper(engine, **model_args) if tl_engine_whisper else None
+                    if model_tl:
+                        stable_tl = model_tl.transcribe_stable  # type: ignore
+        else:
+            if model_name_tc == engine:
+                # same model for both transcribe and translate. Load only once
+                model_tc = stable_whisper.load_model(model_name_tc, **model_args)
+                stable_tc = model_tc.transcribe
+                stable_tl = stable_tc
+            else:
+                if transcribe:
+                    model_tc = stable_whisper.load_model(model_name_tc, **model_args)
+                    stable_tc = model_tc.transcribe
+                if translate:
+                    model_tl = stable_whisper.load_model(engine, **model_args) if tl_engine_whisper else None
+                    if model_tl:
+                        stable_tl = model_tl.transcribe
 
         temperature = sj.cache["temperature"]
         whisper_args = sj.cache["whisper_args"]
         export_format: str = sj.cache["export_format"]
         file_slice_start = (None if sj.cache["file_slice_start"] == "" else int(sj.cache["file_slice_start"]))
         file_slice_end = None if sj.cache["file_slice_end"] == "" else int(sj.cache["file_slice_end"])
-        plot = False
+        visualize_suppression = sj.cache["visualize_suppression"]
 
         success, data = get_temperature(temperature)
         if not success:
@@ -447,33 +478,31 @@ def import_file(
             temperature = data
 
         # parse whisper_args
-        data = parse_args_whisper_timestamped(sj.cache["whisper_args"])
+        pass_kwarg = {
+            "temperature": temperature,
+            "best_of": sj.cache["best_of"],
+            "beam_size": sj.cache["beam_size"],
+            "compression_ratio_threshold": sj.cache["compression_ratio_threshold"],
+            "logprob_threshold": sj.cache["logprob_threshold"],
+            "no_speech_threshold": sj.cache["no_speech_threshold"],
+            "suppress_tokens": sj.cache["suppress_tokens"],
+            "initial_prompt": sj.cache["initial_prompt"],
+            "condition_on_previous_text": sj.cache["condition_on_previous_text"],
+        }
+        data = parse_args_stable_ts(
+            sj.cache["whisper_args"], "transcribe", stable_tc if transcribe else stable_tl, **pass_kwarg
+        )
         if not data.pop("success"):
             raise Exception(data["msg"])
         else:
             whisper_args = data
-            assert isinstance(whisper_args, Dict)
-            plot = whisper_args.pop("plot")
             threads = whisper_args.pop("threads")
             if threads:
                 torch.set_num_threads(threads)
-            if whisper_args.pop("debug"):
-                logging.getLogger("WHISPER").setLevel(logging.DEBUG)
 
-            whisper_args["temperature"] = temperature
-            whisper_args["best_of"] = sj.cache["best_of"]
-            whisper_args["beam_size"] = sj.cache["beam_size"]
-            whisper_args["compression_ratio_threshold"] = sj.cache["compression_ratio_threshold"]
-            whisper_args["logprob_threshold"] = sj.cache["logprob_threshold"]
-            whisper_args["no_speech_threshold"] = sj.cache["no_speech_threshold"]
-            whisper_args["suppress_tokens"] = sj.cache["suppress_tokens"]
-            whisper_args["initial_prompt"] = sj.cache["initial_prompt"]
-            whisper_args["condition_on_previous_text"] = sj.cache["condition_on_previous_text"]
-
-        logger.debug(f"whisper_args: {whisper_args}")
-        # assert whisper_args is an object
-        if not isinstance(whisper_args, dict):
-            raise Exception("whisper_args must be an object")
+            sj.cache["language"] = lang_source if not auto else None
+            if sj.cache["use_faster_whisper"] and lang_source == "english":  # to remove warning from stable-ts
+                sj.cache["language"] = None
 
         # update button text
         gc.mw.btn_import_file.configure(text="Cancel")
@@ -481,6 +510,7 @@ def import_file(
         timerStart = time()
         taskname = "Transcribe & Translate" if transcribe and translate else "Transcribe" if transcribe else "Translate"
         language = f"from {lang_source} to {lang_target}" if translate else lang_source
+        logger.debug(f"whisper_args: {whisper_args}")
         current_file_counter = 0
 
         def add_to_files():
@@ -531,14 +561,15 @@ def import_file(
                     lbl_tled.set_text(text=f"{gc.file_tled_counter}")
 
                 # update progressbar
+                prog_file_len = len(files) * 2 if transcribe and translate else len(files)
                 progress_bar["value"] = (
-                    current_file_counter / len(files) * 100
+                    current_file_counter / prog_file_len * 100
                 )  # update the progress bar based on percentage
 
                 root.after(1000, update_modal_ui)
 
         # widgets
-        lbl_task_name.configure(text="Task: " + taskname + f" {language} with {model_name} model")
+        lbl_task_name.configure(text="Task: " + taskname + f" {language} with {model_name_tc} model")
         lbl_elapsed.set_text(f"{round(time() - timerStart, 2)}s")
         cbtn_open_folder.configure(state="normal")
         cbtn_invoker(sj.cache["auto_open_dir_export"], cbtn_open_folder)
@@ -546,24 +577,35 @@ def import_file(
         btn_cancel.configure(state="normal", command=cancel)
 
         update_modal_ui()
+        gc.mw.start_loadBar()
 
         for file in files:
             if not gc.recording:  # if cancel button is pressed
                 return
 
             # Proccess it
+            logger.debug("FILE PROCESSING: " + file)
             file_name = filename_only(file)
             save_name = datetime.now().strftime(export_format)
             save_name = save_name.replace("{file}", file_name[file_slice_start:file_slice_end])
             save_name = save_name.replace("{lang-source}", lang_source)
             save_name = save_name.replace("{lang-target}", lang_target)
-            save_name = save_name.replace("{model}", model_name)
+            save_name = save_name.replace("{model}", model_name_tc)
             save_name = save_name.replace("{engine}", engine)
+
+            if visualize_suppression:
+                stable_whisper.visualize_suppression(
+                    file,
+                    path.join(
+                        dir_export if sj.cache["dir_export"] == "auto" else sj.cache["dir_export"],
+                        f"{save_name.replace('{task}', 'visualized')}.png"
+                    )
+                )
 
             if translate and tl_engine_whisper and not transcribe:  # if only translating and using the whisper engine
                 proc_thread = Thread(
                     target=cancellable_tl,
-                    args=[file, lang_source, lang_target, model_name, engine, auto, save_name, plot],
+                    args=[file, lang_source, lang_target, stable_tl, engine, auto, save_name],
                     kwargs=whisper_args,
                     daemon=True,
                 )
@@ -573,8 +615,7 @@ def import_file(
                 proc_thread = Thread(
                     target=cancellable_tc,
                     args=[
-                        file, lang_source, lang_target, model_tc, model_tl, auto, transcribe, translate, engine, save_name,
-                        plot
+                        file, lang_source, lang_target, stable_tc, stable_tl, auto, transcribe, translate, engine, save_name
                     ],
                     kwargs=whisper_args,
                     daemon=True,

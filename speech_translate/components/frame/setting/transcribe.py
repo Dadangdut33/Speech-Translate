@@ -1,14 +1,16 @@
 from os import listdir, path, remove
 from tkinter import filedialog, ttk, Frame, LabelFrame, Toplevel, StringVar, Event, Menu
-from typing import Union
+from typing import Literal, Union
 from speech_translate.components.custom.checkbutton import CustomCheckButton
 from speech_translate.components.custom.message import MBoxText, mbox
 from datetime import datetime
 
+from stable_whisper import result_to_ass, result_to_srt_vtt, result_to_tsv
+
 from speech_translate.globals import sj, gc
 from speech_translate._path import dir_export
 from speech_translate.utils.helper import filename_only, popup_menu, start_file, up_first_case
-from speech_translate.utils.whisper.helper import get_temperature, parse_args_whisper_timestamped
+from speech_translate.utils.whisper.helper import get_temperature, parse_args_stable_ts
 from speech_translate.components.custom.tooltip import CreateToolTipOnText, tk_tooltip, tk_tooltips
 from speech_translate.components.custom.spinbox import SpinboxNumOnly
 
@@ -25,6 +27,9 @@ class SettingTranscribe:
         # whisper args
         self.lf_whisper_args = LabelFrame(self.master, text="• Whisper Options")
         self.lf_whisper_args.pack(side="top", fill="x", pady=5, padx=5)
+
+        self.f_whisper_args_0 = ttk.Frame(self.lf_whisper_args)
+        self.f_whisper_args_0.pack(side="top", fill="x", pady=(10, 5), padx=5)
 
         self.lf_decoding_options = ttk.LabelFrame(self.lf_whisper_args, text="Decoding")
         self.lf_decoding_options.pack(side="top", fill="x", pady=5, padx=5)
@@ -49,6 +54,19 @@ class SettingTranscribe:
 
         self.f_whisper_args_2 = ttk.Frame(self.lf_whisper_args)
         self.f_whisper_args_2.pack(side="top", fill="x", pady=(5, 10), padx=5)
+
+        self.cbtn_use_faster_whisper = CustomCheckButton(
+            self.f_whisper_args_0,
+            sj.cache["use_faster_whisper"],
+            lambda x: sj.save_key("use_faster_whisper", x),
+            text="Use Faster Whisper",
+            style="Switch.TCheckbutton",
+        )
+        self.cbtn_use_faster_whisper.pack(side="left", padx=5)
+        tk_tooltip(
+            self.cbtn_use_faster_whisper,
+            "Use faster whisper.\n\nDefault is checked",
+        )
 
         # decoding options
         self.radio_decoding_var = StringVar()
@@ -283,7 +301,7 @@ class SettingTranscribe:
         self.f_export_1.pack(side="top", fill="x", padx=5, pady=5)
 
         self.f_export_2 = ttk.Frame(self.lf_export)
-        self.f_export_2.pack(side="top", fill="x", padx=5, pady=(1, 5))
+        self.f_export_2.pack(side="top", fill="x", padx=5, pady=5)
 
         self.f_export_3 = ttk.Frame(self.lf_export)
         self.f_export_3.pack(side="top", fill="x", padx=5, pady=5)
@@ -297,118 +315,96 @@ class SettingTranscribe:
         self.f_export_6 = ttk.Frame(self.lf_export)
         self.f_export_6.pack(side="top", fill="x", padx=5, pady=5)
 
-        self.lbl_export_to = ttk.Label(self.f_export_1, text="Export to", width=17)
+        self.lbl_output_mode = ttk.Label(self.f_export_1, text="Mode", width=17)
+        self.lbl_output_mode.pack(side="left", padx=5)
+
+        def keep_one_enabled(value: bool, other_widget: ttk.Checkbutton):
+            if not value:
+                other_widget.configure(state="disabled")
+            else:
+                other_widget.configure(state="normal")
+
+        self.cbtn_segment_level = CustomCheckButton(
+            self.f_export_1,
+            sj.cache["segment_level"],
+            lambda x: sj.save_key("segment_level", x) or keep_one_enabled(x, self.cbtn_word_level),
+            text="Segment Level",
+            style="Switch.TCheckbutton",
+        )
+        self.cbtn_segment_level.pack(side="left", padx=5)
+        tk_tooltip(
+            self.cbtn_segment_level,
+            "Export the text in segment level.\n\n*Either segment level or word level must be enabled.\n\nDefault is checked",
+            wrapLength=350
+        )
+
+        self.cbtn_word_level = CustomCheckButton(
+            self.f_export_1,
+            sj.cache["word_level"],
+            lambda x: sj.save_key("word_level", x) or keep_one_enabled(x, self.cbtn_segment_level),
+            text="Word Level",
+            style="Switch.TCheckbutton",
+        )
+        self.cbtn_word_level.pack(side="left", padx=5)
+        tk_tooltip(
+            self.cbtn_word_level,
+            "Export the text in word level.\n\n*Either segment level or word level must be enabled.\n\nDefault is checked",
+            wrapLength=350
+        )
+
+        self.lbl_export_to = ttk.Label(self.f_export_2, text="Export to", width=17)
         self.lbl_export_to.pack(side="left", padx=5)
 
-        self.inv_padder = ttk.Label(self.f_export_2, width=17)
-        self.inv_padder.pack(side="left", padx=5)
-
-        # self.inv_padder_2 = ttk.Label(self.f_export_2, width=7)
-        # self.inv_padder_2.pack(side="left", padx=(5, 7))
-
-        def toggle_export_cbtn(enabled: bool, target_el: CustomCheckButton):
-            if enabled:
-                target_el.config(state="normal")
-            else:
-                target_el.config(state="disabled")
-
         self.cbtn_export_txt = CustomCheckButton(
-            self.f_export_1,
-            "txt" in sj.cache["export_to"],
-            lambda x: self.callback_export_to("txt", x),
-            text="Text",
-            width=5
+            self.f_export_2, "txt" in sj.cache["export_to"], lambda x: self.callback_export_to("txt", x), text="Text"
         )
         self.cbtn_export_txt.pack(side="left", padx=5)
 
         self.cbtn_export_json = CustomCheckButton(
-            self.f_export_2,
-            "json" in sj.cache["export_to"],
-            lambda x: self.callback_export_to("json", x),
-            text="JSON",
-            width=5
+            self.f_export_2, "json" in sj.cache["export_to"], lambda x: self.callback_export_to("json", x), text="JSON"
         )
         self.cbtn_export_json.pack(side="left", padx=5)
 
         self.cbtn_export_srt = CustomCheckButton(
-            self.f_export_1,
-            "srt" in sj.cache["export_to"],
-            lambda x: self.callback_export_to("srt", x) or toggle_export_cbtn(x, self.cbtn_export_srt_word),
-            text="SRT",
-            width=8
+            self.f_export_2, "srt" in sj.cache["export_to"], lambda x: self.callback_export_to("srt", x), text="SRT"
         )
         self.cbtn_export_srt.pack(side="left", padx=5)
 
-        self.cbtn_export_srt_word = CustomCheckButton(
-            self.f_export_2,
-            "srt.words" in sj.cache["export_to"],
-            lambda x: self.callback_export_to("srt.words", x),
-            text="Per word",
-            state="disabled" if "srt" not in sj.cache["export_to"] else "normal",
-            width=8
+        self.cbtn_export_ass = CustomCheckButton(
+            self.f_export_2, "ass" in sj.cache["export_to"], lambda x: self.callback_export_to("ass", x), text="ASS"
         )
-        self.cbtn_export_srt_word.pack(side="left", padx=5)
+        self.cbtn_export_ass.pack(side="left", padx=5)
 
         self.cbtn_export_vtt = CustomCheckButton(
-            self.f_export_1,
-            "vtt" in sj.cache["export_to"],
-            lambda x: self.callback_export_to("vtt", x) or toggle_export_cbtn(x, self.cbtn_export_vtt_word),
-            text="VTT",
-            width=8
+            self.f_export_2, "vtt" in sj.cache["export_to"], lambda x: self.callback_export_to("vtt", x), text="VTT"
         )
         self.cbtn_export_vtt.pack(side="left", padx=5)
 
-        self.cbtn_export_vtt_word = CustomCheckButton(
-            self.f_export_2,
-            "vtt.words" in sj.cache["export_to"],
-            lambda x: self.callback_export_to("vtt.words", x),
-            text="Per word",
-            state="disabled" if "vtt" not in sj.cache["export_to"] else "normal",
-            width=8
-        )
-        self.cbtn_export_vtt_word.pack(side="left", padx=5)
-
         self.cbtn_export_tsv = CustomCheckButton(
-            self.f_export_1,
-            "tsv" in sj.cache["export_to"],
-            lambda x: self.callback_export_to("tsv", x) or toggle_export_cbtn(x, self.cbtn_export_tsv_word),
-            text="TSV",
-            width=8
+            self.f_export_2, "tsv" in sj.cache["export_to"], lambda x: self.callback_export_to("tsv", x), text="TSV"
         )
         self.cbtn_export_tsv.pack(side="left", padx=5)
 
-        self.cbtn_export_tsv_word = CustomCheckButton(
-            self.f_export_2,
-            "tsv.words" in sj.cache["export_to"],
-            lambda x: self.callback_export_to("tsv.words", x),
-            text="Per word",
-            state="disabled" if "tsv" not in sj.cache["export_to"] else "normal",
-            width=8
-        )
-        self.cbtn_export_tsv_word.pack(side="left", padx=5)
-
         self.cbtn_export_csv = CustomCheckButton(
-            self.f_export_1,
-            "csv" in sj.cache["export_to"],
-            lambda x: self.callback_export_to("csv", x) or toggle_export_cbtn(x, self.cbtn_export_csv_word),
-            text="CSV",
-            width=8
+            self.f_export_2, "csv" in sj.cache["export_to"], lambda x: self.callback_export_to("csv", x), text="CSV"
         )
         self.cbtn_export_csv.pack(side="left", padx=5)
 
-        self.cbtn_export_csv_word = CustomCheckButton(
-            self.f_export_2,
-            "csv.words" in sj.cache["export_to"],
-            lambda x: self.callback_export_to("csv.words", x),
-            text="Per word",
-            state="disabled" if "csv" not in sj.cache["export_to"] else "normal",
-            width=8
-        )
-        self.cbtn_export_csv_word.pack(side="left", padx=5)
+        self.separator_fex_2 = ttk.Separator(self.f_export_2, orient="vertical")
+        self.separator_fex_2.pack(side="left", padx=5, fill="y")
 
-        tk_tooltips(
-            [self.cbtn_export_srt_word, self.cbtn_export_vtt_word, self.cbtn_export_tsv_word, self.cbtn_export_csv_word],
-            "Enable word level transcription, will export the text Per word instead of per sentence to its own separated file."
+        self.cbtn_visaulize_suppression = CustomCheckButton(
+            self.f_export_2,
+            sj.cache["visualize_suppression"],
+            lambda x: sj.save_key("visualize_suppression", x),
+            text="Visualize Suppression",
+            style="Switch.TCheckbutton",
+        )
+        self.cbtn_visaulize_suppression.pack(side="left", padx=5)
+        tk_tooltip(
+            self.cbtn_visaulize_suppression,
+            "visualize which parts of the audio will likely be suppressed (i.e. marked as silent).\n\nDefault is unchecked",
+            wrapLength=350
         )
 
         self.lbl_export = ttk.Label(self.f_export_3, text="Export Folder", width=17)
@@ -640,7 +636,10 @@ class SettingTranscribe:
                 self.spn_beam_size.set(5)
                 sj.save_key("beam_size", 5)
 
-    def callback_export_to(self, value: str, add: bool):
+    def callback_export_to(
+        self, value: Union[Literal["txt"], Literal["csv"], Literal["json"], Literal["srt"], Literal["ass"], Literal["vtt"],
+                           Literal["tsv"]], add: bool
+    ):
         try:
             export_list = sj.cache["export_to"].copy()
             if add:
@@ -697,9 +696,25 @@ class SettingTranscribe:
         sj.save_key("temperature", value)
 
     def verify_raw_args(self, value: str):
-        res = parse_args_whisper_timestamped(value)
-        if not res["success"]:
-            mbox("Invalid Whisper Arguments", f"{res['msg']}", 2, self.root)
+        if len(value) == 0:
             return
+
+        loop_for = ["load", "transcribe", "align", "refine", "save"]
+        check_for_save = [result_to_ass, result_to_srt_vtt, result_to_tsv]
+        kwargs = {"show_parsed": False}
+
+        for el in loop_for:
+            if el != "save":
+                res = parse_args_stable_ts(value, el, **kwargs)
+                if not res["success"]:
+                    mbox("Invalid Stable Whisper Arguments", f"{res['msg']}", 2, self.root)
+                    return
+            else:
+                # save, special. Need to pass the save method
+                for method in check_for_save:
+                    res = parse_args_stable_ts(value, el, method, **kwargs)
+                    if not res["success"]:
+                        mbox("Invalid Stable Whisper Arguments", f"{res['msg']}", 2, self.root)
+                        return
 
         sj.save_key("whisper_args", value)

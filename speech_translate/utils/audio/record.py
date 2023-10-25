@@ -1,25 +1,22 @@
-import logging
-import sys
 from ast import literal_eval
 from datetime import datetime, timedelta
 from io import BytesIO
 from os import remove
 from platform import system
 from shlex import quote
+import sys
 from threading import Lock, Thread
 from time import gmtime, strftime, time, sleep
 from tkinter import IntVar, Toplevel, ttk
-from typing import Dict
 from wave import Wave_read, Wave_write
 from wave import open as w_open
 
 import numpy as np
 import scipy.io.wavfile as wav
 import torch
-import whisper_timestamped as whisper
+import stable_whisper
 
-from speech_translate.components.custom.audio import AudioMeter
-from speech_translate.utils.custom_types import WhisperResult
+from speech_translate.utils.whisper.download import get_default_download_root  # https://github.com/jianfch/stable-ts # has no static annotation hence many type ignore
 if system() == "Windows":
     import pyaudiowpatch as pyaudio
 else:
@@ -30,12 +27,13 @@ from speech_translate._constants import MAX_THRESHOLD, MIN_THRESHOLD, WHISPER_SR
 from speech_translate._path import app_icon, dir_debug, dir_temp
 from speech_translate.components.custom.label import LabelTitleText
 from speech_translate.components.custom.message import mbox
+from speech_translate.components.custom.audio import AudioMeter
 from speech_translate.custom_logging import logger
 from speech_translate.globals import gc, sj
 from speech_translate.utils.audio.device import get_db, get_device_details, get_frame_duration, get_speech, resample_sr
 
 from ..helper import cbtn_invoker, generate_temp_filename, get_channel_int, get_proxies, nativeNotify, separator_to_html, unique_list
-from ..whisper.helper import get_temperature, parse_args_whisper_timestamped, whisper_verbose_log, model_values
+from ..whisper.helper import get_temperature, _result_to_dict, parse_args_stable_ts, stablets_verbose_log, model_values
 from ..translate.translator import translate
 
 
@@ -87,6 +85,7 @@ def record_session(
     None
     """
     assert gc.mw is not None
+    print_disabled = False
     master = gc.mw.root
     root = Toplevel(master)
     root.title("Loading...")
@@ -195,7 +194,7 @@ def record_session(
     btn_pause = ttk.Button(frame_btn, text="Pause", state="disabled")
     btn_pause.pack(side="left", fill="x", padx=5, expand=True)
 
-    btn_stop = ttk.Button(frame_btn, text="Stop", style="Accent.TButton", state="disabled")
+    btn_stop = ttk.Button(frame_btn, text="Stop", style="Accent.TButton")
     btn_stop.pack(side="right", fill="x", padx=5, expand=True)
     try:
         root.iconbitmap(app_icon)
@@ -214,9 +213,48 @@ def record_session(
         if translate and tl_engine_whisper:
             gc.tc_lock = Lock()
 
-        if auto:
-            # temporary disable print functon from the library | Logger is not affected
-            sys.stdout = NullIO()
+        # load model first
+        model_args = parse_args_stable_ts(
+            sj.cache["whisper_args"], "load",
+            stable_whisper.load_faster_whisper if sj.cache["use_faster_whisper"] else stable_whisper.load_model
+        )
+        if not model_args.pop("success"):
+            raise Exception(model_args["msg"])
+
+        if sj.cache["dir_model"] != "auto":
+            model_args["download_root"] = sj.cache["dir_model"]
+        else:
+            model_args["download_root"] = get_default_download_root()
+
+        model_tc, model_tl, stable_tc, stable_tl = None, None, None, None
+        if sj.cache["use_faster_whisper"]:
+            if model_name_tc == engine:
+                # same model for both transcribe and translate. Load only once
+                model_tc = stable_whisper.load_faster_whisper(model_name_tc, **model_args)
+                stable_tc = model_tc.transcribe_stable  # type: ignore
+                stable_tl = stable_tc
+            else:
+                if transcribe:
+                    model_tc = stable_whisper.load_faster_whisper(model_name_tc, **model_args)
+                    stable_tc = model_tc.transcribe_stable  # type: ignore
+                if translate:
+                    model_tl = stable_whisper.load_faster_whisper(engine, **model_args) if tl_engine_whisper else None
+                    if model_tl:
+                        stable_tl = model_tl.transcribe_stable  # type: ignore
+        else:
+            if model_name_tc == engine:
+                # same model for both transcribe and translate. Load only once
+                model_tc = stable_whisper.load_model(model_name_tc, **model_args)
+                stable_tc = model_tc.transcribe
+                stable_tl = stable_tc
+            else:
+                if transcribe:
+                    model_tc = stable_whisper.load_model(model_name_tc, **model_args)
+                    stable_tc = model_tc.transcribe
+                if translate:
+                    model_tl = stable_whisper.load_model(engine, **model_args) if tl_engine_whisper else None
+                    if model_tl:
+                        stable_tl = model_tl.transcribe
 
         # read from settings
         max_int16 = 2**15  # bit depth of 16 bit audio (32768)
@@ -232,39 +270,41 @@ def record_session(
             temperature = data
 
         # parse whisper_args
-        data = parse_args_whisper_timestamped(sj.cache["whisper_args"])
+        pass_kwarg = {
+            "temperature": temperature,
+            "best_of": sj.cache["best_of"],
+            "beam_size": sj.cache["beam_size"],
+            "compression_ratio_threshold": sj.cache["compression_ratio_threshold"],
+            "logprob_threshold": sj.cache["logprob_threshold"],
+            "no_speech_threshold": sj.cache["no_speech_threshold"],
+            "suppress_tokens": sj.cache["suppress_tokens"],
+            "initial_prompt": sj.cache["initial_prompt"],
+            "condition_on_previous_text": sj.cache["condition_on_previous_text"],
+        }
+        data = parse_args_stable_ts(
+            sj.cache["whisper_args"], "transcribe", stable_tc if transcribe else stable_tl, **pass_kwarg
+        )
         if not data.pop("success"):
             raise Exception(data["msg"])
         else:
             whisper_args = data
-            assert isinstance(whisper_args, Dict)
-            whisper_args.pop("plot")
             threads = whisper_args.pop("threads")
             if threads:
                 torch.set_num_threads(threads)
-            if whisper_args.pop("debug"):
-                logging.getLogger("WHISPER").setLevel(logging.DEBUG)
+            whisper_args["verbose"] = None  # set to none so no printing to stdout
+            # when using numpy array as input, will need to set input_sr
+            if sj.cache["use_faster_whisper"] and not use_temp:
+                whisper_args["input_sr"] = WHISPER_SR
+            sj.cache["language"] = lang_source if not auto else None
+            if sj.cache["use_faster_whisper"] and lang_source == "english":  # to remove warning from stable-ts
+                sj.cache["language"] = None
 
-            whisper_args["temperature"] = temperature
-            whisper_args["best_of"] = sj.cache["best_of"]
-            whisper_args["beam_size"] = sj.cache["beam_size"]
-            whisper_args["compression_ratio_threshold"] = sj.cache["compression_ratio_threshold"]
-            whisper_args["logprob_threshold"] = sj.cache["logprob_threshold"]
-            whisper_args["no_speech_threshold"] = sj.cache["no_speech_threshold"]
-            whisper_args["suppress_tokens"] = sj.cache["suppress_tokens"]
-            whisper_args["initial_prompt"] = sj.cache["initial_prompt"]
-            whisper_args["condition_on_previous_text"] = sj.cache["condition_on_previous_text"]
-
-        # assert whisper_args is an object
-        if not isinstance(whisper_args, dict):
-            raise Exception("whisper_args must be an object")
+            if whisper_args["vad"]:
+                sys.stdout = NullIO()  # suppress print from stable-ts
+                print_disabled = True
 
         # if only translate to english using whisper engine
         task = "translate" if tl_engine_whisper and translate and not transcribe else "transcribe"
-
-        # load model
-        model_tc = whisper.load_model(model_name_tc)
-        model_tl = whisper.load_model(engine) if tl_engine_whisper else None
 
         gc.mw.stop_loadBar(rec_type)
         # ----------------- Get device -----------------
@@ -502,13 +542,13 @@ def record_session(
             # append and remove text that is exactly the same same
             # Some dupe might accidentally happened so we need to remove it
             if transcribe:
-                gc.tc_sentences.append(prev_tc_res)  # type: ignore
+                gc.tc_sentences.append(prev_tc_res)
                 gc.tc_sentences = unique_list(gc.tc_sentences)
                 if len(gc.tc_sentences) >= max_sentences:
                     gc.tc_sentences.pop(0)
                 gc.update_tc(None, separator)
             if translate:
-                gc.tl_sentences.append(prev_tl_res)  # type: ignore
+                gc.tl_sentences.append(prev_tl_res)
                 gc.tl_sentences = unique_list(gc.tl_sentences)
                 if len(gc.tl_sentences) >= max_sentences:
                     gc.tl_sentences.pop(0)
@@ -618,23 +658,24 @@ def record_session(
                 gc.current_rec_status = "▶️ Recording ⟳ Translating"
 
                 # translate
-                result: WhisperResult = whisper.transcribe(
-                    model_tl, audio_target, language=lang_source if not auto else None, task="translate", **whisper_args
+                result: stable_whisper.WhisperResult = stable_tl( # type: ignore
+                    audio_target, task="translate", **whisper_args
                 )
-                text = str(result["text"]).strip()
-                gc.auto_detected_lang = str(result["language"])
+
+                text = result.text.strip()
+                gc.auto_detected_lang = result.language or "~"
 
                 if len(text) > 0:
-                    prev_tl_res = result
+                    prev_tl_res = _result_to_dict(result)
 
                     if sj.cache["debug_realtime_record"] == 1:
                         logger.debug("New translated text (Whisper)")
                         if sj.cache["verbose"]:
-                            logger.debug(whisper_verbose_log(result))
+                            logger.debug(stablets_verbose_log(result))
                         else:
                             logger.debug(f"{text}")
 
-                    gc.update_tl(result, separator)
+                    gc.update_tl(_result_to_dict(result), separator)
             else:
                 # transcribing and maybe translating
                 if sj.cache["debug_realtime_record"] == 1:
@@ -648,8 +689,9 @@ def record_session(
                     gc.tc_lock.acquire()
 
                 # transcribe
-                result: WhisperResult = whisper.transcribe(
-                    model_tc, audio_target, language=lang_source if not auto else None, task=task, **whisper_args
+                assert stable_tc is not None
+                result = stable_tc(  # type: ignore
+                    audio_target, task=task, **whisper_args
                 )
 
                 # ----------------------------------
@@ -658,26 +700,26 @@ def record_session(
                     assert gc.tc_lock is not None
                     gc.tc_lock.release()
 
-                text = str(result["text"]).strip()
-                gc.auto_detected_lang = str(result["language"])
+                text = result.text.strip()
+                gc.auto_detected_lang = result.language or "~"
 
                 if len(text) > 0:
-                    prev_tc_res = result
+                    prev_tc_res = _result_to_dict(result)
 
                     if sj.cache["debug_realtime_record"] == 1:
                         if sj.cache["verbose"]:
-                            logger.debug(whisper_verbose_log(result))
+                            logger.debug(stablets_verbose_log(result))
                         else:
                             logger.debug(f"New text: {text}")
 
-                    gc.update_tc(result, separator)
+                    gc.update_tc(_result_to_dict(result), separator)
 
                     # check translating or not
                     if translate:
                         if tl_engine_whisper:
                             tl_thread = Thread(
                                 target=tl_whisper_threaded,
-                                args=[audio_target, lang_source, auto, model_tl, separator],
+                                args=[audio_target, stable_tl, separator],
                                 kwargs=whisper_args,
                                 daemon=True
                             )
@@ -696,10 +738,6 @@ def record_session(
             gc.current_rec_status = "▶️ Recording"  # reset status
         else:
             logger.debug("Record Session ended")
-
-            if auto:
-                # re-enable print
-                sys.stdout = original_stdout
 
             gc.current_rec_status = "⚠️ Stopping stream"
             update_status_lbl()
@@ -753,6 +791,9 @@ def record_session(
             root.after_cancel(modal_after)
         if root.winfo_exists():
             root.destroy()  # close if not destroyed
+    finally:
+        if print_disabled:
+            sys.stdout = original_stdout
 
 
 def record_cb(in_data, frame_count, time_info, status):
@@ -765,7 +806,7 @@ def record_cb(in_data, frame_count, time_info, status):
 
     # Run resample and use resampled audio if not using temp file
     resampled = resample_sr(in_data, sr_ori, WHISPER_SR)
-    if not use_temp:
+    if not use_temp:  # when use_temp will use the original audio
         in_data = resampled
 
     if not threshold_enable:
@@ -815,9 +856,7 @@ def record_cb(in_data, frame_count, time_info, status):
 
 def tl_whisper_threaded(
     audio,
-    lang_source: str,
-    auto: bool,
-    model: whisper.Whisper,
+    stable_tl,
     separator: str,
     **whisper_args,
 ):
@@ -827,28 +866,25 @@ def tl_whisper_threaded(
 
     global prev_tl_res
     try:
-
         assert gc.tc_lock is not None
         gc.tc_lock.acquire()
-        result: WhisperResult = whisper.transcribe(
-            model, audio, language=lang_source if not auto else None, task="translate", **whisper_args
-        )
+        result: stable_whisper.WhisperResult = stable_tl(audio, task="translate", **whisper_args)
         gc.tc_lock.release()
-        text = str(result["text"]).strip()
-        gc.auto_detected_lang = str(result["language"])
+
+        text = result.text.strip()
+        gc.auto_detected_lang = result.language or "~"
 
         if len(text) > 0:
-            prev_tl_res = result
+            prev_tl_res = _result_to_dict(result)
 
             if sj.cache["debug_realtime_record"] == 1:
                 logger.debug("New translated text (Whisper)")
                 if sj.cache["verbose"]:
-                    logger.debug(whisper_verbose_log(result))
+                    logger.debug(stablets_verbose_log(result))
                 else:
                     logger.debug(f"{text}")
 
-            gc.update_tl(result, separator)
-
+            gc.update_tl(_result_to_dict(result), separator)
     except Exception as e:
         logger.exception(e)
         nativeNotify("Error: translating failed", str(e))
@@ -867,16 +903,17 @@ def tl_api(text: str, lang_source: str, lang_target: str, engine: str, separator
         proxies = get_proxies(sj.cache["http_proxy"], sj.cache["https_proxy"])
         kwargs = {}
         if engine == "LibreTranslate":
-            kwargs["libre_https"] = sj.cache["libre_https"],
-            kwargs["libre_host"] = sj.cache["libre_host"],
-            kwargs["libre_port"] = sj.cache["libre_port"],
-            kwargs["libre_api_key"] = sj.cache["libre_api_key"],
+            kwargs["libre_https"] = sj.cache["libre_https"]
+            kwargs["libre_host"] = sj.cache["libre_host"]
+            kwargs["libre_port"] = sj.cache["libre_port"]
+            kwargs["libre_api_key"] = sj.cache["libre_api_key"]
 
-        success, result = translate(engine, text, lang_source, lang_target, proxies, debug_log, **kwargs)
+        success, result = translate(engine, [text], lang_source, lang_target, proxies, debug_log, **kwargs)
         if not success:
             nativeNotify(f"Error: translation with {engine} failed", result)
             raise Exception(result)
 
+        result = result[0]
         if result is not None and len(result) > 0:
             prev_tl_res = result.strip()
             gc.update_tl(result.strip(), separator)
