@@ -154,16 +154,21 @@ class CreateToolTipOnText:
         self.focus_out_bind = focus_out_bind
         self.widget.bind("<FocusIn>", self.enter)
         self.widget.bind("<FocusOut>", self.leave)
+        self.focused = False
+        self.showing = False
 
         self.id = None
         self.root = None
 
     def enter(self, event=None):
+        self.focused = True
         self.schedule()
 
     def leave(self, event=None):
+        self.focused = False
         self.unschedule()
-        self.hidetip()
+        self.widget.after(self.waitTime, self.hidetip)
+        # self.hidetip()
         if self.focus_out_bind:
             self.focus_out_bind()
 
@@ -178,6 +183,11 @@ class CreateToolTipOnText:
             self.widget.after_cancel(id)
 
     def showTip(self, event=None):
+        if self.showing:  # still showing
+            return
+
+        self.showing = True
+
         # make position to be on the bottom side of the widget
         x = self.widget.winfo_rootx()
         y = self.widget.winfo_rooty() + 20
@@ -202,13 +212,24 @@ class CreateToolTipOnText:
         self.tb = Text(self.f_1, wrap="word", font=("Arial", 10))
         self.tb.insert("end", self.text)
         self.tb.bind("<Key>", lambda event: tb_copy_only(event))  # Disable textbox input
+        self.tb.bind("<FocusIn>", self.make_focus)
+        self.tb.bind("<Button-1>", self.make_focus)
         self.tb.pack(fill="both", expand=True, side="left")
 
         self.scrollbar = ttk.Scrollbar(self.f_1, orient="vertical", command=self.tb.yview)
         self.scrollbar.pack(fill="y", side="right")
+        self.scrollbar.bind("<FocusIn>", self.make_focus)
+        self.scrollbar.bind("<Button-1>", self.make_focus)
         self.tb.configure(yscrollcommand=self.scrollbar.set)
 
+    def make_focus(self, _event):
+        self.focused = True
+
     def hidetip(self):
+        if self.focused:  # still focused
+            return
+
+        self.showing = False
         tw = self.root
         self.root = None
         if tw:

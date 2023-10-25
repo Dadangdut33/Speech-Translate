@@ -245,36 +245,244 @@ class SettingTranscribe:
         self.entry_whisper_args.bind("<Return>", lambda e: self.verify_raw_args(self.entry_whisper_args.get()))
         tk_tooltip(self.entry_whisper_args, "Whisper extra arguments.\n\nDefault is empty")
 
-        hint = (
-            "Command line arguments to be used. (Usage value shown as example here are only for reference)"
-            #
-            "\n\n# [vad]\n* description: Whether to run Voice Activity Detection (VAD) to remove non-speech segment before applying Whisper model (removes hallucinations)"
-            "\n* type: bool, default False \n* usage: --vad True"
-            "\n\n# [detect_disfluencies]\n* description: Whether to try to detect disfluencies, marking them as special words [*]"
-            "\n* type: bool, default False \n* usage: --detect_disfluencies True"
-            "\n\n# [recompute_all_timestamps]\n* description: Do not rely at all on Whisper timestamps (Experimental option: did not bring any improvement, but could be useful in cases where Whipser segment timestamp are wrong by more than 0.5 seconds)"
-            "\n* type: bool, default False \n* usage: --recompute_all_timestamps True"
-            "\n\n# [punctuations_with_words]\n*Whether to include punctuations in the words"
-            "\n* type: bool, default True \n* usage: --detect_disfluencies False"
-            "\n\n# [patience]\n* description: Optional patience value to use in beam decoding, as in https://arxiv.org/abs/2204.05424, 1.0 is equivalent to conventional beam search"
-            "\n* type: float, default None \n* usage: --patience 1.0"
-            "\n\n# [length_penalty]\n* description: optional token length penalty coefficient (alpha) as in https://arxiv.org/abs/1609.08144, uses simple length normalization by default"
-            "\n* type: float, default None \n* usage: --length_penalty 0.0"
-            "\n\n# [fp16]\n* description: Whether to perform inference in fp16; Automatic by default (True if GPU available, False otherwise)"
-            "\n* type: bool, default None \n* usage: --fp16 true"
-            "\n\n# [threads]\n* description: Number of threads used by torch for CPU inference; supercedes MKL_NUM_THREADS/OMP_NUM_THREADS"
-            "\n* type: int, default 0 \n* usage: --threads 2"
-            "\n\n# [compute_confidence]\n*description: Whether to compute confidence scores for words"
-            "\n* type: bool, default True \n* usage: --compute_confidence False"
-            "\n\n# [verbose]\n*description: Whether to print out the progress and debug messages of Whisper"
-            "\n* type: bool, default False \n* usage: --verbose True"
-            "\n\n# [plot]\n* description: Show plot of word alignments (result will be saved automatically in output folder)"
-            "\n* type: bool, default False \n* usage: --plot"
-            "\n\n# [debug]\n* description: Print some debug information about word alignment"
-            "\n* type: bool, default False \n* usage: --debug"
-            "\n\n# [naive]\n* description: Use naive approach, doing inference twice (once to get the transcription, once to get word timestamps and confidence scores)"
-            "\n* type: bool, default False \n* usage: --naive"
-        )
+        hint = """Command line arguments to be used. (Usage value shown as example here are only for reference). 
+
+For more information, see https://github.com/jianfch/stable-ts or https://github.com/Dadangdut33/Speech-Translate/wiki
+# [command]
+* description of command
+* type: str, default cuda
+* usage: --device cpu
+
+# [device]
+* description: device to use for PyTorch inference (A Cuda compatible GPU and PyTorch with CUDA support are still required for GPU / CUDA)
+* type: str, default cuda
+* usage: --device cpu
+
+# [cpu_preload]
+* description: load model into CPU memory first then move model to specified device; this reduces GPU memory usage when loading model.
+* type: bool, default True
+* usage: --cpu_preload True
+
+# [dynamic_quantization]
+* description: whether to apply Dynamic Quantization to model to reduce memory usage (~half less) and increase inference speed at cost of slight decrease in accuracy; Only for CPU; NOTE: overhead might make inference slower for models smaller than 'large'
+* type: bool, default False
+* usage: --dynamic_quantization
+
+# [prepend_punctuations]
+* description: Punctuations to prepend to the next word
+* type: str, default "'“¿([{-"
+* usage: --prepend_punctuations "<punctuation>"
+
+# [append_punctuations]
+* description: Punctuations to append to the previous word
+* type: str, default "\"'.。,，!！?？:：”)]}、"
+* usage: --append_punctuations "<punctuation>"
+
+# [gap_padding]
+* description: padding to prepend to each segment for word timing alignment; used to reduce the probability of the model predicting timestamps earlier than the first utterance
+* type: str, default " ..."
+* usage: --gap_padding "padding"
+
+# [word_timestamps]
+* description: extract word-level timestamps using the cross-attention pattern and dynamic time warping, and include the timestamps for each word in each segment; disabling this will prevent segments from splitting/merging properly.
+* type: bool, default True
+* usage: --word_timestamps True
+
+# [regroup]
+* description: whether to regroup all words into segments with more natural boundaries; specify a string for customizing the regrouping algorithm; ignored if [word_timestamps]=False.
+* type: str, default "True"
+* usage: --regroup "regroup_option"
+
+# [ts_num]
+* description: number of extra inferences to perform to find the mean timestamps
+* type: int, default 0
+* usage: --ts_num <number>
+
+# [ts_noise]
+* description: percentage of noise to add to audio_features to perform inferences for [ts_num]
+* type: float, default 0.1
+* usage: --ts_noise 0.1
+
+# [suppress_silence]
+* description: whether to suppress timestamps where audio is silent at segment-level and word-level if [suppress_word_ts]=True
+* type: bool, default True
+* usage: --suppress_silence True
+
+# [suppress_word_ts]
+* description: whether to suppress timestamps where audio is silent at word-level; ignored if [suppress_silence]=False
+* type: bool, default True
+* usage: --suppress_word_ts True
+
+# [suppress_ts_tokens]
+* description: whether to use silence mask to suppress silent timestamp tokens during inference; increases word accuracy in some cases, but tends to reduce 'verbatimness' of the transcript; ignored if [suppress_silence]=False
+* type: bool, default False
+* usage: --suppress_ts_tokens True
+
+# [q_levels]
+* description: quantization levels for generating timestamp suppression mask; acts as a threshold to marking sound as silent; fewer levels will increase the threshold of volume at which to mark a sound as silent
+* type: int, default 20
+* usage: --q_levels <number>
+
+# [k_size]
+* description: Kernel size for average pooling waveform to generate suppression mask; recommend 5 or 3; higher sizes will reduce detection of silence
+* type: int, default 5
+* usage: --k_size 5
+
+# [time_scale]
+* description: factor for scaling audio duration for inference; greater than 1.0 'slows down' the audio; less than 1.0 'speeds up' the audio; 1.0 is no scaling
+* type: float
+* usage: --time_scale <value>
+
+# [vad]
+* description: whether to use Silero VAD to generate timestamp suppression mask; Silero VAD requires PyTorch 1.12.0+; Official repo: https://github.com/snakers4/silero-vad
+* type: bool, default False
+* usage: --vad
+
+# [vad_threshold]
+* description: threshold for detecting speech with Silero VAD. (Default: 0.35); low threshold reduces false positives for silence detection
+* type: float, default 0.35
+* usage: --vad_threshold 0.35
+
+# [vad_onnx]
+* description: whether to use ONNX for Silero VAD
+* type: bool, default False
+* usage: --vad_onnx
+
+# [min_word_dur]
+* description: only allow suppressing timestamps that result in word durations greater than this value
+* type: float, default 0.1
+* usage: --min_word_dur 0.1
+
+# [max_chars]
+* description: maximum number of characters allowed in each segment
+* type: int
+* usage: --max_chars <value>
+
+# [max_words]
+* description: maximum number of words allowed in each segment
+* type: int
+* usage: --max_words <value>
+
+# [demucs]
+* description: whether to reprocess the audio track with Demucs to isolate vocals/remove noise; Demucs official repo: https://github.com/facebookresearch/demucs
+* type: bool, default False
+* usage: --demucs
+
+# [only_voice_freq]
+* description: whether to only use sound between 200 - 5000 Hz, where the majority of human speech is.
+* type: bool
+* usage: --only_voice_freq
+
+# [strip]
+* description: whether to remove spaces before and after text on each segment for output
+* type: bool, default True
+* usage: --strip True
+
+# [tag]
+* description: a pair of tags used to change the properties of a word at its predicted time; SRT Default: '<font color=\"#00ff00\">', '</font>'; VTT Default: '<u>', '</u>'; ASS Default: '{\\1c&HFF00&}', '{\\r}'
+* type: str
+* usage: --tag "<start_tag> <end_tag>"
+
+# [reverse_text]
+* description: whether to reverse the order of words for each segment of text output
+* type: bool, default False
+* usage: --reverse_text
+
+# [font]
+* description: word font for ASS output(s)
+* type: str, default 'Arial'
+* usage: --font "<font_name>"
+
+# [font_size]
+* description: word font size for ASS output(s)
+* type: int, default 48
+* usage: --font_size 48
+
+# [karaoke]
+* description: whether to use progressive filling highlights for karaoke effect (only for ASS outputs)
+* type: bool, default False
+* usage: --karaoke
+
+# [temperature]
+* description: temperature to use for sampling
+* type: float, default 0
+* usage: --temperature <value>
+
+# [best_of]
+* description: number of candidates when sampling with non-zero temperature
+* type: int
+* usage: --best_of <value>
+
+# [beam_size]
+* description: number of beams in beam search, only applicable when temperature is zero
+* type: int
+* usage: --beam_size <value>
+
+# [patience]
+* description: optional patience value to use in beam decoding, as in https://arxiv.org/abs/2204.05424, the default (1.0) is equivalent to conventional beam search
+* type: float
+* usage: --patience <value>
+
+# [length_penalty]
+* description: optional token length penalty coefficient (alpha) as in https://arxiv.org/abs/1609.08144, uses simple length normalization by default
+* type: float
+* usage: --length_penalty <value>
+
+# [fp16]
+* description: whether to perform inference in fp16; True by default
+* type: bool, default True
+* usage: --fp16
+
+# [compression_ratio_threshold]
+* description: if the gzip compression ratio is higher than this value, treat the decoding as failed
+* type: float
+* usage: --compression_ratio_threshold <value>
+
+# [logprob_threshold]
+* description: if the average log probability is lower than this value, treat the decoding as failed
+* type: float
+* usage: --logprob_threshold <value>
+
+# [no_speech_threshold]
+* description: if the probability of the token is higher than this value AND the decoding has failed due to `logprob_threshold`, consider the segment as silence
+* type: float, default 0.6
+* usage: --no_speech_threshold 0.6
+
+# [threads]
+* description: number of threads used by torch for CPU inference; supercedes MKL_NUM_THREADS/OMP_NUM_THREADS
+* type: int
+* usage: --threads <value>
+
+# [mel_first]
+* description: process the entire audio track into a log-Mel spectrogram first instead in chunks
+* type: bool
+* usage: --mel_first
+
+# [demucs_option]
+* description: Extra option(s) to use for Demucs; Replace True/False with 1/0; E.g. --demucs_option "shifts=3" --demucs_option "overlap=0.5"
+* type: str
+* usage: --demucs_option "<option>"
+
+# [refine_option]
+* description: Extra option(s) to use for refining timestamps; Replace True/False with 1/0; E.g. --refine_option "steps=sese" --refine_option "rel_prob_decrease=0.05"
+* type: str
+* usage: --refine_option "<option>"
+
+# [model_option]
+* description: Extra option(s) to use for loading the model; Replace True/False with 1/0; E.g. --model_option "download_root=./downloads"
+* type: str
+* usage: --model_option "<option>"
+
+# [transcribe_option]
+* description: Extra option(s) to use for transcribing/alignment; Replace True/False with 1/0; E.g. --transcribe_option "ignore_compatibility=1"
+* type: str
+* usage: --transcribe_option "<option>"
+
+# [save_option]
+* description: Extra option(s) to use for text outputs; Replace True/False with 1/0; E.g. --save_option "highlight_color=ffffff"
+* type: str
+* usage: --save_option "<option>"
+        """
         CreateToolTipOnText(
             self.entry_whisper_args,
             hint,
