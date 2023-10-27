@@ -279,10 +279,13 @@ class BridgeClass:
             # colorization based on confidence per sentence, so get the confidence value from the segment
             elif sj.cache["colorize_per_segment"]:
                 for segment in sentence["segments"]:
-                    temp = segment["text"].lstrip()
+                    # lstrip if first only
+                    temp = segment["text"].lstrip() if segment["id"] == 0 else segment["text"]
                     confidence_total_word = 0
                     for word in segment["words"]:
                         confidence_total_word += word["probability"]
+                    # confidence_total_word = sum(segment["words"]["probability"])
+
                     confidence = confidence_total_word / len(segment["words"])
 
                     store_list.append(
@@ -302,7 +305,7 @@ class BridgeClass:
             elif sj.cache["colorize_per_word"]:
                 for segment in sentence["segments"]:
                     for word in segment["words"]:
-                        temp = word["word"].lstrip()
+                        temp = word["word"].lstrip() if word["id"] == 0 else word["word"]
                         store_list.append(
                             {
                                 "text": temp,

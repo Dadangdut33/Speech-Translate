@@ -5,7 +5,7 @@ from arabic_reshaper import reshape
 from bidi.algorithm import get_display
 from matplotlib import pyplot as plt
 
-from speech_translate._constants import PREVIEW_WORDS
+from speech_translate._constants import PREVIEW_WORDS, APP_NAME
 from speech_translate.components.custom.checkbutton import CustomCheckButton
 from speech_translate.components.custom.combobox import ComboboxWithKeyNav
 from speech_translate.components.custom.spinbox import SpinboxNumOnly
@@ -122,17 +122,11 @@ class SettingTextbox:
         self.f_confidence_1 = ttk.Frame(self.lf_confidence)
         self.f_confidence_1.pack(side="top", fill="x", pady=5, padx=5)
 
-        self.f_confidence_2 = ttk.Frame(self.lf_confidence)
-        self.f_confidence_2.pack(side="top", fill="x", pady=(0, 5), padx=5)
-
         self.lf_parsing = ttk.LabelFrame(self.lf_param_other, text="• Parsing")
-        self.lf_parsing.pack(side="left", fill="x", expand=False, padx=5, pady=5)
+        self.lf_parsing.pack(side="left", fill="x", expand=True, padx=5, pady=5)
 
         self.f_parsing_1 = ttk.Frame(self.lf_parsing)
         self.f_parsing_1.pack(side="top", fill="x", pady=5, padx=5)
-
-        self.f_parsing_2 = ttk.Frame(self.lf_parsing)
-        self.f_parsing_2.pack(side="top", fill="x", pady=(0, 5), padx=5)
         # -------------
         # mw tc
         # 1
@@ -522,6 +516,38 @@ class SettingTextbox:
         self.cbtn_ex_tl_use_conf_color.pack(side="left", padx=5)
 
         # ------------------ Other ------------------
+        self.lbl_gradient_low_conf = ttk.Label(self.f_confidence_1, text="Low Confidence", width=16)
+        self.lbl_gradient_low_conf.pack(side="left", padx=5)
+
+        self.entry_gradient_low_conf = ttk.Entry(self.f_confidence_1, width=10)
+        self.entry_gradient_low_conf.insert("end", sj.cache["gradient_low_conf"])
+        self.entry_gradient_low_conf.pack(side="left", padx=5)
+        self.entry_gradient_low_conf.bind(
+            "<Button-1>",
+            lambda e: chooseColor(self.entry_gradient_low_conf, self.entry_gradient_low_conf.get(), self.root) or sj.
+            save_key("gradient_low_conf", self.entry_gradient_low_conf.get()) or self.preview_changes_tb(),
+        )
+        self.entry_gradient_low_conf.bind("<Key>", lambda e: "break")
+
+        self.lbl_gradient_high_conf = ttk.Label(self.f_confidence_1, text="High Confidence", width=16)
+        self.lbl_gradient_high_conf.pack(side="left", padx=5)
+
+        self.entry_gradient_high_conf = ttk.Entry(self.f_confidence_1, width=10)
+        self.entry_gradient_high_conf.insert("end", sj.cache["gradient_high_conf"])
+        self.entry_gradient_high_conf.pack(side="left", padx=5)
+        self.entry_gradient_high_conf.bind(
+            "<Button-1>",
+            lambda e: chooseColor(self.entry_gradient_high_conf, self.entry_gradient_high_conf.get(), self.root) or sj.
+            save_key("gradient_high_conf", self.entry_gradient_high_conf.get()) or self.preview_changes_tb(),
+        )
+        self.entry_gradient_high_conf.bind("<Key>", lambda e: "break")
+
+        self.btn_preview_gradient = ttk.Button(
+            self.f_confidence_1, image=self.eye_emoji, command=lambda: self.preview_gradient()
+        )
+        self.btn_preview_gradient.pack(side="left", padx=5)
+        tk_tooltip(self.btn_preview_gradient, "Preview gradient")
+
         def keep_one_disabled(value: bool, other_widget: ttk.Checkbutton):
             if value:
                 other_widget.configure(state="disabled")
@@ -562,38 +588,6 @@ class SettingTextbox:
         elif sj.cache["colorize_per_word"]:
             self.cbtn_colorize_per_segment.configure(state="disabled")
 
-        self.lbl_gradient_low_conf = ttk.Label(self.f_confidence_2, text="Low Confidence", width=16)
-        self.lbl_gradient_low_conf.pack(side="left", padx=5)
-
-        self.entry_gradient_low_conf = ttk.Entry(self.f_confidence_2, width=10)
-        self.entry_gradient_low_conf.insert("end", sj.cache["gradient_low_conf"])
-        self.entry_gradient_low_conf.pack(side="left", padx=5)
-        self.entry_gradient_low_conf.bind(
-            "<Button-1>",
-            lambda e: chooseColor(self.entry_gradient_low_conf, self.entry_gradient_low_conf.get(), self.root) or sj.
-            save_key("gradient_low_conf", self.entry_gradient_low_conf.get()) or self.preview_changes_tb(),
-        )
-        self.entry_gradient_low_conf.bind("<Key>", lambda e: "break")
-
-        self.lbl_gradient_high_conf = ttk.Label(self.f_confidence_2, text="High Confidence", width=16)
-        self.lbl_gradient_high_conf.pack(side="left", padx=5)
-
-        self.entry_gradient_high_conf = ttk.Entry(self.f_confidence_2, width=10)
-        self.entry_gradient_high_conf.insert("end", sj.cache["gradient_high_conf"])
-        self.entry_gradient_high_conf.pack(side="left", padx=5)
-        self.entry_gradient_high_conf.bind(
-            "<Button-1>",
-            lambda e: chooseColor(self.entry_gradient_high_conf, self.entry_gradient_high_conf.get(), self.root) or sj.
-            save_key("gradient_high_conf", self.entry_gradient_high_conf.get()) or self.preview_changes_tb(),
-        )
-        self.entry_gradient_high_conf.bind("<Key>", lambda e: "break")
-
-        self.btn_preview_gradient = ttk.Button(
-            self.f_confidence_2, image=self.eye_emoji, command=lambda: self.preview_gradient()
-        )
-        self.btn_preview_gradient.pack(side="left", padx=5)
-        tk_tooltip(self.btn_preview_gradient, "Preview gradient")
-
         self.cbtn_parse_arabic = CustomCheckButton(
             self.f_parsing_1,
             sj.cache["parse_arabic"],
@@ -601,15 +595,12 @@ class SettingTextbox:
             text="Parse Arabic character",
             style="Switch.TCheckbutton"
         )
-        self.cbtn_parse_arabic.pack(side="left", padx=5)
+        self.cbtn_parse_arabic.pack(side="left", padx=5, pady=(2, 3))
         tk_tooltip(
             self.cbtn_parse_arabic,
             "Check this option if you want to transcribe Arabic character. "
             "This will fix the display issue of Arabic character on tkinter textbox",
         )
-
-        self.invis_padder = ttk.Label(self.f_parsing_2, text="", width=1)
-        self.invis_padder.pack(side="left", padx=5, pady=5)
 
         # ------------------ Preview ------------------
         # tb 1
@@ -803,4 +794,9 @@ class SettingTextbox:
             f'Gradient Between {self.entry_gradient_low_conf.get()} as Low and {self.entry_gradient_high_conf.get()} as High'
         )
         plt.axis("off")
+        # change window name
+        if manager := plt.get_current_fig_manager():
+            manager.set_window_title(
+                f"Gradient Preview {self.entry_gradient_low_conf.get()} Low / {self.entry_gradient_high_conf.get()} High - {APP_NAME}"
+            )
         plt.show()

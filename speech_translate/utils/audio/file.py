@@ -7,6 +7,7 @@ from typing import List, Union
 
 import torch
 import stable_whisper  # https://github.com/jianfch/stable-ts # has no static annotation hence many type ignore
+from whisper.tokenizer import TO_LANGUAGE_CODE
 
 from speech_translate._path import app_icon, dir_export
 from speech_translate.components.custom.label import LabelTitleText
@@ -500,9 +501,9 @@ def import_file(
             if threads:
                 torch.set_num_threads(threads)
 
-            sj.cache["language"] = lang_source if not auto else None
+            whisper_args["language"] = TO_LANGUAGE_CODE[lang_source.lower()] if not auto else None
             if sj.cache["use_faster_whisper"] and lang_source == "english":  # to remove warning from stable-ts
-                sj.cache["language"] = None
+                whisper_args["language"] = None
 
         # update button text
         gc.mw.btn_import_file.configure(text="Cancel")

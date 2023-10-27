@@ -2,9 +2,14 @@ import os
 import urllib.request
 from hashlib import sha256
 from threading import Thread
-from time import sleep
+from time import sleep, time
 from tkinter import Tk, Toplevel, ttk
 from typing import Union
+
+import huggingface_hub
+import requests
+from faster_whisper.utils import _MODELS
+from huggingface_hub.file_download import repo_folder_name
 
 from speech_translate._path import app_icon
 from speech_translate.components.custom.message import mbox
@@ -39,7 +44,7 @@ def whisper_download_with_progress_gui(
 
     # Show toplevel window
     root = Toplevel(master)
-    root.title("Downloading Model")
+    root.title("Downloading Whisper Model")
     root.transient(master)
     root.geometry("450x115")
     root.protocol("WM_DELETE_WINDOW", lambda: master.state("iconic"))  # minimize window when click close button
@@ -168,5 +173,154 @@ def whisper_download_with_progress_gui(
     assert gc.sw is not None
     gc.sw.f_general.model_checked = False
 
-    mbox("Model Downloaded Success", f"{model_name} model has been downloaded successfully", 0, master)
+    mbox("Model Downloaded Success", f"{model_name} whisper model has been downloaded successfully", 0, master)
     return model_bytes if in_memory else download_target
+
+
+def faster_whisper_download_with_progress_gui(master: Union[Tk, Toplevel], model_name: str, cache_dir: str, after_func):
+    """Download a model from the Hugging Face Hub with a progress bar that does not show the progress, only there to show that the program is not frozen and is in fact downloading something
+
+    Parameters
+    ----------
+    master : Union[Tk, Toplevel]
+        Master window
+    model_name : str
+        The model name to download
+    cache_dir : str
+        The download directory
+    after_func : function
+        Function to run after download is finished when download is successful
+
+    Returns
+    -------
+    bool
+        True if download is successful, False otherwise
+
+    Raises
+    ------
+    ValueError
+        If model_name is not one of the official model names listed by `faster_whisper.available_models()`
+    """
+    logger.debug("Downloading model from Hugging Face Hub")
+    os.makedirs(cache_dir, exist_ok=True)  # make cache dir if not exist
+
+    repo_id = _MODELS.get(model_name)
+    if repo_id is None:
+        raise ValueError("Invalid model size '%s', expected one of: %s" % (model_name, ", ".join(_MODELS.keys())))
+
+    storage_folder = os.path.join(cache_dir, repo_folder_name(repo_id=repo_id, repo_type="model"))
+    allow_patterns = ["config.json", "model.bin", "tokenizer.json", "vocabulary.*"]
+    kwargs = {"local_files_only": False, "allow_patterns": allow_patterns, "resume_download": True, "cache_dir": cache_dir}
+
+    # Show toplevel window
+    root = Toplevel(master)
+    root.title("Checking Model")
+    root.transient(master)
+    root.geometry("450x60")
+    root.protocol("WM_DELETE_WINDOW", lambda: master.state("iconic"))  # minimize window when click close button
+    root.geometry("+{}+{}".format(master.winfo_rootx() + 50, master.winfo_rooty() + 50))
+    root.minsize(200, 60)
+    root.maxsize(500, 90)
+    try:
+        root.iconbitmap(app_icon)
+    except Exception:
+        pass
+
+    # add label that says downloading please wait
+    f1 = ttk.Frame(root)
+    f1.pack(side="top", fill="x", expand=True)
+
+    f2 = ttk.Frame(root)
+    f2.pack(side="top", fill="x", expand=True)
+
+    label = ttk.Label(f1, text="Checking please wait...")
+    label.pack(side="top", padx=5, pady=5)
+
+    # add progress bar that just goes back and forth
+    progress = ttk.Progressbar(f2, orient="horizontal", length=200, mode="indeterminate")
+    progress.pack(expand=True, fill="x", padx=25, pady=(5, 10))
+    progress.start(15)
+
+    after_id = None
+    failed = False
+    msg = ""
+
+    def get_size(path):
+        try:
+            size = os.path.getsize(path)
+            if size < 1024:
+                return f"{size} bytes"
+            elif size < pow(1024, 2):
+                return f"{round(size/1024, 2)} KB"
+            elif size < pow(1024, 3):
+                return f"{round(size/(pow(1024,2)), 2)} MB"
+            elif size < pow(1024, 4):
+                return f"{round(size/(pow(1024,3)), 2)} GB"
+        except Exception:
+            return "Unknown file size"
+
+    def get_file_amount(path):
+        try:
+            # filter out .incomplete or .lock files
+            return len([name for name in os.listdir(path) if not name.endswith((".incomplete", ".lock"))])
+        except Exception:
+            return "Unknown"
+
+    def run_threaded():
+        nonlocal after_id, failed, msg
+
+        root.title("Verifying Model")
+        label.configure(text=f"Verifying {model_name} model please wait...")
+        try:
+            huggingface_hub.snapshot_download(repo_id, **kwargs)
+        except (
+            huggingface_hub.utils.HfHubHTTPError,
+            requests.exceptions.ConnectionError,
+        ) as exception:
+            logger.warning(
+                "An error occured while synchronizing the model %s from the Hugging Face Hub:\n%s" % (repo_id, exception)
+            )
+            logger.warning("Trying to load the model directly from the local cache, if it exists.")
+
+            try:
+                kwargs["local_files_only"] = True
+                huggingface_hub.snapshot_download(repo_id, **kwargs)
+            except Exception as e:
+                failed = True
+                msg = "Failed to download faster whisper model. Have tried to download the model from the Hugging Face Hub and from the local cache. Please check your internet connection and try again.\n\nError: %s" % str(
+                    e
+                )
+
+    threaded = Thread(target=run_threaded, daemon=True)
+    threaded.start()
+    start_time = time()
+
+    # thread.join()
+    while threaded.is_alive():
+        # check if 2 second have passed. Means probably downloading from the hub
+        if time() - start_time > 2:
+            root.title("Downloading Faster Whisper Model")
+            label.configure(
+                text=f"Downloading {model_name} model, {get_file_amount(storage_folder + '/' + 'blobs')}/4 files downloaded..."
+            )
+        sleep(0.3)
+
+    root.destroy()
+    # if not failed:
+    logger.info("Download finished")
+
+    # tell setting window to check model again when it open
+    assert gc.sw is not None
+    gc.sw.f_general.model_checked = False
+
+    if success := not failed:
+        # run after_func
+        if after_func:
+            logger.info("Running after_func")
+            Thread(target=after_func, daemon=True).start()
+
+        mbox("Model Downloaded Success", f"{model_name} faster whisper model has been downloaded successfully", 0, master)
+    else:
+        mbox("Model Download Failed", msg, 0, master)
+
+    return success

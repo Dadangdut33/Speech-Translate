@@ -9,11 +9,23 @@ from speech_translate.globals import sj, gc
 from speech_translate._path import dir_log, dir_temp, dir_debug
 from speech_translate.custom_logging import logger, current_log
 from speech_translate.utils.helper import popup_menu, emoji_img, up_first_case
-from speech_translate.utils.whisper.download import verify_model, download_model, get_default_download_root
+from speech_translate.utils.whisper.download import verify_model_faster_whisper, verify_model_whisper, download_model, get_default_download_root
 from speech_translate.utils.helper import start_file
 from speech_translate.utils.ui.style import set_ui_style
 from speech_translate.components.custom.message import mbox
 from speech_translate.components.custom.tooltip import tk_tooltip, tk_tooltips
+
+
+class ModelDownloadFrame:
+    def __init__(self, master, model_name, btn_cb) -> None:
+        self.f = ttk.Frame(master)
+        self.f.pack(side="left", fill="x", padx=5, pady=5)
+
+        self.lf_model = ttk.LabelFrame(self.f, text=model_name)
+        self.lf_model.pack(side="left")
+
+        self.btn = ttk.Button(self.lf_model, text="Verify", command=btn_cb)
+        self.btn.pack(side="left", padx=5, pady=5)
 
 
 class SettingGeneral:
@@ -24,7 +36,7 @@ class SettingGeneral:
         self.root = root
         self.master = master_frame
         self.initial_theme = ""
-        self.checkingModel = False
+        self.checking_model = False
         self.model_checked = False
         self.folder_emoji = emoji_img(13, " 📂")
         self.open_emoji = emoji_img(13, "     ↗️")
@@ -251,11 +263,17 @@ class SettingGeneral:
         self.f_model_1 = ttk.Frame(self.ft1lf_model)
         self.f_model_1.pack(side="top", fill="x", pady=5, padx=5)
 
-        self.f_model_2 = ttk.Frame(self.ft1lf_model)
-        self.f_model_2.pack(side="top", fill="x", padx=5)
+        self.lf_model_whisper = ttk.LabelFrame(self.ft1lf_model, text="Whisper Model")
+        self.lf_model_whisper.pack(side="top", fill="x", padx=5, pady=5)
 
-        self.f_model_3 = ttk.Frame(self.ft1lf_model)
-        self.f_model_3.pack(side="top", fill="x", padx=5)
+        self.f_mod_whisper = ttk.Frame(self.lf_model_whisper)
+        self.f_mod_whisper.pack(side="top", fill="x", padx=5, pady=(0, 5))
+
+        self.lf_model_faster_whisper = ttk.LabelFrame(self.ft1lf_model, text="Faster Whisper Model")
+        self.lf_model_faster_whisper.pack(side="top", fill="x", padx=5, pady=5)
+
+        self.f_mod_faster = ttk.Frame(self.lf_model_faster_whisper)
+        self.f_mod_faster.pack(side="top", fill="x", padx=5, pady=(0, 5))
 
         self.lbl_model = ttk.Label(self.f_model_1, text="Model Directory ", width=16)
         self.lbl_model.pack(side="left", padx=5)
@@ -295,137 +313,80 @@ class SettingGeneral:
             command=lambda: self.path_default("dir_model", self.entry_model, get_default_download_root()),
         )
 
-        # small
-        self.lf_md_dl1 = ttk.Frame(self.f_model_2)
-        self.lf_md_dl1.pack(side="left", fill="x", padx=5, pady=5)
-
-        self.lf_model_tiny = ttk.LabelFrame(self.lf_md_dl1, text="Tiny")
-        self.lf_model_tiny.pack(side="left")
-
-        self.btn_interact_tiny = ttk.Button(
-            self.lf_model_tiny, text="Verify", command=lambda: self.model_check("tiny", self.btn_interact_tiny)
+        self.model_tiny = ModelDownloadFrame(
+            self.f_mod_whisper, "Tiny", lambda: self.model_btn_checker("tiny", self.model_tiny.btn)
         )
-        self.btn_interact_tiny.pack(side="left", padx=5)
-
-        # small en
-        self.lf_md_dl2 = ttk.Frame(self.f_model_2)
-        self.lf_md_dl2.pack(side="left", fill="x", padx=5, pady=5)
-
-        self.lf_model_tiny_eng = ttk.LabelFrame(self.lf_md_dl2, text="Tiny (en)")
-        self.lf_model_tiny_eng.pack(side="left")
-
-        self.btn_interact_tiny_eng = ttk.Button(
-            self.lf_model_tiny_eng,
-            text="Verify",
-            command=lambda: self.model_check("tiny.en", self.btn_interact_tiny_eng),
+        self.model_tiny_eng = ModelDownloadFrame(
+            self.f_mod_whisper, "Tiny (en)", lambda: self.model_btn_checker("tiny.en", self.model_tiny_eng.btn)
         )
-        self.btn_interact_tiny_eng.pack(side="left", padx=5)
-
-        # base
-        self.lf_md_dl3 = ttk.Frame(self.f_model_2)
-        self.lf_md_dl3.pack(side="left", fill="x", padx=5, pady=5)
-
-        self.lf_model_base = ttk.LabelFrame(self.lf_md_dl3, text="Base")
-        self.lf_model_base.pack(side="left")
-
-        self.btn_interact_base = ttk.Button(
-            self.lf_model_base, text="Verify", command=lambda: self.model_check("base", self.btn_interact_base)
+        self.model_base = ModelDownloadFrame(
+            self.f_mod_whisper, "Base", lambda: self.model_btn_checker("base", self.model_base.btn)
         )
-        self.btn_interact_base.pack(side="left", padx=5)
-
-        # base en
-        self.lf_md_dl4 = ttk.Frame(self.f_model_2)
-        self.lf_md_dl4.pack(side="left", fill="x", padx=5, pady=5)
-
-        self.lf_model_base_eng = ttk.LabelFrame(self.lf_md_dl4, text="Base (en)")
-        self.lf_model_base_eng.pack(side="left")
-
-        self.btn_interact_base_eng = ttk.Button(
-            self.lf_model_base_eng,
-            text="Verify",
-            command=lambda: self.model_check("base.en", self.btn_interact_base_eng),
+        self.model_base_eng = ModelDownloadFrame(
+            self.f_mod_whisper, "Base (en)", lambda: self.model_btn_checker("base.en", self.model_base_eng.btn)
         )
-        self.btn_interact_base_eng.pack(side="left", padx=5)
-
-        # small
-        self.lf_md_dl5 = ttk.Frame(self.f_model_2)
-        self.lf_md_dl5.pack(side="left", fill="x", padx=5, pady=5)
-
-        self.lf_model_small = ttk.LabelFrame(self.lf_md_dl5, text="Small")
-        self.lf_model_small.pack(side="left")
-
-        self.btn_interact_small = ttk.Button(
-            self.lf_model_small, text="Verify", command=lambda: self.model_check("small", self.btn_interact_small)
+        self.model_small = ModelDownloadFrame(
+            self.f_mod_whisper, "Small", lambda: self.model_btn_checker("small", self.model_small.btn)
         )
-        self.btn_interact_small.pack(side="left", padx=5)
-
-        # small en
-        self.lf_md_dl6 = ttk.Frame(self.f_model_2)
-        self.lf_md_dl6.pack(side="left", fill="x", padx=5, pady=5)
-
-        self.lf_model_small_eng = ttk.LabelFrame(self.lf_md_dl6, text="Small (en)")
-        self.lf_model_small_eng.pack(side="left")
-
-        self.btn_interact_small_eng = ttk.Button(
-            self.lf_model_small_eng,
-            text="Verify",
-            command=lambda: self.model_check("small.en", self.btn_interact_small_eng),
+        self.model_small_eng = ModelDownloadFrame(
+            self.f_mod_whisper, "Small (en)", lambda: self.model_btn_checker("small.en", self.model_small_eng.btn)
         )
-        self.btn_interact_small_eng.pack(side="left", padx=5)
-
-        # medium
-        self.lf_md_dl7 = ttk.Frame(self.f_model_2)
-        self.lf_md_dl7.pack(side="left", fill="x", padx=5, pady=5)
-
-        self.lf_model_medium = ttk.LabelFrame(self.lf_md_dl7, text="Medium")
-        self.lf_model_medium.pack(side="left")
-
-        self.btn_interact_medium = ttk.Button(
-            self.lf_model_medium, text="Verify", command=lambda: self.model_check("medium", self.btn_interact_medium)
+        self.model_medium = ModelDownloadFrame(
+            self.f_mod_whisper, "Medium", lambda: self.model_btn_checker("medium", self.model_medium.btn)
         )
-        self.btn_interact_medium.pack(side="left", padx=5)
-
-        # medium en
-        self.lf_md_dl8 = ttk.Frame(self.f_model_2)
-        self.lf_md_dl8.pack(side="left", fill="x", padx=5, pady=5)
-
-        self.lf_model_medium_eng = ttk.LabelFrame(self.lf_md_dl8, text="Medium (en)")
-        self.lf_model_medium_eng.pack(side="left")
-
-        self.btn_interact_medium_eng = ttk.Button(
-            self.lf_model_medium_eng,
-            text="Verify",
-            command=lambda: self.model_check("medium.en", self.btn_interact_medium_eng),
+        self.model_medium_eng = ModelDownloadFrame(
+            self.f_mod_whisper, "Medium (en)", lambda: self.model_btn_checker("medium.en", self.model_medium_eng.btn)
         )
-        self.btn_interact_medium_eng.pack(side="left", padx=5)
-
-        # large v1
-        self.lf_md_dl9 = ttk.Frame(self.f_model_2)
-        self.lf_md_dl9.pack(side="left", fill="x", padx=5, pady=5)
-
-        self.lf_model_large_v1 = ttk.LabelFrame(self.lf_md_dl9, text="Large (v1)")
-        self.lf_model_large_v1.pack(side="left")
-
-        self.btn_interact_large_v1 = ttk.Button(
-            self.lf_model_large_v1,
-            text="Verify",
-            command=lambda: self.model_check("large-v1", self.btn_interact_large_v1),
+        self.model_large_v1 = ModelDownloadFrame(
+            self.f_mod_whisper, "Large (v1)", lambda: self.model_btn_checker("large-v1", self.model_large_v1.btn)
         )
-        self.btn_interact_large_v1.pack(side="left", padx=5)
-
-        # large v2
-        self.lf_md_dl10 = ttk.Frame(self.f_model_2)
-        self.lf_md_dl10.pack(side="left", fill="x", padx=5, pady=5)
-
-        self.lf_model_large_v2 = ttk.LabelFrame(self.lf_md_dl10, text="Large (v2)")
-        self.lf_model_large_v2.pack(side="left")
-
-        self.btn_interact_large_v2 = ttk.Button(
-            self.lf_model_large_v2,
-            text="Verify",
-            command=lambda: self.model_check("large-v2", self.btn_interact_large_v2),
+        self.model_large_v2 = ModelDownloadFrame(
+            self.f_mod_whisper, "Large (v2)", lambda: self.model_btn_checker("large-v2", self.model_large_v2.btn)
         )
-        self.btn_interact_large_v2.pack(side="left", padx=5)
+
+        self.model_faster_tiny = ModelDownloadFrame(
+            self.f_mod_faster, "Tiny", lambda: self.model_btn_checker("tiny", self.model_faster_tiny.btn, True)
+        )
+
+        self.model_faster_tiny_eng = ModelDownloadFrame(
+            self.f_mod_faster, "Tiny (en)", lambda: self.model_btn_checker("tiny.en", self.model_faster_tiny_eng.btn, True)
+        )
+
+        self.model_faster_base = ModelDownloadFrame(
+            self.f_mod_faster, "Base", lambda: self.model_btn_checker("base", self.model_faster_base.btn, True)
+        )
+
+        self.model_faster_base_eng = ModelDownloadFrame(
+            self.f_mod_faster, "Base (en)", lambda: self.model_btn_checker("base.en", self.model_faster_base_eng.btn, True)
+        )
+
+        self.model_faster_small = ModelDownloadFrame(
+            self.f_mod_faster, "Small", lambda: self.model_btn_checker("small", self.model_faster_small.btn, True)
+        )
+
+        self.model_faster_small_eng = ModelDownloadFrame(
+            self.f_mod_faster, "Small (en)",
+            lambda: self.model_btn_checker("small.en", self.model_faster_small_eng.btn, True)
+        )
+
+        self.model_faster_medium = ModelDownloadFrame(
+            self.f_mod_faster, "Medium", lambda: self.model_btn_checker("medium", self.model_faster_medium.btn, True)
+        )
+
+        self.model_faster_medium_eng = ModelDownloadFrame(
+            self.f_mod_faster, "Medium (en)",
+            lambda: self.model_btn_checker("medium.en", self.model_faster_medium_eng.btn, True)
+        )
+
+        self.model_faster_large_v1 = ModelDownloadFrame(
+            self.f_mod_faster, "Large (v1)",
+            lambda: self.model_btn_checker("large-v1", self.model_faster_large_v1.btn, True)
+        )
+
+        self.model_faster_large_v2 = ModelDownloadFrame(
+            self.f_mod_faster, "Large (v2)",
+            lambda: self.model_btn_checker("large-v2", self.model_faster_large_v2.btn, True)
+        )
 
         # ------------------ Functions ------------------
         self.init_setting_once()
@@ -498,23 +459,12 @@ class SettingGeneral:
             # confirmation using mbox
             mbox("Delete Log Files", "Log files deleted successfully!", 0, self.root)
 
-    def model_check(self, model: str, btn: ttk.Button, withPopup=True) -> None:
-        downloaded = verify_model(model)
-
-        if not downloaded:
-            if withPopup:
-                mbox(
-                    "Model not found",
-                    "Model not found or checksum does not match. You can press download to download the model.",
-                    0,
-                    self.root,
-                )
-            btn.configure(text="Download", command=lambda: self.model_download(model, btn))
-        else:
-            btn.configure(text="Downloaded", state="disabled")
-
-    def model_download(self, model: str, btn: ttk.Button) -> None:
-        if self.checkingModel:
+    def model_download(self, model: str, btn: ttk.Button, use_faster_whisper: bool) -> None:
+        if self.checking_model:
+            mbox(
+                "Please wait", "Program is still checking installed model, please wait until all models have been checked.",
+                0, self.root
+            )
             return
 
         # if already downloading then return
@@ -522,23 +472,31 @@ class SettingGeneral:
             mbox("Already downloading", "Please wait for the current download to finish.", 0, self.root)
             return
 
-        # verify first
-        if verify_model(model):  # already downloaded
-            btn.configure(text="Downloaded", state="disabled")
+        # confirmation using mbox
+        extramsg = "\n\n*Once started, you cannot cancel or pause the download for downloading faster whisper model." if use_faster_whisper else "\n\n*Once started, you can cancel or pause the download anytime you want."
+        if not mbox("Download confirmation", f"Are you sure you want to download {model} model?" + extramsg, 3, self.root):
             return
+
+        def after_func():
+            btn.configure(text="Downloaded", state="disabled")
+
+        kwargs = {"after_func": after_func, "use_faster_whisper": use_faster_whisper}
+
+        # verify first
+        if sj.cache["dir_model"] != "auto":
+            kwargs["download_root"] = sj.cache["dir_model"],
+
+        if not use_faster_whisper:
+            if verify_model_whisper(model):  # already downloaded
+                after_func()
+                return
+            kwargs["cancel_func"] = lambda: self.cancel_download_whisper(model, btn)
 
         # Download model
         try:
-
-            def after_func():
-                btn.configure(text="Downloaded", state="disabled")
-
-            kwargs = {}
-            if sj.cache["dir_model"] != "auto":
-                kwargs = {"download_root": sj.cache["dir_model"]}
             gc.dl_thread = Thread(
                 target=download_model,
-                args=(model, self.root, lambda: self.cancel_download(model, btn), after_func),
+                args=(model, self.root),
                 daemon=True,
                 kwargs=kwargs,
             )
@@ -546,30 +504,45 @@ class SettingGeneral:
 
             btn.configure(text="Downloading...", state="disabled")
         except Exception as e:
-            btn.configure(text="Download", command=lambda: self.model_download(model, btn), state="normal")
+            btn.configure(
+                text="Download", command=lambda: self.model_download(model, btn, use_faster_whisper), state="normal"
+            )
             mbox("Download error", f"Err details: {e}", 0, self.root)
 
-    def cancel_download(self, model: str, btn: ttk.Button) -> None:
+    def cancel_download_whisper(self, model: str, btn: ttk.Button) -> None:
+        """
+        Cancel whisper model download.
+
+        Faster whisper download is not cancellable.
+        """
         if not mbox("Cancel confirmation", "Are you sure you want to cancel downloading?", 3, self.root):
             return
 
-        btn.configure(text="Download", command=lambda: self.model_download(model, btn), state="normal")
+        btn.configure(text="Download", command=lambda: self.model_download(model, btn, False), state="normal")
         gc.cancel_dl = True  # Raise flag to stop
 
-    def model_btn_checker(self, model: str, btn: ttk.Button) -> None:
+    def model_btn_checker(self, model: str, btn: ttk.Button, faster_whisper: bool = False) -> None:
         """
         Helper to check if model is downloaded.
         It will first change btn state to disabled to prevent user from clicking it, set text to "Checking..."
         Then check it and change the text and state accordingly.
         """
+        # if button already says downloaded or download then return
+        if btn["text"] in ["Downloaded", "Download"]:
+            return
+
         btn.configure(text="Checking...", state="disabled")
 
-        downloaded = verify_model(model)
-
-        if not downloaded:
-            btn.configure(text="Download", command=lambda: self.model_download(model, btn), state="normal")
+        model_dir = sj.cache["dir_model"] if sj.cache["dir_model"] != "auto" else get_default_download_root()
+        if faster_whisper:
+            downloaded = verify_model_faster_whisper(model, model_dir)
         else:
+            downloaded = verify_model_whisper(model, model_dir)
+
+        if downloaded:
             btn.configure(text="Downloaded", state="disabled")
+        else:
+            btn.configure(text="Download", command=lambda: self.model_download(model, btn, faster_whisper), state="normal")
 
     def check_model_on_first_open(self):
         """
@@ -577,24 +550,102 @@ class SettingGeneral:
         It need to be checked hardcodedly because for some reason 
         if i try to use a map it keep referencing to the wrong button.
         """
+        self.checking_model = True
         try:
-            self.checkingModel = True
-            self.model_btn_checker("tiny", self.btn_interact_tiny)
-            self.model_btn_checker("tiny.en", self.btn_interact_tiny_eng)
-            self.model_btn_checker("base", self.btn_interact_base)
-            self.model_btn_checker("base.en", self.btn_interact_base_eng)
-            self.model_btn_checker("small", self.btn_interact_small)
-            self.model_btn_checker("small.en", self.btn_interact_small_eng)
-            self.model_btn_checker("medium", self.btn_interact_medium)
-            self.model_btn_checker("medium.en", self.btn_interact_medium_eng)
-            self.model_btn_checker("large-v1", self.btn_interact_large_v1)
-            self.model_btn_checker("large-v2", self.btn_interact_large_v2)
+
+            def threaded_tiny_w():
+                self.model_btn_checker("tiny", self.model_tiny.btn)
+                self.model_btn_checker("tiny.en", self.model_tiny_eng.btn)
+
+            def threaded_tiny_fw():
+                self.model_btn_checker("tiny", self.model_faster_tiny.btn, True)
+                self.model_btn_checker("tiny.en", self.model_faster_tiny_eng.btn, True)
+
+            def threaded_base_w():
+                self.model_btn_checker("base", self.model_base.btn)
+                self.model_btn_checker("base.en", self.model_base_eng.btn)
+
+            def threaded_base_fw():
+                self.model_btn_checker("base", self.model_faster_base.btn, True)
+                self.model_btn_checker("base.en", self.model_faster_base_eng.btn, True)
+
+            def threaded_small_w():
+                self.model_btn_checker("small", self.model_small.btn)
+                self.model_btn_checker("small.en", self.model_small_eng.btn)
+
+            def threaded_small_fw():
+                self.model_btn_checker("small", self.model_faster_small.btn, True)
+                self.model_btn_checker("small.en", self.model_faster_small_eng.btn, True)
+
+            def threaded_medium_w():
+                self.model_btn_checker("medium", self.model_medium.btn)
+                self.model_btn_checker("medium.en", self.model_medium_eng.btn)
+
+            def threaded_medium_fw():
+                self.model_btn_checker("medium", self.model_faster_medium.btn, True)
+                self.model_btn_checker("medium.en", self.model_faster_medium_eng.btn, True)
+
+            def threaded_large_v1_w():
+                self.model_btn_checker("large-v1", self.model_large_v1.btn)
+
+            def threaded_large_v1_fw():
+                self.model_btn_checker("large-v1", self.model_faster_large_v1.btn, True)
+
+            def threaded_large_v2_w():
+                self.model_btn_checker("large-v2", self.model_large_v2.btn)
+
+            def threaded_large_v2_fw():
+                self.model_btn_checker("large-v2", self.model_faster_large_v2.btn, True)
+
+            check_tiny_w = Thread(target=threaded_tiny_w, daemon=True)
+            check_tiny_fw = Thread(target=threaded_tiny_fw, daemon=True)
+            check_base_w = Thread(target=threaded_base_w, daemon=True)
+            check_base_fw = Thread(target=threaded_base_fw, daemon=True)
+            check_small_w = Thread(target=threaded_small_w, daemon=True)
+            check_small_fw = Thread(target=threaded_small_fw, daemon=True)
+            check_medium_w = Thread(target=threaded_medium_w, daemon=True)
+            check_medium_fw = Thread(target=threaded_medium_fw, daemon=True)
+            check_large_v1_w = Thread(target=threaded_large_v1_w, daemon=True)
+            check_large_v1_fw = Thread(target=threaded_large_v1_fw, daemon=True)
+            check_large_v2_w = Thread(target=threaded_large_v2_w, daemon=True)
+            check_large_v2_fw = Thread(target=threaded_large_v2_fw, daemon=True)
+
+            check_tiny_w.start()
+            check_tiny_fw.start()
+            check_tiny_w.join()
+            check_tiny_fw.join()
+
+            check_base_w.start()
+            check_base_fw.start()
+            check_base_w.join()
+            check_base_fw.join()
+
+            check_small_w.start()
+            check_small_fw.start()
+            check_small_w.join()
+            check_small_fw.join()
+
+            check_medium_w.start()
+            check_medium_fw.start()
+            check_medium_w.join()
+            check_medium_fw.join()
+
+            check_large_v1_w.start()
+            check_large_v1_fw.start()
+            check_large_v1_w.join()
+            check_large_v1_fw.join()
+
+            check_large_v2_w.start()
+            check_large_v2_fw.start()
+            check_large_v2_w.join()
+            check_large_v2_fw.join()
+
             self.model_checked = True
         except Exception as e:
             logger.error("Failed to check model on first setting open")
             logger.exception(e)
         finally:
-            self.checkingModel = False
+            self.checking_model = False
 
     def fill_theme(self):
         self.cb_theme["values"] = gc.theme_lists

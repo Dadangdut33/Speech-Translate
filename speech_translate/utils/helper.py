@@ -37,7 +37,7 @@ def unique_list(list_of_dicts: List):
         return list_of_dicts
 
     # check wether the list contains dictionaries
-    if isinstance(list_of_dicts[0], dict):
+    if isinstance(list_of_dicts[0], Dict):
         unique_lists = list(OrderedDict((json.dumps(d, sort_keys=True), d) for d in list_of_dicts).values())
     else:
         # Convert the list to a set to get unique values then convert them back to a list

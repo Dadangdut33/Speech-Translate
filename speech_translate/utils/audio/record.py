@@ -15,8 +15,8 @@ import numpy as np
 import scipy.io.wavfile as wav
 import torch
 import stable_whisper
+from whisper.tokenizer import TO_LANGUAGE_CODE
 
-from speech_translate.utils.whisper.download import get_default_download_root  # https://github.com/jianfch/stable-ts # has no static annotation hence many type ignore
 if system() == "Windows":
     import pyaudiowpatch as pyaudio
 else:
@@ -30,6 +30,7 @@ from speech_translate.components.custom.message import mbox
 from speech_translate.components.custom.audio import AudioMeter
 from speech_translate.custom_logging import logger
 from speech_translate.globals import gc, sj
+from speech_translate.utils.whisper.download import get_default_download_root  # https://github.com/jianfch/stable-ts # has no static annotation hence many type ignore
 from speech_translate.utils.audio.device import get_db, get_device_details, get_frame_duration, get_speech, resample_sr
 
 from ..helper import cbtn_invoker, generate_temp_filename, get_channel_int, get_proxies, nativeNotify, separator_to_html, unique_list
@@ -229,29 +230,35 @@ def record_session(
         model_tc, model_tl, stable_tc, stable_tl = None, None, None, None
         if sj.cache["use_faster_whisper"]:
             if model_name_tc == engine:
+                logger.debug("Loading model for both transcribe and translate using faster-whisper | Load only once")
                 # same model for both transcribe and translate. Load only once
                 model_tc = stable_whisper.load_faster_whisper(model_name_tc, **model_args)
                 stable_tc = model_tc.transcribe_stable  # type: ignore
                 stable_tl = stable_tc
             else:
                 if transcribe:
+                    logger.debug("Loading model for transcribe using faster-whisper")
                     model_tc = stable_whisper.load_faster_whisper(model_name_tc, **model_args)
                     stable_tc = model_tc.transcribe_stable  # type: ignore
                 if translate:
+                    logger.debug("Loading model for translate using faster-whisper")
                     model_tl = stable_whisper.load_faster_whisper(engine, **model_args) if tl_engine_whisper else None
                     if model_tl:
                         stable_tl = model_tl.transcribe_stable  # type: ignore
         else:
             if model_name_tc == engine:
+                logger.debug("Loading model for both transcribe and translate using stable-ts | Load only once")
                 # same model for both transcribe and translate. Load only once
                 model_tc = stable_whisper.load_model(model_name_tc, **model_args)
                 stable_tc = model_tc.transcribe
                 stable_tl = stable_tc
             else:
                 if transcribe:
+                    logger.debug("Loading model for transcribe using stable-ts")
                     model_tc = stable_whisper.load_model(model_name_tc, **model_args)
                     stable_tc = model_tc.transcribe
                 if translate:
+                    logger.debug("Loading model for translate using stable-ts")
                     model_tl = stable_whisper.load_model(engine, **model_args) if tl_engine_whisper else None
                     if model_tl:
                         stable_tl = model_tl.transcribe
@@ -292,12 +299,14 @@ def record_session(
             if threads:
                 torch.set_num_threads(threads)
             whisper_args["verbose"] = None  # set to none so no printing to stdout
+
             # when using numpy array as input, will need to set input_sr
             if sj.cache["use_faster_whisper"] and not use_temp:
                 whisper_args["input_sr"] = WHISPER_SR
-            sj.cache["language"] = lang_source if not auto else None
+
+            whisper_args["language"] = TO_LANGUAGE_CODE[lang_source.lower()] if not auto else None
             if sj.cache["use_faster_whisper"] and lang_source == "english":  # to remove warning from stable-ts
-                sj.cache["language"] = None
+                whisper_args["language"] = None
 
             if whisper_args["vad"]:
                 sys.stdout = NullIO()  # suppress print from stable-ts

@@ -1,14 +1,16 @@
-from os import listdir, path, remove
+import platform
+import subprocess
+from os import listdir, path, remove, startfile
 from tkinter import filedialog, ttk, Frame, LabelFrame, Toplevel, StringVar, Event, Menu
 from typing import Literal, Union
 from speech_translate.components.custom.checkbutton import CustomCheckButton
 from speech_translate.components.custom.message import MBoxText, mbox
 from datetime import datetime
 
-from stable_whisper import result_to_ass, result_to_srt_vtt, result_to_tsv
+from stable_whisper import result_to_ass, result_to_srt_vtt, result_to_tsv, load_model, load_faster_whisper
 
 from speech_translate.globals import sj, gc
-from speech_translate._path import dir_export
+from speech_translate._path import dir_export, parameters_text
 from speech_translate.utils.helper import filename_only, popup_menu, start_file, up_first_case
 from speech_translate.utils.whisper.helper import get_temperature, parse_args_stable_ts
 from speech_translate.components.custom.tooltip import CreateToolTipOnText, tk_tooltip, tk_tooltips
@@ -250,8 +252,8 @@ class SettingTranscribe:
 For more information, see https://github.com/jianfch/stable-ts or https://github.com/Dadangdut33/Speech-Translate/wiki
 # [command]
 * description of command
-* type: str, default cuda
-* usage: --device cpu
+* type: data type, default xxx
+* usage: --command xxx
 
 # [device]
 * description: device to use for PyTorch inference (A Cuda compatible GPU and PyTorch with CUDA support are still required for GPU / CUDA)
@@ -336,7 +338,7 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
 # [vad]
 * description: whether to use Silero VAD to generate timestamp suppression mask; Silero VAD requires PyTorch 1.12.0+; Official repo: https://github.com/snakers4/silero-vad
 * type: bool, default False
-* usage: --vad
+* usage: --vad True
 
 # [vad_threshold]
 * description: threshold for detecting speech with Silero VAD. (Default: 0.35); low threshold reduces false positives for silence detection
@@ -346,7 +348,7 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
 # [vad_onnx]
 * description: whether to use ONNX for Silero VAD
 * type: bool, default False
-* usage: --vad_onnx
+* usage: --vad_onnx True
 
 # [min_word_dur]
 * description: only allow suppressing timestamps that result in word durations greater than this value
@@ -366,12 +368,12 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
 # [demucs]
 * description: whether to reprocess the audio track with Demucs to isolate vocals/remove noise; Demucs official repo: https://github.com/facebookresearch/demucs
 * type: bool, default False
-* usage: --demucs
+* usage: --demucs True
 
 # [only_voice_freq]
 * description: whether to only use sound between 200 - 5000 Hz, where the majority of human speech is.
 * type: bool
-* usage: --only_voice_freq
+* usage: --only_voice_freq True
 
 # [strip]
 * description: whether to remove spaces before and after text on each segment for output
@@ -386,7 +388,7 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
 # [reverse_text]
 * description: whether to reverse the order of words for each segment of text output
 * type: bool, default False
-* usage: --reverse_text
+* usage: --reverse_text True
 
 # [font]
 * description: word font for ASS output(s)
@@ -401,7 +403,7 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
 # [karaoke]
 * description: whether to use progressive filling highlights for karaoke effect (only for ASS outputs)
 * type: bool, default False
-* usage: --karaoke
+* usage: --karaoke True
 
 # [temperature]
 * description: temperature to use for sampling
@@ -469,7 +471,7 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
 * usage: --refine_option "<option>"
 
 # [model_option]
-* description: Extra option(s) to use for loading the model; Replace True/False with 1/0; E.g. --model_option "download_root=./downloads"
+* description: Extra option(s) to use for loading the model; Replace True/False with 1/0; E.g. --model_option "in_memory=1" --model_option "cpu_threads=4"
 * type: str
 * usage: --model_option "<option>"
 
@@ -494,7 +496,7 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
         self.btn_help = ttk.Button(
             self.f_whisper_args_2,
             text="❔",
-            command=lambda: MBoxText("whisper-params", self.root, "Whisper Args", hint, "700x300"),
+            command=lambda: self.make_open_text(hint),
             width=5,
         )
         self.btn_help.pack(side="left", padx=5)
@@ -868,6 +870,18 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
             element.insert(0, path)
             element.configure(state="readonly")
 
+    def make_open_text(self, texts: str):
+        if not path.exists(parameters_text):
+            with open(parameters_text, "w", encoding="utf-8") as f:
+                f.write(texts)
+
+        if platform.system() == 'Darwin':  # macOS
+            subprocess.call(('open', parameters_text))
+        elif platform.system() == 'Windows':  # Windows
+            startfile(parameters_text)
+        else:  # linux variants
+            subprocess.call(('xdg-open', parameters_text))
+
     def path_default(self, key: str, element: ttk.Entry, default_path: str, save=True, prompt=True):
         # prompt are you sure
         if prompt and not mbox(
@@ -908,21 +922,21 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
             return
 
         loop_for = ["load", "transcribe", "align", "refine", "save"]
-        check_for_save = [result_to_ass, result_to_srt_vtt, result_to_tsv]
+        custom_func = {"load": [load_model, load_faster_whisper], "save": [result_to_ass, result_to_srt_vtt, result_to_tsv]}
         kwargs = {"show_parsed": False}
+        # transcribe is also different between whisper and faster whisper but this check should be enough
 
         for el in loop_for:
-            if el != "save":
-                res = parse_args_stable_ts(value, el, **kwargs)
-                if not res["success"]:
-                    mbox("Invalid Stable Whisper Arguments", f"{res['msg']}", 2, self.root)
-                    return
-            else:
-                # save, special. Need to pass the save method
-                for method in check_for_save:
+            if custom_func.get(el, False):
+                for method in custom_func[el]:
                     res = parse_args_stable_ts(value, el, method, **kwargs)
                     if not res["success"]:
                         mbox("Invalid Stable Whisper Arguments", f"{res['msg']}", 2, self.root)
                         return
+            else:
+                res = parse_args_stable_ts(value, el, **kwargs)
+                if not res["success"]:
+                    mbox("Invalid Stable Whisper Arguments", f"{res['msg']}", 2, self.root)
+                    return
 
         sj.save_key("whisper_args", value)

@@ -39,7 +39,7 @@ from speech_translate.utils.translate.language import (
     engine_select_source_dict, engine_select_target_dict, whisper_compatible
 )
 from speech_translate.utils.whisper.helper import append_dot_en, model_keys, model_select_dict
-from speech_translate.utils.whisper.download import download_model, verify_model
+from speech_translate.utils.whisper.download import download_model, get_default_download_root, verify_model_faster_whisper, verify_model_whisper
 from speech_translate.utils.audio.record import record_session
 from speech_translate.utils.audio.file import import_file
 from speech_translate.utils.ui.style import get_current_theme, get_theme_list, init_theme, set_ui_style
@@ -1110,7 +1110,7 @@ class MainWindow:
 
     def start_loadBar(self):
         self.loadBar.configure(mode="indeterminate")
-        self.loadBar.start()
+        self.loadBar.start(15)
 
     def stop_loadBar(self, rec_type: Literal["mic", "speaker", "file", None] = None):
         self.loadBar.stop()
@@ -1212,7 +1212,7 @@ class MainWindow:
             self.export_tc()
             self.export_tl()
 
-    def modelDownloadCancel(self):
+    def model_dl_cancel(self):
         if not mbox("Cancel confirmation", "Are you sure you want to cancel downloading?", 3, self.root):
             return
 
@@ -1234,32 +1234,57 @@ class MainWindow:
                     break
 
     def check_model(self, key, is_english, taskname, task):
-        # check model first
-        model_name = append_dot_en(key, is_english)
-        if not verify_model(model_name):
-            if mbox(
-                "Model is not downloaded yet!",
-                f"`{model_name}` Model not found! You will need to download it first!\n\nDo you want to download it now?",
-                3,
-                self.root,
-            ):
-                logger.info("Downloading model...")
-                try:
-                    kwargs = {}
-                    if sj.cache["dir_model"] != "auto":
-                        kwargs = {"download_root": sj.cache["dir_model"]}
-                    gc.dl_thread = Thread(
-                        target=download_model,
-                        args=(model_name, self.root, self.modelDownloadCancel, lambda: self.after_model_dl(taskname, task)),
-                        kwargs=kwargs,
-                        daemon=True,
-                    )
-                    gc.dl_thread.start()
-                except Exception as e:
-                    logger.exception(e)
-                    self.errorNotif(str(e))
+        try:
+            # check model first
+            model_name = append_dot_en(key, is_english)
+            use_faster_whisper = sj.cache["use_faster_whisper"]
+            extramsg = "\n\n*Once started, you cannot cancel or pause the download for downloading faster whisper model." if use_faster_whisper else "\n\n*Once started, you can cancel or pause the download anytime you want."
+
+            model_dir = sj.cache["dir_model"] if sj.cache["dir_model"] != "auto" else get_default_download_root()
+            if use_faster_whisper:
+                ok = verify_model_faster_whisper(model_name, model_dir)
+            else:
+                ok = verify_model_whisper(model_name, model_dir)
+
+            if not ok:
+                if mbox(
+                    "Model is not downloaded yet!",
+                    f"`{model_name + '` Whisper'  if not use_faster_whisper else model_name + '` Faster Whisper'} Model not found! You will need to download it first!\n\nDo you want to download it now?{extramsg}",
+                    3,
+                    self.root,
+                ):
+                    # if true will download the model, after that, the function will run after_func if successfull
+                    logger.info("Downloading model...")
+                    try:
+                        kwargs = {
+                            "after_func": lambda: self.after_model_dl(taskname, task),
+                            "use_faster_whisper": use_faster_whisper
+                        }
+
+                        if not use_faster_whisper:
+                            kwargs["cancel_func"] = self.model_dl_cancel
+
+                        if sj.cache["dir_model"] != "auto":
+                            kwargs = {"download_root": sj.cache["dir_model"]}
+
+                        gc.dl_thread = Thread(
+                            target=download_model,
+                            args=(model_name, self.root),
+                            kwargs=kwargs,
+                            daemon=True,
+                        )
+                        gc.dl_thread.start()
+                    except Exception as e:
+                        logger.exception(e)
+                        self.errorNotif(str(e))
+
+                # return false to stop previous task regardless of the answer
+                return False, ""
+            return True, model_name
+        except Exception as e:
+            logger.exception(e)
+            self.errorNotif(str(e))
             return False, ""
-        return True, model_name
 
     # ------------------ Rec ------------------
     def rec(self):

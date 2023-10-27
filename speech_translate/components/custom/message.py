@@ -20,14 +20,11 @@ class MBoxText:
         self.root.transient(parent)
         relative_pos = "+{}+{}".format(parent.winfo_rootx() + 50, parent.winfo_rooty() + 50)
         self.root.geometry(geometry + relative_pos if geometry else relative_pos)
-
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
+        self.root.minsize(200, 200)
 
         self.f_1 = ttk.Frame(self.root)
         self.f_1.pack(fill="both", expand=True, side="top", padx=5, pady=5)
-
-        self.f_2 = ttk.Frame(self.root)
-        self.f_2.pack(fill="both", expand=True, side="bottom", padx=5, pady=5)
 
         self.tb = Text(self.f_1, wrap="word", font=("Arial", 10))
         self.tb.insert("end", text)
@@ -40,9 +37,7 @@ class MBoxText:
         self.scrollbar = ttk.Scrollbar(self.f_1, orient="vertical", command=self.tb.yview)
         self.scrollbar.pack(fill="y", side="right")
         self.tb.configure(yscrollcommand=self.scrollbar.set)
-
-        self.btn = ttk.Button(self.f_2, text="OK", command=self.on_close)
-        self.btn.pack(fill="both", expand=True, side="right", padx=5, pady=5)
+        self.sb_width = self.scrollbar.winfo_width()
 
         opened.append(id)
 
