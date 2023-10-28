@@ -4,7 +4,6 @@ from io import BytesIO
 from os import remove
 from platform import system
 from shlex import quote
-import sys
 from threading import Lock, Thread
 from time import gmtime, strftime, time, sleep
 from tkinter import IntVar, Toplevel, ttk
@@ -33,21 +32,12 @@ from speech_translate.globals import gc, sj
 from speech_translate.utils.whisper.download import get_default_download_root  # https://github.com/jianfch/stable-ts # has no static annotation hence many type ignore
 from speech_translate.utils.audio.device import get_db, get_device_details, get_frame_duration, get_speech, resample_sr
 
-from ..helper import cbtn_invoker, generate_temp_filename, get_channel_int, get_proxies, nativeNotify, separator_to_html, unique_list
+from ..helper import cbtn_invoker, generate_temp_filename, get_channel_int, get_proxies, native_notify, separator_to_html, unique_list
 from ..whisper.helper import get_temperature, _result_to_dict, parse_args_stable_ts, stablets_verbose_log, model_values
 from ..translate.translator import translate
 
 
 # -------------------------------------------------------------------------------------------------------------------------
-class NullIO:
-    def write(self, s):
-        pass
-
-
-# store original stdout
-original_stdout = sys.stdout
-
-
 def record_session(
     lang_source: str,
     lang_target: str,
@@ -86,7 +76,7 @@ def record_session(
     None
     """
     assert gc.mw is not None
-    print_disabled = False
+    # print_disabled = False
     master = gc.mw.root
     root = Toplevel(master)
     root.title("Loading...")
@@ -307,10 +297,6 @@ def record_session(
             whisper_args["language"] = TO_LANGUAGE_CODE[lang_source.lower()] if not auto else None
             if sj.cache["use_faster_whisper"] and lang_source == "english":  # to remove warning from stable-ts
                 whisper_args["language"] = None
-
-            if whisper_args["vad"]:
-                sys.stdout = NullIO()  # suppress print from stable-ts
-                print_disabled = True
 
         # if only translate to english using whisper engine
         task = "translate" if tl_engine_whisper and translate and not transcribe else "transcribe"
@@ -746,7 +732,7 @@ def record_session(
 
             gc.current_rec_status = "▶️ Recording"  # reset status
         else:
-            logger.debug("Record Session ended")
+            logger.debug("Stopping Record Session")
 
             gc.current_rec_status = "⚠️ Stopping stream"
             update_status_lbl()
@@ -801,8 +787,7 @@ def record_session(
         if root.winfo_exists():
             root.destroy()  # close if not destroyed
     finally:
-        if print_disabled:
-            sys.stdout = original_stdout
+        logger.info("Record session ended")
 
 
 def record_cb(in_data, frame_count, time_info, status):
@@ -896,7 +881,7 @@ def tl_whisper_threaded(
             gc.update_tl(_result_to_dict(result), separator)
     except Exception as e:
         logger.exception(e)
-        nativeNotify("Error: translating failed", str(e))
+        native_notify("Error: translating failed", str(e))
     finally:
         gc.disable_tl()  # flag processing as done
 
@@ -919,7 +904,7 @@ def tl_api(text: str, lang_source: str, lang_target: str, engine: str, separator
 
         success, result = translate(engine, [text], lang_source, lang_target, proxies, debug_log, **kwargs)
         if not success:
-            nativeNotify(f"Error: translation with {engine} failed", result)
+            native_notify(f"Error: translation with {engine} failed", result)
             raise Exception(result)
 
         result = result[0]
@@ -928,6 +913,6 @@ def tl_api(text: str, lang_source: str, lang_target: str, engine: str, separator
             gc.update_tl(result.strip(), separator)
     except Exception as e:
         logger.exception(e)
-        nativeNotify("Error: translating failed", str(e))
+        native_notify("Error: translating failed", str(e))
     finally:
         gc.disable_tl()  # flag processing as done

@@ -1,8 +1,13 @@
 import logging
 import os
+import re
+import sys
 from time import strftime
 
-from ._path import dir_log
+from notifypy import Notify, exceptions
+
+from ._constants import APP_NAME
+from ._path import dir_log, app_icon, app_icon_missing
 
 # ------------------ #
 current_log: str = f"{strftime('%Y-%m-%d %H-%M-%S')}.log"
@@ -15,7 +20,47 @@ if not os.path.exists(dir_log):
         print(e)
 
 
-# ------------------ #
+def shorten_progress_bar(match):
+    percentage = match.group(1)
+    bar = "#" * len(percentage)  # make it a bit longer
+    return f"{percentage} | {bar} |"
+
+
+class StreamToLogger(object):
+    """
+    Fake file-like stream object that redirects writes to a logger instance.
+    """
+    def __init__(self, logger, level):
+        self.logger = logger
+        self.level = level
+        self.ignore_list = []
+        # tqdm use stderr to print, so we should consider it as info
+        self.considered_info = ["Downloading", "Fetching", "run_threaded"]
+
+    def write(self, buf):
+        for line in buf.rstrip().splitlines():
+            line = line.strip().replace("[A", "")
+
+            # ignore if any keywords from ignore_list is in the line
+            if any(x in line for x in self.ignore_list):
+                continue
+
+            # checking if line is empty. exception use ^ ~ to point out the error
+            # but we don't need it in logger because logger is per line
+            check_empty = line.replace("^", "").replace("~", "").strip()
+            if len(check_empty) == 0:
+                continue
+
+            # check where is it from. if keywords from considered_info is in the line then log as info
+            if any(x in line for x in self.considered_info):
+                self.logger.log(logging.INFO, re.sub(r'(\d+%)(\s*)\|(.+?)\|', shorten_progress_bar, line))
+            else:
+                self.logger.log(self.level, line)
+
+    def flush(self):
+        pass
+
+
 class StreamFormatter(logging.Formatter):
     bold = "\033[1m"
     green = "\u001b[32;1m"
@@ -63,6 +108,23 @@ class FileFormatter(logging.Formatter):
 
 
 # ------------------ #
+def native_notify(title: str, message: str):
+    """
+    Native notification
+    """
+    notification = Notify()
+    notification.application_name = APP_NAME
+    notification.title = title
+    notification.message = message
+    if not app_icon_missing:
+        try:
+            notification.icon = app_icon
+        except exceptions:
+            pass
+
+    notification.send()
+
+
 def init_logging():
     global logger
     logger = logging.getLogger(__name__)
@@ -87,6 +149,17 @@ def init_logging():
     # Add handlers to the logger
     logger.addHandler(c_handler)
     logger.addHandler(f_handler)
+    # logger.addHandler(TqdmLoggingHandler())
+
+    sys.stdout = StreamToLogger(logger, logging.INFO)
+    sys.stderr = StreamToLogger(logger, logging.ERROR)
+    # tqdm use stderr so we also need to redirect it
+    # stderr might be more informative in its original form so you can comment it out if you want when developing
+
+
+def update_stdout_ignore_list(ignore_list):
+    assert isinstance(sys.stdout, StreamToLogger)
+    sys.stdout.ignore_list = ignore_list
 
 
 init_logging()

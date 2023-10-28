@@ -1,4 +1,5 @@
 import html
+import subprocess
 import textwrap
 import tkinter as tk
 import json
@@ -178,19 +179,18 @@ def start_file(filename: str):
     Open a folder or file in the default application.
     """
     try:
-        startfile(filename)
+        if system() == 'Darwin':  # macOS
+            subprocess.call(('open', filename))
+        elif system() == 'Windows':  # Windows
+            startfile(filename)
+        else:  # linux variants
+            subprocess.call(('xdg-open', filename))
     except FileNotFoundError:
         logger.exception("Cannot find the file specified.")
-        nativeNotify("Error", "Cannot find the file specified.")
-    except Exception:
-        try:
-            Popen(["xdg-open", filename])
-        except FileNotFoundError:
-            logger.exception("Cannot open the file specified.")
-            nativeNotify("Error", "Cannot find the file specified.")
-        except Exception as e:
-            logger.exception("Error: " + str(e))
-            nativeNotify("Error", f"Uncaught error {str(e)}")
+        native_notify("Error", "Cannot find the file specified.")
+    except Exception as e:
+        logger.exception("Error: " + str(e))
+        native_notify("Error", f"Uncaught error {str(e)}")
 
 
 def check_ffmpeg_in_path():
@@ -357,7 +357,7 @@ def OpenUrl(url: str):
         open_new(url)
     except Exception as e:
         logger.exception(e)
-        nativeNotify("Error", "Cannot open the url specified.")
+        native_notify("Error", "Cannot open the url specified.")
 
 
 def get_channel_int(channel_string: str):
@@ -371,7 +371,7 @@ def get_channel_int(channel_string: str):
         raise ValueError("Invalid channel string")
 
 
-def nativeNotify(title: str, message: str):
+def native_notify(title: str, message: str):
     """
     Native notification
     """
@@ -396,7 +396,7 @@ def no_connection_notify(
     """
     Notify user that they are not connected to the internet
     """
-    nativeNotify(customTitle, customMessage)
+    native_notify(customTitle, customMessage)
 
 
 def generate_temp_filename(base_dir):

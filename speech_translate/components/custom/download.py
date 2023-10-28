@@ -3,7 +3,7 @@ import urllib.request
 from hashlib import sha256
 from threading import Thread
 from time import sleep, time
-from tkinter import Tk, Toplevel, ttk
+from tkinter import Tk, Toplevel, ttk, Text
 from typing import Union
 
 import huggingface_hub
@@ -13,7 +13,7 @@ from huggingface_hub.file_download import repo_folder_name
 
 from speech_translate._path import app_icon
 from speech_translate.components.custom.message import mbox
-from speech_translate.custom_logging import logger
+from speech_translate.custom_logging import logger, dir_log, current_log
 from speech_translate.globals import gc
 
 
@@ -216,11 +216,11 @@ def faster_whisper_download_with_progress_gui(master: Union[Tk, Toplevel], model
     root = Toplevel(master)
     root.title("Checking Model")
     root.transient(master)
-    root.geometry("450x60")
+    root.geometry("980x180")
     root.protocol("WM_DELETE_WINDOW", lambda: master.state("iconic"))  # minimize window when click close button
     root.geometry("+{}+{}".format(master.winfo_rootx() + 50, master.winfo_rooty() + 50))
-    root.minsize(200, 60)
-    root.maxsize(500, 90)
+    root.minsize(200, 100)
+    root.maxsize(1600, 200)
     try:
         root.iconbitmap(app_icon)
     except Exception:
@@ -233,31 +233,25 @@ def faster_whisper_download_with_progress_gui(master: Union[Tk, Toplevel], model
     f2 = ttk.Frame(root)
     f2.pack(side="top", fill="x", expand=True)
 
-    label = ttk.Label(f1, text="Checking please wait...")
-    label.pack(side="top", padx=5, pady=5)
+    f3 = ttk.Frame(root)
+    f3.pack(side="top", fill="both", expand=True)
+
+    label = ttk.Label(f1, text="Checking please wait...", font="TkDefaultFont 11 bold")
+    label.pack(side="top", padx=10, pady=(5, 0))
 
     # add progress bar that just goes back and forth
     progress = ttk.Progressbar(f2, orient="horizontal", length=200, mode="indeterminate")
-    progress.pack(expand=True, fill="x", padx=25, pady=(5, 10))
+    progress.pack(expand=True, fill="x", padx=10, pady=5)
     progress.start(15)
+
+    text_log = Text(f3, height=5, width=50, font=("Consolas", 8))
+    text_log.pack(side="top", fill="both", expand=True, padx=10, pady=(0, 10))
+    text_log.bind("<Key>", lambda event: "break")  # disable text box
+    text_log.insert(1.0, "Checking model please wait...")
 
     after_id = None
     failed = False
     msg = ""
-
-    def get_size(path):
-        try:
-            size = os.path.getsize(path)
-            if size < 1024:
-                return f"{size} bytes"
-            elif size < pow(1024, 2):
-                return f"{round(size/1024, 2)} KB"
-            elif size < pow(1024, 3):
-                return f"{round(size/(pow(1024,2)), 2)} MB"
-            elif size < pow(1024, 4):
-                return f"{round(size/(pow(1024,3)), 2)} GB"
-        except Exception:
-            return "Unknown file size"
 
     def get_file_amount(path):
         try:
@@ -266,11 +260,24 @@ def faster_whisper_download_with_progress_gui(master: Union[Tk, Toplevel], model
         except Exception:
             return "Unknown"
 
+    def update_log():
+        try:
+            content = open(os.path.join(dir_log, current_log), "r", encoding="utf-8").read().strip()
+        except Exception as e:
+            content = "Failed to read log file\nError: " + str(e)
+
+        # get only last 7 lines
+        content = "\n".join(content.split("\n")[-7:])
+        text_log.delete(1.0, "end")
+        text_log.insert(1.0, content)
+        text_log.see("end")  # scroll to the bottom
+
     def run_threaded():
         nonlocal after_id, failed, msg
 
         root.title("Verifying Model")
         label.configure(text=f"Verifying {model_name} model please wait...")
+        text_log.insert("end", f"\nVerifying {model_name} model please wait...")
         try:
             huggingface_hub.snapshot_download(repo_id, **kwargs)
         except (
@@ -278,7 +285,7 @@ def faster_whisper_download_with_progress_gui(master: Union[Tk, Toplevel], model
             requests.exceptions.ConnectionError,
         ) as exception:
             logger.warning(
-                "An error occured while synchronizing the model %s from the Hugging Face Hub:\n%s" % (repo_id, exception)
+                f"An error occured while synchronizing the model {repo_id} from the Hugging Face Hub:\n{exception}"
             )
             logger.warning("Trying to load the model directly from the local cache, if it exists.")
 
@@ -287,33 +294,39 @@ def faster_whisper_download_with_progress_gui(master: Union[Tk, Toplevel], model
                 huggingface_hub.snapshot_download(repo_id, **kwargs)
             except Exception as e:
                 failed = True
-                msg = "Failed to download faster whisper model. Have tried to download the model from the Hugging Face Hub and from the local cache. Please check your internet connection and try again.\n\nError: %s" % str(
-                    e
-                )
+                msg = f"Failed to download faster whisper model. Have tried to download the model from the Hugging Face Hub and from the local cache. Please check your internet connection and try again.\n\nError: {str(e)}"
+
+        except Exception as e:
+            logger.exception(e)
+            failed = True
+            msg = str(e)
 
     threaded = Thread(target=run_threaded, daemon=True)
     threaded.start()
     start_time = time()
 
-    # thread.join()
     while threaded.is_alive():
         # check if 2 second have passed. Means probably downloading from the hub
         if time() - start_time > 2:
             root.title("Downloading Faster Whisper Model")
             label.configure(
-                text=f"Downloading {model_name} model, {get_file_amount(storage_folder + '/' + 'blobs')}/4 files downloaded..."
+                text=f"Downloading {model_name} model, {get_file_amount(storage_folder + '/' + 'blobs')} files downloaded..."
             )
+            update_log()
         sleep(0.3)
 
+    if after_id:
+        # just making sure that it is downloading. if not downloading then cancel the opening of it
+        root.after_cancel(after_id)
+
     root.destroy()
-    # if not failed:
-    logger.info("Download finished")
 
     # tell setting window to check model again when it open
     assert gc.sw is not None
     gc.sw.f_general.model_checked = False
 
     if success := not failed:
+        logger.info("Download finished")
         # run after_func
         if after_func:
             logger.info("Running after_func")
@@ -321,6 +334,7 @@ def faster_whisper_download_with_progress_gui(master: Union[Tk, Toplevel], model
 
         mbox("Model Downloaded Success", f"{model_name} faster whisper model has been downloaded successfully", 0, master)
     else:
+        logger.info("Download failed")
         mbox("Model Download Failed", msg, 0, master)
 
     return success

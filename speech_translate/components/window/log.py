@@ -19,7 +19,7 @@ class LogWindow:
     def __init__(self, master: Tk):
         self.root = Toplevel(master)
         self.root.title(APP_NAME + " | Log")
-        self.root.geometry("900x350")
+        self.root.geometry("1200x350")
         self.root.wm_withdraw()
         self.currentFontSize = 10
         self.is_open = False
@@ -48,10 +48,10 @@ class LogWindow:
         )  # bind scrollwheel to change font size
 
         # Other stuff
-        self.btn_clear = ttk.Button(self.f_bot, text="⚠ Clear", command=self.clearLog)
+        self.btn_clear = ttk.Button(self.f_bot, text="⚠ Clear", command=self.clear_log)
         self.btn_clear.pack(side="left", padx=5, pady=5)
 
-        self.btn_refresh = ttk.Button(self.f_bot, text="🔄 Refresh", command=lambda: self.updateLog)
+        self.btn_refresh = ttk.Button(self.f_bot, text="🔄 Refresh", command=lambda: self.update_log)
         self.btn_refresh.pack(side="left", padx=5, pady=5)
 
         self.btn_open_default_log = ttk.Button(self.f_bot, text="🗁 Open Log Folder", command=lambda: start_file(dir_log))
@@ -75,7 +75,9 @@ class LogWindow:
         )
         self.cbtn_auto_refresh.pack(side="left", padx=5, pady=5)
 
-        self.cbtn_stay_on_top = CustomCheckButton(self.f_bot, False, text="Stay on Top", style="Switch.TCheckbutton")
+        self.cbtn_stay_on_top = CustomCheckButton(
+            self.f_bot, False, text="Stay on Top", style="Switch.TCheckbutton", command=self.toggle_stay_on_top
+        )
         self.cbtn_stay_on_top.pack(side="left", padx=5, pady=5)
 
         self.btn_close = ttk.Button(self.f_bot, text="Ok", command=self.on_closing, style="Accent.TButton")
@@ -97,7 +99,7 @@ class LogWindow:
 
     def after_show_called(self):
         self.root.wm_deiconify()
-        self.updateLog()
+        self.update_log()
         self.is_open = True
         self.start_refresh_thread()
 
@@ -115,11 +117,11 @@ class LogWindow:
 
     def update_periodically(self):
         while self.is_open and sj.cache["auto_refresh_log"]:
-            self.updateLog()
+            self.update_log()
 
             sleep(1)
 
-    def updateLog(self):
+    def update_log(self):
         prev_content = self.tbLogger.get(1.0, "end").strip()
         try:
             content = open(path.join(dir_log, current_log), encoding="utf-8").read().strip()
@@ -138,12 +140,12 @@ class LogWindow:
                 self.tbLogger.insert("end", content)
                 self.tbLogger.yview_moveto(pos[0])
 
-    def clearLog(self):
+    def clear_log(self):
         # Ask for confirmation first
         if mbox("Confirmation", "Are you sure you want to clear the log?", 3, self.root):
             init_logging()
             logger.info("Log cleared")
-            self.updateLog()
+            self.update_log()
 
     def lower_font_size(self):
         logger.info("Lowering font size")

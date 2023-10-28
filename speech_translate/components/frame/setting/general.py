@@ -7,7 +7,7 @@ from speech_translate.components.custom.combobox import ComboboxWithKeyNav
 
 from speech_translate.globals import sj, gc
 from speech_translate._path import dir_log, dir_temp, dir_debug
-from speech_translate.custom_logging import logger, current_log
+from speech_translate.custom_logging import logger, current_log, update_stdout_ignore_list
 from speech_translate.utils.helper import popup_menu, emoji_img, up_first_case
 from speech_translate.utils.whisper.download import verify_model_faster_whisper, verify_model_whisper, download_model, get_default_download_root
 from speech_translate.utils.helper import start_file
@@ -151,6 +151,9 @@ class SettingGeneral:
         self.f_logging_4 = ttk.Frame(self.lf_logging)
         self.f_logging_4.pack(side="top", fill="x", pady=5, padx=5)
 
+        self.f_logging_5 = ttk.Frame(self.lf_logging)
+        self.f_logging_5.pack(side="top", fill="x", pady=5, padx=5)
+
         self.lbl_log = ttk.Label(self.f_logging_1, text="Log Directory", width=16)
         self.lbl_log.pack(side="left", padx=5)
 
@@ -158,6 +161,23 @@ class SettingGeneral:
         self.entry_log.pack(side="left", padx=5, fill="x", expand=True)
         tk_tooltip(self.entry_log, "Directory of the app's log file.")
 
+        self.lbl_ignore_stdout = ttk.Label(self.f_logging_2, text="Ignore stdout", width=16)
+        self.lbl_ignore_stdout.pack(side="left", padx=5)
+        tk_tooltip(self.lbl_ignore_stdout, "Collection to ignore stdout / print from the console.")
+
+        self.entry_ignore_stdout = ttk.Entry(self.f_logging_2)
+        self.entry_ignore_stdout.pack(side="left", padx=5, fill="x", expand=True)
+        self.entry_ignore_stdout.insert(0, ', '.join(sj.cache["ignore_stdout"]))
+        self.entry_ignore_stdout.bind("<FocusOut>", lambda e: self.save_ignore_stdout())
+        self.entry_ignore_stdout.bind("<Return>", lambda e: self.save_ignore_stdout())
+
+        tk_tooltip(
+            self.entry_ignore_stdout,
+            "Collection to ignore stdout / print from the console with its input separated by comma.\n\n"
+            "This is useful if you want to ignore some of the stdout / print from the console.\n\n"
+            "Example: `Predicting silences(s) with VAD..., Predicted silences(s) with VAD`",
+            wrapLength=500,
+        )
         self.btn_log_config = ttk.Button(
             self.f_logging_1,
             image=self.wrench_emoji,
@@ -190,7 +210,7 @@ class SettingGeneral:
         )
 
         self.cbtn_verbose = CustomCheckButton(
-            self.f_logging_2,
+            self.f_logging_3,
             sj.cache["verbose"],
             lambda x: sj.save_key("verbose", x),
             text="Verbose logging for whisper",
@@ -199,7 +219,7 @@ class SettingGeneral:
         self.cbtn_verbose.pack(side="left", padx=5)
 
         self.cbtn_keep_log = CustomCheckButton(
-            self.f_logging_3,
+            self.f_logging_4,
             sj.cache["keep_log"],
             lambda x: sj.save_key("keep_log", x),
             text="Keep log files",
@@ -207,17 +227,17 @@ class SettingGeneral:
         )
         self.cbtn_keep_log.pack(side="left", padx=5)
 
-        self.lbl_loglevel = ttk.Label(self.f_logging_3, text="— Log level")
+        self.lbl_loglevel = ttk.Label(self.f_logging_4, text="— Log level")
         self.lbl_loglevel.pack(side="left", padx=(0, 5))
 
         self.cb_log_level = ComboboxWithKeyNav(
-            self.f_logging_3, values=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], state="readonly"
+            self.f_logging_4, values=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], state="readonly"
         )
         self.cb_log_level.pack(side="left", padx=0)
         self.cb_log_level.bind("<<ComboboxSelected>>", self.log_level_change)
 
         self.cbtn_debug_realtime_record = CustomCheckButton(
-            self.f_logging_4,
+            self.f_logging_5,
             sj.cache["debug_realtime_record"],
             lambda x: sj.save_key("debug_realtime_record", x),
             text="Debug recording",
@@ -231,7 +251,7 @@ class SettingGeneral:
         )
 
         self.cbtn_debug_recorded_audio = CustomCheckButton(
-            self.f_logging_4,
+            self.f_logging_5,
             sj.cache["debug_recorded_audio"],
             lambda x: sj.save_key("debug_recorded_audio", x),
             text="Debug recorded audio",
@@ -247,7 +267,7 @@ class SettingGeneral:
         )
 
         self.cbtn_debug_translate = CustomCheckButton(
-            self.f_logging_4,
+            self.f_logging_5,
             sj.cache["debug_translate"],
             lambda x: sj.save_key("debug_translate", x),
             text="Debug translate",
@@ -460,13 +480,6 @@ class SettingGeneral:
             mbox("Delete Log Files", "Log files deleted successfully!", 0, self.root)
 
     def model_download(self, model: str, btn: ttk.Button, use_faster_whisper: bool) -> None:
-        if self.checking_model:
-            mbox(
-                "Please wait", "Program is still checking installed model, please wait until all models have been checked.",
-                0, self.root
-            )
-            return
-
         # if already downloading then return
         if gc.dl_thread and gc.dl_thread.is_alive():
             mbox("Already downloading", "Please wait for the current download to finish.", 0, self.root)
@@ -752,3 +765,10 @@ class SettingGeneral:
         element.configure(state="readonly")
         if save:
             sj.save_key(key, "auto")
+
+    def save_ignore_stdout(self):
+        _input = self.entry_ignore_stdout.get().split(",")
+        _input = [i.strip() for i in _input if i.strip() != ""]  # remove any empty string or space
+
+        sj.save_key("ignore_stdout", _input)
+        update_stdout_ignore_list(_input)

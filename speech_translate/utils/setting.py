@@ -40,6 +40,7 @@ default_setting = {
     "log_level": "DEBUG",  # INFO DEBUG WARNING ERROR
     "auto_scroll_log": True,
     "auto_refresh_log": True,
+    "ignore_stdout": ["Predicting silences(s) with VAD...", "Predicted silences(s) with VAD"],
     "debug_realtime_record": False,
     "debug_translate": False,
     # ------------------ #

@@ -10,7 +10,7 @@ from speech_translate._version import __version__
 from speech_translate.components.custom.tooltip import tk_tooltip
 from speech_translate.custom_logging import logger
 from speech_translate.globals import gc, sj
-from speech_translate.utils.helper import OpenUrl, nativeNotify
+from speech_translate.utils.helper import OpenUrl, native_notify
 
 
 # Classes
@@ -156,7 +156,7 @@ class AboutWindow:
                     self.update_fg = "blue"
                     self.update_func = self.open_dl_link
                     self.tooltip_check_update.text = "Click to go to the latest release page"
-                    nativeNotify("New version available", "Visit the repository to download the latest update")
+                    native_notify("New version available", "Visit the repository to download the latest update")
                 else:
                     logger.info("No update available")
                     self.update_text = "You are using the latest version"
@@ -170,7 +170,7 @@ class AboutWindow:
                 self.update_func = self.check_for_update
                 self.tooltip_check_update.text = "Click to try again"
                 if not self.checkingOnStart:  # suppress error if checking on start
-                    nativeNotify("Fail to check for update!", "Click to try again")
+                    native_notify("Fail to check for update!", "Click to try again")
 
             self.lbl_check_update.configure(text=self.update_text, foreground=self.update_fg)
             self.lbl_check_update.bind("<Button-1>", self.update_func)

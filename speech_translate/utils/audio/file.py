@@ -16,7 +16,7 @@ from speech_translate.custom_logging import logger
 from speech_translate.globals import gc, sj
 from speech_translate.utils.whisper.download import get_default_download_root
 
-from ..helper import cbtn_invoker, get_proxies, nativeNotify, filename_only, start_file
+from ..helper import cbtn_invoker, get_proxies, native_notify, filename_only, start_file
 from ..whisper.helper import get_temperature, parse_args_stable_ts, save_output_stable_ts, model_values
 from ..translate.translator import translate
 
@@ -137,7 +137,7 @@ def cancellable_tc(
             logger.info("Transcribing cancelled")
         else:
             logger.exception(e)
-            nativeNotify("Error: Transcribing Audio", str(e))
+            native_notify("Error: Transcribing Audio", str(e))
     finally:
         gc.disable_tc()
 
@@ -231,7 +231,7 @@ def cancellable_tl(
                     logger.info("Translation cancelled")
                 else:
                     logger.exception(e)
-                    nativeNotify("Error: translating with whisper failed", str(e))
+                    native_notify("Error: translating with whisper failed", str(e))
                 return
 
             # if whisper, sended text (toTranslate) is the audio file path
@@ -264,7 +264,7 @@ def cancellable_tl(
             # tl text in that segment
             success, result = translate(engine, segment_texts, lang_source, lang_target, proxies, debug_log, **kwargs)
             if not success:
-                nativeNotify(f"Error: translation with {engine} failed", result)
+                native_notify(f"Error: translation with {engine} failed", result)
                 raise Exception(result)
 
             # replace
@@ -291,7 +291,7 @@ def cancellable_tl(
                     word_texts = [word.word for word in segment.words]
                     success, result = translate(engine, word_texts, lang_source, lang_target, proxies, debug_log, **kwargs)
                     if not success:
-                        nativeNotify(f"Error: translation with {engine} failed", result)
+                        native_notify(f"Error: translation with {engine} failed", result)
                         raise Exception(result)
 
                     # replace
@@ -305,7 +305,7 @@ def cancellable_tl(
         logger.debug(f"Translated: {f_name} | Time Taken: {time() - start:.2f}s")
     except Exception as e:
         logger.exception(e)
-        nativeNotify("Error: translating failed", str(e))
+        native_notify("Error: translating failed", str(e))
     finally:
         gc.disable_tl()  # flag processing as done. No need to check for transcription because it is done before this
 

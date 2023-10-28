@@ -1,6 +1,4 @@
-import platform
-import subprocess
-from os import listdir, path, remove, startfile
+from os import listdir, path, remove
 from tkinter import filedialog, ttk, Frame, LabelFrame, Toplevel, StringVar, Event, Menu
 from typing import Literal, Union
 from speech_translate.components.custom.checkbutton import CustomCheckButton
@@ -875,12 +873,7 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
             with open(parameters_text, "w", encoding="utf-8") as f:
                 f.write(texts)
 
-        if platform.system() == 'Darwin':  # macOS
-            subprocess.call(('open', parameters_text))
-        elif platform.system() == 'Windows':  # Windows
-            startfile(parameters_text)
-        else:  # linux variants
-            subprocess.call(('xdg-open', parameters_text))
+        start_file(parameters_text)
 
     def path_default(self, key: str, element: ttk.Entry, default_path: str, save=True, prompt=True):
         # prompt are you sure

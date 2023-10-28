@@ -32,7 +32,7 @@ from speech_translate.utils.audio.device import (
     get_output_devices
 )
 from speech_translate.utils.helper import (
-    bind_focus_recursively, emoji_img, nativeNotify, popup_menu, similar, start_file, tb_copy_only, up_first_case,
+    bind_focus_recursively, emoji_img, native_notify, popup_menu, similar, start_file, tb_copy_only, up_first_case,
     windows_os_only, check_ffmpeg_in_path, install_ffmpeg
 )
 from speech_translate.utils.translate.language import (
@@ -612,7 +612,7 @@ class MainWindow:
 
         # Only show notification once
         if not self.notified_hidden and not sj.cache["supress_hidden_to_tray"]:
-            nativeNotify("Hidden to tray", "The app is still running in the background.")
+            native_notify("Hidden to tray", "The app is still running in the background.")
             self.notified_hidden = True
 
         self.root.withdraw()
@@ -653,7 +653,7 @@ class MainWindow:
     # ------------------ Functions ------------------
     # error
     def errorNotif(self, err: str):
-        nativeNotify("Unexpected Error!", err)
+        native_notify("Unexpected Error!", err)
 
     def copy_tb(self, theType: Literal["transcribed", "translated"]):
         tb_dict = {"transcribed": self.tb_transcribed, "translated": self.tb_translated}
