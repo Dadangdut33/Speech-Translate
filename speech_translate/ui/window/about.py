@@ -7,7 +7,7 @@ from requests import get
 from speech_translate._constants import APP_NAME
 from speech_translate._path import app_icon
 from speech_translate._version import __version__
-from speech_translate.components.custom.tooltip import tk_tooltip
+from speech_translate.ui.custom.tooltip import tk_tooltip
 from speech_translate.custom_logging import logger
 from speech_translate.globals import gc, sj
 from speech_translate.utils.helper import OpenUrl, native_notify

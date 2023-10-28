@@ -12,7 +12,7 @@ from faster_whisper.utils import _MODELS
 from huggingface_hub.file_download import repo_folder_name
 
 from speech_translate._path import app_icon
-from speech_translate.components.custom.message import mbox
+from speech_translate.ui.custom.message import mbox
 from speech_translate.custom_logging import logger, dir_log, current_log
 from speech_translate.globals import gc
 

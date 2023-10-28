@@ -59,12 +59,12 @@ tqdm.tqdm = DummyTqdm
 
 # Forward declaration for type hinting
 if TYPE_CHECKING:
-    from .components.window.about import AboutWindow
-    from .components.window.log import LogWindow
-    from .components.window.main import AppTray, MainWindow
-    from .components.window.setting import SettingWindow
-    from .components.window.transcribed import TcsWindow
-    from .components.window.translated import TlsWindow
+    from .ui.window.about import AboutWindow
+    from .ui.window.log import LogWindow
+    from .ui.window.main import AppTray, MainWindow
+    from .ui.window.setting import SettingWindow
+    from .ui.window.transcribed import TcsWindow
+    from .ui.window.translated import TlsWindow
 
 # ------------------ #
 sj: SettingJson = SettingJson(os.path.join(dir_user, "setting.json"), dir_user, [dir_temp, dir_log, dir_export, dir_debug])

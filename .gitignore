@@ -2,25 +2,34 @@ __pycache__/
 
 # Environments
 .env
+.envcpu
+.envgpu
 .venv
+.venvcpu
+.venvgpu
 env/
+envcpu/
+envgpu/
 venv/
 venvcpu/
+venvgpu/
 ENV/
 env.bak/
 venv.bak/
 venvtest/
 
 # Project specific
-user/
-temp/
-debug/
-ignore/
+speech_translate/_user/
+speech_translate/temp/
+speech_translate/debug/
+speech_translate/export/
+speech_translate/log/
 build/
-log/
 dist/
 output/
-export/
+
+# ignore
+ignore/
 
 # created when building
 LICENSE.txt 

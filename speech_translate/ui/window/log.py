@@ -5,8 +5,8 @@ from tkinter import Text, Tk, Toplevel, ttk
 
 from speech_translate._constants import APP_NAME
 from speech_translate._path import app_icon
-from speech_translate.components.custom.checkbutton import CustomCheckButton
-from speech_translate.components.custom.message import mbox
+from speech_translate.ui.custom.checkbutton import CustomCheckButton
+from speech_translate.ui.custom.message import mbox
 from speech_translate.custom_logging import current_log, dir_log, init_logging, logger
 from speech_translate.globals import gc, sj
 from speech_translate.utils.helper import bind_focus_recursively, start_file, tb_copy_only

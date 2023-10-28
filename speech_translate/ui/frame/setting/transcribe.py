@@ -1,8 +1,8 @@
 from os import listdir, path, remove
 from tkinter import filedialog, ttk, Frame, LabelFrame, Toplevel, StringVar, Event, Menu
 from typing import Literal, Union
-from speech_translate.components.custom.checkbutton import CustomCheckButton
-from speech_translate.components.custom.message import MBoxText, mbox
+from speech_translate.ui.custom.checkbutton import CustomCheckButton
+from speech_translate.ui.custom.message import MBoxText, mbox
 from datetime import datetime
 
 from stable_whisper import result_to_ass, result_to_srt_vtt, result_to_tsv, load_model, load_faster_whisper
@@ -11,8 +11,8 @@ from speech_translate.globals import sj, gc
 from speech_translate._path import dir_export, parameters_text
 from speech_translate.utils.helper import filename_only, popup_menu, start_file, up_first_case
 from speech_translate.utils.whisper.helper import get_temperature, parse_args_stable_ts
-from speech_translate.components.custom.tooltip import CreateToolTipOnText, tk_tooltip, tk_tooltips
-from speech_translate.components.custom.spinbox import SpinboxNumOnly
+from speech_translate.ui.custom.tooltip import CreateToolTipOnText, tk_tooltip, tk_tooltips
+from speech_translate.ui.custom.spinbox import SpinboxNumOnly
 
 
 class SettingTranscribe:

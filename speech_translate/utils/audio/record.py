@@ -24,9 +24,9 @@ from webrtcvad import Vad
 
 from speech_translate._constants import MAX_THRESHOLD, MIN_THRESHOLD, WHISPER_SR
 from speech_translate._path import app_icon, dir_debug, dir_temp
-from speech_translate.components.custom.label import LabelTitleText
-from speech_translate.components.custom.message import mbox
-from speech_translate.components.custom.audio import AudioMeter
+from speech_translate.ui.custom.label import LabelTitleText
+from speech_translate.ui.custom.message import mbox
+from speech_translate.ui.custom.audio import AudioMeter
 from speech_translate.custom_logging import logger
 from speech_translate.globals import gc, sj
 from speech_translate.utils.whisper.download import get_default_download_root  # https://github.com/jianfch/stable-ts # has no static annotation hence many type ignore

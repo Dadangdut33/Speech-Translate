@@ -6,7 +6,7 @@ from tkinter import Tk
 toAdd = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(toAdd)
 
-from speech_translate.components.custom.message import mbox  # noqa: E402
+from speech_translate.ui.custom.message import mbox  # noqa: E402
 
 root = Tk()
 

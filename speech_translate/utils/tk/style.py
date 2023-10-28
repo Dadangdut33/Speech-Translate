@@ -16,7 +16,7 @@ import tkinter as tk
 from speech_translate.custom_logging import logger
 from speech_translate.globals import gc, sj
 from speech_translate._path import dir_theme
-from speech_translate.components.custom.message import mbox
+from speech_translate.ui.custom.message import mbox
 from tkinter import ttk, TclError
 
 theme_list = ["sun-valley-light", "sun-valley-dark"]

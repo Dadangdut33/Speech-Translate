@@ -7,7 +7,7 @@ from darkdetect import isDark
 from notifypy import Notify
 
 from speech_translate._version import __setting_version__
-from speech_translate.components.custom.message import mbox
+from speech_translate.ui.custom.message import mbox
 from speech_translate.custom_logging import logger
 
 default_setting = {

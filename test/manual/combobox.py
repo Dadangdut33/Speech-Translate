@@ -5,7 +5,7 @@ import sys
 toAdd = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(toAdd)
 
-from speech_translate.components.custom.combobox import ComboboxTypeOnCustom, CategorizedComboBox  # noqa: E402
+from speech_translate.ui.custom.combobox import ComboboxTypeOnCustom, CategorizedComboBox  # noqa: E402
 
 root = tk.Tk()
 try:

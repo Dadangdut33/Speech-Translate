@@ -6,7 +6,7 @@ import sys
 toAdd = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(toAdd)
 
-from speech_translate.components.custom.audio import AudioMeter  # noqa: E402
+from speech_translate.ui.custom.audio import AudioMeter  # noqa: E402
 
 
 class TestAudioMeter(unittest.TestCase):

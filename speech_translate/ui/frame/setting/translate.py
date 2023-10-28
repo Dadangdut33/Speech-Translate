@@ -1,10 +1,10 @@
 from tkinter import ttk, Frame, LabelFrame, Text, Toplevel
 from typing import Union
-from speech_translate.components.custom.checkbutton import CustomCheckButton
+from speech_translate.ui.custom.checkbutton import CustomCheckButton
 
 from speech_translate.globals import sj
 
-from speech_translate.components.custom.tooltip import tk_tooltip, tk_tooltips
+from speech_translate.ui.custom.tooltip import tk_tooltip, tk_tooltips
 
 
 class SettingTranslate:

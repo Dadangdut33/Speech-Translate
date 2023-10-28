@@ -2,8 +2,8 @@ from os import listdir, remove, path
 from threading import Thread
 from tkinter import ttk, filedialog, Menu, Toplevel, Frame, LabelFrame
 from typing import Union
-from speech_translate.components.custom.checkbutton import CustomCheckButton
-from speech_translate.components.custom.combobox import ComboboxWithKeyNav
+from speech_translate.ui.custom.checkbutton import CustomCheckButton
+from speech_translate.ui.custom.combobox import ComboboxWithKeyNav
 
 from speech_translate.globals import sj, gc
 from speech_translate._path import dir_log, dir_temp, dir_debug
@@ -11,9 +11,9 @@ from speech_translate.custom_logging import logger, current_log, update_stdout_i
 from speech_translate.utils.helper import popup_menu, emoji_img, up_first_case
 from speech_translate.utils.whisper.download import verify_model_faster_whisper, verify_model_whisper, download_model, get_default_download_root
 from speech_translate.utils.helper import start_file
-from speech_translate.utils.ui.style import set_ui_style
-from speech_translate.components.custom.message import mbox
-from speech_translate.components.custom.tooltip import tk_tooltip, tk_tooltips
+from speech_translate.utils.tk.style import set_ui_style
+from speech_translate.ui.custom.message import mbox
+from speech_translate.ui.custom.tooltip import tk_tooltip, tk_tooltips
 
 
 class ModelDownloadFrame:

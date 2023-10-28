@@ -10,8 +10,8 @@ import stable_whisper  # https://github.com/jianfch/stable-ts # has no static an
 from whisper.tokenizer import TO_LANGUAGE_CODE
 
 from speech_translate._path import app_icon, dir_export
-from speech_translate.components.custom.label import LabelTitleText
-from speech_translate.components.custom.message import mbox
+from speech_translate.ui.custom.label import LabelTitleText
+from speech_translate.ui.custom.message import mbox
 from speech_translate.custom_logging import logger
 from speech_translate.globals import gc, sj
 from speech_translate.utils.whisper.download import get_default_download_root

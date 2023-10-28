@@ -6,12 +6,12 @@ from bidi.algorithm import get_display
 from matplotlib import pyplot as plt
 
 from speech_translate._constants import PREVIEW_WORDS, APP_NAME
-from speech_translate.components.custom.checkbutton import CustomCheckButton
-from speech_translate.components.custom.combobox import ComboboxWithKeyNav
-from speech_translate.components.custom.spinbox import SpinboxNumOnly
+from speech_translate.ui.custom.checkbutton import CustomCheckButton
+from speech_translate.ui.custom.combobox import ComboboxWithKeyNav
+from speech_translate.ui.custom.spinbox import SpinboxNumOnly
 from speech_translate.globals import sj, gc
 from speech_translate.utils.helper import chooseColor, generate_color, emoji_img
-from speech_translate.components.custom.tooltip import tk_tooltip, tk_tooltips
+from speech_translate.ui.custom.tooltip import tk_tooltip, tk_tooltips
 
 
 class SettingTextbox:

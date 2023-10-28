@@ -4,7 +4,7 @@ from tkinter import Tk, Toplevel, ttk
 from typing import Union
 
 from speech_translate._path import app_icon
-from speech_translate.components.custom.message import mbox
+from speech_translate.ui.custom.message import mbox
 
 
 class CountdownWindow:

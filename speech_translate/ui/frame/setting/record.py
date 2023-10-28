@@ -5,9 +5,9 @@ from tkinter import ttk, Toplevel, Frame, LabelFrame, StringVar, IntVar
 from typing import Literal, Union
 
 from webrtcvad import Vad
-from speech_translate.components.custom.checkbutton import CustomCheckButton
-from speech_translate.components.custom.combobox import ComboboxTypeOnCustom
-from speech_translate.components.custom.spinbox import SpinboxNumOnly
+from speech_translate.ui.custom.checkbutton import CustomCheckButton
+from speech_translate.ui.custom.combobox import ComboboxTypeOnCustom
+from speech_translate.ui.custom.spinbox import SpinboxNumOnly
 if system() == "Windows":
     import pyaudiowpatch as pyaudio
 else:
@@ -18,8 +18,8 @@ from speech_translate._constants import MIN_THRESHOLD, MAX_THRESHOLD, WHISPER_SR
 from speech_translate.custom_logging import logger
 from speech_translate.utils.audio.device import get_db, get_device_details, get_frame_duration, get_speech, resample_sr
 from speech_translate.utils.helper import get_channel_int, cbtn_invoker, windows_os_only
-from speech_translate.components.custom.audio import AudioMeter
-from speech_translate.components.custom.tooltip import tk_tooltips, tk_tooltip
+from speech_translate.ui.custom.audio import AudioMeter
+from speech_translate.ui.custom.tooltip import tk_tooltips, tk_tooltip
 
 
 class SettingRecord:

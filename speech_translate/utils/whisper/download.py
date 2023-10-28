@@ -6,7 +6,7 @@ from faster_whisper.utils import _MODELS as FW_MODELS
 from huggingface_hub import HfApi
 from huggingface_hub.file_download import repo_folder_name
 
-from speech_translate.components.custom.download import whisper_download_with_progress_gui, faster_whisper_download_with_progress_gui
+from speech_translate.ui.custom.download import whisper_download_with_progress_gui, faster_whisper_download_with_progress_gui
 
 
 # donwload function

@@ -3,11 +3,11 @@ from tkinter import Frame, Tk, Toplevel, font, ttk
 
 from speech_translate._constants import APP_NAME
 from speech_translate._path import app_icon
-from speech_translate.components.frame.setting.general import SettingGeneral
-from speech_translate.components.frame.setting.record import SettingRecord
-from speech_translate.components.frame.setting.textbox import SettingTextbox
-from speech_translate.components.frame.setting.transcribe import SettingTranscribe
-from speech_translate.components.frame.setting.translate import SettingTranslate
+from speech_translate.ui.frame.setting.general import SettingGeneral
+from speech_translate.ui.frame.setting.record import SettingRecord
+from speech_translate.ui.frame.setting.textbox import SettingTextbox
+from speech_translate.ui.frame.setting.transcribe import SettingTranscribe
+from speech_translate.ui.frame.setting.translate import SettingTranslate
 from speech_translate.globals import gc, sj
 from speech_translate.utils.helper import bind_focus_recursively
 

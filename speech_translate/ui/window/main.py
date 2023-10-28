@@ -15,16 +15,16 @@ from torch import cuda
 from speech_translate._constants import APP_NAME
 from speech_translate._path import app_icon
 from speech_translate._version import __version__
-from speech_translate.components.custom.checkbutton import CustomCheckButton
-from speech_translate.components.custom.combobox import CategorizedComboBox, ComboboxWithKeyNav
-from speech_translate.components.custom.message import mbox
-from speech_translate.components.custom.text import ColoredText
-from speech_translate.components.custom.tooltip import tk_tooltip, tk_tooltips
-from speech_translate.components.window.about import AboutWindow
-from speech_translate.components.window.log import LogWindow
-from speech_translate.components.window.setting import SettingWindow
-from speech_translate.components.window.transcribed import TcsWindow
-from speech_translate.components.window.translated import TlsWindow
+from speech_translate.ui.custom.checkbutton import CustomCheckButton
+from speech_translate.ui.custom.combobox import CategorizedComboBox, ComboboxWithKeyNav
+from speech_translate.ui.custom.message import mbox
+from speech_translate.ui.custom.text import ColoredText
+from speech_translate.ui.custom.tooltip import tk_tooltip, tk_tooltips
+from speech_translate.ui.window.about import AboutWindow
+from speech_translate.ui.window.log import LogWindow
+from speech_translate.ui.window.setting import SettingWindow
+from speech_translate.ui.window.transcribed import TcsWindow
+from speech_translate.ui.window.translated import TlsWindow
 from speech_translate.custom_logging import logger
 from speech_translate.globals import gc, sj
 from speech_translate.utils.audio.device import (
@@ -42,7 +42,7 @@ from speech_translate.utils.whisper.helper import append_dot_en, model_keys, mod
 from speech_translate.utils.whisper.download import download_model, get_default_download_root, verify_model_faster_whisper, verify_model_whisper
 from speech_translate.utils.audio.record import record_session
 from speech_translate.utils.audio.file import import_file
-from speech_translate.utils.ui.style import get_current_theme, get_theme_list, init_theme, set_ui_style
+from speech_translate.utils.tk.style import get_current_theme, get_theme_list, init_theme, set_ui_style
 
 
 # Function to handle Ctrl+C and exit just like clicking the exit button
