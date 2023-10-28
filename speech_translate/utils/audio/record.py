@@ -613,7 +613,8 @@ def record_session(
                 if num_of_channels == 1:
                     audio_as_np_int16 = np.frombuffer(audio_bytes, dtype=np.int16).flatten()
                     audio_as_np_float32 = audio_as_np_int16.astype(np.float32)
-                    audio_target = audio_as_np_float32 / max_int16  # normalized as Numpy array
+                    audio_np = audio_as_np_float32 / max_int16  # normalized as Numpy array
+                    audio_target = torch.from_numpy(audio_np)  # convert to torch tensor
                 else:
                     # Samples are interleaved, so for a stereo stream with left channel
                     # of [L0, L1, L2, ...] and right channel of [R0, R1, R2, ...]
@@ -624,10 +625,11 @@ def record_session(
                     chunk_length = len(audio_as_np_float32) / num_of_channels
                     assert chunk_length == int(chunk_length)
                     audio_reshaped = np.reshape(audio_as_np_float32, (int(chunk_length), num_of_channels))
-                    audio_target = audio_reshaped[:, 0] / max_int16  # take left channel only
+                    audio_np = audio_reshaped[:, 0] / max_int16  # take left channel only
+                    audio_target = torch.from_numpy(audio_np)  # convert to torch tensor
 
                 if sj.cache["debug_recorded_audio"] == 1:
-                    wav.write(generate_temp_filename(dir_debug), WHISPER_SR, audio_target)
+                    wav.write(generate_temp_filename(dir_debug), WHISPER_SR, audio_np)
             else:
                 # add to the temp list to delete later
                 audio_target = generate_temp_filename(dir_temp)

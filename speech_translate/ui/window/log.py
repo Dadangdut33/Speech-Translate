@@ -122,23 +122,21 @@ class LogWindow:
             sleep(1)
 
     def update_log(self):
-        prev_content = self.tbLogger.get(1.0, "end").strip()
         try:
             content = open(path.join(dir_log, current_log), encoding="utf-8").read().strip()
         except FileNotFoundError:
             logger.error(f"Log file not found | {path.join(dir_log, current_log)}")
             content = f"Log file not found | {path.join(dir_log, current_log)}"
 
-        if len(prev_content) != len(content):
-            if sj.cache["auto_scroll_log"]:
-                self.tbLogger.delete(1.0, "end")
-                self.tbLogger.insert("end", content)
-                self.tbLogger.see("end")  # scroll to the bottom
-            else:
-                pos = self.sbY.get()
-                self.tbLogger.delete(1.0, "end")
-                self.tbLogger.insert("end", content)
-                self.tbLogger.yview_moveto(pos[0])
+        if sj.cache["auto_scroll_log"]:
+            self.tbLogger.delete(1.0, "end")
+            self.tbLogger.insert("end", content)
+            self.tbLogger.see("end")  # scroll to the bottom
+        else:
+            pos = self.sbY.get()
+            self.tbLogger.delete(1.0, "end")
+            self.tbLogger.insert("end", content)
+            self.tbLogger.yview_moveto(pos[0])
 
     def clear_log(self):
         # Ask for confirmation first
