@@ -8,12 +8,13 @@ from typing import Union
 
 import huggingface_hub
 import requests
+from loguru import logger
 from faster_whisper.utils import _MODELS
 from huggingface_hub.file_download import repo_folder_name
 
 from speech_translate._path import app_icon
 from speech_translate.ui.custom.message import mbox
-from speech_translate.custom_logging import logger, dir_log, current_log
+from speech_translate.custom_logging import dir_log, current_log
 from speech_translate.globals import gc
 
 
@@ -40,7 +41,7 @@ def whisper_download_with_progress_gui(
         if sha256(model_bytes).hexdigest() == expected_sha256:
             return model_bytes if in_memory else download_target
         else:
-            logger.warn(f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file")
+            logger.warning(f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file")
 
     # Show toplevel window
     root = Toplevel(master)
@@ -241,7 +242,7 @@ def faster_whisper_download_with_progress_gui(master: Union[Tk, Toplevel], model
 
     # add progress bar that just goes back and forth
     progress = ttk.Progressbar(f2, orient="horizontal", length=200, mode="indeterminate")
-    progress.pack(expand=True, fill="x", padx=10, pady=5)
+    progress.pack(expand=True, fill="x", padx=10, pady=(2, 2))
     progress.start(15)
 
     text_log = Text(f3, height=5, width=50, font=("Consolas", 8))

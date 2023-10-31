@@ -10,6 +10,7 @@ PyAudioWPatch==0.2.12.6; platform_system == "Windows"
 PyAudio==0.2.13; platform_system != "Windows"
 pystray==0.19.5
 tkhtmlview==0.2.0
+loguru==0.7.2
 requests==2.31.0
 scipy==1.11.3
 sounddevice==0.4.6

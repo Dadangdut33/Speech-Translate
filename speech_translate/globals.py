@@ -9,7 +9,6 @@ from PIL import ImageTk
 from typing import TYPE_CHECKING, List, Literal, Optional, Sequence, Union, Dict
 from warnings import simplefilter
 
-import tqdm
 from arabic_reshaper import reshape
 from bidi.algorithm import get_display
 from numba.core.errors import NumbaDeprecationWarning, NumbaPendingDeprecationWarning
@@ -30,32 +29,7 @@ else:
 # remove numba warnings
 simplefilter("ignore", category=NumbaDeprecationWarning)
 simplefilter("ignore", category=NumbaPendingDeprecationWarning)
-
-
-# Disabling tqdm globally by Defining a custom dummy class that suppresses tqdm's behavior
-class DummyTqdm:
-    n: int = 0
-    total: int = 0
-    disable: bool = True
-
-    def __init__(self, *args, **kwargs):
-        pass
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *args, **kwargs):
-        pass
-
-    def update(self, n=1):
-        pass
-
-    def write(self, *args, **kwargs):
-        pass
-
-
-# Monkey-patch tqdm with the DummyTqdm class
-tqdm.tqdm = DummyTqdm
+simplefilter("ignore", category=UserWarning)  # supress general user warning like in pytorch
 
 # Forward declaration for type hinting
 if TYPE_CHECKING:

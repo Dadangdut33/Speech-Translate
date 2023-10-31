@@ -1,8 +1,8 @@
 from os import path
 from sounddevice import play
 from soundfile import read
+from loguru import logger
 from speech_translate._path import dir_assets
-from speech_translate.custom_logging import logger
 
 
 def beep():

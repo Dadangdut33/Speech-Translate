@@ -7,6 +7,7 @@ from typing import List, Union
 
 import torch
 import stable_whisper  # https://github.com/jianfch/stable-ts # has no static annotation hence many type ignore
+from faster_whisper import WhisperModel
 from whisper.tokenizer import TO_LANGUAGE_CODE
 
 from speech_translate._path import app_icon, dir_export
@@ -424,8 +425,7 @@ def import_file(
 
         # load model
         model_args = parse_args_stable_ts(
-            sj.cache["whisper_args"], "load",
-            stable_whisper.load_faster_whisper if sj.cache["use_faster_whisper"] else stable_whisper.load_model
+            sj.cache["whisper_args"], "load", WhisperModel if sj.cache["use_faster_whisper"] else stable_whisper.load_model
         )
         if not model_args.pop("success"):
             raise Exception(model_args["msg"])
@@ -511,7 +511,8 @@ def import_file(
         timerStart = time()
         taskname = "Transcribe & Translate" if transcribe and translate else "Transcribe" if transcribe else "Translate"
         language = f"from {lang_source} to {lang_target}" if translate else lang_source
-        logger.debug(f"whisper_args: {whisper_args}")
+        logger.info(f"Model Args: {model_args}")
+        logger.info(f"Process Args: {whisper_args}")
         current_file_counter = 0
 
         def add_to_files():

@@ -2,6 +2,7 @@ from audioop import rms as calculate_rms
 from platform import system
 from typing import Literal
 
+from loguru import logger
 from webrtcvad import Vad
 from scipy.signal import resample_poly, butter, filtfilt
 from numpy import log10, frombuffer, int16, float32
@@ -9,8 +10,6 @@ if system() == "Windows":
     import pyaudiowpatch as pyaudio
 else:
     import pyaudio  # type: ignore
-
-from speech_translate.custom_logging import logger
 
 
 class Frame(object):

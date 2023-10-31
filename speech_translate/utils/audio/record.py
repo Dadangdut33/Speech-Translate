@@ -14,6 +14,7 @@ import numpy as np
 import scipy.io.wavfile as wav
 import torch
 import stable_whisper
+from faster_whisper import WhisperModel
 from whisper.tokenizer import TO_LANGUAGE_CODE
 
 if system() == "Windows":
@@ -206,8 +207,7 @@ def record_session(
 
         # load model first
         model_args = parse_args_stable_ts(
-            sj.cache["whisper_args"], "load",
-            stable_whisper.load_faster_whisper if sj.cache["use_faster_whisper"] else stable_whisper.load_model
+            sj.cache["whisper_args"], "load", WhisperModel if sj.cache["use_faster_whisper"] else stable_whisper.load_model
         )
         if not model_args.pop("success"):
             raise Exception(model_args["msg"])
@@ -217,6 +217,7 @@ def record_session(
         else:
             model_args["download_root"] = get_default_download_root()
 
+        cuda_device = model_args["device"]
         model_tc, model_tl, stable_tc, stable_tl = None, None, None, None
         if sj.cache["use_faster_whisper"]:
             if model_name_tc == engine:
@@ -311,7 +312,8 @@ def record_session(
         logger.info(f"Source Languange: {lang_source}")
         if translate:
             logger.info(f"Target Language: {lang_target}")
-        logger.info(f"Args: {whisper_args}")
+        logger.info(f"Model Args: {model_args}")
+        logger.info(f"Process Args: {whisper_args}")
 
         p = pyaudio.PyAudio()
         success, detail = get_device_details(rec_type, sj, p)
@@ -522,7 +524,7 @@ def record_session(
             stream_callback=record_cb,
         )
 
-        logger.debug("Record Session Started")
+        logger.debug("Recording session started")
 
         def break_buffer_store_update():
             """
@@ -614,7 +616,7 @@ def record_session(
                     audio_as_np_int16 = np.frombuffer(audio_bytes, dtype=np.int16).flatten()
                     audio_as_np_float32 = audio_as_np_int16.astype(np.float32)
                     audio_np = audio_as_np_float32 / max_int16  # normalized as Numpy array
-                    audio_target = torch.from_numpy(audio_np)  # convert to torch tensor
+                    audio_target = torch.from_numpy(audio_np).to(cuda_device)  # convert to torch tensor
                 else:
                     # Samples are interleaved, so for a stereo stream with left channel
                     # of [L0, L1, L2, ...] and right channel of [R0, R1, R2, ...]
@@ -626,7 +628,7 @@ def record_session(
                     assert chunk_length == int(chunk_length)
                     audio_reshaped = np.reshape(audio_as_np_float32, (int(chunk_length), num_of_channels))
                     audio_np = audio_reshaped[:, 0] / max_int16  # take left channel only
-                    audio_target = torch.from_numpy(audio_np)  # convert to torch tensor
+                    audio_target = torch.from_numpy(audio_np).to(cuda_device)  # convert to torch tensor
 
                 if sj.cache["debug_recorded_audio"] == 1:
                     wav.write(generate_temp_filename(dir_debug), WHISPER_SR, audio_np)
@@ -668,7 +670,7 @@ def record_session(
                     if sj.cache["debug_realtime_record"] == 1:
                         logger.debug("New translated text (Whisper)")
                         if sj.cache["verbose"]:
-                            logger.debug(stablets_verbose_log(result))
+                            stablets_verbose_log(result)
                         else:
                             logger.debug(f"{text}")
 
@@ -705,7 +707,7 @@ def record_session(
 
                     if sj.cache["debug_realtime_record"] == 1:
                         if sj.cache["verbose"]:
-                            logger.debug(stablets_verbose_log(result))
+                            stablets_verbose_log(result)
                         else:
                             logger.debug(f"New text: {text}")
 
@@ -762,7 +764,7 @@ def record_session(
                 for audio in temp_list:
                     try:
                         remove(audio)
-                    except FileNotFoundError:
+                    except Exception:
                         pass
                 logger.info("Done!")
 
@@ -863,9 +865,8 @@ def tl_whisper_threaded(
     global prev_tl_res
     try:
         assert gc.tc_lock is not None
-        gc.tc_lock.acquire()
-        result: stable_whisper.WhisperResult = stable_tl(audio, task="translate", **whisper_args)
-        gc.tc_lock.release()
+        with gc.tc_lock:
+            result: stable_whisper.WhisperResult = stable_tl(audio, task="translate", **whisper_args)
 
         text = result.text.strip()
         gc.auto_detected_lang = result.language or "~"
@@ -876,7 +877,7 @@ def tl_whisper_threaded(
             if sj.cache["debug_realtime_record"] == 1:
                 logger.debug("New translated text (Whisper)")
                 if sj.cache["verbose"]:
-                    logger.debug(stablets_verbose_log(result))
+                    stablets_verbose_log(result)
                 else:
                     logger.debug(f"{text}")
 

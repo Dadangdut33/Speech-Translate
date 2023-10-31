@@ -5,9 +5,11 @@ from typing import Union
 from speech_translate.ui.custom.checkbutton import CustomCheckButton
 from speech_translate.ui.custom.combobox import ComboboxWithKeyNav
 
+from loguru import logger
+
 from speech_translate.globals import sj, gc
 from speech_translate._path import dir_log, dir_temp, dir_debug
-from speech_translate.custom_logging import logger, current_log, update_stdout_ignore_list
+from speech_translate.custom_logging import current_log, update_stdout_ignore_list, change_log_level
 from speech_translate.utils.helper import popup_menu, emoji_img, up_first_case
 from speech_translate.utils.whisper.download import verify_model_faster_whisper, verify_model_whisper, download_model, get_default_download_root
 from speech_translate.utils.helper import start_file
@@ -234,6 +236,7 @@ class SettingGeneral:
             self.f_logging_4, values=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], state="readonly"
         )
         self.cb_log_level.pack(side="left", padx=0)
+        self.cb_log_level.set(sj.cache["log_level"])
         self.cb_log_level.bind("<<ComboboxSelected>>", self.log_level_change)
 
         self.cbtn_debug_realtime_record = CustomCheckButton(
@@ -413,9 +416,6 @@ class SettingGeneral:
 
     # ------------------ Functions ------------------
     def init_setting_once(self):
-        logger.setLevel(sj.cache["log_level"])
-        self.cb_log_level.set(sj.cache["log_level"])
-
         if sj.cache["dir_log"] == "auto":
             self.path_default("dir_log", self.entry_log, dir_log, save=False, prompt=False)
         else:
@@ -738,7 +738,7 @@ class SettingGeneral:
 
     def log_level_change(self, _event=None):
         sj.save_key("log_level", self.cb_log_level.get())
-        logger.setLevel(self.cb_log_level.get())
+        change_log_level(self.cb_log_level.get())
 
     def change_path(self, key: str, element: ttk.Entry):
         path = filedialog.askdirectory()

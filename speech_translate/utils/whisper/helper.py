@@ -11,7 +11,7 @@ from stable_whisper.utils import str_to_valid_type, isolate_useful_options
 from whisper.utils import optional_int, optional_float
 from whisper import DecodingOptions
 
-from speech_translate.custom_logging import logger
+from loguru import logger
 from speech_translate.utils.custom_types import StableTsResultDict
 
 model_select_dict = {

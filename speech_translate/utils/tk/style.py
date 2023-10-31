@@ -13,11 +13,13 @@ https://stackoverflow.com/questions/45389166/how-to-know-all-style-options-of-a-
 """
 import os
 import tkinter as tk
-from speech_translate.custom_logging import logger
+from tkinter import ttk, TclError
+
+from loguru import logger
+
 from speech_translate.globals import gc, sj
 from speech_translate._path import dir_theme
 from speech_translate.ui.custom.message import mbox
-from tkinter import ttk, TclError
 
 theme_list = ["sun-valley-light", "sun-valley-dark"]
 

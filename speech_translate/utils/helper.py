@@ -14,13 +14,13 @@ from typing import Dict, List, Union
 from webbrowser import open_new
 from difflib import SequenceMatcher
 
+from loguru import logger
 from notifypy import Notify, exceptions
 from PIL import Image, ImageDraw, ImageFont, ImageTk
 
 from speech_translate._constants import APP_NAME
 from speech_translate._path import app_icon, app_icon_missing, ffmpeg_ps_script
 from speech_translate.ui.custom.tooltip import tk_tooltip
-from speech_translate.custom_logging import logger
 from speech_translate.utils.custom_types import ToInsert
 
 

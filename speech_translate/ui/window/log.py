@@ -3,11 +3,13 @@ from threading import Thread
 from time import sleep
 from tkinter import Text, Tk, Toplevel, ttk
 
+from loguru import logger
+
 from speech_translate._constants import APP_NAME
-from speech_translate._path import app_icon
+from speech_translate._path import app_icon, dir_log
 from speech_translate.ui.custom.checkbutton import CustomCheckButton
 from speech_translate.ui.custom.message import mbox
-from speech_translate.custom_logging import current_log, dir_log, init_logging, logger
+from speech_translate.custom_logging import current_log, clear_current_log_file
 from speech_translate.globals import gc, sj
 from speech_translate.utils.helper import bind_focus_recursively, start_file, tb_copy_only
 
@@ -141,7 +143,7 @@ class LogWindow:
     def clear_log(self):
         # Ask for confirmation first
         if mbox("Confirmation", "Are you sure you want to clear the log?", 3, self.root):
-            init_logging()
+            clear_current_log_file()
             logger.info("Log cleared")
             self.update_log()
 

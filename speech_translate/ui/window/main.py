@@ -6,6 +6,7 @@ from time import strftime
 from tkinter import Frame, Menu, StringVar, Tk, Toplevel, filedialog, ttk
 from typing import Dict, Literal
 
+from loguru import logger
 from PIL import Image, ImageDraw
 from pystray import Icon as icon
 from pystray import Menu as menu
@@ -25,7 +26,7 @@ from speech_translate.ui.window.log import LogWindow
 from speech_translate.ui.window.setting import SettingWindow
 from speech_translate.ui.window.transcribed import TcsWindow
 from speech_translate.ui.window.translated import TlsWindow
-from speech_translate.custom_logging import logger
+from speech_translate.custom_logging import init_logging
 from speech_translate.globals import gc, sj
 from speech_translate.utils.audio.device import (
     get_default_host_api, get_default_input_device, get_default_output_device, get_host_apis, get_input_devices,
@@ -1503,6 +1504,7 @@ def check_cuda_and_gpu():
 
 
 def main():
+    init_logging(sj.cache["log_level"])
     logger.info(f"App Version: {__version__}")
     logger.info(f"OS: {system()} {release()} {version()} | CPU: {processor()}")
     logger.info(f"GPU: {get_gpu_info()} | CUDA: {check_cuda_and_gpu()}")
