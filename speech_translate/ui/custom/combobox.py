@@ -50,8 +50,7 @@ class ComboboxTypeOnCustom(ttk.Combobox):
     Designed for integer values
     """
     def __init__(
-        self, root: Union[Tk, Toplevel], master, values: List[str], vmin: str, vmax: str, save_func, initial_value: str,
-        **kwargs
+        self, root: Union[Tk, Toplevel], master, values: List[str], vmin: str, vmax: str, save_func, initial_value, **kwargs
     ):
         super().__init__(master, values=values.copy() + ["Custom"], **kwargs)
         self.root = root

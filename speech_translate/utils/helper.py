@@ -2,7 +2,6 @@ import html
 import subprocess
 import textwrap
 import tkinter as tk
-import json
 from collections import OrderedDict
 from datetime import datetime
 from os import path, startfile
@@ -14,6 +13,7 @@ from typing import Dict, List, Union
 from webbrowser import open_new
 from difflib import SequenceMatcher
 
+from stable_whisper import WhisperResult
 from loguru import logger
 from notifypy import Notify, exceptions
 from PIL import Image, ImageDraw, ImageFont, ImageTk
@@ -32,17 +32,22 @@ def get_similar_keys(_dict: Dict, key: str):
     return [k for k in _dict.keys() if key.lower() in k.lower()]
 
 
-def unique_list(list_of_dicts: List):
-    # chec first, if the list is empty
-    if len(list_of_dicts) == 0:
-        return list_of_dicts
+def unique_rec_list(list_of_data: List):
+    # check first, if the list is empty
+    if len(list_of_data) == 0:
+        return list_of_data
 
-    # check wether the list contains dictionaries
-    if isinstance(list_of_dicts[0], Dict):
-        unique_lists = list(OrderedDict((json.dumps(d, sort_keys=True), d) for d in list_of_dicts).values())
+    if isinstance(list_of_data[0], WhisperResult):
+        seen = set()
+        unique_lists = []
+        for obj in list_of_data:
+            assert isinstance(obj, WhisperResult)
+            if obj.text not in seen:
+                unique_lists.append(obj)
+                seen.add(obj.text)
     else:
         # Convert the list to a set to get unique values then convert them back to a list
-        unique_lists = list(OrderedDict.fromkeys(list_of_dicts))
+        unique_lists = list(OrderedDict.fromkeys(list_of_data))
 
     return unique_lists
 
@@ -172,6 +177,25 @@ def cbtn_invoker(settingVal: bool, widget: Union[ttk.Checkbutton, ttk.Radiobutto
     else:
         widget.invoke()
         widget.invoke()
+
+
+def open_folder(filename: str):
+    """
+    Open folder of a give filename path
+
+    Parameters
+    ----------
+    filename : str
+        The filename
+    """
+    if path.exists(filename):
+        if path.isdir(filename):
+            start_file(filename)
+        else:
+            start_file(path.dirname(filename))
+    else:
+        logger.exception("Cannot find the file specified.")
+        native_notify("Error", "Cannot find the file specified.")
 
 
 def start_file(filename: str):

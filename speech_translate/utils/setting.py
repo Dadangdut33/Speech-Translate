@@ -9,8 +9,9 @@ from loguru import logger
 
 from speech_translate._version import __setting_version__
 from speech_translate.ui.custom.message import mbox
+from speech_translate.utils.custom_types import SettingDict
 
-default_setting = {
+default_setting: SettingDict = {
     "version": __setting_version__,
     "checkUpdateOnStart": True,
     # ------------------ #
@@ -178,7 +179,7 @@ class SettingJson:
     Class to handle setting.json
     """
     def __init__(self, setting_path: str, setting_dir: str, checkdirs: List[str]):
-        self.cache = {}
+        self.cache: SettingDict = {}  # type: ignore
         self.setting_path = setting_path
         self.dir = setting_dir
         self.createDirectoryIfNotExist(self.dir)  # setting dir
@@ -246,7 +247,7 @@ class SettingJson:
             logger.exception(e)
             mbox("Error", "Error: Creating default setting file. " + setting_path + "\nReason: " + str(e), 2)
 
-    def save(self, data: dict):
+    def save(self, data: SettingDict):
         """
         Save json file
         """
@@ -268,7 +269,7 @@ class SettingJson:
         """
         return self.save(self.cache)
 
-    def save_old_setting(self, data: dict):
+    def save_old_setting(self, data: SettingDict):
         """
         Save json file
         """
@@ -314,7 +315,7 @@ class SettingJson:
         """
         success: bool = False
         msg: str = ""
-        data: dict = {}
+        data: SettingDict = {}  # type: ignore
         try:
             with open(self.setting_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
@@ -324,7 +325,7 @@ class SettingJson:
         finally:
             return success, msg, data
 
-    def verifyLoadedSetting(self, data: dict):
+    def verifyLoadedSetting(self, data: SettingDict):
         """
         Verify loaded setting
         """

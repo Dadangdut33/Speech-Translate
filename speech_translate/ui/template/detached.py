@@ -28,9 +28,9 @@ class SubtitleWindow:
         self.title = title
         self.root = Toplevel(master)
         self.root.title(title)
-        self.root.geometry(sj.cache[f"ex_{winType}_geometry"])
+        self.root.geometry(sj.cache.get(f"ex_{winType}_geometry"))
         self.root.minsize(200, 50)
-        self.root.configure(background=sj.cache[f"tb_ex_{winType}_bg_color"])
+        self.root.configure(background=sj.cache.get(f"tb_ex_{winType}_bg_color", ""))
         self.root.wm_withdraw()
 
         # ------------------ #
@@ -51,7 +51,7 @@ class SubtitleWindow:
             self.winString = "Translate"
 
         self.lbl_text = DraggableHtmlLabel(self.root, self.root)
-        self.lbl_text.configure(background=sj.cache[f"tb_ex_{winType}_bg_color"], state="disabled")
+        self.lbl_text.configure(background=sj.cache.get(f"tb_ex_{winType}_bg_color", ""), state="disabled")
         self.lbl_text.pack(side="top", fill="both", expand=True)
         self.fTooltip = tk_tooltip(
             self.lbl_text,
@@ -87,7 +87,7 @@ class SubtitleWindow:
             accelerator="Alt + X",
         )
         if system() == "Windows":
-            self.click_through.set(int(sj.cache[f"ex_{winType}_click_through"]))
+            self.click_through.set(sj.cache.get(f"ex_{winType}_click_through", 0))
             self.menuDropdown.add_checkbutton(
                 label="Click Through/Transparent",
                 command=lambda: self.toggle_click_through(fromKeyBind=False),

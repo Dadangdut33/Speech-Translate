@@ -12,13 +12,14 @@ from pystray import Icon as icon
 from pystray import Menu as menu
 from pystray import MenuItem as item
 from torch import cuda
+from stable_whisper import WhisperResult
 
 from speech_translate._constants import APP_NAME
 from speech_translate._path import app_icon
 from speech_translate._version import __version__
 from speech_translate.ui.custom.checkbutton import CustomCheckButton
 from speech_translate.ui.custom.combobox import CategorizedComboBox, ComboboxWithKeyNav
-from speech_translate.ui.custom.message import mbox
+from speech_translate.ui.custom.message import mbox, prompt_with_choices
 from speech_translate.ui.custom.text import ColoredText
 from speech_translate.ui.custom.tooltip import tk_tooltip, tk_tooltips
 from speech_translate.ui.window.about import AboutWindow
@@ -33,13 +34,13 @@ from speech_translate.utils.audio.device import (
     get_output_devices
 )
 from speech_translate.utils.helper import (
-    bind_focus_recursively, emoji_img, native_notify, popup_menu, similar, start_file, tb_copy_only, up_first_case,
+    bind_focus_recursively, emoji_img, native_notify, open_folder, popup_menu, similar, tb_copy_only, up_first_case,
     windows_os_only, check_ffmpeg_in_path, install_ffmpeg
 )
 from speech_translate.utils.translate.language import (
     engine_select_source_dict, engine_select_target_dict, whisper_compatible
 )
-from speech_translate.utils.whisper.helper import append_dot_en, model_keys, model_select_dict
+from speech_translate.utils.whisper.helper import append_dot_en, model_keys, model_select_dict, save_output_stable_ts
 from speech_translate.utils.whisper.download import download_model, get_default_download_root, verify_model_faster_whisper, verify_model_whisper
 from speech_translate.utils.audio.record import record_session
 from speech_translate.utils.audio.file import import_file
@@ -144,7 +145,7 @@ class MainWindow:
         # Flags
         self.always_on_top: bool = False
         self.notified_hidden: bool = False
-        self.console_opened: bool = False
+        self.prompting = False
 
         # Styles
         self.style = ttk.Style()
@@ -193,11 +194,10 @@ class MainWindow:
         self.cb_model.bind("<<ComboboxSelected>>", lambda _: sj.save_key("model", model_select_dict[self.cb_model.get()]))
         tk_tooltips(
             [self.lbl_model, self.cb_model],
-            "Larger models are more accurate but are slower and require more power."
-            "\n\nIf you have a low end GPU, use Tiny or Base. "
-            "Don't use large unless you really need it or have powerful computer."
-            "\n\nModel specs:\n- Tiny: ~1 GB Vram\n- Base: ~1 GB Vram\n- Small: ~2 GB Vram"
-            "\n- Medium: ~5 GB Vram\n- Large: ~10 GB Vram",
+            "Each Whisper model have different requirements. Please refer to the specs below:"
+            "\n- Tiny: ~1 GB Vram\n- Base: ~1 GB Vram\n- Small: ~2 GB Vram\n- Medium: ~5 GB Vram\n- Large: ~10 GB Vram"
+            "\n\nBy default, Speech Translate uses Faster-Whisper through Stable-Ts which according to its claim should "
+            "make the model run 4 times faster for the same accuracy while using less memory (you can change this option in setting)",
             wrapLength=400,
         )
 
@@ -467,7 +467,7 @@ class MainWindow:
         self.btn_import_file.pack(side="right", padx=5, pady=5)
         tk_tooltip(self.btn_import_file, "Transcribe/Translate from a file (video or audio)")
 
-        # export button
+        # button
         self.btn_copy = ttk.Button(self.f3_4_row1, text="Copy", command=lambda: popup_menu(self.root, self.menu_copy))
         self.btn_copy.pack(side="right", padx=5, pady=5)
         tk_tooltip(self.btn_copy, "Copy the text to clipboard", wrapLength=250)
@@ -476,13 +476,19 @@ class MainWindow:
         self.menu_copy.add_command(label="Copy transcribed text", command=lambda: self.copy_tb("transcribed"))
         self.menu_copy.add_command(label="Copy translated text", command=lambda: self.copy_tb("translated"))
 
-        self.btn_export = ttk.Button(self.f3_4_row2, text="Export", command=self.export_result)
-        self.btn_export.pack(side="right", padx=5, pady=5)
+        self.btn_tool = ttk.Button(self.f3_4_row2, text="Tool", command=lambda: popup_menu(self.root, self.menu_tool))
+        self.btn_tool.pack(side="right", padx=5, pady=5)
         tk_tooltip(
-            self.btn_export,
-            "Export results to a file (txt)\n\nFor srt export with timestamps please use import file.",
+            self.btn_tool,
+            "Collection of tools to help you with the result.\n\n",
             wrapLength=250,
         )
+
+        self.menu_tool = Menu(self.root, tearoff=0)
+        self.menu_tool.add_command(label="Export Recorded Results", command=lambda: self.export_result())
+        self.menu_tool.add_command(label="Align Results", command=lambda: None)
+        self.menu_tool.add_command(label="Refine Results", command=lambda: None)
+        self.menu_tool.add_command(label="Hardcode Subtitle to a File", command=lambda: None)
 
         # -- f4_statusbar
         # load bar
@@ -1139,52 +1145,54 @@ class MainWindow:
         )
 
     # ------------------ Export ------------------
-    def export_tc(self):
-        fileName = f"Transcribed {strftime('%Y-%m-%d %H-%M-%S')}"
-        text = str(self.tb_transcribed.get(1.0, "end"))
+    def export_rec(self, mode: Literal["Transcribe", "Translate"]):
+        fileName = f"{mode}d {strftime('%Y-%m-%d %H-%M-%S')}"
+        text = str(self.tb_transcribed.get(1.0, "end")) if mode == "Transcribe" else str(self.tb_translated.get(1.0, "end"))
+        results = gc.tc_sentences if mode == "Transcribe" else gc.tl_sentences
 
-        f = filedialog.asksaveasfile(
-            mode="w",
+        # check types. If results contains str that means export is only .txt
+        if not any(isinstance(res, str) for res in results):
+            valid_types = (
+                ("Text File", "*.txt"), ("SubRip Subtitle (SRT)", "*.srt"), ("Advanced Substation Alpha (ASS)", "*.ass"),
+                ("Video Text to Track (VTT)", "*.vtt"), ("JavaScript Object Notation (JSON)", "*.json"),
+                ("Tab Separated Values (TSV)", "*.tsv"), ("Comma Separated Values (CSV)", "*.csv")
+            )
+        else:
+            valid_types = (("Text File", "*.txt"), )
+
+        file_path = filedialog.asksaveasfilename(
             defaultextension=".txt",
             initialfile=fileName,
-            filetypes=(("Text File", "*.txt"), ("All Files", "*.*"))
+            filetypes=valid_types,
+            title=f"Select Format to Export {mode}d text From Record",
+            confirmoverwrite=True
         )
-        if f is None:
+
+        if len(file_path) == 0:  # cancel
             return
 
-        f.write("")
-        f.close()
+        f_name, f_ext = os.path.splitext(file_path)
 
-        # open file write it
-        with open(f.name, "w", encoding="utf-8") as f:
-            f.write(text)
+        if "txt" in f_ext:
+            logger.debug(f"Exporting {mode}d text to {file_path}")
+            # open file write it
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(text)
+        else:
+            index = 1
+            for res in results:
+                assert isinstance(res, WhisperResult), "Error result is not in dictionary form, this should not happened"
 
-        # open folder
-        start_file(f.name)
+                # if index > 1 then add _2 etc..
+                save_name = f"{f_name}_{index}" if index > 1 else f_name
+                logger.debug(f"Exporting {mode}d text to {save_name}")
 
-    def export_tl(self):
-        fileName = f"Translated {strftime('%Y-%m-%d %H-%M-%S')}"
-        text = str(self.tb_translated.get(1.0, "end"))
-
-        f = filedialog.asksaveasfile(
-            mode="w",
-            defaultextension=".txt",
-            initialfile=fileName,
-            filetypes=(("Text File", "*.txt"), ("All Files", "*.*"))
-        )
-        if f is None:
-            return
-        f.write("")
-        f.close()
-
-        # open file write it
-        with open(f.name, "w", encoding="utf-8") as f:
-            f.write(text)
+                save_output_stable_ts(res, save_name, [f_ext.replace(".", "")], sj)
+                index += 1
 
         # open folder
-        start_file(os.path.dirname(f.name))
+        open_folder(file_path)
 
-    # TODO: maybe save the result to memory first so we can export like when using file import?
     def export_result(self):
         # check based on mode
         if "selected" in self.cbtn_task_transcribe.state() and "selected" not in self.cbtn_task_translate.state():
@@ -1194,7 +1202,7 @@ class MainWindow:
                 mbox("Could not export!", "No text to export", 1)
                 return
 
-            self.export_tc()
+            self.export_rec("Transcribe")
         elif "selected" not in self.cbtn_task_transcribe.state() and "selected" in self.cbtn_task_translate.state():
             text = str(self.tb_translated.get(1.0, "end"))
 
@@ -1202,16 +1210,36 @@ class MainWindow:
                 mbox("Could not export!", "No text to export", 1)
                 return
 
-            self.export_tl()
+            self.export_rec("Translate")
         elif "selected" in self.cbtn_task_transcribe.state() and "selected" in self.cbtn_task_translate.state():
-            text = str(self.tb_transcribed.get(1.0, "end"))
-
-            if len(text.strip()) == 0:
-                mbox("Could not export!", "No text to export", 1)
+            if self.prompting:
                 return
 
-            self.export_tc()
-            self.export_tl()
+            self.prompting = True
+            picked = prompt_with_choices(
+                self.root, "Choose Result to Export", "Which result do you wish to export?",
+                ["Transcribe", "Translate", "Both Transcribe and Translate"]
+            )
+            self.prompting = False
+
+            if picked is None:
+                return
+
+            if "Transcribe" in picked:
+                text = str(self.tb_transcribed.get(1.0, "end"))
+
+                if len(text.strip()) == 0:
+                    mbox("Could not export Transcribed text!", "No text to export", 1)
+                else:
+                    self.export_rec("Transcribe")
+
+            if "Translate" in picked:
+                text = str(self.tb_translated.get(1.0, "end"))
+
+                if len(text.strip()) == 0:
+                    mbox("Could not export Translated text!", "No text to export", 1)
+                else:
+                    self.export_rec("Translate")
 
     def model_dl_cancel(self):
         if not mbox("Cancel confirmation", "Are you sure you want to cancel downloading?", 3, self.root):

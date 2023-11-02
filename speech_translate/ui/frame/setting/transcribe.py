@@ -65,7 +65,7 @@ class SettingTranscribe:
         self.cbtn_use_faster_whisper.pack(side="left", padx=5)
         tk_tooltip(
             self.cbtn_use_faster_whisper,
-            "Use faster whisper.\n\nDefault is checked",
+            "Use faster whisper model.\n\nUsing faster whisper will make the implementation up to 4 times faster than openai/whisper for the same accuracy while using less memory. \n\nDefault is checked",
         )
 
         # decoding options
@@ -911,9 +911,6 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
         sj.save_key("temperature", value)
 
     def verify_raw_args(self, value: str):
-        if len(value) == 0:
-            return
-
         loop_for = ["load", "transcribe", "align", "refine", "save"]
         custom_func = {"load": [load_model, load_faster_whisper], "save": [result_to_ass, result_to_srt_vtt, result_to_tsv]}
         kwargs = {"show_parsed": False}

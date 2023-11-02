@@ -91,13 +91,13 @@ def init_logging(level):
     logger.remove()
 
     # add handler
-    stdout_id = logger.add(sys.stdout, level=level, backtrace=True, diagnose=True, format=log_format)
+    stdout_id = logger.add(sys.stdout, level=level, backtrace=False, diagnose=True, format=log_format)
     file_id = logger.add(
-        dir_log + "/" + current_log, level="DEBUG", encoding="utf-8", backtrace=True, diagnose=True, format=log_format
+        dir_log + "/" + current_log, level="DEBUG", encoding="utf-8", backtrace=False, diagnose=True, format=log_format
     )
 
     sys.stdout = StreamStdoutToLogger("INFO")
-    sys.stderr = StreamStderrToLogger("DEBUG")
+    sys.stderr = StreamStderrToLogger("ERROR")
     # tqdm use stderr so we also need to redirect it
     # stderr might be more informative in its original form so you can comment it out if you want when developing
 
@@ -105,10 +105,10 @@ def init_logging(level):
 def change_log_level(level: str):
     global current_log, stdout_id, file_id
     logger.remove(stdout_id)
-    stdout_id = logger.add(sys.stdout, level=level, backtrace=True, diagnose=True)
+    stdout_id = logger.add(sys.stdout, level=level, backtrace=False, diagnose=True)
 
     logger.remove(file_id)
-    file_id = logger.add(dir_log + "/" + current_log, level=level, encoding="utf-8", backtrace=True, diagnose=True)
+    file_id = logger.add(dir_log + "/" + current_log, level=level, encoding="utf-8", backtrace=False, diagnose=True)
 
 
 def update_stdout_ignore_list(ignore_list):
@@ -121,4 +121,4 @@ def clear_current_log_file():
     logger.remove(file_id)
     with open(dir_log + "/" + current_log, "w") as f:
         f.write("")
-    file_id = logger.add(dir_log + "/" + current_log, level="DEBUG", encoding="utf-8", backtrace=True, diagnose=True)
+    file_id = logger.add(dir_log + "/" + current_log, level="DEBUG", encoding="utf-8", backtrace=False, diagnose=True)

@@ -5,20 +5,16 @@ from time import gmtime, sleep, strftime, time
 from tkinter import Toplevel, filedialog, ttk
 from typing import List, Union
 
-import torch
 import stable_whisper  # https://github.com/jianfch/stable-ts # has no static annotation hence many type ignore
-from faster_whisper import WhisperModel
-from whisper.tokenizer import TO_LANGUAGE_CODE
 
 from speech_translate._path import app_icon, dir_export
 from speech_translate.ui.custom.label import LabelTitleText
 from speech_translate.ui.custom.message import mbox
 from speech_translate.custom_logging import logger
 from speech_translate.globals import gc, sj
-from speech_translate.utils.whisper.download import get_default_download_root
 
 from ..helper import cbtn_invoker, get_proxies, native_notify, filename_only, start_file
-from ..whisper.helper import get_temperature, parse_args_stable_ts, save_output_stable_ts, model_values
+from ..whisper.helper import get_model_args, get_tc_args, save_output_stable_ts, model_values
 from ..translate.translator import translate
 
 
@@ -423,18 +419,13 @@ def import_file(
         auto = lang_source == "auto detect"
         tl_engine_whisper = engine in model_values
 
+        export_format: str = sj.cache["export_format"]
+        file_slice_start = (None if sj.cache["file_slice_start"] == "" else int(sj.cache["file_slice_start"]))
+        file_slice_end = None if sj.cache["file_slice_end"] == "" else int(sj.cache["file_slice_end"])
+        visualize_suppression = sj.cache["visualize_suppression"]
+
         # load model
-        model_args = parse_args_stable_ts(
-            sj.cache["whisper_args"], "load", WhisperModel if sj.cache["use_faster_whisper"] else stable_whisper.load_model
-        )
-        if not model_args.pop("success"):
-            raise Exception(model_args["msg"])
-
-        if sj.cache["dir_model"] != "auto":
-            model_args["download_root"] = sj.cache["dir_model"]
-        else:
-            model_args["download_root"] = get_default_download_root()
-
+        model_args = get_model_args(sj.cache)
         model_tc, model_tl, stable_tc, stable_tl = None, None, None, None
         if sj.cache["use_faster_whisper"]:
             if model_name_tc == engine:
@@ -465,45 +456,7 @@ def import_file(
                     if model_tl:
                         stable_tl = model_tl.transcribe
 
-        temperature = sj.cache["temperature"]
-        whisper_args = sj.cache["whisper_args"]
-        export_format: str = sj.cache["export_format"]
-        file_slice_start = (None if sj.cache["file_slice_start"] == "" else int(sj.cache["file_slice_start"]))
-        file_slice_end = None if sj.cache["file_slice_end"] == "" else int(sj.cache["file_slice_end"])
-        visualize_suppression = sj.cache["visualize_suppression"]
-
-        success, data = get_temperature(temperature)
-        if not success:
-            raise Exception(data)
-        else:
-            temperature = data
-
-        # parse whisper_args
-        pass_kwarg = {
-            "temperature": temperature,
-            "best_of": sj.cache["best_of"],
-            "beam_size": sj.cache["beam_size"],
-            "compression_ratio_threshold": sj.cache["compression_ratio_threshold"],
-            "logprob_threshold": sj.cache["logprob_threshold"],
-            "no_speech_threshold": sj.cache["no_speech_threshold"],
-            "suppress_tokens": sj.cache["suppress_tokens"],
-            "initial_prompt": sj.cache["initial_prompt"],
-            "condition_on_previous_text": sj.cache["condition_on_previous_text"],
-        }
-        data = parse_args_stable_ts(
-            sj.cache["whisper_args"], "transcribe", stable_tc if transcribe else stable_tl, **pass_kwarg
-        )
-        if not data.pop("success"):
-            raise Exception(data["msg"])
-        else:
-            whisper_args = data
-            threads = whisper_args.pop("threads")
-            if threads:
-                torch.set_num_threads(threads)
-
-            whisper_args["language"] = TO_LANGUAGE_CODE[lang_source.lower()] if not auto else None
-            if sj.cache["use_faster_whisper"] and lang_source == "english":  # to remove warning from stable-ts
-                whisper_args["language"] = None
+        whisper_args = get_tc_args(stable_tc if transcribe else stable_tl, lang_source, auto, sj.cache)
 
         # update button text
         gc.mw.btn_import_file.configure(text="Cancel")
@@ -664,3 +617,7 @@ def import_file(
 
         if root.winfo_exists():
             root.after(1000, root.destroy)  # destroy progress window
+
+
+def align_result(files: List[str], model_name_tc: str):
+    pass

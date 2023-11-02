@@ -14,8 +14,6 @@ import numpy as np
 import scipy.io.wavfile as wav
 import torch
 import stable_whisper
-from faster_whisper import WhisperModel
-from whisper.tokenizer import TO_LANGUAGE_CODE
 
 if system() == "Windows":
     import pyaudiowpatch as pyaudio
@@ -30,11 +28,10 @@ from speech_translate.ui.custom.message import mbox
 from speech_translate.ui.custom.audio import AudioMeter
 from speech_translate.custom_logging import logger
 from speech_translate.globals import gc, sj
-from speech_translate.utils.whisper.download import get_default_download_root  # https://github.com/jianfch/stable-ts # has no static annotation hence many type ignore
 from speech_translate.utils.audio.device import get_db, get_device_details, get_frame_duration, get_speech, resample_sr
 
-from ..helper import cbtn_invoker, generate_temp_filename, get_channel_int, get_proxies, native_notify, separator_to_html, unique_list
-from ..whisper.helper import get_temperature, _result_to_dict, parse_args_stable_ts, stablets_verbose_log, model_values
+from ..helper import cbtn_invoker, generate_temp_filename, get_channel_int, get_proxies, native_notify, separator_to_html, unique_rec_list
+from ..whisper.helper import get_model_args, get_tc_args, stablets_verbose_log, model_values
 from ..translate.translator import translate
 
 
@@ -199,28 +196,20 @@ def record_session(
         auto = lang_source == "auto detect"
         tl_engine_whisper = engine in model_values
         rec_type = "speaker" if speaker else "mic"
-        vad = Vad(sj.cache[f"threshold_auto_mode_{rec_type}"])
+        vad = Vad(sj.cache.get(f"threshold_auto_mode_{rec_type}", 3))
+        max_int16 = 2**15  # bit depth of 16 bit audio (32768)
+        separator = separator_to_html(literal_eval(quote(sj.cache["separate_with"])))
+        use_temp = sj.cache["use_temp"]
 
         # cannot transcribe and translate concurrently. Will need to wait for the previous transcribe to finish
         if translate and tl_engine_whisper:
             gc.tc_lock = Lock()
 
         # load model first
-        model_args = parse_args_stable_ts(
-            sj.cache["whisper_args"], "load", WhisperModel if sj.cache["use_faster_whisper"] else stable_whisper.load_model
-        )
-        if not model_args.pop("success"):
-            raise Exception(model_args["msg"])
-
-        if sj.cache["dir_model"] != "auto":
-            model_args["download_root"] = sj.cache["dir_model"]
-        else:
-            model_args["download_root"] = get_default_download_root()
-
-        cuda_device = model_args["device"]
+        model_args = get_model_args(sj.cache)
         model_tc, model_tl, stable_tc, stable_tl = None, None, None, None
         if sj.cache["use_faster_whisper"]:
-            if model_name_tc == engine:
+            if transcribe and translate and model_name_tc == engine:
                 logger.debug("Loading model for both transcribe and translate using faster-whisper | Load only once")
                 # same model for both transcribe and translate. Load only once
                 model_tc = stable_whisper.load_faster_whisper(model_name_tc, **model_args)
@@ -237,7 +226,7 @@ def record_session(
                     if model_tl:
                         stable_tl = model_tl.transcribe_stable  # type: ignore
         else:
-            if model_name_tc == engine:
+            if transcribe and translate and model_name_tc == engine:
                 logger.debug("Loading model for both transcribe and translate using stable-ts | Load only once")
                 # same model for both transcribe and translate. Load only once
                 model_tc = stable_whisper.load_model(model_name_tc, **model_args)
@@ -254,50 +243,13 @@ def record_session(
                     if model_tl:
                         stable_tl = model_tl.transcribe
 
-        # read from settings
-        max_int16 = 2**15  # bit depth of 16 bit audio (32768)
-        separator = separator_to_html(literal_eval(quote(sj.cache["separate_with"])))
-        use_temp = sj.cache["use_temp"]
-        temperature = sj.cache["temperature"]
-        whisper_args = sj.cache["whisper_args"]
+        whisper_args = get_tc_args(stable_tc if transcribe else stable_tl, lang_source, auto, sj.cache)
 
-        success, data = get_temperature(temperature)
-        if not success:
-            raise Exception(data)
-        else:
-            temperature = data
-
-        # parse whisper_args
-        pass_kwarg = {
-            "temperature": temperature,
-            "best_of": sj.cache["best_of"],
-            "beam_size": sj.cache["beam_size"],
-            "compression_ratio_threshold": sj.cache["compression_ratio_threshold"],
-            "logprob_threshold": sj.cache["logprob_threshold"],
-            "no_speech_threshold": sj.cache["no_speech_threshold"],
-            "suppress_tokens": sj.cache["suppress_tokens"],
-            "initial_prompt": sj.cache["initial_prompt"],
-            "condition_on_previous_text": sj.cache["condition_on_previous_text"],
-        }
-        data = parse_args_stable_ts(
-            sj.cache["whisper_args"], "transcribe", stable_tc if transcribe else stable_tl, **pass_kwarg
-        )
-        if not data.pop("success"):
-            raise Exception(data["msg"])
-        else:
-            whisper_args = data
-            threads = whisper_args.pop("threads")
-            if threads:
-                torch.set_num_threads(threads)
-            whisper_args["verbose"] = None  # set to none so no printing to stdout
-
+        cuda_device = model_args["device"]
+        whisper_args["verbose"] = None  # set to none so no printing of the progress to stdout
+        if sj.cache["use_faster_whisper"] and not use_temp:
             # when using numpy array as input, will need to set input_sr
-            if sj.cache["use_faster_whisper"] and not use_temp:
-                whisper_args["input_sr"] = WHISPER_SR
-
-            whisper_args["language"] = TO_LANGUAGE_CODE[lang_source.lower()] if not auto else None
-            if sj.cache["use_faster_whisper"] and lang_source == "english":  # to remove warning from stable-ts
-                whisper_args["language"] = None
+            whisper_args["input_sr"] = WHISPER_SR
 
         # if only translate to english using whisper engine
         task = "translate" if tl_engine_whisper and translate and not transcribe else "transcribe"
@@ -327,10 +279,10 @@ def record_session(
         num_of_channels = get_channel_int(detail["num_of_channels"])
         chunk_size = detail["chunk_size"]
         frame_duration_ms = get_frame_duration(chunk_size, sr_ori)
-        threshold_enable = sj.cache[f"threshold_enable_{rec_type}"]
-        threshold_db = sj.cache[f"threshold_db_{rec_type}"]
-        threshold_auto_mode = sj.cache[f"threshold_auto_mode_{rec_type}"]
-        auto_break_buffer = sj.cache[f"auto_break_buffer_{rec_type}"]
+        threshold_enable = sj.cache.get(f"threshold_enable_{rec_type}")
+        threshold_db = sj.cache.get(f"threshold_db_{rec_type}", -20)
+        threshold_auto_mode = sj.cache.get(f"threshold_auto_mode_{rec_type}")
+        auto_break_buffer = sj.cache.get(f"auto_break_buffer_{rec_type}")
 
         # ----------------- Start modal -----------------
         # window to show progress
@@ -456,8 +408,8 @@ def record_session(
                 modal_after = root.after(modal_update_rate, update_modal_ui)
 
         transcribe_rate = timedelta(seconds=sj.cache["transcribe_rate"] / 1000)
-        max_record_time = int(sj.cache[f"max_buffer_{rec_type}"])
-        max_sentences = int(sj.cache[f"max_sentences_{rec_type}"])
+        max_record_time = int(sj.cache.get(f"max_buffer_{rec_type}", 10))
+        max_sentences = int(sj.cache.get(f"max_sentences_{rec_type}", 5))
 
         lbl_sample_rate.set_text(sr_ori)
         lbl_channels.set_text(num_of_channels)
@@ -469,17 +421,19 @@ def record_session(
         cbtn_enable_threshold.configure(state="normal")
         cbtn_auto_threshold.configure(state="normal")
         cbtn_break_buffer_on_silence.configure(state="normal")
-        scale_threshold.set(sj.cache[f"threshold_db_{rec_type}"])
+        scale_threshold.set(sj.cache.get(f"threshold_db_{rec_type}", -20))
         scale_threshold.configure(command=slider_move, state="normal")
-        lbl_threshold_db.configure(text=f"{sj.cache[f'threshold_db_{rec_type}']:.2f} dB")
+        lbl_threshold_db.configure(text=f"{sj.cache.get(f'threshold_db_{rec_type}'):.2f} dB")
         temp_map = {1: radio_vad_1, 2: radio_vad_2, 3: radio_vad_3}
         radio_vad_1.configure(command=lambda: set_auto_mode(1), state="normal")
         radio_vad_2.configure(command=lambda: set_auto_mode(2), state="normal")
         radio_vad_3.configure(command=lambda: set_auto_mode(3), state="normal")
-        cbtn_invoker(sj.cache[f"threshold_enable_{rec_type}"], cbtn_enable_threshold)
-        cbtn_invoker(sj.cache[f"threshold_auto_{rec_type}"], cbtn_auto_threshold)
-        cbtn_invoker(sj.cache[f"auto_break_buffer_{rec_type}"], cbtn_break_buffer_on_silence)
-        cbtn_invoker(sj.cache[f"threshold_auto_mode_{rec_type}"], temp_map[sj.cache[f"threshold_auto_mode_{rec_type}"]])
+        cbtn_invoker(sj.cache.get(f"threshold_enable_{rec_type}", True), cbtn_enable_threshold)
+        cbtn_invoker(sj.cache.get(f"threshold_auto_{rec_type}", True), cbtn_auto_threshold)
+        cbtn_invoker(sj.cache.get(f"auto_break_buffer_{rec_type}", True), cbtn_break_buffer_on_silence)
+        cbtn_invoker(
+            sj.cache.get(f"threshold_auto_{rec_type}", True), temp_map[sj.cache.get(f"threshold_auto_mode_{rec_type}", 3)]
+        )
         cbtn_enable_threshold.configure(
             command=lambda: set_treshold_state(cbtn_enable_threshold.instate(["selected"])) or toggle_enable_threshold()
         )
@@ -491,7 +445,7 @@ def record_session(
         )
         btn_pause.configure(state="normal", command=toggle_pause)
         btn_stop.configure(state="normal", command=stop_recording)
-        audiometer.set_threshold(sj.cache[f"threshold_db_{rec_type}"])
+        audiometer.set_threshold(sj.cache.get(f"threshold_db_{rec_type}"))
         toggle_enable_threshold()
         update_modal_ui()
 
@@ -540,14 +494,14 @@ def record_session(
             # Some dupe might accidentally happened so we need to remove it
             if transcribe:
                 gc.tc_sentences.append(prev_tc_res)
-                gc.tc_sentences = unique_list(gc.tc_sentences)
-                if len(gc.tc_sentences) >= max_sentences:
+                gc.tc_sentences = unique_rec_list(gc.tc_sentences)
+                if len(gc.tc_sentences) > max_sentences:
                     gc.tc_sentences.pop(0)
                 gc.update_tc(None, separator)
             if translate:
                 gc.tl_sentences.append(prev_tl_res)
-                gc.tl_sentences = unique_list(gc.tl_sentences)
-                if len(gc.tl_sentences) >= max_sentences:
+                gc.tl_sentences = unique_rec_list(gc.tl_sentences)
+                if len(gc.tl_sentences) > max_sentences:
                     gc.tl_sentences.pop(0)
                 gc.update_tl(None, separator)
 
@@ -616,7 +570,10 @@ def record_session(
                     audio_as_np_int16 = np.frombuffer(audio_bytes, dtype=np.int16).flatten()
                     audio_as_np_float32 = audio_as_np_int16.astype(np.float32)
                     audio_np = audio_as_np_float32 / max_int16  # normalized as Numpy array
-                    audio_target = torch.from_numpy(audio_np).to(cuda_device)  # convert to torch tensor
+                    if whisper_args["demucs"]:
+                        audio_target = torch.from_numpy(audio_np).to(cuda_device)  # convert to torch tensor
+                    else:
+                        audio_target = audio_np
                 else:
                     # Samples are interleaved, so for a stereo stream with left channel
                     # of [L0, L1, L2, ...] and right channel of [R0, R1, R2, ...]
@@ -628,7 +585,10 @@ def record_session(
                     assert chunk_length == int(chunk_length)
                     audio_reshaped = np.reshape(audio_as_np_float32, (int(chunk_length), num_of_channels))
                     audio_np = audio_reshaped[:, 0] / max_int16  # take left channel only
-                    audio_target = torch.from_numpy(audio_np).to(cuda_device)  # convert to torch tensor
+                    if whisper_args["demucs"]:
+                        audio_target = torch.from_numpy(audio_np).to(cuda_device)  # convert to torch tensor
+                    else:
+                        audio_target = audio_np
 
                 if sj.cache["debug_recorded_audio"] == 1:
                     wav.write(generate_temp_filename(dir_debug), WHISPER_SR, audio_np)
@@ -665,7 +625,7 @@ def record_session(
                 gc.auto_detected_lang = result.language or "~"
 
                 if len(text) > 0:
-                    prev_tl_res = _result_to_dict(result)
+                    prev_tl_res = result
 
                     if sj.cache["debug_realtime_record"] == 1:
                         logger.debug("New translated text (Whisper)")
@@ -674,7 +634,7 @@ def record_session(
                         else:
                             logger.debug(f"{text}")
 
-                    gc.update_tl(_result_to_dict(result), separator)
+                    gc.update_tl(result, separator)
             else:
                 # transcribing and maybe translating
                 if sj.cache["debug_realtime_record"] == 1:
@@ -689,8 +649,8 @@ def record_session(
 
                 # transcribe
                 assert stable_tc is not None
-                result = stable_tc(  # type: ignore
-                    audio_target, task=task, **whisper_args
+                result: stable_whisper.WhisperResult = stable_tc(  # type: ignore
+                    audio_target, task="transcribe", **whisper_args
                 )
 
                 # ----------------------------------
@@ -703,7 +663,7 @@ def record_session(
                 gc.auto_detected_lang = result.language or "~"
 
                 if len(text) > 0:
-                    prev_tc_res = _result_to_dict(result)
+                    prev_tc_res = result
 
                     if sj.cache["debug_realtime_record"] == 1:
                         if sj.cache["verbose"]:
@@ -711,7 +671,7 @@ def record_session(
                         else:
                             logger.debug(f"New text: {text}")
 
-                    gc.update_tc(_result_to_dict(result), separator)
+                    gc.update_tc(result, separator)
 
                     # check translating or not
                     if translate:
@@ -872,7 +832,7 @@ def tl_whisper_threaded(
         gc.auto_detected_lang = result.language or "~"
 
         if len(text) > 0:
-            prev_tl_res = _result_to_dict(result)
+            prev_tl_res = result
 
             if sj.cache["debug_realtime_record"] == 1:
                 logger.debug("New translated text (Whisper)")
@@ -881,7 +841,7 @@ def tl_whisper_threaded(
                 else:
                     logger.debug(f"{text}")
 
-            gc.update_tl(_result_to_dict(result), separator)
+            gc.update_tl(result, separator)
     except Exception as e:
         logger.exception(e)
         native_notify("Error: translating failed", str(e))

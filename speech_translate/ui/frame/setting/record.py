@@ -503,7 +503,7 @@ class SettingRecord:
         self.radio_vad_mic_3.pack(side="left", padx=5)
 
         temp_map = {1: self.radio_vad_mic_1, 2: self.radio_vad_mic_2, 3: self.radio_vad_mic_3}
-        cbtn_invoker(sj.cache["threshold_auto_mode_mic"], temp_map[sj.cache["threshold_auto_mode_mic"]])
+        cbtn_invoker(sj.cache["threshold_auto_mic"], temp_map[sj.cache["threshold_auto_mode_mic"]])
         self.vad_mic.set_mode(sj.cache["threshold_auto_mode_mic"])
         self.radio_vad_mic_1.configure(command=lambda: sj.save_key("threshold_auto_mode_mic", 1) or self.vad_mic.set_mode(1))
         self.radio_vad_mic_2.configure(command=lambda: sj.save_key("threshold_auto_mode_mic", 2) or self.vad_mic.set_mode(2))
@@ -675,7 +675,7 @@ class SettingRecord:
         self.radio_vad_speaker_3.pack(side="left", padx=5)
 
         temp_map = {1: self.radio_vad_speaker_1, 2: self.radio_vad_speaker_2, 3: self.radio_vad_speaker_3}
-        cbtn_invoker(sj.cache["threshold_auto_mode_speaker"], temp_map[sj.cache["threshold_auto_mode_speaker"]])
+        cbtn_invoker(sj.cache["threshold_auto_speaker"], temp_map[sj.cache["threshold_auto_mode_speaker"]])
         self.vad_speaker.set_mode(sj.cache["threshold_auto_mode_speaker"])
 
         self.radio_vad_speaker_1.configure(

@@ -1,19 +1,20 @@
-from ast import literal_eval
 import os
 import copy
+from ast import literal_eval
 from platform import system
 from shlex import quote
 from threading import Lock, Thread
 from tkinter import ttk
 from PIL import ImageTk
-from typing import TYPE_CHECKING, List, Literal, Optional, Sequence, Union, Dict
+from typing import TYPE_CHECKING, List, Literal, Optional, Sequence, Union
 from warnings import simplefilter
 
+from stable_whisper import WhisperResult
 from arabic_reshaper import reshape
 from bidi.algorithm import get_display
 from numba.core.errors import NumbaDeprecationWarning, NumbaPendingDeprecationWarning
 
-from speech_translate.utils.custom_types import ToInsert, StableTsResultDict
+from speech_translate.utils.custom_types import ToInsert
 from speech_translate.utils.helper import generate_color, html_to_separator, wrap_result
 from ._path import dir_debug, dir_export, dir_log, dir_temp, dir_user
 from .utils.setting import SettingJson
@@ -92,8 +93,8 @@ class BridgeClass:
         self.current_rec_status: str = ""
         self.auto_detected_lang: str = "~"
         self.tc_lock: Optional[Lock] = None
-        self.tc_sentences: List[Union[StableTsResultDict, str]] = []
-        self.tl_sentences: List[Union[StableTsResultDict, str]] = []
+        self.tc_sentences: List[Union[WhisperResult, str]] = []
+        self.tl_sentences: List[Union[WhisperResult, str]] = []
 
         # file process
         self.file_tced_counter: int = 0
@@ -159,12 +160,26 @@ class BridgeClass:
     def update_result_display(
         self, total_len: int, res_with_conf: List[ToInsert], mode: Literal["mw_tc", "ex_tc", "mw_tl", "ex_tl"]
     ):
+        """Update display of the result to the respective text box. 
+
+        Parameters
+        ----------
+        total_len : int
+            Total word length of the result.
+        res_with_conf : List[ToInsert]
+            List of result with confidence value.
+        mode : Literal[&quot;mw_tc&quot;, &quot;ex_tc&quot;, &quot;mw_tl&quot;, &quot;ex_tl&quot;]
+            Mode to determine which text box to update.
+        """
+        # we access setting using .get here to remove pylance warning "LiteralString" is not a string literal
+        # the 0 for second argument is just a placeholder
+        # make deepcopy because we would modify the list
         copied_res = copy.deepcopy(res_with_conf)
 
         # if not infinite and text too long
         # remove words from the start based on how over the limit it is
-        if sj.cache[f"tb_{mode}_limit_max"] and total_len > sj.cache[f"tb_{mode}_max"]:
-            over_for = total_len - sj.cache[f"tb_{mode}_max"]
+        if sj.cache.get(f"tb_{mode}_limit_max") and total_len > sj.cache.get(f"tb_{mode}_max", 0):
+            over_for = total_len - sj.cache.get(f"tb_{mode}_max")  # type: ignore
             index = 0
 
             while over_for > 0:
@@ -182,10 +197,10 @@ class BridgeClass:
                 index += 1
 
         # # wrap result with the max length of the line set by the user
-        if sj.cache[f"tb_{mode}_limit_max_per_line"]:
+        if sj.cache.get(f"tb_{mode}_limit_max_per_line"):
             # Previously is_last is None, but now its either True or False
             # is last will determine the line break
-            copied_res = wrap_result(copied_res, sj.cache[f"tb_{mode}_max_per_line"])
+            copied_res = wrap_result(copied_res, sj.cache.get(f"tb_{mode}_max_per_line", 0))
 
         # insert to each respective area
         # before inserting check some value:
@@ -195,7 +210,7 @@ class BridgeClass:
             mw = self.mw.tb_transcribed if "tc" in mode else self.mw.tb_translated
             for res in copied_res:
                 temp = res["text"] + "\n" if res["is_last"] is False else res["text"]
-                if res["color"] is not None and {sj.cache[f"tb_{mode}_use_conf_color"]}:
+                if res["color"] is not None and {sj.cache.get(f"tb_{mode}_use_conf_color")}:
                     mw.insert_with_color(self.parse_to_tb(res["text"]), res["color"])
                 else:
                     mw.insert("end", self.parse_to_tb(res["text"]))
@@ -205,29 +220,30 @@ class BridgeClass:
             to_insert = ""
             for res in copied_res:
                 temp = res["text"] + "<br />" if res["is_last"] is False else res["text"]
-                color = res["color"] if {sj.cache[f"tb_{mode}_use_conf_color"]} else sj.cache[f"tb_{mode}_font_color"]
+                color = res["color"] if {sj.cache.get(f"tb_{mode}_use_conf_color")
+                                         } else sj.cache.get(f"tb_{mode}_font_color")
                 if res["color"] is not None:
                     to_insert += f'''<span style="color: {color}">{temp}</span>'''
                 else:
-                    to_insert += f'''<span style="color: {sj.cache[f"tb_{mode}_font_color"]}">{temp}</span>'''
+                    to_insert += f'''<span style="color: {sj.cache.get(f"tb_{mode}_font_color")}">{temp}</span>'''
 
             # Update the text
             ex.set_html(
-                f'''<div style='font-family: {sj.cache[f"tb_{mode}_font"]}; font-size: {sj.cache[f"tb_{mode}_font_size"]}px; text-align: left; 
-                background-color: {sj.cache[f"tb_{mode}_bg_color"]}; font-weight: {"bold" if sj.cache[f"tb_{mode}_font_bold"] else "normal"};'>
+                f'''<div style='font-family: {sj.cache.get(f"tb_{mode}_font")}; text-align: left; 
+                font-size: {sj.cache.get(f"tb_{mode}_font_size")}px; 
+                background-color: {sj.cache.get(f"tb_{mode}_bg_color")}; 
+                font-weight: {"bold" if sj.cache.get(f"tb_{mode}_font_bold") else "normal"};'>
                         {to_insert}
                     </div>'''
             )
 
-    def map_result_lists(
-        self, source_list: Sequence[Union[StableTsResultDict, str]], store_list: List[ToInsert], separator: str
-    ):
+    def map_result_lists(self, source_list: Sequence[Union[WhisperResult, str]], store_list: List[ToInsert], separator: str):
         """
         Map List of whisper result according to user setting while also calculating its color based on the confidence value.
         
         Parameters
         ----------
-        source_list : Sequence[Union[StableTsResultDict, str]]
+        source_list : Sequence[Union[WhisperResult, str]]
             Source list to be mapped, can be either a list of whisper result or a list of string.
         store_list : List[ToInsert]
             List to store the mapped result.
@@ -243,8 +259,8 @@ class BridgeClass:
         low_color = sj.cache["gradient_low_conf"]
         high_color = sj.cache["gradient_high_conf"]
         for sentence in source_list:
-            # if it's not a dict, it's a string, so confidence is None
-            if not isinstance(sentence, Dict):
+            # if it's a string, confidence is None
+            if isinstance(sentence, str):
                 # already a full sentence, add separator directly
                 sentence = sentence.strip() + separator
                 total_len += len(sentence)
@@ -252,15 +268,14 @@ class BridgeClass:
 
             # colorization based on confidence per sentence, so get the confidence value from the segment
             elif sj.cache["colorize_per_segment"]:
-                for segment in sentence["segments"]:
+                for segment in sentence.segments:
                     # lstrip if first only
-                    temp = segment["text"].lstrip() if segment["id"] == 0 else segment["text"]
+                    temp = segment.text.lstrip() if segment.id == 0 else segment.text
                     confidence_total_word = 0
-                    for word in segment["words"]:
-                        confidence_total_word += word["probability"]
-                    # confidence_total_word = sum(segment["words"]["probability"])
+                    for word in segment.words:
+                        confidence_total_word += word.probability
 
-                    confidence = confidence_total_word / len(segment["words"])
+                    confidence = confidence_total_word / len(segment.words)
 
                     store_list.append(
                         {
@@ -277,13 +292,13 @@ class BridgeClass:
 
             # colorization based on confidence per word, so get the confidence value from the word
             elif sj.cache["colorize_per_word"]:
-                for segment in sentence["segments"]:
-                    for word in segment["words"]:
-                        temp = word["word"].lstrip() if word["id"] == 0 else word["word"]
+                for segment in sentence.segments:
+                    for word in segment.words:
+                        temp = word.word.lstrip() if word.id == 0 else word.word
                         store_list.append(
                             {
                                 "text": temp,
-                                "color": generate_color(word["probability"], low_color, high_color),
+                                "color": generate_color(word.probability, low_color, high_color),
                                 "is_last": None
                             }
                         )
@@ -296,7 +311,7 @@ class BridgeClass:
             # no colorization based on confidence. just append the sentence (the full sentence)
             else:
                 # already a full sentence, add separator directly
-                temp = sentence["text"].strip() + separator
+                temp = sentence.text.strip() + separator
                 total_len += len(sentence)
                 store_list.append({"text": temp, "color": None, "is_last": None})
 
@@ -310,12 +325,12 @@ class BridgeClass:
         self.update_tc(None, separator)
         self.update_tl(None, separator)
 
-    def update_tc(self, new_res: Union[StableTsResultDict, str, None], separator: str):
+    def update_tc(self, new_res: Union[WhisperResult, str, None], separator: str):
         """Update the transcribed text box with the new text.
 
         Parameters
         ----------
-        new_res : Union[StableTsResultDict, str]
+        new_res : Union[WhisperResult, str]
             New result to be added to the transcribed text box.
         separator : str
             Separator to be added to the end of the new result.
@@ -330,12 +345,12 @@ class BridgeClass:
         self.update_result_display(total_len, res_with_conf, "mw_tc")
         self.update_result_display(total_len, res_with_conf, "ex_tc")
 
-    def update_tl(self, new_res: Union[StableTsResultDict, str, None], separator: str):
+    def update_tl(self, new_res: Union[WhisperResult, str, None], separator: str):
         """Update the translated text box with the new text.
 
         Parameters
         ----------
-        new_res : Union[StableTsResultDict, str]
+        new_res : Union[WhisperResult, str]
             New result to be added to the translated text box.
         separator : 
             Separator to be added to the end of the new result.

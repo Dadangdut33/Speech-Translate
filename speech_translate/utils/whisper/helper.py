@@ -3,16 +3,19 @@ import csv
 import json
 import os
 from typing import List, Literal, Optional, Union
+from faster_whisper import WhisperModel
 
 import torch
 import stable_whisper
+from whisper.tokenizer import TO_LANGUAGE_CODE
 from stable_whisper.alignment import align, refine
 from stable_whisper.utils import str_to_valid_type, isolate_useful_options
 from whisper.utils import optional_int, optional_float
 from whisper import DecodingOptions
 
 from loguru import logger
-from speech_translate.utils.custom_types import StableTsResultDict
+from speech_translate.utils.custom_types import SettingDict, StableTsResultDict
+from speech_translate.utils.whisper.download import get_default_download_root
 
 model_select_dict = {
     "Tiny (~32x speed)": "tiny",
@@ -384,7 +387,12 @@ def remove_keys(list_of_dicts, key):
 
 
 def write_csv(
-    transcript: stable_whisper.WhisperResult, file, sep=",", text_first=True, format_timestamps=None, header=False
+    transcript: Union[stable_whisper.WhisperResult, StableTsResultDict],
+    file,
+    sep=",",
+    text_first=True,
+    format_timestamps=None,
+    header=False
 ):
     writer = csv.writer(file, delimiter=sep)
     if format_timestamps is None:
@@ -394,21 +402,38 @@ def write_csv(
     if header:
         writer.writerow(header)
     if text_first:
-        writer.writerows(
-            [
-                [segment.text.strip(),
-                 format_timestamps(segment.start),
-                 format_timestamps(segment.end)] for segment in transcript.segments
-            ]
-        )
+        if isinstance(transcript, stable_whisper.WhisperResult):
+            writer.writerows(
+                [
+                    [segment.text.strip(),
+                     format_timestamps(segment.start),
+                     format_timestamps(segment.end)] for segment in transcript.segments
+                ]
+            )
+        else:
+            writer.writerows(
+                [
+                    [segment["text"].strip(),
+                     format_timestamps(segment['start']),
+                     format_timestamps(segment['end'])] for segment in transcript['segments']
+                ]
+            )
     else:
-        writer.writerows(
-            [
-                [format_timestamps(segment.start),
-                 format_timestamps(segment.end),
-                 segment.text.strip()] for segment in transcript.segments
-            ]
-        )
+        if isinstance(transcript, stable_whisper.WhisperResult):
+            writer.writerows(
+                [
+                    [format_timestamps(segment.start),
+                     format_timestamps(segment.end),
+                     segment.text.strip()] for segment in transcript.segments
+                ]
+            )
+        else:
+            writer.writerows(
+                [
+                    [format_timestamps(segment['start']),
+                     format_timestamps(segment['end']), segment["text"].strip()] for segment in transcript['segments']
+                ]
+            )
 
 
 def fname_dupe_check(filename: str, extension: str):
@@ -424,7 +449,9 @@ def fname_dupe_check(filename: str, extension: str):
     return filename
 
 
-def save_output_stable_ts(result: stable_whisper.WhisperResult, outname, output_formats: List, sj):
+def save_output_stable_ts(
+    result: Union[stable_whisper.WhisperResult, StableTsResultDict], outname, output_formats: List, sj
+):
     OUTPUT_FORMATS_METHODS = {
         "srt": "to_srt_vtt",
         "ass": "to_ass",
@@ -439,7 +466,8 @@ def save_output_stable_ts(result: stable_whisper.WhisperResult, outname, output_
         if format == "txt":
             # save txt
             with open(outname + ".txt", "w", encoding="utf-8") as f:
-                f.write(result.text)
+                res = result.text if isinstance(result, stable_whisper.WhisperResult) else result["text"]
+                f.write(res)
         elif format == "csv":
             # Save CSV
             with open(outname + ".csv", "w", encoding="utf-8") as csv:
@@ -447,7 +475,8 @@ def save_output_stable_ts(result: stable_whisper.WhisperResult, outname, output_
         elif format == "json":
             # Save JSON
             with open(fname_dupe_check(outname, format) + ".json", "w", encoding="utf-8") as js:
-                json.dump(result.to_dict(), js, indent=2, allow_nan=True)
+                res = result.to_dict() if isinstance(result, stable_whisper.WhisperResult) else result
+                json.dump(res, js, indent=2, allow_nan=True)
         else:
             # Save other formats (SRT, ASS, VTT, TSV)
             save_method = getattr(result, OUTPUT_FORMATS_METHODS[format])
@@ -540,7 +569,7 @@ def get_temperature(args):
         return False, str(e)
 
 
-def _result_to_dict(res: stable_whisper.WhisperResult):
+def result_to_dict(res: stable_whisper.WhisperResult):
     """Just a little funtion to help keeping the type hinting when converting result to dict
 
     Parameters
@@ -555,3 +584,106 @@ def _result_to_dict(res: stable_whisper.WhisperResult):
     """
     x: StableTsResultDict = res.to_dict()  # type: ignore
     return x
+
+
+def get_model_args(setting_cache: SettingDict):
+    """Get arguments / parameter to load to stable ts
+
+    Parameters
+    ----------
+    setting_cache: dict
+        Setting value
+
+    Returns
+    -------
+    dict
+       The parameter / argument to load to stable ts
+
+    Raises
+    ------
+    Exception
+        If the model args is not valid will throw exception containing the failure message
+    """
+    # load model
+    model_args = parse_args_stable_ts(
+        setting_cache["whisper_args"], "load",
+        WhisperModel if setting_cache["use_faster_whisper"] else stable_whisper.load_model
+    )
+    if not model_args.pop("success"):
+        raise Exception(model_args["msg"])
+
+    if setting_cache["dir_model"] != "auto":
+        model_args["download_root"] = setting_cache["dir_model"]
+    else:
+        model_args["download_root"] = get_default_download_root()
+
+    return model_args
+
+
+def get_tc_args(process_func, lang_source: str, auto: bool, setting_cache: SettingDict):
+    """Get arguments / parameter to load to stable ts for transcribe / translate using whisper and get their respective function
+
+    Parameters
+    ----------
+    model_name_tc : str
+        The model name for transcribe / translate
+    engine : str
+        Translate engine
+    tl_engine_whisper : str
+        Wether the translate engine is whisper or not
+    lang_source : str
+        The source language
+    transcribe : bool
+        Wether to transcribe or not
+    translate : bool
+        Wether to translate or not
+    auto : bool
+        Wether the source language is auto or not
+    setting_cache : SettingDict
+        The setting value
+
+    Returns
+    -------
+    tuple of dict, function, function
+        The parameter / argument to load to stable ts, the transcribe function, and the translate function
+
+    Raises
+    ------
+    Exception
+        If temperature is not valid will throw exception containing the failure message
+    Exception
+        If the model args is not valid will throw exception containing the failure message
+    """
+    temperature = setting_cache["temperature"]
+    success, data = get_temperature(temperature)
+    if not success:
+        raise Exception(data)
+    else:
+        temperature = data
+
+    # parse whisper_args
+    pass_kwarg = {
+        "temperature": temperature,
+        "best_of": setting_cache["best_of"],
+        "beam_size": setting_cache["beam_size"],
+        "compression_ratio_threshold": setting_cache["compression_ratio_threshold"],
+        "logprob_threshold": setting_cache["logprob_threshold"],
+        "no_speech_threshold": setting_cache["no_speech_threshold"],
+        "suppress_tokens": setting_cache["suppress_tokens"],
+        "initial_prompt": setting_cache["initial_prompt"],
+        "condition_on_previous_text": setting_cache["condition_on_previous_text"],
+    }
+    data = parse_args_stable_ts(setting_cache["whisper_args"], "transcribe", process_func, **pass_kwarg)
+    if not data.pop("success"):
+        raise Exception(data["msg"])
+    else:
+        whisper_args = data
+        threads = whisper_args.pop("threads")
+        if threads:
+            torch.set_num_threads(threads)
+
+        whisper_args["language"] = TO_LANGUAGE_CODE[lang_source.lower()] if not auto else None
+        if setting_cache["use_faster_whisper"] and lang_source == "english":  # to remove warning from stable-ts
+            whisper_args["language"] = None
+
+    return whisper_args
