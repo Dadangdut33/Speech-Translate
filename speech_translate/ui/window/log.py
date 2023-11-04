@@ -9,7 +9,7 @@ from speech_translate._constants import APP_NAME
 from speech_translate._path import app_icon, dir_log
 from speech_translate.ui.custom.checkbutton import CustomCheckButton
 from speech_translate.ui.custom.message import mbox
-from speech_translate.custom_logging import current_log, clear_current_log_file
+from speech_translate._logging import current_log, clear_current_log_file
 from speech_translate.globals import gc, sj
 from speech_translate.utils.helper import bind_focus_recursively, start_file, tb_copy_only
 

@@ -52,7 +52,7 @@ class SettingWindow:
         self.tab_control.add(self.ft_record, text="Record")
 
         self.ft_transcribe = ttk.Frame(self.tab_control)
-        self.tab_control.add(self.ft_transcribe, text="Transcribe")
+        self.tab_control.add(self.ft_transcribe, text="Whisper")
 
         self.ft_translate = ttk.Frame(self.tab_control)
         self.tab_control.add(self.ft_translate, text="Translate")

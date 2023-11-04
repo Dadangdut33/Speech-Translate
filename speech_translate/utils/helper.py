@@ -21,7 +21,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageTk
 from speech_translate._constants import APP_NAME
 from speech_translate._path import app_icon, app_icon_missing, ffmpeg_ps_script
 from speech_translate.ui.custom.tooltip import tk_tooltip
-from speech_translate.utils.custom_types import ToInsert
+from speech_translate.utils.types import ToInsert
 
 
 def up_first_case(string: str):

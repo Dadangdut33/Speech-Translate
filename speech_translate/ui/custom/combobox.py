@@ -1,7 +1,7 @@
 from tkinter import ttk, Tk, Toplevel, Menu
 from typing import List, Union
 
-nav_key_script = r"""
+CB_NAV_KEY_SCRIPT = r"""
 proc ComboListKeyPressed {w key} {
     if {[string length $key] > 1 && [string tolower $key] != $key} {
         return
@@ -41,7 +41,7 @@ class ComboboxWithKeyNav(ttk.Combobox):
         super().__init__(master, **kwargs)
         # navigate on keypress in the dropdown:
         # code taken from https://wiki.tcl-lang.org/page/ttk%3A%3Acombobox by Pawel Salawa, copyright 2011
-        self.tk.eval(nav_key_script % (self))
+        self.tk.eval(CB_NAV_KEY_SCRIPT % (self))
 
 
 class ComboboxTypeOnCustom(ttk.Combobox):
@@ -90,7 +90,7 @@ class ComboboxTypeOnCustom(ttk.Combobox):
 
         # navigate on keypress in the dropdown:
         # code taken from https://wiki.tcl-lang.org/page/ttk%3A%3Acombobox by Pawel Salawa, copyright 2011
-        self.tk.eval(nav_key_script % (self))
+        self.tk.eval(CB_NAV_KEY_SCRIPT % (self))
 
     def on_select(self, event):
         selected_item = self.get()

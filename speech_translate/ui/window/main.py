@@ -19,7 +19,8 @@ from speech_translate._path import app_icon
 from speech_translate._version import __version__
 from speech_translate.ui.custom.checkbutton import CustomCheckButton
 from speech_translate.ui.custom.combobox import CategorizedComboBox, ComboboxWithKeyNav
-from speech_translate.ui.custom.message import mbox, prompt_with_choices
+from speech_translate.ui.custom.dialog import FileImportDialog, RefinementDialog, AlignmentDialog, prompt_with_choices
+from speech_translate.ui.custom.message import mbox
 from speech_translate.ui.custom.text import ColoredText
 from speech_translate.ui.custom.tooltip import tk_tooltip, tk_tooltips
 from speech_translate.ui.window.about import AboutWindow
@@ -27,7 +28,7 @@ from speech_translate.ui.window.log import LogWindow
 from speech_translate.ui.window.setting import SettingWindow
 from speech_translate.ui.window.transcribed import TcsWindow
 from speech_translate.ui.window.translated import TlsWindow
-from speech_translate.custom_logging import init_logging
+from speech_translate._logging import init_logging
 from speech_translate.globals import gc, sj
 from speech_translate.utils.audio.device import (
     get_default_host_api, get_default_input_device, get_default_output_device, get_host_apis, get_input_devices,
@@ -480,7 +481,7 @@ class MainWindow:
         self.btn_tool.pack(side="right", padx=5, pady=5)
         tk_tooltip(
             self.btn_tool,
-            "Collection of tools to help you with the result.\n\n",
+            "Collection of tools to help you with adjusting the result.",
             wrapLength=250,
         )
 
@@ -607,7 +608,7 @@ class MainWindow:
 
         self.cleanup()
         logger.info("Restarting...")  # restart
-        main()
+        main(with_log_init=False)
 
     # Show window
     def show_window(self):
@@ -680,6 +681,8 @@ class MainWindow:
             self.radio_speaker.configure(state="disabled")
 
         # update on start
+        self.cb_source_lang["values"] = engine_select_source_dict[self.cb_model.get()]
+        self.cb_target_lang["values"] = engine_select_target_dict[self.cb_engine.get()]
         self.cb_engine_change()
         self.mode_change()
         self.cb_input_device_init()
@@ -957,30 +960,22 @@ class MainWindow:
                 self.cb_model.configure(state="readonly")
 
             sj.save_key("tl_engine", _event)
-            self.cb_lang_update()
 
-    def cb_lang_update(self):
-        """
-        update the target cb list with checks
-        """
-        # update the target cb list
-        self.cb_target_lang["values"] = engine_select_target_dict[self.cb_engine.get()]
+            # Then update the target cb list with checks
+            self.cb_source_lang["values"] = engine_select_source_dict[self.cb_model.get()]
+            self.cb_target_lang["values"] = engine_select_target_dict[self.cb_engine.get()]
 
-        # update source only if mode is not transcribe only
-        if "selected" in self.cbtn_task_translate.state():
-            self.cb_source_lang["values"] = engine_select_source_dict[self.cb_engine.get()]
+            # check if the target lang is not in the new list
+            if self.cb_target_lang.get() not in self.cb_target_lang["values"]:
+                self.cb_target_lang.current(0)
 
-        # check if the target lang is not in the new list
-        if self.cb_target_lang.get() not in self.cb_target_lang["values"]:
-            self.cb_target_lang.current(0)
+            # check if the source lang is not in the new list
+            if self.cb_source_lang.get() not in self.cb_source_lang["values"]:
+                self.cb_source_lang.current(0)
 
-        # check if the source lang is not in the new list
-        if self.cb_source_lang.get() not in self.cb_source_lang["values"]:
-            self.cb_source_lang.current(0)
-
-        # save
-        sj.save_key("sourceLang", self.cb_source_lang.get())
-        sj.save_key("targetLang", self.cb_target_lang.get())
+            # save
+            sj.save_key("sourceLang", self.cb_source_lang.get())
+            sj.save_key("targetLang", self.cb_target_lang.get())
 
     # clear textboxes
     def tb_clear(self):
@@ -1044,7 +1039,7 @@ class MainWindow:
             self.cb_model.configure(state="readonly")
             self.enable_processing()
 
-        elif "selected" in self.cbtn_task_translate.state() and "selected" not in self.cbtn_task_transcribe.state():
+        elif "selected" not in self.cbtn_task_transcribe.state() and "selected" in self.cbtn_task_translate.state():
             # translate only
             self.tb_transcribed_bg.pack_forget()
             self.tb_transcribed.pack_forget()
@@ -1089,6 +1084,7 @@ class MainWindow:
         self.btn_swap.configure(state="disabled")
         self.btn_record.configure(state="disabled")
         self.btn_import_file.configure(state="disabled")
+        self.btn_tool.configure(state="disabled")
         self.cb_model.configure(state="disabled")
         self.cb_engine.configure(state="disabled")
         self.cb_source_lang.configure(state="disabled")
@@ -1105,6 +1101,7 @@ class MainWindow:
         self.btn_swap.configure(state="normal")
         self.btn_record.configure(state="normal")
         self.btn_import_file.configure(state="normal")
+        self.btn_tool.configure(state="normal")
         self.cb_model.configure(state="readonly")
         self.cb_engine.configure(state="readonly")
         self.cb_source_lang.configure(state="readonly")
@@ -1181,7 +1178,7 @@ class MainWindow:
         else:
             index = 1
             for res in results:
-                assert isinstance(res, WhisperResult), "Error result is not in dictionary form, this should not happened"
+                assert isinstance(res, WhisperResult), "Error result should be a WhisperResult, this should not happened"
 
                 # if index > 1 then add _2 etc..
                 save_name = f"{f_name}_{index}" if index > 1 else f_name
@@ -1413,64 +1410,69 @@ class MainWindow:
             )
             return
 
-        # Checking args
-        tc, tl, m_key, engine, source, target, mic, speaker = self.get_args()
-        if source == target and (tc and tl):
-            mbox("Invalid options!", "Source and target language cannot be the same", 2)
-            return
+        def do_process(m_key, engine, source, target, tc, tl, files):
+            if source == target and (tc and tl):
+                mbox("Invalid options!", "Source and target language cannot be the same", 2)
+                return False
 
-        # check model first
-        status, model_tc = self.check_model(m_key, source == "english", "file import", self.import_file)
-        if not status:
-            return
-
-        if engine in model_keys:
-            status, engine = self.check_model(engine, source == "english", "file import", self.import_file)
+            # check model first
+            status, model_tc = self.check_model(m_key, source == "english", "file import", self.import_file)
             if not status:
-                return
+                return False
 
-        # check ffmpeg
-        success = self.check_ffmpeg(check_ffmpeg_in_path()[0])
-        if not success:
-            # ask if user want to continue processing
-            if not mbox(
-                "Fail to install ffmpeg",
-                "The program fail to install and add ffmpeg to path. Do you still want to continue regardless of it?", 3,
-                self.root
-            ):
-                return
+            if engine in model_keys:
+                status, engine = self.check_model(engine, source == "english", "file import", self.import_file)
+                if not status:
+                    return False
 
-        # get file
-        files = filedialog.askopenfilenames(
-            title="Select a file",
-            filetypes=(
-                ("Audio files", "*.wav *.mp3 *.ogg *.flac *.aac *.wma *.m4a"),
-                ("Video files", "*.mp4 *.mkv *.avi *.mov *.webm"),
-                ("All files", "*.*"),
-            ),
-        )
+            # check ffmpeg
+            success = self.check_ffmpeg(check_ffmpeg_in_path()[0])
+            if not success:
+                # ask if user want to continue processing
+                if not mbox(
+                    "Fail to install ffmpeg",
+                    "The program fail to install and add ffmpeg to path. Do you still want to continue regardless of it?", 3,
+                    self.root
+                ):
+                    return False  # use choose to cancel
 
-        if len(files) == 0:
-            return
+            # ui changes
+            self.tb_clear()
+            self.start_loadBar()
+            self.disable_interactions()
+            self.btn_import_file.configure(text="Loading", command=lambda: self.from_file_stop(True), state="normal")
 
-        # ui changes
-        self.tb_clear()
-        self.start_loadBar()
+            gc.enable_rec()  # Flag update
+
+            # Start thread
+            try:
+                recFileThread = Thread(
+                    target=import_file, args=(list(files), model_tc, source, target, tc, tl, engine), daemon=True
+                )
+                recFileThread.start()
+
+                return True
+            except Exception as e:
+                logger.exception(e)
+                self.errorNotif(str(e))
+                self.from_file_stop()
+
+                return False
+
+        tc, tl, m_key, engine, source, target, _mic, _speaker = self.get_args()
+        kwargs = {
+            "set_cb_model": m_key,
+            "set_cb_engine": engine,
+            "set_cb_source_lang": up_first_case(source),
+            "set_cb_target_lang": up_first_case(target),
+            "set_task_transcribe": tc,
+            "set_task_translate": tl,
+        }
+
         self.disable_interactions()
-        self.btn_import_file.configure(text="Loading", command=lambda: self.from_file_stop(True), state="normal")
-
-        gc.enable_rec()  # Flag update
-
-        # Start thread
-        try:
-            recFileThread = Thread(
-                target=import_file, args=(list(files), model_tc, source, target, tc, tl, engine), daemon=True
-            )
-            recFileThread.start()
-        except Exception as e:
-            logger.exception(e)
-            self.errorNotif(str(e))
-            self.from_file_stop()
+        prompt = FileImportDialog(self.root, "Import Files", do_process, sj.cache["theme"], **kwargs)
+        self.root.wait_window(prompt.root)  # wait for the prompt to close
+        self.enable_interactions()
 
     def from_file_stop(self, prompt=False, notify=True):
         if prompt:
@@ -1495,6 +1497,67 @@ class MainWindow:
         self.loadBar.stop()
         self.loadBar.configure(mode="determinate")
         self.btn_import_file.configure(text="Import file", command=self.import_file)
+        self.enable_interactions()
+
+    def refine_file(self):
+        if gc.dl_thread and gc.dl_thread.is_alive():
+            mbox(
+                "Please wait! A model is being downloaded",
+                "A Model is still being downloaded! Please wait until it finishes first!",
+                1,
+            )
+            return
+
+        def do_process(m_key, files):
+            pass
+
+        self.disable_interactions()
+        prompt = RefinementDialog(self.root, "Refine Files", do_process, sj.cache["theme"])
+        self.root.wait_window(prompt.root)  # wait for the prompt to close
+        self.enable_interactions()
+
+    def refinement_stop(self, prompt=False, notify=True):
+        if prompt:
+            if not mbox("Confirm", "Are you sure you want to cancel the refinement process?", 3, self.root):
+                return
+
+        logger.info("Cancelling refinement...")
+        gc.disable_rec()
+        gc.disable_tc()
+        self.destroy_transient_toplevel("File Refinement Progress")
+
+        if notify:
+            mbox(
+                "Cancelled",
+                f"Cancelled refinement process\n\nRefined {gc.mod_file_counter} file",
+                0,
+                self.root,
+            )
+
+        self.loadBar.stop()
+        self.loadBar.configure(mode="determinate")
+        self.enable_interactions()
+
+    def alignment_stop(self, prompt=False, notify=True):
+        if prompt:
+            if not mbox("Confirm", "Are you sure you want to cancel the alignment process?", 3, self.root):
+                return
+
+        logger.info("Cancelling alignment...")
+        gc.disable_rec()
+        gc.disable_tc()
+        self.destroy_transient_toplevel("File Alignment Progress")
+
+        if notify:
+            mbox(
+                "Cancelled",
+                f"Cancelled alignment process\n\nAligned {gc.mod_file_counter} file",
+                0,
+                self.root,
+            )
+
+        self.loadBar.stop()
+        self.loadBar.configure(mode="determinate")
         self.enable_interactions()
 
 
@@ -1531,8 +1594,9 @@ def check_cuda_and_gpu():
         return result
 
 
-def main():
-    init_logging(sj.cache["log_level"])
+def main(with_log_init=True):
+    if with_log_init:
+        init_logging(sj.cache["log_level"])
     logger.info(f"App Version: {__version__}")
     logger.info(f"OS: {system()} {release()} {version()} | CPU: {processor()}")
     logger.info(f"GPU: {get_gpu_info()} | CUDA: {check_cuda_and_gpu()}")

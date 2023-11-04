@@ -14,6 +14,7 @@ import numpy as np
 import scipy.io.wavfile as wav
 import torch
 import stable_whisper
+from whisper.tokenizer import TO_LANGUAGE_CODE
 
 if system() == "Windows":
     import pyaudiowpatch as pyaudio
@@ -26,12 +27,12 @@ from speech_translate._path import app_icon, dir_debug, dir_temp
 from speech_translate.ui.custom.label import LabelTitleText
 from speech_translate.ui.custom.message import mbox
 from speech_translate.ui.custom.audio import AudioMeter
-from speech_translate.custom_logging import logger
+from speech_translate._logging import logger
 from speech_translate.globals import gc, sj
 from speech_translate.utils.audio.device import get_db, get_device_details, get_frame_duration, get_speech, resample_sr
 
 from ..helper import cbtn_invoker, generate_temp_filename, get_channel_int, get_proxies, native_notify, separator_to_html, unique_rec_list
-from ..whisper.helper import get_model_args, get_tc_args, stablets_verbose_log, model_values
+from ..whisper.helper import get_model, get_model_args, get_tc_args, stablets_verbose_log, model_values
 from ..translate.translator import translate
 
 
@@ -207,50 +208,18 @@ def record_session(
 
         # load model first
         model_args = get_model_args(sj.cache)
-        model_tc, model_tl, stable_tc, stable_tl = None, None, None, None
-        if sj.cache["use_faster_whisper"]:
-            if transcribe and translate and model_name_tc == engine:
-                logger.debug("Loading model for both transcribe and translate using faster-whisper | Load only once")
-                # same model for both transcribe and translate. Load only once
-                model_tc = stable_whisper.load_faster_whisper(model_name_tc, **model_args)
-                stable_tc = model_tc.transcribe_stable  # type: ignore
-                stable_tl = stable_tc
-            else:
-                if transcribe:
-                    logger.debug("Loading model for transcribe using faster-whisper")
-                    model_tc = stable_whisper.load_faster_whisper(model_name_tc, **model_args)
-                    stable_tc = model_tc.transcribe_stable  # type: ignore
-                if translate:
-                    logger.debug("Loading model for translate using faster-whisper")
-                    model_tl = stable_whisper.load_faster_whisper(engine, **model_args) if tl_engine_whisper else None
-                    if model_tl:
-                        stable_tl = model_tl.transcribe_stable  # type: ignore
-        else:
-            if transcribe and translate and model_name_tc == engine:
-                logger.debug("Loading model for both transcribe and translate using stable-ts | Load only once")
-                # same model for both transcribe and translate. Load only once
-                model_tc = stable_whisper.load_model(model_name_tc, **model_args)
-                stable_tc = model_tc.transcribe
-                stable_tl = stable_tc
-            else:
-                if transcribe:
-                    logger.debug("Loading model for transcribe using stable-ts")
-                    model_tc = stable_whisper.load_model(model_name_tc, **model_args)
-                    stable_tc = model_tc.transcribe
-                if translate:
-                    logger.debug("Loading model for translate using stable-ts")
-                    model_tl = stable_whisper.load_model(engine, **model_args) if tl_engine_whisper else None
-                    if model_tl:
-                        stable_tl = model_tl.transcribe
-
-        whisper_args = get_tc_args(stable_tc if transcribe else stable_tl, lang_source, auto, sj.cache)
+        _, _, stable_tc, stable_tl = get_model(
+            transcribe, translate, tl_engine_whisper, model_name_tc, engine, sj.cache, **model_args
+        )
+        whisper_args = get_tc_args(stable_tc if transcribe else stable_tl, sj.cache)
+        whisper_args["verbose"] = None  # set to none so no printing of the progress to stdout
+        whisper_args["language"] = TO_LANGUAGE_CODE[lang_source.lower()] if not auto else None
+        if sj.cache["use_faster_whisper"] and lang_source == "english":
+            whisper_args["language"] = None  # to remove warning from stable-ts
+        if sj.cache["use_faster_whisper"] and not use_temp:
+            whisper_args["input_sr"] = WHISPER_SR  # when using numpy array as input, will need to set input_sr
 
         cuda_device = model_args["device"]
-        whisper_args["verbose"] = None  # set to none so no printing of the progress to stdout
-        if sj.cache["use_faster_whisper"] and not use_temp:
-            # when using numpy array as input, will need to set input_sr
-            whisper_args["input_sr"] = WHISPER_SR
-
         # if only translate to english using whisper engine
         task = "translate" if tl_engine_whisper and translate and not transcribe else "transcribe"
 

@@ -7,14 +7,13 @@ from faster_whisper import WhisperModel
 
 import torch
 import stable_whisper
-from whisper.tokenizer import TO_LANGUAGE_CODE
 from stable_whisper.alignment import align, refine
 from stable_whisper.utils import str_to_valid_type, isolate_useful_options
 from whisper.utils import optional_int, optional_float
 from whisper import DecodingOptions
 
 from loguru import logger
-from speech_translate.utils.custom_types import SettingDict, StableTsResultDict
+from speech_translate.utils.types import SettingDict, StableTsResultDict
 from speech_translate.utils.whisper.download import get_default_download_root
 
 model_select_dict = {
@@ -620,23 +619,15 @@ def get_model_args(setting_cache: SettingDict):
     return model_args
 
 
-def get_tc_args(process_func, lang_source: str, auto: bool, setting_cache: SettingDict):
+def get_tc_args(process_func, setting_cache: SettingDict):
     """Get arguments / parameter to load to stable ts for transcribe / translate using whisper and get their respective function
 
     Parameters
     ----------
     model_name_tc : str
         The model name for transcribe / translate
-    engine : str
-        Translate engine
-    tl_engine_whisper : str
-        Wether the translate engine is whisper or not
     lang_source : str
         The source language
-    transcribe : bool
-        Wether to transcribe or not
-    translate : bool
-        Wether to translate or not
     auto : bool
         Wether the source language is auto or not
     setting_cache : SettingDict
@@ -682,8 +673,69 @@ def get_tc_args(process_func, lang_source: str, auto: bool, setting_cache: Setti
         if threads:
             torch.set_num_threads(threads)
 
-        whisper_args["language"] = TO_LANGUAGE_CODE[lang_source.lower()] if not auto else None
-        if setting_cache["use_faster_whisper"] and lang_source == "english":  # to remove warning from stable-ts
-            whisper_args["language"] = None
-
     return whisper_args
+
+
+def get_model(
+    transcribe: bool, translate: bool, tl_engine_whisper: bool, model_name_tc: str, engine: str, setting_cache: SettingDict,
+    **model_args
+):
+    """Get model and the function for stable whisper while also checking using faster whisper or not
+
+    Parameters
+    ----------
+    transcribe : bool
+        Transcribe or not
+    translate : bool
+        Translate or not
+    tl_engine_whisper : bool
+        Translate using whisper or not
+    model_name_tc : str
+        Name of the transcription model
+    engine : str
+        engine name
+    setting_cache : SettingDict
+        Setting value
+
+    Returns
+    -------
+    tuple
+        model_tc, model_tl, stable_tc, stable_tl
+    """
+    model_tc, model_tl, stable_tc, stable_tl = None, None, None, None
+    if setting_cache["use_faster_whisper"]:
+        if transcribe and translate and model_name_tc == engine:
+            logger.debug("Loading model for both transcribe and translate using faster-whisper | Load only once")
+            # same model for both transcribe and translate. Load only once
+            model_tc = stable_whisper.load_faster_whisper(model_name_tc, **model_args)
+            stable_tc = model_tc.transcribe_stable  # type: ignore
+            stable_tl = stable_tc
+        else:
+            if transcribe:
+                logger.debug("Loading model for transcribe using faster-whisper")
+                model_tc = stable_whisper.load_faster_whisper(model_name_tc, **model_args)
+                stable_tc = model_tc.transcribe_stable  # type: ignore
+            if translate:
+                logger.debug("Loading model for translate using faster-whisper")
+                model_tl = stable_whisper.load_faster_whisper(engine, **model_args) if tl_engine_whisper else None
+                if model_tl:
+                    stable_tl = model_tl.transcribe_stable  # type: ignore
+    else:
+        if transcribe and translate and model_name_tc == engine:
+            logger.debug("Loading model for both transcribe and translate using stable-ts | Load only once")
+            # same model for both transcribe and translate. Load only once
+            model_tc = stable_whisper.load_model(model_name_tc, **model_args)
+            stable_tc = model_tc.transcribe
+            stable_tl = stable_tc
+        else:
+            if transcribe:
+                logger.debug("Loading model for transcribe using stable-ts")
+                model_tc = stable_whisper.load_model(model_name_tc, **model_args)
+                stable_tc = model_tc.transcribe
+            if translate:
+                logger.debug("Loading model for translate using stable-ts")
+                model_tl = stable_whisper.load_model(engine, **model_args) if tl_engine_whisper else None
+                if model_tl:
+                    stable_tl = model_tl.transcribe
+
+    return model_tc, model_tl, stable_tc, stable_tl

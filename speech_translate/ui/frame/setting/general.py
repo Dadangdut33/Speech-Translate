@@ -9,7 +9,7 @@ from loguru import logger
 
 from speech_translate.globals import sj, gc
 from speech_translate._path import dir_log, dir_temp, dir_debug
-from speech_translate.custom_logging import current_log, update_stdout_ignore_list, change_log_level
+from speech_translate._logging import current_log, update_stdout_ignore_list, change_log_level
 from speech_translate.utils.helper import popup_menu, emoji_img, up_first_case
 from speech_translate.utils.whisper.download import verify_model_faster_whisper, verify_model_whisper, download_model, get_default_download_root
 from speech_translate.utils.helper import start_file
@@ -503,7 +503,7 @@ class SettingGeneral:
             if verify_model_whisper(model):  # already downloaded
                 after_func()
                 return
-            kwargs["cancel_func"] = lambda: self.cancel_download_whisper(model, btn)
+            kwargs["cancel_func"] = lambda: self.cancel_model_download(model, btn)
 
         # Download model
         try:
@@ -522,7 +522,7 @@ class SettingGeneral:
             )
             mbox("Download error", f"Err details: {e}", 0, self.root)
 
-    def cancel_download_whisper(self, model: str, btn: ttk.Button) -> None:
+    def cancel_model_download(self, model: str, btn: ttk.Button) -> None:
         """
         Cancel whisper model download.
 
@@ -567,48 +567,96 @@ class SettingGeneral:
         try:
 
             def threaded_tiny_w():
-                self.model_btn_checker("tiny", self.model_tiny.btn)
-                self.model_btn_checker("tiny.en", self.model_tiny_eng.btn)
+                try:
+                    self.model_btn_checker("tiny", self.model_tiny.btn)
+                    self.model_btn_checker("tiny.en", self.model_tiny_eng.btn)
+                except Exception as e:
+                    if "invalid command name" not in str(e):
+                        logger.exception(e)
 
             def threaded_tiny_fw():
-                self.model_btn_checker("tiny", self.model_faster_tiny.btn, True)
-                self.model_btn_checker("tiny.en", self.model_faster_tiny_eng.btn, True)
+                try:
+                    self.model_btn_checker("tiny", self.model_faster_tiny.btn, True)
+                    self.model_btn_checker("tiny.en", self.model_faster_tiny_eng.btn, True)
+                except Exception as e:
+                    if "invalid command name" not in str(e):
+                        logger.exception(e)
 
             def threaded_base_w():
-                self.model_btn_checker("base", self.model_base.btn)
-                self.model_btn_checker("base.en", self.model_base_eng.btn)
+                try:
+                    self.model_btn_checker("base", self.model_base.btn)
+                    self.model_btn_checker("base.en", self.model_base_eng.btn)
+                except Exception as e:
+                    if "invalid command name" not in str(e):
+                        logger.exception(e)
 
             def threaded_base_fw():
-                self.model_btn_checker("base", self.model_faster_base.btn, True)
-                self.model_btn_checker("base.en", self.model_faster_base_eng.btn, True)
+                try:
+                    self.model_btn_checker("base", self.model_faster_base.btn, True)
+                    self.model_btn_checker("base.en", self.model_faster_base_eng.btn, True)
+                except Exception as e:
+                    if "invalid command name" not in str(e):
+                        logger.exception(e)
 
             def threaded_small_w():
-                self.model_btn_checker("small", self.model_small.btn)
-                self.model_btn_checker("small.en", self.model_small_eng.btn)
+                try:
+                    self.model_btn_checker("small", self.model_small.btn)
+                    self.model_btn_checker("small.en", self.model_small_eng.btn)
+                except Exception as e:
+                    if "invalid command name" not in str(e):
+                        logger.exception(e)
 
             def threaded_small_fw():
-                self.model_btn_checker("small", self.model_faster_small.btn, True)
-                self.model_btn_checker("small.en", self.model_faster_small_eng.btn, True)
+                try:
+                    self.model_btn_checker("small", self.model_faster_small.btn, True)
+                    self.model_btn_checker("small.en", self.model_faster_small_eng.btn, True)
+                except Exception as e:
+                    if "invalid command name" not in str(e):
+                        logger.exception(e)
 
             def threaded_medium_w():
-                self.model_btn_checker("medium", self.model_medium.btn)
-                self.model_btn_checker("medium.en", self.model_medium_eng.btn)
+                try:
+                    self.model_btn_checker("medium", self.model_medium.btn)
+                    self.model_btn_checker("medium.en", self.model_medium_eng.btn)
+                except Exception as e:
+                    if "invalid command name" not in str(e):
+                        logger.exception(e)
 
             def threaded_medium_fw():
-                self.model_btn_checker("medium", self.model_faster_medium.btn, True)
-                self.model_btn_checker("medium.en", self.model_faster_medium_eng.btn, True)
+                try:
+                    self.model_btn_checker("medium", self.model_faster_medium.btn, True)
+                    self.model_btn_checker("medium.en", self.model_faster_medium_eng.btn, True)
+                except Exception as e:
+                    if "invalid command name" not in str(e):
+                        logger.exception(e)
 
             def threaded_large_v1_w():
-                self.model_btn_checker("large-v1", self.model_large_v1.btn)
+                try:
+                    self.model_btn_checker("large-v1", self.model_large_v1.btn)
+                except Exception as e:
+                    if "invalid command name" not in str(e):
+                        logger.exception(e)
 
             def threaded_large_v1_fw():
-                self.model_btn_checker("large-v1", self.model_faster_large_v1.btn, True)
+                try:
+                    self.model_btn_checker("large-v1", self.model_faster_large_v1.btn, True)
+                except Exception as e:
+                    if "invalid command name" not in str(e):
+                        logger.exception(e)
 
             def threaded_large_v2_w():
-                self.model_btn_checker("large-v2", self.model_large_v2.btn)
+                try:
+                    self.model_btn_checker("large-v2", self.model_large_v2.btn)
+                except Exception as e:
+                    if "invalid command name" not in str(e):
+                        logger.exception(e)
 
             def threaded_large_v2_fw():
-                self.model_btn_checker("large-v2", self.model_faster_large_v2.btn, True)
+                try:
+                    self.model_btn_checker("large-v2", self.model_faster_large_v2.btn, True)
+                except Exception as e:
+                    if "invalid command name" not in str(e):
+                        logger.exception(e)
 
             check_tiny_w = Thread(target=threaded_tiny_w, daemon=True)
             check_tiny_fw = Thread(target=threaded_tiny_fw, daemon=True)

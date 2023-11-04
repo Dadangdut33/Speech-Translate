@@ -9,37 +9,36 @@ from typing import Union
 import huggingface_hub
 import requests
 from loguru import logger
-from faster_whisper.utils import _MODELS
 from huggingface_hub.file_download import repo_folder_name
 
 from speech_translate._path import app_icon
 from speech_translate.ui.custom.message import mbox
-from speech_translate.custom_logging import dir_log, current_log
+from speech_translate._logging import dir_log, current_log
 from speech_translate.globals import gc
 
 
 def whisper_download_with_progress_gui(
     master: Union[Tk, Toplevel],
-    cancel_func,
-    after_func,
     model_name: str,
     url: str,
     download_root: str,
-    in_memory: bool,
-) -> Union[bytes, str, None]:
+    cancel_func,
+    after_func,
+):
     os.makedirs(download_root, exist_ok=True)
 
     expected_sha256 = url.split("/")[-2]
     download_target = os.path.join(download_root, os.path.basename(url))
 
     if os.path.exists(download_target) and not os.path.isfile(download_target):
-        raise RuntimeError(f"{download_target} exists and is not a regular file")
+        mbox("Download Failed", f"{download_target} exists and is not a regular file", 0, master)
+        return False
 
     if os.path.isfile(download_target):
         with open(download_target, "rb") as f:
             model_bytes = f.read()
         if sha256(model_bytes).hexdigest() == expected_sha256:
-            return model_bytes if in_memory else download_target
+            return download_target
         else:
             logger.warning(f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file")
 
@@ -136,11 +135,13 @@ def whisper_download_with_progress_gui(
                     logger.info("Download cancelled")
                     downloading = False
                     gc.cancel_dl = False
-                    root.after(1000, root.destroy)
+                    root.after(100, root.destroy)
                     mbox("Download Cancelled", f"Downloading of {model_name} model has been cancelled", 0, master)
                 except Exception:
                     pass
-                return
+
+                # download stopped, stop running this function
+                return False
 
             if paused:
                 # sleep for 1 second
@@ -159,9 +160,11 @@ def whisper_download_with_progress_gui(
 
     model_bytes = open(download_target, "rb").read()
     if sha256(model_bytes).hexdigest() != expected_sha256:
-        raise RuntimeError(
-            "Model has been downloaded but the SHA256 checksum does not match. Please retry loading the model."
+        mbox(
+            "Download Failed",
+            "Model has been downloaded but the SHA256 checksum does not match. Please retry loading the model.", 0, master
         )
+        return False
 
     # all check passed, this means the model has been downloaded successfully
     # run after_func if it is not None
@@ -175,10 +178,12 @@ def whisper_download_with_progress_gui(
     gc.sw.f_general.model_checked = False
 
     mbox("Model Downloaded Success", f"{model_name} whisper model has been downloaded successfully", 0, master)
-    return model_bytes if in_memory else download_target
+    return True
 
 
-def faster_whisper_download_with_progress_gui(master: Union[Tk, Toplevel], model_name: str, cache_dir: str, after_func):
+def faster_whisper_download_with_progress_gui(
+    master: Union[Tk, Toplevel], model_name: str, repo_id: str, cache_dir: str, after_func
+):
     """Download a model from the Hugging Face Hub with a progress bar that does not show the progress, only there to show that the program is not frozen and is in fact downloading something
 
     Parameters
@@ -187,6 +192,8 @@ def faster_whisper_download_with_progress_gui(master: Union[Tk, Toplevel], model
         Master window
     model_name : str
         The model name to download
+    repo_id : str
+        The model id to download
     cache_dir : str
         The download directory
     after_func : function
@@ -196,18 +203,9 @@ def faster_whisper_download_with_progress_gui(master: Union[Tk, Toplevel], model
     -------
     bool
         True if download is successful, False otherwise
-
-    Raises
-    ------
-    ValueError
-        If model_name is not one of the official model names listed by `faster_whisper.available_models()`
     """
     logger.debug("Downloading model from Hugging Face Hub")
     os.makedirs(cache_dir, exist_ok=True)  # make cache dir if not exist
-
-    repo_id = _MODELS.get(model_name)
-    if repo_id is None:
-        raise ValueError("Invalid model size '%s', expected one of: %s" % (model_name, ", ".join(_MODELS.keys())))
 
     storage_folder = os.path.join(cache_dir, repo_folder_name(repo_id=repo_id, repo_type="model"))
     allow_patterns = ["config.json", "model.bin", "tokenizer.json", "vocabulary.*"]
@@ -228,6 +226,9 @@ def faster_whisper_download_with_progress_gui(master: Union[Tk, Toplevel], model
         pass
 
     # add label that says downloading please wait
+    failed = False
+    msg = ""
+
     f1 = ttk.Frame(root)
     f1.pack(side="top", fill="x", expand=True)
 
@@ -237,8 +238,11 @@ def faster_whisper_download_with_progress_gui(master: Union[Tk, Toplevel], model
     f3 = ttk.Frame(root)
     f3.pack(side="top", fill="both", expand=True)
 
-    label = ttk.Label(f1, text="Checking please wait...", font="TkDefaultFont 11 bold")
-    label.pack(side="top", padx=10, pady=(5, 0))
+    lbl_status_title = ttk.Label(f1, text="Status:", font="TkDefaultFont 9 bold")
+    lbl_status_title.pack(side="left", padx=(5, 0), pady=(5, 0))
+
+    lbl_status_text = ttk.Label(f1, text="Checking please wait...")
+    lbl_status_text.pack(side="left", padx=5, pady=(5, 0))
 
     # add progress bar that just goes back and forth
     progress = ttk.Progressbar(f2, orient="horizontal", length=200, mode="indeterminate")
@@ -249,10 +253,6 @@ def faster_whisper_download_with_progress_gui(master: Union[Tk, Toplevel], model
     text_log.pack(side="top", fill="both", expand=True, padx=10, pady=(0, 10))
     text_log.bind("<Key>", lambda event: "break")  # disable text box
     text_log.insert(1.0, "Checking model please wait...")
-
-    after_id = None
-    failed = False
-    msg = ""
 
     def get_file_amount(path):
         try:
@@ -274,10 +274,9 @@ def faster_whisper_download_with_progress_gui(master: Union[Tk, Toplevel], model
         text_log.see("end")  # scroll to the bottom
 
     def run_threaded():
-        nonlocal after_id, failed, msg
-
+        nonlocal failed, msg
         root.title("Verifying Model")
-        label.configure(text=f"Verifying {model_name} model please wait...")
+        lbl_status_text.configure(text=f"Verifying {model_name} model please wait...")
         text_log.insert("end", f"\nVerifying {model_name} model please wait...")
         try:
             huggingface_hub.snapshot_download(repo_id, **kwargs)
@@ -310,19 +309,16 @@ def faster_whisper_download_with_progress_gui(master: Union[Tk, Toplevel], model
         # check if 2 second have passed. Means probably downloading from the hub
         if time() - start_time > 2:
             root.title("Downloading Faster Whisper Model")
-            label.configure(
+            lbl_status_text.configure(
                 text=f"Downloading {model_name} model, {get_file_amount(storage_folder + '/' + 'blobs')} files downloaded..."
             )
             update_log()
-        sleep(0.3)
+        sleep(1)
 
-    if after_id:
-        # just making sure that it is downloading. if not downloading then cancel the opening of it
-        root.after_cancel(after_id)
-
+    # everything is done
     root.destroy()
 
-    # tell setting window to check model again when it open
+    # tell setting window to check model again when it is opened
     assert gc.sw is not None
     gc.sw.f_general.model_checked = False
 

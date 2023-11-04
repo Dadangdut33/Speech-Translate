@@ -146,6 +146,8 @@ class SettingDict(TypedDict):
     # Transcribe settings
     dir_export: str
     auto_open_dir_export: bool
+    auto_open_dir_refinement: bool
+    auto_open_dir_adjustment: bool
     # {file} {task} {task-short} {lang-source} {lang-target} {model} {engine}
     export_format: str
     # txt csv json srt ass vtt tsv

@@ -9,7 +9,7 @@ from loguru import logger
 
 from speech_translate._version import __setting_version__
 from speech_translate.ui.custom.message import mbox
-from speech_translate.utils.custom_types import SettingDict
+from speech_translate.utils.types import SettingDict
 
 default_setting: SettingDict = {
     "version": __setting_version__,
@@ -95,6 +95,8 @@ default_setting: SettingDict = {
     # Transcribe settings
     "dir_export": "auto",
     "auto_open_dir_export": True,
+    "auto_open_dir_refinement": True,
+    "auto_open_dir_adjustment": True,
     # {file} {task} {task-short} {lang-source} {lang-target} {model} {engine}
     "export_format": "%Y-%m-%d %H_%M {file}_{task}",
     # txt csv json srt ass vtt tsv

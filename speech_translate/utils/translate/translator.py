@@ -1,5 +1,5 @@
 from typing import Dict, List
-from speech_translate.custom_logging import logger
+from speech_translate._logging import logger
 from ..helper import get_similar_keys, no_connection_notify
 from .language import google_lang, libre_lang, myMemory_lang
 

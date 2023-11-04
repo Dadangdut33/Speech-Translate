@@ -14,7 +14,7 @@ from arabic_reshaper import reshape
 from bidi.algorithm import get_display
 from numba.core.errors import NumbaDeprecationWarning, NumbaPendingDeprecationWarning
 
-from speech_translate.utils.custom_types import ToInsert
+from speech_translate.utils.types import ToInsert
 from speech_translate.utils.helper import generate_color, html_to_separator, wrap_result
 from ._path import dir_debug, dir_export, dir_log, dir_temp, dir_user
 from .utils.setting import SettingJson
@@ -24,7 +24,7 @@ if system() == "Windows":
     import pyaudiowpatch as pyaudio
 else:
     # to get qsize on platform other than windows
-    from .utils.custom_queue import MyQueue as Queue
+    from .utils.custom.queue import MyQueue as Queue
     import pyaudio  # type: ignore
 
 # remove numba warnings
@@ -99,6 +99,7 @@ class BridgeClass:
         # file process
         self.file_tced_counter: int = 0
         self.file_tled_counter: int = 0
+        self.mod_file_counter: int = 0
 
         # photoimage
         self.help_emoji: Union[ImageTk.PhotoImage, str] = ""

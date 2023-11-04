@@ -1,4 +1,4 @@
-from tkinter import IntVar, messagebox, ttk, TclError, Text, Tk, Toplevel
+from tkinter import messagebox, ttk, TclError, Text, Tk, Toplevel
 from typing import List, Literal, Optional, Union
 
 from speech_translate._path import app_icon
@@ -86,52 +86,3 @@ def mbox(title: str, text: str, style: Literal[0, 1, 2, 3], parent: Optional[Uni
         return messagebox.showerror(title, text, parent=parent)  # Return ok x same as ok
     elif style == 3:
         return messagebox.askyesno(title, text, parent=parent)  # Return True False, x can't be clicked
-
-
-class MultipleChoiceQuestion:
-    def __init__(self, parent: Union[Tk, Toplevel], title: str, prompt: str, options: List):
-        self.master = parent
-        self.title = title
-        self.prompt = prompt
-        self.options = options
-        self.choice = None
-
-        self.root = Toplevel(self.master)
-        self.root.resizable(False, False)
-        self.root.geometry("+400+250")
-        self.root.attributes('-topmost', True)
-        self.root.title(title)
-        self.root.transient(parent)
-
-        if self.prompt:
-            ttk.Label(self.root, text=self.prompt).pack(padx=5, pady=5)
-
-        self.v = IntVar()
-        for i, option in enumerate(self.options):
-            ttk.Radiobutton(self.root, text=option, variable=self.v, value=i).pack(anchor="w", padx=5, pady=5)
-
-        ttk.Button(self.root, text="Submit", command=self.submit).pack(padx=5, pady=5)
-        # ------------------ Set Icon ------------------
-        try:
-            self.root.iconbitmap(app_icon)
-        except Exception:
-            pass
-
-    def submit(self):
-        if self.v.get() == -1:
-            return  # No option selected
-        self.choice = self.options[self.v.get()]
-        self.root.destroy()
-
-    def get_choice(self):
-        self.root.wait_window()
-        return self.choice
-
-
-def prompt_with_choices(parent: Union[Tk, Toplevel], title: str, prompt: str, options: List):
-    """
-    Prompt with choices
-    """
-    temp = MultipleChoiceQuestion(parent, title, prompt, options)
-    res = temp.get_choice()
-    return res
