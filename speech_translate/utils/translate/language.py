@@ -214,6 +214,38 @@ myMemory_lang = {
     "yoruba": "yo",
 }
 
+
+def verify_language_in_key(lang: str, engine: str) -> bool:
+    """Verify if the language is in the key of the engine
+
+    Parameters
+    ----------
+    lang : str
+        Language to verify
+    engine : str
+        Engine to verify
+
+    Returns
+    -------
+    bool
+        True if the language is in the key of the engine
+
+    Raises
+    ------
+    ValueError
+        If the engine is not found
+
+    """
+    if engine == "Google Translate":
+        return lang in google_lang.keys()
+    elif engine == "LibreTranslate":
+        return lang in libre_lang.keys()
+    elif engine == "MyMemoryTranslator":
+        return lang in myMemory_lang.keys()
+    else:
+        raise ValueError("Engine not found")
+
+
 # select target engine
 gLang_target = list(google_lang.keys())
 gLang_target.pop(0)

@@ -148,6 +148,7 @@ class SettingDict(TypedDict):
     auto_open_dir_export: bool
     auto_open_dir_refinement: bool
     auto_open_dir_alignment: bool
+    auto_open_dir_translate: bool
     # {file} {task} {task-short} {lang-source} {lang-target} {model} {engine}
     export_format: str
     # txt csv json srt ass vtt tsv

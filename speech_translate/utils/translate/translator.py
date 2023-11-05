@@ -54,11 +54,16 @@ def google_tl(text: List[str], from_lang: str, to_lang: str, proxies: Dict, debu
     # --- Get lang code ---
     try:
         try:
-            to_LanguageCode_Google = google_lang[to_lang]
             from_LanguageCode_Google = google_lang[from_lang]
+            to_LanguageCode_Google = google_lang[to_lang]
         except KeyError:
+            logger.warning("Language Code Undefined. Trying to get similar keys")
+            try:
+                from_LanguageCode_Google = google_lang[get_similar_keys(google_lang, from_lang)[0]]
+            except KeyError:
+                logger.warning("Source Language Code Undefined. Using auto")
+                from_LanguageCode_Google = "auto"
             to_LanguageCode_Google = google_lang[get_similar_keys(google_lang, to_lang)[0]]
-            from_LanguageCode_Google = google_lang[get_similar_keys(google_lang, from_lang)[0]]
     except KeyError as e:
         logger.exception(e)
         return is_Success, "Error Language Code Undefined"
@@ -109,11 +114,15 @@ def memory_tl(text: List[str], from_lang: str, to_lang: str, proxies: Dict, debu
     # --- Get lang code ---
     try:
         try:
-            to_LanguageCode_Memory = myMemory_lang[to_lang]
             from_LanguageCode_Memory = myMemory_lang[from_lang]
+            to_LanguageCode_Memory = myMemory_lang[to_lang]
         except KeyError:
+            try:
+                from_LanguageCode_Memory = myMemory_lang[get_similar_keys(myMemory_lang, from_lang)[0]]
+            except KeyError:
+                logger.warning("Source Language Code Undefined. Using auto")
+                from_LanguageCode_Memory = "auto"
             to_LanguageCode_Memory = myMemory_lang[get_similar_keys(myMemory_lang, to_lang)[0]]
-            from_LanguageCode_Memory = myMemory_lang[get_similar_keys(myMemory_lang, from_lang)[0]]
     except KeyError as e:
         logger.exception(e)
         return is_Success, "Error Language Code Undefined"
@@ -178,11 +187,15 @@ def libre_tl(
     # --- Get lang code ---
     try:
         try:
-            to_LanguageCode_Libre = libre_lang[to_lang]
             from_LanguageCode_Libre = libre_lang[from_lang]
+            to_LanguageCode_Libre = libre_lang[to_lang]
         except KeyError:
+            try:
+                from_LanguageCode_Libre = libre_lang[get_similar_keys(libre_lang, from_lang)[0]]
+            except KeyError:
+                logger.warning("Source Language Code Undefined. Using auto")
+                from_LanguageCode_Libre = "auto"
             to_LanguageCode_Libre = libre_lang[get_similar_keys(libre_lang, to_lang)[0]]
-            from_LanguageCode_Libre = libre_lang[get_similar_keys(libre_lang, from_lang)[0]]
     except KeyError as e:
         logger.exception(e)
         return is_Success, "Error Language Code Undefined"

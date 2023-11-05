@@ -168,6 +168,22 @@ class CategorizedComboBox(ttk.Combobox):
         self.menu.bind("<FocusOut>", self.unpost_menu)
         self.root.bind("<Button-1>", self.unpost_menu)
 
+    def change_categories(self, categories):
+        """
+        Change the categories and items in the dropdown menu
+        """
+        self.categories = categories
+        self.menu.delete(0, 'end')
+
+        for category in categories:
+            category_menu = Menu(self.menu, tearoff=0)
+            if len(categories[category]) == 0:
+                self.menu.add_command(label=category, command=lambda c=category: self.set_item(c))
+            else:
+                self.menu.add_cascade(label=category, menu=category_menu)
+                for item in categories[category]:
+                    category_menu.add_command(label=item, command=lambda i=item: self.set_item(i))
+
     def show_menu(self, event):
         """
         Show the dropdown menu if the combobox is clicked

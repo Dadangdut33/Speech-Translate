@@ -19,7 +19,7 @@ from speech_translate._path import app_icon
 from speech_translate._version import __version__
 from speech_translate.ui.custom.checkbutton import CustomCheckButton
 from speech_translate.ui.custom.combobox import CategorizedComboBox, ComboboxWithKeyNav
-from speech_translate.ui.custom.dialog import FileImportDialog, RefinementDialog, AlignmentDialog, prompt_with_choices
+from speech_translate.ui.custom.dialog import FileImportDialog, RefinementDialog, AlignmentDialog, TranslateResultDialog, prompt_with_choices
 from speech_translate.ui.custom.message import mbox
 from speech_translate.ui.custom.text import ColoredText
 from speech_translate.ui.custom.tooltip import tk_tooltip, tk_tooltips
@@ -44,7 +44,7 @@ from speech_translate.utils.translate.language import (
 from speech_translate.utils.whisper.helper import append_dot_en, model_keys, model_select_dict, save_output_stable_ts
 from speech_translate.utils.whisper.download import download_model, get_default_download_root, verify_model_faster_whisper, verify_model_whisper
 from speech_translate.utils.audio.record import record_session
-from speech_translate.utils.audio.file import import_file, mod_result
+from speech_translate.utils.audio.file import process_file, mod_result, translate_result
 from speech_translate.utils.tk.style import get_current_theme, get_theme_list, init_theme, set_ui_style
 
 
@@ -489,7 +489,9 @@ class MainWindow:
         self.menu_tool.add_command(label="Export Recorded Results", command=lambda: self.export_result())
         self.menu_tool.add_command(label="Align Results", command=lambda: self.align_file())
         self.menu_tool.add_command(label="Refine Results", command=lambda: self.refine_file())
-        self.menu_tool.add_command(label="Translate Results", command=lambda: None)
+        self.menu_tool.add_command(
+            label="Translate Results (Whisper Result in .json)", command=lambda: self.translate_file()
+        )
 
         # -- f4_statusbar
         # load bar
@@ -1414,6 +1416,8 @@ class MainWindow:
             return
 
         def do_process(m_key, engine, source, target, tc, tl, files):
+            source = source.lower()
+            target = target.lower()
             if source == target and (tc and tl):
                 mbox("Invalid options!", "Source and target language cannot be the same", 2)
                 return False
@@ -1450,7 +1454,7 @@ class MainWindow:
             # Start thread
             try:
                 recFileThread = Thread(
-                    target=import_file, args=(list(files), model_tc, source, target, tc, tl, engine), daemon=True
+                    target=process_file, args=(list(files), model_tc, source, target, tc, tl, engine), daemon=True
                 )
                 recFileThread.start()
 
@@ -1644,6 +1648,66 @@ class MainWindow:
             mbox(
                 "Cancelled",
                 f"Cancelled alignment process\n\nAligned {gc.mod_file_counter} file",
+                0,
+                self.root,
+            )
+
+        self.loadBar.stop()
+        self.loadBar.configure(mode="determinate")
+        self.enable_interactions()
+
+    def translate_file(self):
+        def do_process(engine, lang_target, files):
+            # no check because not using any model and no need for ffmpeg
+            # ui changes
+            self.tb_clear()
+            self.start_loadBar()
+            self.disable_interactions()
+
+            gc.enable_rec()
+
+            # Start thread
+            try:
+                translateThread = Thread(target=translate_result, args=(files, engine, lang_target), daemon=True)
+                translateThread.start()
+
+                return True
+            except Exception as e:
+                logger.exception(e)
+                self.errorNotif(str(e))
+                self.translate_stop()
+
+                return False
+
+        tc, tl, m_key, engine, source, target, _mic, _speaker = self.get_args()
+        kwargs = {
+            "set_cb_model": m_key,
+            "set_cb_engine": engine,
+            "set_cb_source_lang": up_first_case(source),
+            "set_cb_target_lang": up_first_case(target),
+            "set_task_transcribe": tc,
+            "set_task_translate": tl,
+        }
+
+        self.disable_interactions()
+        prompt = TranslateResultDialog(self.root, "Translate Whisper Result", do_process, sj.cache["theme"], **kwargs)
+        self.root.wait_window(prompt.root)  # wait for the prompt to close
+        self.enable_interactions()
+
+    def translate_stop(self, prompt=False, notify=True):
+        if prompt:
+            if not mbox("Confirm", "Are you sure you want to cancel the translation process?", 3, self.root):
+                return
+
+        logger.info("Cancelling translation...")
+        gc.disable_rec()
+        gc.disable_tl()
+        self.destroy_transient_toplevel("Translate Whisper Result Progress")
+
+        if notify:
+            mbox(
+                "Cancelled",
+                f"Cancelled translation process\n\nTranslated {gc.tl_file_counter} file",
                 0,
                 self.root,
             )

@@ -9,7 +9,7 @@ from loguru import logger
 
 from speech_translate._path import app_icon
 from speech_translate._logging import dir_log, current_log
-from speech_translate.ui.custom.tooltip import tk_tooltip
+from speech_translate.ui.custom.tooltip import tk_tooltip, tk_tooltips
 from speech_translate.ui.custom.combobox import CategorizedComboBox, ComboboxWithKeyNav
 from speech_translate.utils.whisper.helper import model_keys
 from speech_translate.utils.translate.language import (
@@ -71,7 +71,7 @@ class FileOperationDialog:
         self,
         master,
         title: str,
-        mode: Literal["File Import", "Refinement", "Alignment"],
+        mode: Literal["File Import", "Refinement", "Alignment", "Translate"],
         headers: List,
         submit_func,
         theme,
@@ -94,13 +94,15 @@ class FileOperationDialog:
         self.frame_top = ttk.Frame(self.root)
         self.frame_top.pack(expand=True, fill="x", padx=5, pady=5)
 
-        ttk.Label(self.frame_top, text="Model:" if mode != "File Import" else "Transcribe:").pack(padx=5, side="left")
+        self.lbl_model = ttk.Label(self.frame_top, text="Model:" if mode != "File Import" else "Transcribe:")
+        self.lbl_model.pack(padx=5, side="left")
+
         self.var_model = StringVar(self.root)
         self.cb_model = ComboboxWithKeyNav(self.frame_top, textvariable=self.var_model, values=model_keys)
         self.cb_model.pack(padx=5, side="left")
         self.var_model.set(file_import_kwargs["set_cb_model"])
 
-        if mode == "File Import":
+        if mode == "File Import" or mode == "Translate":
 
             def cb_engine_change(_event=None):
                 if _event:
@@ -172,22 +174,25 @@ class FileOperationDialog:
             self.cb_engine.pack(padx=5, side="left")
 
             # Lang from
-            ttk.Label(self.frame_top, text="From:").pack(padx=5, side="left")
+            self.lbl_source_lang = ttk.Label(self.frame_top, text="From:")
+            self.lbl_source_lang.pack(padx=5, side="left")
             self.var_source_lang = StringVar(self.root)
-            self.cb_source_lang = ComboboxWithKeyNav(self.frame_top, textvariable=self.var_source_lang)
+            self.cb_source_lang = ComboboxWithKeyNav(self.frame_top, textvariable=self.var_source_lang, state="readonly")
             self.cb_source_lang.pack(padx=5, side="left")
 
             # Lang to
-            ttk.Label(self.frame_top, text="To:").pack(padx=5, side="left")
+            self.lbl_target_lang = ttk.Label(self.frame_top, text="To:")
+            self.lbl_target_lang.pack(padx=5, side="left")
             self.var_target_lang = StringVar(self.root)
-            self.cb_target_lang = ComboboxWithKeyNav(self.frame_top, textvariable=self.var_target_lang)
+            self.cb_target_lang = ComboboxWithKeyNav(self.frame_top, textvariable=self.var_target_lang, state="readonly")
             self.cb_target_lang.pack(padx=5, side="left")
 
             # Task
-            ttk.Label(self.frame_top, text="Task:").pack(padx=5, side="left")
+            self.lbl_task = ttk.Label(self.frame_top, text="Task:")
+            self.lbl_task.pack(padx=5, side="left")
+
             self.var_task_transcribe = BooleanVar(self.root)
             self.var_task_translate = BooleanVar(self.root)
-
             self.cbtn_transcribe = ttk.Checkbutton(
                 self.frame_top, text="Transcribe", variable=self.var_task_transcribe, command=cbtn_task_change
             )
@@ -197,13 +202,26 @@ class FileOperationDialog:
             )
             self.cbtn_translate.pack(padx=5, side="left")
 
-            self.var_engine.set(file_import_kwargs["set_cb_engine"])
-            self.var_source_lang.set(file_import_kwargs["set_cb_source_lang"])
-            self.var_target_lang.set(file_import_kwargs["set_cb_target_lang"])
-            self.var_task_transcribe.set(file_import_kwargs["set_task_transcribe"])
-            self.var_task_translate.set(file_import_kwargs["set_task_translate"])
-            self.cb_source_lang["values"] = engine_select_source_dict[self.var_model.get()]
-            self.cb_target_lang["values"] = engine_select_target_dict[self.var_engine.get()]
+        if mode == "Translate":
+            # remove model combo box
+            self.lbl_model.pack_forget()
+            self.cb_model.pack_forget()
+
+            # change translate engine categories to only use API
+            self.cb_engine.change_categories({
+                "Google Translate": [],
+                "LibreTranslate": [],
+                "MyMemoryTranslator": [],
+            })
+
+            # remove source lang combo box
+            self.lbl_source_lang.pack_forget()
+            self.cb_source_lang.pack_forget()
+
+            # remove cbtn transcribe and translate
+            self.lbl_task.pack_forget()
+            self.cbtn_transcribe.pack_forget()
+            self.cbtn_translate.pack_forget()
 
         self.frame_sheet = ttk.Frame(self.root)
         self.frame_sheet.pack(expand=True, fill="both", padx=5, pady=5)
@@ -240,7 +258,21 @@ class FileOperationDialog:
         self.root.bind("<Configure>", lambda e: self.resize_sheet_width_to_window())
 
         if mode == "File Import":
+            self.var_engine.set(file_import_kwargs["set_cb_engine"])
+            self.var_source_lang.set(file_import_kwargs["set_cb_source_lang"])
+            self.var_target_lang.set(file_import_kwargs["set_cb_target_lang"])
+            self.var_task_transcribe.set(file_import_kwargs["set_task_transcribe"])
+            self.var_task_translate.set(file_import_kwargs["set_task_translate"])
+            self.cb_source_lang["values"] = engine_select_source_dict[self.var_model.get()]
+            self.cb_target_lang["values"] = engine_select_target_dict[self.var_engine.get()]
+
             cbtn_task_change()  # type: ignore
+        elif mode == "Translate":
+            # Translate
+            # only use cb_engine and cb_target_lang
+            self.var_engine.set(file_import_kwargs["set_cb_engine"])
+            self.var_target_lang.set(file_import_kwargs["set_cb_target_lang"])
+            self.cb_target_lang["values"] = engine_select_target_dict[self.var_engine.get()]
 
     def adjust_window_size(self):
         cur_height = self.root.winfo_height()
@@ -320,11 +352,50 @@ class FileImportDialog(FileOperationDialog):
 
         # convert self.data_list to 1d
         status = self.submit_func(
-            self.var_model.get(), self.var_engine.get(), self.var_source_lang.get(), self.var_target_lang.get(),
-            self.var_task_transcribe.get(), self.var_task_translate.get(), [x[0] for x in self.data_list]
+            self.var_model.get(), self.var_engine.get(),
+            self.var_source_lang.get().lower(),
+            self.var_target_lang.get().lower(), self.var_task_transcribe.get(), self.var_task_translate.get(),
+            [x[0] for x in self.data_list]
         )
         if status:  # if status is True, meaning process thread is successfully started, then close the window
             self.root.destroy()
+
+
+class TranslateResultDialog(FileOperationDialog):
+    def __init__(self, master, title: str, submit_func, theme: str, **kwargs):
+        super().__init__(master, title, "Translate", ["Transcription Result File (.json)"], submit_func, theme, **kwargs)
+
+        # add ? tooltip to frame_top
+        self.hint = ttk.Label(self.frame_top, text="?", cursor="question_arrow", font="TkDefaultFont 9 bold")
+        self.hint.pack(side="right", padx=5)
+        tk_tooltip(
+            self.hint,
+            "Translate result of a transcription file. For this to work, you need to have a .json file of Whisper Result first.",
+            wrapLength=300
+        )
+
+    def add_data(self):
+        files = filedialog.askopenfilenames(
+            title="Select a file",
+            filetypes=(("JSON (Whisper Result)", "*.json"), ),
+        )
+
+        if len(files) == 0:
+            return
+
+        for file in files:
+            self.data_list.append([file])
+
+        self.update_sheet()
+
+    def submit(self):
+        if len(self.data_list) == 0:
+            messagebox.showerror("Error", "Add at least one file", parent=self.root)
+            return
+
+        # convert self.data_list to 1d
+        self.submit_func(self.var_engine.get(), self.var_target_lang.get().lower(), [x[0] for x in self.data_list])
+        self.root.destroy()
 
 
 class RefinementDialog(FileOperationDialog):
@@ -336,7 +407,7 @@ class RefinementDialog(FileOperationDialog):
         self.hint.pack(side="right", padx=5)
         tk_tooltip(
             self.hint,
-            "Refine result of a transcription file. For this to work, you need to have a result transcription file in .json form first.\n\n"
+            "Refine result of a transcription file. For this to work, you need to have a result of transcription file in .json form first.\n\n"
             "The program will try to re-transcribe the audio file with original whisper model if they found null token in the result file (which usually happen when transcribing using faster-whisper).",
             wrapLength=300
         )
@@ -360,7 +431,7 @@ class AlignmentDialog(FileOperationDialog):
         self.hint.pack(side="right", padx=5)
         tk_tooltip(
             self.hint,
-            "Align result of a transcription file. For this to work, you need to have a result transcription file in .json form first.",
+            "Align result of a transcription file. For this to work, you need to have a result of transcription file in .json form first.",
             wrapLength=300
         )
 
@@ -397,7 +468,7 @@ class ModResultInputDialog:
                 ("Audio files", "*.wav *.mp3 *.ogg *.flac *.aac *.wma *.m4a"),
                 ("Video files", "*.mp4 *.mkv *.avi *.mov *.webm"),
             )
-            self.result_file_chooser = (("JSON", "*.json"), )
+            self.result_file_chooser = (("JSON (Whisper Result)", "*.json"), )
         else:
             # *Alignment
             # -> kwargs = {"audio": audio_file, "text": either json parsed into WhisperResult (WhisperResult(result_file)) or plain text read from file}
@@ -406,7 +477,7 @@ class ModResultInputDialog:
                 ("Audio files", "*.wav *.mp3 *.ogg *.flac *.aac *.wma *.m4a"),
                 ("Video files", "*.mp4 *.mkv *.avi *.mov *.webm"),
             )
-            self.result_file_chooser = (("JSON", "*.json"), ("Text", "*.txt"))
+            self.result_file_chooser = (("JSON (Whisper Result)", "*.json"), ("Text (Plain text)", "*.txt"))
 
         self.f_1 = ttk.Frame(self.root)
         self.f_1.pack(padx=5, pady=(5, 0), expand=True, fill="x")
@@ -415,18 +486,32 @@ class ModResultInputDialog:
         self.f_2.pack(padx=5, expand=True, fill="x")
 
         ttk.Label(self.f_1, text="Source File", width=14).pack(side="left", padx=(0, 5))
-        self.audio_file_entry = ttk.Entry(self.f_1)
-        self.audio_file_entry.pack(side="left", fill="x", expand=True, padx=(0, 5))
-        self.audio_file_entry.bind("<Key>", lambda e: "break")
+        self.source_file_entry = ttk.Entry(self.f_1)
+        self.source_file_entry.pack(side="left", fill="x", expand=True, padx=(0, 5))
+        self.source_file_entry.bind("<Key>", lambda e: "break")
 
-        ttk.Button(self.f_1, text="Browse", command=self.browse_audio_file).pack(side="left")
+        self.btn_source_file = ttk.Button(self.f_1, text="Browse", command=self.browse_source_file)
+        self.btn_source_file.pack(side="left")
+        tk_tooltips(
+            [self.source_file_entry, self.btn_source_file],
+            f"This should be either an audio file or a video file that you wish to do {mode.lower()} on",
+            wrapLength=300
+        )
 
         ttk.Label(self.f_2, text=f"{mode} File", width=14).pack(side="left", padx=(0, 5))
         self.result_file_entry = ttk.Entry(self.f_2)
         self.result_file_entry.pack(side="left", fill="x", expand=True, padx=(0, 5))
         self.result_file_entry.bind("<Key>", lambda e: "break")
 
-        ttk.Button(self.f_2, text="Browse", command=self.browse_result_file).pack(side="left")
+        self.btn_result_file = ttk.Button(self.f_2, text="Browse", command=self.browse_result_file)
+        self.btn_result_file.pack(side="left")
+        tk_tooltips(
+            [self.result_file_entry, self.btn_result_file],
+            "This should be a .json file containing the result of transcription generated by stable whisper"
+            if mode == "refinement" else
+            "This should be either a .json file containing the result of a transcription generated by stable whisper or a .txt file containing the text to align with the audio file.",
+            wrapLength=300
+        )
 
         if with_lang:
             self.f_3 = ttk.Frame(self.root)
@@ -464,15 +549,15 @@ class ModResultInputDialog:
         cur_height = self.root.winfo_height()
         self.root.geometry(f"500x{cur_height}")
 
-    def browse_audio_file(self):
+    def browse_source_file(self):
         temp = filedialog.askopenfilename(
             title=f"Select a file that you wish to do {self.mode} on",
             filetypes=self.audio_file_chooser,
         )
         if len(temp) > 0:
             self.audio_file = temp
-            self.audio_file_entry.delete(0, "end")
-            self.audio_file_entry.insert(0, self.audio_file)
+            self.source_file_entry.delete(0, "end")
+            self.source_file_entry.insert(0, self.audio_file)
 
         if self.audio_file is not None and self.result_file is not None:
             self.btn_add.config(state="enabled")
@@ -515,7 +600,7 @@ class ModResultInputDialog:
         self.result_file = None
         self.lang_value = None
 
-        self.audio_file_entry.delete(0, "end")
+        self.source_file_entry.delete(0, "end")
         self.result_file_entry.delete(0, "end")
 
     def get_input(self):
@@ -571,7 +656,7 @@ class QueueDialog:
         self.frame_bottom.pack(expand=True, fill="x", padx=5, pady=5)
 
         self.text_log = Text(self.frame_bottom, height=4, width=50, font=("Consolas", 8))
-        self.text_log.pack(side="top", fill="both", expand=True, padx=10, pady=(0, 10))
+        self.text_log.pack(side="top", fill="both", expand=True, padx=5, pady=(0, 5))
         self.text_log.bind("<Key>", lambda event: "break")
         self.text_log.insert(1.0, "Preparing...")
 
