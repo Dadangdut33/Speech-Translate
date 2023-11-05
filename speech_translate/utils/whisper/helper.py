@@ -300,12 +300,17 @@ def parse_args_stable_ts(
             temp = args["transcribe_option"]
             args.update(kwargs)  # pass in kwargs
 
+            # logger.debug(f"transcribe args: {args}")
             args = isolate_useful_options(args, method)
             args["transcribe_option"] = temp
+
+            # logger.debug(f"transcribe args after isolate: {args}")
 
             update_options_with_args('transcribe_option', args)
             args.pop('transcribe_option')
             args.update(isolate_useful_options(args, DecodingOptions))
+
+            # logger.debug(f"transcribe args after update: {args}")
             args["threads"] = threads
 
         elif mode == "align":
@@ -344,19 +349,8 @@ def parse_args_stable_ts(
             update_options_with_args('save_option', args)
             args.pop('save_option')
 
-        # pop stuff already set in gui setting
+        # download_root for loading model is set in get_model_args
         args.pop('download_root', None)
-        args.pop('temperature', None)
-        args.pop('best_of', None)
-        args.pop('beam_size', None)
-        args.pop('compression_ratio_threshold', None)
-        args.pop('logprob_threshold', None)
-        args.pop('no_speech_threshold', None)
-        args.pop('suppress_tokens', None)
-        args.pop('initial_prompt', None)
-        args.pop('condition_on_previous_text', None)
-        args.pop('word_level', None)
-        args.pop('segment_level', None)
 
         args["success"] = True
 
@@ -458,6 +452,8 @@ def save_output_stable_ts(
         "vtt": "to_srt_vtt",
         "tsv": "to_tsv"
     }
+    # make sure the output dir is exist
+    os.makedirs(os.path.dirname(outname), exist_ok=True)
 
     for format in output_formats:
         outname = fname_dupe_check(outname, format)
@@ -619,7 +615,7 @@ def get_model_args(setting_cache: SettingDict):
     return model_args
 
 
-def get_tc_args(process_func, setting_cache: SettingDict):
+def get_tc_args(process_func, setting_cache: SettingDict, mode="transcribe"):
     """Get arguments / parameter to load to stable ts for transcribe / translate using whisper and get their respective function
 
     Parameters
@@ -664,7 +660,7 @@ def get_tc_args(process_func, setting_cache: SettingDict):
         "initial_prompt": setting_cache["initial_prompt"],
         "condition_on_previous_text": setting_cache["condition_on_previous_text"],
     }
-    data = parse_args_stable_ts(setting_cache["whisper_args"], "transcribe", process_func, **pass_kwarg)
+    data = parse_args_stable_ts(setting_cache["whisper_args"], mode, process_func, **pass_kwarg)
     if not data.pop("success"):
         raise Exception(data["msg"])
     else:

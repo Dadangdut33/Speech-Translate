@@ -35,7 +35,7 @@ from speech_translate.utils.audio.device import (
     get_output_devices
 )
 from speech_translate.utils.helper import (
-    bind_focus_recursively, emoji_img, native_notify, open_folder, popup_menu, similar, tb_copy_only, up_first_case,
+    OpenUrl, bind_focus_recursively, emoji_img, native_notify, open_folder, popup_menu, similar, tb_copy_only, up_first_case,
     windows_os_only, check_ffmpeg_in_path, install_ffmpeg
 )
 from speech_translate.utils.translate.language import (
@@ -44,7 +44,7 @@ from speech_translate.utils.translate.language import (
 from speech_translate.utils.whisper.helper import append_dot_en, model_keys, model_select_dict, save_output_stable_ts
 from speech_translate.utils.whisper.download import download_model, get_default_download_root, verify_model_faster_whisper, verify_model_whisper
 from speech_translate.utils.audio.record import record_session
-from speech_translate.utils.audio.file import import_file
+from speech_translate.utils.audio.file import import_file, mod_result
 from speech_translate.utils.tk.style import get_current_theme, get_theme_list, init_theme, set_ui_style
 
 
@@ -487,9 +487,9 @@ class MainWindow:
 
         self.menu_tool = Menu(self.root, tearoff=0)
         self.menu_tool.add_command(label="Export Recorded Results", command=lambda: self.export_result())
-        self.menu_tool.add_command(label="Align Results", command=lambda: None)
-        self.menu_tool.add_command(label="Refine Results", command=lambda: None)
-        self.menu_tool.add_command(label="Hardcode Subtitle to a File", command=lambda: None)
+        self.menu_tool.add_command(label="Align Results", command=lambda: self.align_file())
+        self.menu_tool.add_command(label="Refine Results", command=lambda: self.refine_file())
+        self.menu_tool.add_command(label="Translate Results", command=lambda: None)
 
         # -- f4_statusbar
         # load bar
@@ -521,6 +521,9 @@ class MainWindow:
 
         self.fm_help = Menu(self.menubar, tearoff=0)
         self.fm_help.add_command(label="About", command=self.open_about, accelerator="F1")
+        self.fm_help.add_command(
+            label="Open documentation", command=lambda: OpenUrl("https://github.com/Dadangdut33/Speech-Translate/wiki")
+        )
         self.menubar.add_cascade(label="Help", menu=self.fm_help)
 
         self.root.configure(menu=self.menubar)
@@ -1509,10 +1512,46 @@ class MainWindow:
             return
 
         def do_process(m_key, files):
-            pass
+            # check model first
+            status, model_tc = self.check_model(m_key, False, "file refinement", self.refine_file)
+            if not status:
+                return False
 
+            # check ffmpeg
+            success = self.check_ffmpeg(check_ffmpeg_in_path()[0])
+            if not success:
+                # ask if user want to continue processing
+                if not mbox(
+                    "Fail to install ffmpeg",
+                    "The program fail to install and add ffmpeg to path. Do you still want to continue regardless of it?", 3,
+                    self.root
+                ):
+                    return False
+
+            # ui changes
+            self.tb_clear()
+            self.start_loadBar()
+            self.disable_interactions()
+
+            gc.enable_rec()  # Flag update
+
+            # Start thread
+            try:
+                refineThread = Thread(target=mod_result, args=(files, model_tc, "refinement"), daemon=True)
+                refineThread.start()
+
+                return True
+            except Exception as e:
+                logger.exception(e)
+                self.errorNotif(str(e))
+                self.refinement_stop()
+
+                return False
+
+        tc, tl, m_key, engine, source, target, _mic, _speaker = self.get_args()
+        kwargs = {"set_cb_model": m_key}
         self.disable_interactions()
-        prompt = RefinementDialog(self.root, "Refine Files", do_process, sj.cache["theme"])
+        prompt = RefinementDialog(self.root, "Refine Files", do_process, sj.cache["theme"], **kwargs)
         self.root.wait_window(prompt.root)  # wait for the prompt to close
         self.enable_interactions()
 
@@ -1536,6 +1575,59 @@ class MainWindow:
 
         self.loadBar.stop()
         self.loadBar.configure(mode="determinate")
+        self.enable_interactions()
+
+    def align_file(self):
+        if gc.dl_thread and gc.dl_thread.is_alive():
+            mbox(
+                "Please wait! A model is being downloaded",
+                "A Model is still being downloaded! Please wait until it finishes first!",
+                1,
+            )
+            return
+
+        def do_process(m_key, files):
+            # check model first
+            status, model_tc = self.check_model(m_key, False, "file alignment", self.align_file)
+            if not status:
+                return False
+
+            # check ffmpeg
+            success = self.check_ffmpeg(check_ffmpeg_in_path()[0])
+            if not success:
+                # ask if user want to continue processing
+                if not mbox(
+                    "Fail to install ffmpeg",
+                    "The program fail to install and add ffmpeg to path. Do you still want to continue regardless of it?", 3,
+                    self.root
+                ):
+                    return False
+
+            # ui changes
+            self.tb_clear()
+            self.start_loadBar()
+            self.disable_interactions()
+
+            gc.enable_rec()  # Flag update
+
+            # Start thread
+            try:
+                alignThread = Thread(target=mod_result, args=(files, model_tc, "alignment"), daemon=True)
+                alignThread.start()
+
+                return True
+            except Exception as e:
+                logger.exception(e)
+                self.errorNotif(str(e))
+                self.alignment_stop()
+
+                return False
+
+        tc, tl, m_key, engine, source, target, _mic, _speaker = self.get_args()
+        kwargs = {"set_cb_model": m_key}
+        self.disable_interactions()
+        prompt = AlignmentDialog(self.root, "Align Files", do_process, sj.cache["theme"], **kwargs)
+        self.root.wait_window(prompt.root)  # wait for the prompt to close
         self.enable_interactions()
 
     def alignment_stop(self, prompt=False, notify=True):

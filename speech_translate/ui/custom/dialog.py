@@ -9,6 +9,7 @@ from loguru import logger
 
 from speech_translate._path import app_icon
 from speech_translate._logging import dir_log, current_log
+from speech_translate.ui.custom.tooltip import tk_tooltip
 from speech_translate.ui.custom.combobox import CategorizedComboBox, ComboboxWithKeyNav
 from speech_translate.utils.whisper.helper import model_keys
 from speech_translate.utils.translate.language import (
@@ -90,13 +91,14 @@ class FileOperationDialog:
         self.root.title(title)
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
-        self.frame_model = ttk.Frame(self.root)
-        self.frame_model.pack(expand=True, fill="x", padx=5, pady=5)
+        self.frame_top = ttk.Frame(self.root)
+        self.frame_top.pack(expand=True, fill="x", padx=5, pady=5)
 
-        ttk.Label(self.frame_model, text="Model:" if mode != "File Import" else "Transcribe:").pack(padx=5, side="left")
+        ttk.Label(self.frame_top, text="Model:" if mode != "File Import" else "Transcribe:").pack(padx=5, side="left")
         self.var_model = StringVar(self.root)
-        self.cb_model = ComboboxWithKeyNav(self.frame_model, textvariable=self.var_model, values=model_keys)
+        self.cb_model = ComboboxWithKeyNav(self.frame_top, textvariable=self.var_model, values=model_keys)
         self.cb_model.pack(padx=5, side="left")
+        self.var_model.set(file_import_kwargs["set_cb_model"])
 
         if mode == "File Import":
 
@@ -154,11 +156,11 @@ class FileOperationDialog:
                     self.btn_start.configure(state="disabled")
 
             # Translate engine
-            ttk.Label(self.frame_model, text="Translate:").pack(padx=5, side="left")
+            ttk.Label(self.frame_top, text="Translate:").pack(padx=5, side="left")
             self.var_engine = StringVar(self.root)
             self.cb_engine = CategorizedComboBox(
                 self.root,
-                self.frame_model, {
+                self.frame_top, {
                     "Whisper": model_keys,
                     "Google Translate": [],
                     "LibreTranslate": [],
@@ -170,32 +172,31 @@ class FileOperationDialog:
             self.cb_engine.pack(padx=5, side="left")
 
             # Lang from
-            ttk.Label(self.frame_model, text="From:").pack(padx=5, side="left")
+            ttk.Label(self.frame_top, text="From:").pack(padx=5, side="left")
             self.var_source_lang = StringVar(self.root)
-            self.cb_source_lang = ComboboxWithKeyNav(self.frame_model, textvariable=self.var_source_lang)
+            self.cb_source_lang = ComboboxWithKeyNav(self.frame_top, textvariable=self.var_source_lang)
             self.cb_source_lang.pack(padx=5, side="left")
 
             # Lang to
-            ttk.Label(self.frame_model, text="To:").pack(padx=5, side="left")
+            ttk.Label(self.frame_top, text="To:").pack(padx=5, side="left")
             self.var_target_lang = StringVar(self.root)
-            self.cb_target_lang = ComboboxWithKeyNav(self.frame_model, textvariable=self.var_target_lang)
+            self.cb_target_lang = ComboboxWithKeyNav(self.frame_top, textvariable=self.var_target_lang)
             self.cb_target_lang.pack(padx=5, side="left")
 
             # Task
-            ttk.Label(self.frame_model, text="Task:").pack(padx=5, side="left")
+            ttk.Label(self.frame_top, text="Task:").pack(padx=5, side="left")
             self.var_task_transcribe = BooleanVar(self.root)
             self.var_task_translate = BooleanVar(self.root)
 
             self.cbtn_transcribe = ttk.Checkbutton(
-                self.frame_model, text="Transcribe", variable=self.var_task_transcribe, command=cbtn_task_change
+                self.frame_top, text="Transcribe", variable=self.var_task_transcribe, command=cbtn_task_change
             )
             self.cbtn_transcribe.pack(padx=5, side="left")
             self.cbtn_translate = ttk.Checkbutton(
-                self.frame_model, text="Translate", variable=self.var_task_translate, command=cbtn_task_change
+                self.frame_top, text="Translate", variable=self.var_task_translate, command=cbtn_task_change
             )
             self.cbtn_translate.pack(padx=5, side="left")
 
-            self.var_model.set(file_import_kwargs["set_cb_model"])
             self.var_engine.set(file_import_kwargs["set_cb_engine"])
             self.var_source_lang.set(file_import_kwargs["set_cb_source_lang"])
             self.var_target_lang.set(file_import_kwargs["set_cb_target_lang"])
@@ -260,7 +261,7 @@ class FileOperationDialog:
         if with_check and self.prev_width == w:
             return
         self.prev_width = w
-        self.sheet.set_all_column_widths(w // len(self.headers) - 45)
+        self.sheet.set_all_column_widths(w // len(self.headers) - 10)
 
     def delete_selected(self):
         selected_indexes = self.sheet.get_selected_rows(get_cells=False, return_tuple=True, get_cells_as_rows=True)
@@ -330,6 +331,16 @@ class RefinementDialog(FileOperationDialog):
     def __init__(self, master, title: str, submit_func, theme: str, **kwargs):
         super().__init__(master, title, "Refinement", ["Source File", "Refinement File"], submit_func, theme, **kwargs)
 
+        # add ? tooltip to frame_top
+        self.hint = ttk.Label(self.frame_top, text="?", cursor="question_arrow", font="TkDefaultFont 9 bold")
+        self.hint.pack(side="right", padx=5)
+        tk_tooltip(
+            self.hint,
+            "Refine result of a transcription file. For this to work, you need to have a result transcription file in .json form first.\n\n"
+            "The program will try to re-transcribe the audio file with original whisper model if they found null token in the result file (which usually happen when transcribing using faster-whisper).",
+            wrapLength=300
+        )
+
     def add_data(self):
         source_f, mode_f, lang = ModResultInputDialog(self.root, "Add File Pair", self.mode, with_lang=False).get_input()
 
@@ -342,6 +353,15 @@ class AlignmentDialog(FileOperationDialog):
     def __init__(self, master, title: str, submit_func, theme: str, **kwargs):
         super().__init__(
             master, title, "Alignment", ["Source File", "Alignment File", "Language"], submit_func, theme, **kwargs
+        )
+
+        # add ? tooltip to frame_top
+        self.hint = ttk.Label(self.frame_top, text="?", cursor="question_arrow", font="TkDefaultFont 9 bold")
+        self.hint.pack(side="right", padx=5)
+        tk_tooltip(
+            self.hint,
+            "Align result of a transcription file. For this to work, you need to have a result transcription file in .json form first.",
+            wrapLength=300
         )
 
     def add_data(self):

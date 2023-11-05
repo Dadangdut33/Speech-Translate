@@ -48,6 +48,7 @@ class Tooltip(object):
         self.widget.bind("<ButtonPress>", self.leave)
         self.id = None
         self.root = None
+        self.widget.configure(cursor="question_arrow")
 
     def enter(self, event=None):
         self.schedule()

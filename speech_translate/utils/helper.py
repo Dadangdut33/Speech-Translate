@@ -28,6 +28,10 @@ def up_first_case(string: str):
     return string[0].upper() + string[1:]
 
 
+def get_list_of_dict(list_of_dict: List[Dict], key: str, value):
+    return next((item for item in list_of_dict if item[key] == value), None)
+
+
 def get_similar_keys(_dict: Dict, key: str):
     return [k for k in _dict.keys() if key.lower() in k.lower()]
 
@@ -365,7 +369,7 @@ def install_ffmpeg():
     """
     if system() == "Windows":
         return install_ffmpeg_windows()
-    elif system() == "Linux":
+    elif system() == "Linux" or system() == "Linux2":
         return install_ffmpeg_linux()
     elif system() == "Darwin":
         return install_ffmpeg_macos()

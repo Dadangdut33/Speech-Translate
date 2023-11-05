@@ -96,7 +96,7 @@ default_setting: SettingDict = {
     "dir_export": "auto",
     "auto_open_dir_export": True,
     "auto_open_dir_refinement": True,
-    "auto_open_dir_adjustment": True,
+    "auto_open_dir_alignment": True,
     # {file} {task} {task-short} {lang-source} {lang-target} {model} {engine}
     "export_format": "%Y-%m-%d %H_%M {file}_{task}",
     # txt csv json srt ass vtt tsv
