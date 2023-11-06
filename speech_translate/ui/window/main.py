@@ -3,11 +3,11 @@ from platform import processor, release, system, version
 from signal import SIGINT, signal  # Import the signal module to handle Ctrl+C
 from threading import Thread
 from time import strftime
-from tkinter import Frame, Menu, StringVar, Tk, Toplevel, filedialog, ttk
+from tkinter import Frame, Menu, StringVar, Tk, Toplevel, filedialog, ttk, Canvas
 from typing import Dict, Literal
 
 from loguru import logger
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageTk
 from pystray import Icon as icon
 from pystray import Menu as menu
 from pystray import MenuItem as item
@@ -15,7 +15,7 @@ from torch import cuda
 from stable_whisper import WhisperResult
 
 from speech_translate._constants import APP_NAME
-from speech_translate._path import app_icon
+from speech_translate._path import app_icon, splash_image
 from speech_translate._version import __version__
 from speech_translate.ui.custom.checkbutton import CustomCheckButton
 from speech_translate.ui.custom.combobox import CategorizedComboBox, ComboboxWithKeyNav
@@ -120,6 +120,57 @@ class AppTray:
         gc.running = False
 
 
+class Splash(Toplevel):
+    def __init__(self, parent, geometry):
+        Toplevel.__init__(self, parent)
+        self.title("Splash")
+        self.geometry(geometry)
+        self.overrideredirect(True)
+        self.resizable(False, False)
+
+        self.x = 0
+        self.y = 0
+        self.bind("<Button-1>", self.start_move)
+        self.bind("<ButtonRelease-1>", self.stop_move)
+        self.bind("<B1-Motion>", self.on_motion)
+
+        # load image file
+        try:
+            self.image = Image.open(splash_image)
+            self.image = self.image.resize((640, 360))
+        except Exception:
+            logger.error("Splash image not found")
+            self.image = Image.new("RGB", (640, 360), "black")
+
+        # load image to canvas
+        self.canvas = Canvas(self, width=768, height=345, highlightthickness=0)
+        self.canvas.pack(pady=0, ipady=0)
+
+        self.imgtk = ImageTk.PhotoImage(self.image)
+        self.canvas.create_image(0, 170, anchor="w", image=self.imgtk)
+
+        self.loadbar = ttk.Progressbar(self, orient="horizontal", length=200, mode="indeterminate")
+        self.loadbar.pack(side="bottom", fill="x", pady=0, ipady=0)
+        self.loadbar.start(15)
+
+        ## required to make window show before the program gets to the mainloop
+        self.update()
+
+    def start_move(self, event):
+        self.x = event.x_root - self.winfo_x()
+        self.y = event.y_root - self.winfo_y()
+
+    def stop_move(self, event):
+        self.x = None
+        self.y = None
+
+    def on_motion(self, event):
+        if self.x is not None and self.y is not None:
+            new_x = event.x_root - self.x
+            new_y = event.y_root - self.y
+            self.geometry("+%s+%s" % (new_x, new_y))
+
+
 class MainWindow:
     """
     Main window of the app
@@ -127,16 +178,8 @@ class MainWindow:
     def __init__(self):
         # ------------------ Window ------------------
         # UI
-        self.root = Tk()
-        gc.wrench_emoji = emoji_img(16, "     🛠️")
-        gc.folder_emoji = emoji_img(13, " 📂")
-        gc.open_emoji = emoji_img(13, "     ↗️")
-        gc.trash_emoji = emoji_img(13, "     🗑️")
-        gc.reset_emoji = emoji_img(13, " 🔄")
-        gc.question_emoji = emoji_img(16, "❓")
-        gc.cuda = check_cuda_and_gpu()
         gc.mw = self
-
+        self.root = Tk()
         self.root.title(APP_NAME)
         self.root.geometry(sj.cache["mw_size"])
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
@@ -169,6 +212,17 @@ class MainWindow:
         gc.theme_lists.insert(len(gc.theme_lists), "custom")
 
         set_ui_style(sj.cache["theme"])
+
+        self.splash = Splash(self.root, f"640x360+{self.root.winfo_x() + 300}+{self.root.winfo_y() + 200}")
+        self.root.withdraw()
+
+        gc.wrench_emoji = emoji_img(16, "     🛠️")
+        gc.folder_emoji = emoji_img(13, " 📂")
+        gc.open_emoji = emoji_img(13, "     ↗️")
+        gc.trash_emoji = emoji_img(13, "     🗑️")
+        gc.reset_emoji = emoji_img(13, " 🔄")
+        gc.question_emoji = emoji_img(16, "❓")
+        gc.cuda = check_cuda_and_gpu()
 
         # ------------------ Frames ------------------
         self.f1_toolbar = ttk.Frame(self.root)
@@ -509,39 +563,39 @@ class MainWindow:
 
         self.fm_view = Menu(self.menubar, tearoff=0)
         self.fm_view.add_command(label="Settings", command=self.open_setting, accelerator="F2")
-        self.fm_view.add_command(label="Log", command=self.open_log)
+        self.fm_view.add_command(label="Log", command=self.open_log, accelerator="Ctrl+F1")
         self.menubar.add_cascade(label="View", menu=self.fm_view)
 
-        self.fm_generate = Menu(self.menubar, tearoff=0)
-        self.fm_generate.add_command(
+        self.fm_show = Menu(self.menubar, tearoff=0)
+        self.fm_show.add_command(
             label="Transcribed Speech Subtitle Window", command=self.open_detached_tcw, accelerator="F3"
         )
-        self.fm_generate.add_command(
-            label="Translated Speech Subtitle Window", command=self.open_detached_tlw, accelerator="F4"
-        )
-        self.menubar.add_cascade(label="Generate", menu=self.fm_generate)
+        self.fm_show.add_command(label="Translated Speech Subtitle Window", command=self.open_detached_tlw, accelerator="F4")
+        self.menubar.add_cascade(label="Show", menu=self.fm_show)
 
         self.fm_help = Menu(self.menubar, tearoff=0)
         self.fm_help.add_command(label="About", command=self.open_about, accelerator="F1")
         self.fm_help.add_command(
-            label="Open documentation", command=lambda: OpenUrl("https://github.com/Dadangdut33/Speech-Translate/wiki")
+            label="Open documentation / wiki",
+            command=lambda: OpenUrl("https://github.com/Dadangdut33/Speech-Translate/wiki")
         )
         self.menubar.add_cascade(label="Help", menu=self.fm_help)
 
         self.root.configure(menu=self.menubar)
 
         # ------------------ Bind keys ------------------
+        self.root.bind("<Control-F1>", self.open_log)
         self.root.bind("<F1>", self.open_about)
         self.root.bind("<F2>", self.open_setting)
         self.root.bind("<F3>", self.open_detached_tcw)
         self.root.bind("<F4>", self.open_detached_tlw)
 
         # ------------------ on Start ------------------
-        # Start polling
-        gc.running_after_id = self.root.after(1000, self.is_running_poll)
-        self.on_init()
         bind_focus_recursively(self.root, self.root)
-
+        self.splash.destroy()
+        self.root.deiconify()
+        self.on_init()
+        gc.running_after_id = self.root.after(1000, self.is_running_poll)
         # ------------------ Set Icon ------------------
         try:
             self.root.iconbitmap(app_icon)
@@ -693,6 +747,18 @@ class MainWindow:
         self.cb_input_device_init()
 
         windows_os_only([self.radio_speaker, self.cb_speaker, self.lbl_speaker, self.btn_config_speaker])
+
+        def first_open():
+            if mbox(
+                "Hello! :)", "Welcome to Speech Translate!\n\nIt seems like this is your first time using the app."
+                " Would you like to open the documentation to learn more about the app?"
+                "\n\n*You can also open it later from the help menu.", 3, self.root
+            ):
+                OpenUrl("https://github.com/Dadangdut33/Speech-Translate/wiki")
+            sj.save_key("first_open", False)
+
+        if sj.cache["first_open"]:
+            self.root.after(100, first_open)
 
         # check ffmpeg
         gc.has_ffmpeg = check_ffmpeg_in_path()[0]
@@ -1028,7 +1094,7 @@ class MainWindow:
             self.cb_target_lang.configure(state="readonly")
             self.cb_engine.configure(state="readonly")
             self.cb_model.configure(state="readonly")
-            self.enable_processing()
+            self.enable_rec()
 
         elif "selected" in self.cbtn_task_transcribe.state() and "selected" not in self.cbtn_task_translate.state():
             # transcribe only
@@ -1042,7 +1108,7 @@ class MainWindow:
             self.cb_target_lang.configure(state="disabled")
             self.cb_engine.configure(state="disabled")
             self.cb_model.configure(state="readonly")
-            self.enable_processing()
+            self.enable_rec()
 
         elif "selected" not in self.cbtn_task_transcribe.state() and "selected" in self.cbtn_task_translate.state():
             # translate only
@@ -1055,28 +1121,23 @@ class MainWindow:
             self.cb_source_lang.configure(state="readonly")
             self.cb_target_lang.configure(state="readonly")
             self.cb_engine.configure(state="readonly")
-            if self.cb_engine.get() in model_keys:
-                self.cb_model.configure(state="disabled")
-            else:
-                self.cb_model.configure(state="readonly")
-            self.enable_processing()
+            self.cb_model.configure(state="disabled")
+            self.enable_rec()
 
         else:  # both not selected
             self.cb_source_lang.configure(state="disabled")
             self.cb_target_lang.configure(state="disabled")
             self.cb_engine.configure(state="disabled")
             self.cb_model.configure(state="disabled")
-            self.disable_processing()
+            self.disable_rec()
 
-    def disable_processing(self):
+    def disable_rec(self):
         self.btn_record.configure(state="disabled")
-        self.btn_import_file.configure(state="disabled")
         self.tb_transcribed.configure(state="disabled")
         self.tb_translated.configure(state="disabled")
 
-    def enable_processing(self):
+    def enable_rec(self):
         self.btn_record.configure(state="normal")
-        self.btn_import_file.configure(state="normal")
         self.tb_transcribed.configure(state="normal")
         self.tb_translated.configure(state="normal")
 
@@ -1416,9 +1477,8 @@ class MainWindow:
             return
 
         def do_process(m_key, engine, source, target, tc, tl, files):
-            source = source.lower()
-            target = target.lower()
-            if source == target and (tc and tl):
+            # lang is lowered when send from FileImportDialog
+            if source == target and tl:
                 mbox("Invalid options!", "Source and target language cannot be the same", 2)
                 return False
 
@@ -1481,9 +1541,12 @@ class MainWindow:
         self.root.wait_window(prompt.root)  # wait for the prompt to close
         self.enable_interactions()
 
-    def from_file_stop(self, prompt=False, notify=True):
+    def from_file_stop(self, prompt=False, notify=True, master=None):
         if prompt:
-            if not mbox("Confirm", "Are you sure you want to cancel the file transcribe/translate process?", 3, self.root):
+            if not mbox(
+                "Confirm", "Are you sure you want to cancel the file transcribe/translate process?", 3,
+                self.root if master is None else master
+            ):
                 return
 
         logger.info("Cancelling file import processing...")
@@ -1555,19 +1618,20 @@ class MainWindow:
         tc, tl, m_key, engine, source, target, _mic, _speaker = self.get_args()
         kwargs = {"set_cb_model": m_key}
         self.disable_interactions()
-        prompt = RefinementDialog(self.root, "Refine Files", do_process, sj.cache["theme"], **kwargs)
+        prompt = RefinementDialog(self.root, "Refine Result", do_process, sj.cache["theme"], **kwargs)
         self.root.wait_window(prompt.root)  # wait for the prompt to close
         self.enable_interactions()
 
-    def refinement_stop(self, prompt=False, notify=True):
+    def refinement_stop(self, prompt=False, notify=True, master=None):
         if prompt:
-            if not mbox("Confirm", "Are you sure you want to cancel the refinement process?", 3, self.root):
+            if not mbox(
+                "Confirm", "Are you sure you want to cancel the refinement process?", 3,
+                self.root if master is None else master
+            ):
                 return
 
         logger.info("Cancelling refinement...")
         gc.disable_rec()
-        gc.disable_tc()
-        self.destroy_transient_toplevel("File Refinement Progress")
 
         if notify:
             mbox(
@@ -1630,19 +1694,20 @@ class MainWindow:
         tc, tl, m_key, engine, source, target, _mic, _speaker = self.get_args()
         kwargs = {"set_cb_model": m_key}
         self.disable_interactions()
-        prompt = AlignmentDialog(self.root, "Align Files", do_process, sj.cache["theme"], **kwargs)
+        prompt = AlignmentDialog(self.root, "Align Result", do_process, sj.cache["theme"], **kwargs)
         self.root.wait_window(prompt.root)  # wait for the prompt to close
         self.enable_interactions()
 
-    def alignment_stop(self, prompt=False, notify=True):
+    def alignment_stop(self, prompt=False, notify=True, master=None):
         if prompt:
-            if not mbox("Confirm", "Are you sure you want to cancel the alignment process?", 3, self.root):
+            if not mbox(
+                "Confirm", "Are you sure you want to cancel the alignment process?", 3,
+                self.root if master is None else master
+            ):
                 return
 
         logger.info("Cancelling alignment...")
         gc.disable_rec()
-        gc.disable_tc()
-        self.destroy_transient_toplevel("File Alignment Progress")
 
         if notify:
             mbox(
@@ -1658,6 +1723,7 @@ class MainWindow:
 
     def translate_file(self):
         def do_process(engine, lang_target, files):
+            # lang is lowered when send from TranslateResultDialog
             # no check because not using any model and no need for ffmpeg
             # ui changes
             self.tb_clear()
@@ -1683,10 +1749,7 @@ class MainWindow:
         kwargs = {
             "set_cb_model": m_key,
             "set_cb_engine": engine,
-            "set_cb_source_lang": up_first_case(source),
             "set_cb_target_lang": up_first_case(target),
-            "set_task_transcribe": tc,
-            "set_task_translate": tl,
         }
 
         self.disable_interactions()
@@ -1694,20 +1757,21 @@ class MainWindow:
         self.root.wait_window(prompt.root)  # wait for the prompt to close
         self.enable_interactions()
 
-    def translate_stop(self, prompt=False, notify=True):
+    def translate_stop(self, prompt=False, notify=True, master=None):
         if prompt:
-            if not mbox("Confirm", "Are you sure you want to cancel the translation process?", 3, self.root):
+            if not mbox(
+                "Confirm", "Are you sure you want to cancel the result translation process?", 3,
+                self.root if master is None else master
+            ):
                 return
 
         logger.info("Cancelling translation...")
         gc.disable_rec()
-        gc.disable_tl()
-        self.destroy_transient_toplevel("Translate Whisper Result Progress")
 
         if notify:
             mbox(
                 "Cancelled",
-                f"Cancelled translation process\n\nTranslated {gc.tl_file_counter} file",
+                f"Cancelled translation process\n\nTranslated {gc.mod_file_counter} file",
                 0,
                 self.root,
             )

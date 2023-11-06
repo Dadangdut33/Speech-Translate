@@ -9,6 +9,7 @@ import torch
 import stable_whisper
 from stable_whisper.alignment import align, refine
 from stable_whisper.utils import str_to_valid_type, isolate_useful_options
+from whisper.tokenizer import LANGUAGES
 from whisper.utils import optional_int, optional_float
 from whisper import DecodingOptions
 
@@ -735,3 +736,22 @@ def get_model(
                     stable_tl = model_tl.transcribe
 
     return model_tc, model_tl, stable_tc, stable_tl
+
+
+def to_language_name(lang: str):
+    """If using faster whisper, the language get is the language name. If using original whisper the language get is the language code.
+
+            Parameters
+            ----------
+            lang : str
+                Possible language name or language code
+
+            Returns
+            -------
+            str
+                Language name
+            """
+    try:
+        return LANGUAGES[lang]
+    except KeyError:
+        return lang

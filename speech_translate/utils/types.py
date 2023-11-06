@@ -65,6 +65,7 @@ class StableTsResultDict(TypedDict):
 class SettingDict(TypedDict):
     version: str
     checkUpdateOnStart: bool
+    first_open: bool
     # ------------------ #
     # App settings
     transcribe: bool

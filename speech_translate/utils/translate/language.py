@@ -284,7 +284,8 @@ for lang in myMemory_whisper_compatible:
     if lang not in whisper_compatible:
         myMemory_whisper_compatible.remove(lang)
 
-whisper_source = ["Auto detect"] + [up_first_case(x) for x in whisper_compatible]
+whisper_compatible_uppercase = [up_first_case(x) for x in whisper_compatible]
+whisper_source = ["Auto detect"] + whisper_compatible_uppercase
 engine_select_source_dict = {
     "Tiny (~32x speed)": whisper_source,
     "Base (~16x speed)": whisper_source,

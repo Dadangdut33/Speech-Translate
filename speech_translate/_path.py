@@ -13,6 +13,7 @@ dir_refinement: str = os.path.abspath(os.path.join(dir_export, "refinement"))
 dir_translate: str = os.path.abspath(os.path.join(dir_export, "translated"))
 dir_alignment: str = os.path.abspath(os.path.join(dir_export, "alignment"))
 app_icon: str = os.path.abspath(os.path.join(dir_assets, "icon.ico"))
+splash_image: str = os.path.abspath(os.path.join(dir_assets, "splash.png"))
 parameters_text: str = os.path.abspath(os.path.join(dir_assets, "parameter.txt"))
 ffmpeg_ps_script: str = os.path.abspath(os.path.join(dir_project, "..", "install_ffmpeg.ps1"))
 

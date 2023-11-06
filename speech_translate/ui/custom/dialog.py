@@ -10,10 +10,11 @@ from loguru import logger
 from speech_translate._path import app_icon
 from speech_translate._logging import dir_log, current_log
 from speech_translate.ui.custom.tooltip import tk_tooltip, tk_tooltips
+from speech_translate.ui.custom.label import LabelTitleText
 from speech_translate.ui.custom.combobox import CategorizedComboBox, ComboboxWithKeyNav
 from speech_translate.utils.whisper.helper import model_keys
 from speech_translate.utils.translate.language import (
-    engine_select_source_dict, engine_select_target_dict, whisper_compatible
+    engine_select_source_dict, engine_select_target_dict, whisper_compatible_uppercase
 )
 
 
@@ -75,7 +76,7 @@ class FileOperationDialog:
         headers: List,
         submit_func,
         theme,
-        **file_import_kwargs,
+        **kwargs,
     ):
         self.prev_width = None
         self.master = master
@@ -100,133 +101,19 @@ class FileOperationDialog:
         self.var_model = StringVar(self.root)
         self.cb_model = ComboboxWithKeyNav(self.frame_top, textvariable=self.var_model, values=model_keys)
         self.cb_model.pack(padx=5, side="left")
-        self.var_model.set(file_import_kwargs["set_cb_model"])
-
-        if mode == "File Import" or mode == "Translate":
-
-            def cb_engine_change(_event=None):
-                if _event:
-                    # check if engine is whisper and currently in translate only mode
-                    # if yes, will make the transcribe model combobox disabled
-                    if _event in model_keys and self.var_task_transcribe.get() and not self.var_task_translate.get():
-                        self.cb_model.configure(state="disabled")
-                    else:
-                        self.cb_model.configure(state="readonly")
-
-                    # Then update the target cb list with checks
-                    self.cb_source_lang["values"] = engine_select_source_dict[self.var_model.get()]
-                    self.cb_target_lang["values"] = engine_select_target_dict[self.var_engine.get()]
-
-                    # check if the target lang is not in the new list
-                    if self.cb_target_lang.get() not in self.cb_target_lang["values"]:
-                        self.cb_target_lang.current(0)
-
-                    # check if the source lang is not in the new list
-                    if self.cb_source_lang.get() not in self.cb_source_lang["values"]:
-                        self.cb_source_lang.current(0)
-
-            def cbtn_task_change():
-                if self.var_task_transcribe.get() and self.var_task_translate.get():
-                    self.cb_model.configure(state="readonly")
-                    self.cb_engine.configure(state="readonly")
-                    self.cb_source_lang.configure(state="readonly")
-                    self.cb_target_lang.configure(state="readonly")
-                    self.btn_start.configure(state="normal")
-
-                elif self.var_task_transcribe.get() and not self.var_task_translate.get():
-                    self.cb_source_lang.configure(state="readonly")
-                    self.cb_target_lang.configure(state="disabled")
-                    self.cb_engine.configure(state="disabled")
-                    self.cb_model.configure(state="readonly")
-                    self.btn_start.configure(state="normal")
-
-                elif not self.var_task_transcribe.get() and self.var_task_translate.get():
-                    self.cb_source_lang.configure(state="readonly")
-                    self.cb_target_lang.configure(state="readonly")
-                    self.cb_engine.configure(state="readonly")
-                    if self.var_engine.get() in model_keys:
-                        self.cb_model.configure(state="disabled")
-                    else:
-                        self.cb_model.configure(state="readonly")
-                    self.btn_start.configure(state="normal")
-
-                else:
-                    self.cb_source_lang.configure(state="disabled")
-                    self.cb_target_lang.configure(state="disabled")
-                    self.cb_engine.configure(state="disabled")
-                    self.cb_model.configure(state="disabled")
-                    self.btn_start.configure(state="disabled")
-
-            # Translate engine
-            ttk.Label(self.frame_top, text="Translate:").pack(padx=5, side="left")
-            self.var_engine = StringVar(self.root)
-            self.cb_engine = CategorizedComboBox(
-                self.root,
-                self.frame_top, {
-                    "Whisper": model_keys,
-                    "Google Translate": [],
-                    "LibreTranslate": [],
-                    "MyMemoryTranslator": []
-                },
-                cb_engine_change,
-                textvariable=self.var_engine
-            )
-            self.cb_engine.pack(padx=5, side="left")
-
-            # Lang from
-            self.lbl_source_lang = ttk.Label(self.frame_top, text="From:")
-            self.lbl_source_lang.pack(padx=5, side="left")
-            self.var_source_lang = StringVar(self.root)
-            self.cb_source_lang = ComboboxWithKeyNav(self.frame_top, textvariable=self.var_source_lang, state="readonly")
-            self.cb_source_lang.pack(padx=5, side="left")
-
-            # Lang to
-            self.lbl_target_lang = ttk.Label(self.frame_top, text="To:")
-            self.lbl_target_lang.pack(padx=5, side="left")
-            self.var_target_lang = StringVar(self.root)
-            self.cb_target_lang = ComboboxWithKeyNav(self.frame_top, textvariable=self.var_target_lang, state="readonly")
-            self.cb_target_lang.pack(padx=5, side="left")
-
-            # Task
-            self.lbl_task = ttk.Label(self.frame_top, text="Task:")
-            self.lbl_task.pack(padx=5, side="left")
-
-            self.var_task_transcribe = BooleanVar(self.root)
-            self.var_task_translate = BooleanVar(self.root)
-            self.cbtn_transcribe = ttk.Checkbutton(
-                self.frame_top, text="Transcribe", variable=self.var_task_transcribe, command=cbtn_task_change
-            )
-            self.cbtn_transcribe.pack(padx=5, side="left")
-            self.cbtn_translate = ttk.Checkbutton(
-                self.frame_top, text="Translate", variable=self.var_task_translate, command=cbtn_task_change
-            )
-            self.cbtn_translate.pack(padx=5, side="left")
-
-        if mode == "Translate":
-            # remove model combo box
-            self.lbl_model.pack_forget()
-            self.cb_model.pack_forget()
-
-            # change translate engine categories to only use API
-            self.cb_engine.change_categories({
-                "Google Translate": [],
-                "LibreTranslate": [],
-                "MyMemoryTranslator": [],
-            })
-
-            # remove source lang combo box
-            self.lbl_source_lang.pack_forget()
-            self.cb_source_lang.pack_forget()
-
-            # remove cbtn transcribe and translate
-            self.lbl_task.pack_forget()
-            self.cbtn_transcribe.pack_forget()
-            self.cbtn_translate.pack_forget()
+        self.var_model.set(kwargs["set_cb_model"])
 
         self.frame_sheet = ttk.Frame(self.root)
         self.frame_sheet.pack(expand=True, fill="both", padx=5, pady=5)
         self.sheet = Sheet(self.frame_sheet, headers=headers, show_x_scrollbar=False)
         self.sheet.enable_bindings()
+        self.sheet.disable_bindings(
+            "right_click_popup_menu",
+            "rc_insert_column",
+            "rc_delete_column",
+            "rc_insert_row",
+            "rc_delete_row",
+        )
         self.sheet.edit_bindings(enable=False)
         self.sheet.pack(expand=True, fill="both")
         self.sheet.change_theme("dark green" if "dark" in theme else "light blue")
@@ -256,23 +143,6 @@ class FileOperationDialog:
 
         self.root.after(100, self.adjust_window_size)
         self.root.bind("<Configure>", lambda e: self.resize_sheet_width_to_window())
-
-        if mode == "File Import":
-            self.var_engine.set(file_import_kwargs["set_cb_engine"])
-            self.var_source_lang.set(file_import_kwargs["set_cb_source_lang"])
-            self.var_target_lang.set(file_import_kwargs["set_cb_target_lang"])
-            self.var_task_transcribe.set(file_import_kwargs["set_task_transcribe"])
-            self.var_task_translate.set(file_import_kwargs["set_task_translate"])
-            self.cb_source_lang["values"] = engine_select_source_dict[self.var_model.get()]
-            self.cb_target_lang["values"] = engine_select_target_dict[self.var_engine.get()]
-
-            cbtn_task_change()  # type: ignore
-        elif mode == "Translate":
-            # Translate
-            # only use cb_engine and cb_target_lang
-            self.var_engine.set(file_import_kwargs["set_cb_engine"])
-            self.var_target_lang.set(file_import_kwargs["set_cb_target_lang"])
-            self.cb_target_lang["values"] = engine_select_target_dict[self.var_engine.get()]
 
     def adjust_window_size(self):
         cur_height = self.root.winfo_height()
@@ -317,12 +187,120 @@ class FileOperationDialog:
         self.root.destroy()
 
     def on_close(self):
+        if not messagebox.askyesno("Cancel", "Are you sure you want to cancel?", parent=self.root):
+            return
+
         self.root.destroy()
 
 
 class FileImportDialog(FileOperationDialog):
     def __init__(self, master, title: str, submit_func, theme: str, **kwargs):
         super().__init__(master, title, "File Import", ["Audio / Video File"], submit_func, theme, **kwargs)
+
+        def cb_engine_change(_event=None):
+            if _event:
+                # check if engine is whisper and currently in translate only mode
+                # if yes, will make the transcribe model combobox disabled
+                if _event in model_keys and self.var_task_transcribe.get() and not self.var_task_translate.get():
+                    self.cb_model.configure(state="disabled")
+                else:
+                    self.cb_model.configure(state="readonly")
+
+                # Then update the target cb list with checks
+                self.cb_source_lang["values"] = engine_select_source_dict[self.var_model.get()]
+                self.cb_target_lang["values"] = engine_select_target_dict[self.var_engine.get()]
+
+                # check if the target lang is not in the new list
+                if self.cb_target_lang.get() not in self.cb_target_lang["values"]:
+                    self.cb_target_lang.current(0)
+
+                # check if the source lang is not in the new list
+                if self.cb_source_lang.get() not in self.cb_source_lang["values"]:
+                    self.cb_source_lang.current(0)
+
+        def cbtn_task_change():
+            if self.var_task_transcribe.get() and self.var_task_translate.get():
+                self.cb_model.configure(state="readonly")
+                self.cb_engine.configure(state="readonly")
+                self.cb_source_lang.configure(state="readonly")
+                self.cb_target_lang.configure(state="readonly")
+                self.btn_start.configure(state="normal")
+
+            elif self.var_task_transcribe.get() and not self.var_task_translate.get():
+                self.cb_source_lang.configure(state="readonly")
+                self.cb_target_lang.configure(state="disabled")
+                self.cb_engine.configure(state="disabled")
+                self.cb_model.configure(state="readonly")
+                self.btn_start.configure(state="normal")
+
+            elif not self.var_task_transcribe.get() and self.var_task_translate.get():
+                self.cb_source_lang.configure(state="readonly")
+                self.cb_target_lang.configure(state="readonly")
+                self.cb_engine.configure(state="readonly")
+                self.cb_model.configure(state="disabled")
+                self.btn_start.configure(state="normal")
+
+            else:
+                self.cb_source_lang.configure(state="disabled")
+                self.cb_target_lang.configure(state="disabled")
+                self.cb_engine.configure(state="disabled")
+                self.cb_model.configure(state="disabled")
+                self.btn_start.configure(state="disabled")
+
+        # Translate engine
+        ttk.Label(self.frame_top, text="Translate:").pack(padx=5, side="left")
+        self.var_engine = StringVar(self.root)
+        self.cb_engine = CategorizedComboBox(
+            self.root,
+            self.frame_top, {
+                "Whisper": model_keys,
+                "Google Translate": [],
+                "LibreTranslate": [],
+                "MyMemoryTranslator": []
+            },
+            cb_engine_change,
+            textvariable=self.var_engine
+        )
+        self.cb_engine.pack(padx=5, side="left")
+
+        # Lang from
+        self.lbl_source_lang = ttk.Label(self.frame_top, text="From:")
+        self.lbl_source_lang.pack(padx=5, side="left")
+        self.var_source_lang = StringVar(self.root)
+        self.cb_source_lang = ComboboxWithKeyNav(self.frame_top, textvariable=self.var_source_lang, state="readonly")
+        self.cb_source_lang.pack(padx=5, side="left")
+
+        # Lang to
+        self.lbl_target_lang = ttk.Label(self.frame_top, text="To:")
+        self.lbl_target_lang.pack(padx=5, side="left")
+        self.var_target_lang = StringVar(self.root)
+        self.cb_target_lang = ComboboxWithKeyNav(self.frame_top, textvariable=self.var_target_lang, state="readonly")
+        self.cb_target_lang.pack(padx=5, side="left")
+
+        # Task
+        self.lbl_task = ttk.Label(self.frame_top, text="Task:")
+        self.lbl_task.pack(padx=5, side="left")
+
+        self.var_task_transcribe = BooleanVar(self.root)
+        self.var_task_translate = BooleanVar(self.root)
+        self.cbtn_transcribe = ttk.Checkbutton(
+            self.frame_top, text="Transcribe", variable=self.var_task_transcribe, command=cbtn_task_change
+        )
+        self.cbtn_transcribe.pack(padx=5, side="left")
+        self.cbtn_translate = ttk.Checkbutton(
+            self.frame_top, text="Translate", variable=self.var_task_translate, command=cbtn_task_change
+        )
+        self.cbtn_translate.pack(padx=5, side="left")
+
+        self.var_engine.set(kwargs["set_cb_engine"])
+        self.var_source_lang.set(kwargs["set_cb_source_lang"])
+        self.var_target_lang.set(kwargs["set_cb_target_lang"])
+        self.var_task_transcribe.set(kwargs["set_task_transcribe"])
+        self.var_task_translate.set(kwargs["set_task_translate"])
+        self.cb_source_lang["values"] = engine_select_source_dict[self.var_model.get()]
+        self.cb_target_lang["values"] = engine_select_target_dict[self.var_engine.get()]
+
+        cbtn_task_change()
 
     def add_data(self):
         files = filedialog.askopenfilenames(
@@ -364,6 +342,40 @@ class FileImportDialog(FileOperationDialog):
 class TranslateResultDialog(FileOperationDialog):
     def __init__(self, master, title: str, submit_func, theme: str, **kwargs):
         super().__init__(master, title, "Translate", ["Transcription Result File (.json)"], submit_func, theme, **kwargs)
+        self.lbl_model.pack_forget()
+        self.cb_model.pack_forget()
+
+        def cb_engine_change(_event=None):
+            if _event:
+                self.cb_target_lang["values"] = engine_select_target_dict[self.var_engine.get()]
+                if self.cb_target_lang.get() not in self.cb_target_lang["values"]:
+                    self.cb_target_lang.current(0)
+
+        # Translate engine
+        ttk.Label(self.frame_top, text="Translate:").pack(padx=5, side="left")
+        self.var_engine = StringVar(self.root)
+        self.cb_engine = CategorizedComboBox(
+            self.root,
+            self.frame_top, {
+                "Google Translate": [],
+                "LibreTranslate": [],
+                "MyMemoryTranslator": []
+            },
+            cb_engine_change,
+            textvariable=self.var_engine
+        )
+        self.cb_engine.pack(padx=5, side="left")
+
+        # Lang to
+        self.lbl_target_lang = ttk.Label(self.frame_top, text="To:")
+        self.lbl_target_lang.pack(padx=5, side="left")
+        self.var_target_lang = StringVar(self.root)
+        self.cb_target_lang = ComboboxWithKeyNav(self.frame_top, textvariable=self.var_target_lang, state="readonly")
+        self.cb_target_lang.pack(padx=5, side="left")
+
+        self.var_engine.set(kwargs["set_cb_engine"])
+        self.var_target_lang.set(kwargs["set_cb_target_lang"])
+        self.cb_target_lang["values"] = engine_select_target_dict[self.var_engine.get()]
 
         # add ? tooltip to frame_top
         self.hint = ttk.Label(self.frame_top, text="?", cursor="question_arrow", font="TkDefaultFont 9 bold")
@@ -514,13 +526,18 @@ class ModResultInputDialog:
         )
 
         if with_lang:
+
+            def lang_change(value):
+                self.lang_value = value if value != "None" else None
+
             self.f_3 = ttk.Frame(self.root)
             self.f_3.pack(padx=5, expand=True, fill="x")
 
             ttk.Label(self.f_3, text="Language", width=14).pack(padx=(0, 5), side="left")
-            self.select_cb = ComboboxWithKeyNav(self.f_3, values=["None"] + whisper_compatible, state="readonly")
+            self.select_cb = ComboboxWithKeyNav(self.f_3, values=["None"] + whisper_compatible_uppercase, state="readonly")
             self.select_cb.pack(fill="x", expand=True, side="left")
             self.select_cb.current(0)
+            self.select_cb.bind("<<ComboboxSelected>>", lambda e: lang_change(self.select_cb.get()))
 
         self.f_btn = ttk.Frame(self.root)
         self.f_btn.pack(padx=5, pady=5, expand=True, fill="x")
@@ -584,11 +601,14 @@ class ModResultInputDialog:
         if self.audio_file is None or self.result_file is None:
             return
 
-        if self.with_lang:
-            self.lang_value = self.select_cb.get()
         self.root.destroy()
 
     def cancel(self):
+        if self.audio_file is not None or self.result_file is not None or self.lang_value is not None:
+            # ask if user really want to cancel
+            if not messagebox.askyesno("Cancel", "Are you sure you want to cancel?", parent=self.root):
+                return
+
         self.audio_file = None
         self.result_file = None
         self.lang_value = None
@@ -605,8 +625,6 @@ class ModResultInputDialog:
 
     def get_input(self):
         self.root.wait_window()
-        if self.lang_value == "None":
-            self.lang_value = None
 
         return self.audio_file, self.result_file, self.lang_value
 
@@ -733,3 +751,82 @@ class QueueDialog:
             self.on_close()
         else:
             self.show()
+
+
+class FileProcessDialog:
+    def __init__(self, master: Union[Tk, Toplevel], title: str, mode: str, header: List, sj):
+
+        # window to show progress
+        self.root = Toplevel(master)
+        self.root.title(title)
+        self.root.transient(master)
+        self.root.geometry("450x225")
+        self.root.protocol("WM_DELETE_WINDOW", lambda: master.state("iconic"))  # minimize window when click close button
+        self.root.geometry("+{}+{}".format(master.winfo_rootx() + 50, master.winfo_rooty() + 50))
+        try:
+            self.root.iconbitmap(app_icon)
+        except Exception:
+            pass
+
+        # widgets
+        self.frame_lbl = ttk.Frame(self.root)
+        self.frame_lbl.pack(side="top", fill="both", padx=5, pady=5, expand=True)
+
+        self.frame_lbl_1 = ttk.Frame(self.frame_lbl)
+        self.frame_lbl_1.pack(side="top", fill="x", expand=True)
+
+        self.frame_lbl_2 = ttk.Frame(self.frame_lbl)
+        self.frame_lbl_2.pack(side="top", fill="x", expand=True)
+
+        self.frame_lbl_3 = ttk.Frame(self.frame_lbl)
+        self.frame_lbl_3.pack(side="top", fill="x", expand=True)
+
+        self.frame_lbl_4 = ttk.Frame(self.frame_lbl)
+        self.frame_lbl_4.pack(side="top", fill="x", expand=True)
+
+        self.frame_lbl_5 = ttk.Frame(self.frame_lbl)
+        self.frame_lbl_5.pack(side="top", fill="x", expand=True)
+
+        self.frame_lbl_6 = ttk.Frame(self.frame_lbl)
+        self.frame_lbl_6.pack(side="top", fill="x", expand=True)
+
+        self.frame_btn = ttk.Frame(self.root)
+        self.frame_btn.pack(side="top", fill="x", padx=5, pady=5, expand=True)
+
+        self.frame_btn_1 = ttk.Frame(self.frame_btn)
+        self.frame_btn_1.pack(side="top", fill="x", expand=True)
+
+        self.lbl_task_name = ttk.Label(self.frame_lbl_1, text="Task: ⌛")
+        self.lbl_task_name.pack(side="left", fill="x", padx=5, pady=5)
+
+        self.lbl_files = LabelTitleText(self.frame_lbl_2, "Files: ", "⌛")
+        self.lbl_files.pack(side="left", fill="x", padx=5, pady=5)
+
+        self.lbl_processed = LabelTitleText(self.frame_lbl_3, "Processed: ", "0")
+        self.lbl_processed.pack(side="left", fill="x", padx=5, pady=5)
+
+        self.lbl_elapsed = LabelTitleText(self.frame_lbl_4, "Elapsed: ", "0s")
+        self.lbl_elapsed.pack(side="left", fill="x", padx=5, pady=5)
+
+        self.progress_bar = ttk.Progressbar(self.frame_lbl_5, orient="horizontal", length=300, mode="determinate")
+        self.progress_bar.pack(side="left", fill="x", padx=5, pady=5, expand=True)
+
+        self.cbtn_open_folder = ttk.Checkbutton(
+            self.frame_lbl_6,
+            text="Open folder after process",
+            state="disabled",
+            command=lambda: sj.save_key(f"auto_open_dir_{mode}", self.cbtn_open_folder.instate(["selected"])),
+        )
+        self.cbtn_open_folder.pack(side="left", fill="x", padx=5, pady=5)
+
+        self.queue_window = QueueDialog(self.root, "Result Translate Queue", header, [[]], theme=sj.cache["theme"])
+        self.queue_window.update_sheet()
+
+        self.btn_add = ttk.Button(self.frame_btn_1, text="Add", state="disabled")
+        self.btn_add.pack(side="left", fill="x", padx=5, pady=5, expand=True)
+
+        self.btn_show_queue = ttk.Button(self.frame_btn_1, text="Toggle Queue Window", command=self.queue_window.toggle_show)
+        self.btn_show_queue.pack(side="left", fill="x", padx=5, pady=5, expand=True)
+
+        self.btn_cancel = ttk.Button(self.frame_btn_1, text="Cancel", state="disabled", style="Accent.TButton")
+        self.btn_cancel.pack(side="left", fill="x", padx=5, pady=5, expand=True)

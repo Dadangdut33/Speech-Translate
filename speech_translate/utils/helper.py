@@ -2,6 +2,7 @@ import html
 import subprocess
 import textwrap
 import tkinter as tk
+import ctypes
 from collections import OrderedDict
 from datetime import datetime
 from os import path, startfile
@@ -12,6 +13,7 @@ from tkinter import colorchooser, ttk
 from typing import Dict, List, Union
 from webbrowser import open_new
 from difflib import SequenceMatcher
+from threading import Thread
 
 from stable_whisper import WhisperResult
 from loguru import logger
@@ -22,6 +24,29 @@ from speech_translate._constants import APP_NAME
 from speech_translate._path import app_icon, app_icon_missing, ffmpeg_ps_script
 from speech_translate.ui.custom.tooltip import tk_tooltip
 from speech_translate.utils.types import ToInsert
+
+
+def kill_thread(thread: Thread) -> bool:
+    ''' Attempt to kill thread, credits: https://github.com/JingheLee/KillThread
+    
+    Parameters
+    ----------
+    thread : Thread
+        Thread instance object.
+
+    Returns
+    -------
+    bool
+        True or False
+    '''
+    try:
+        if isinstance(thread, Thread):
+            return ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(thread.ident), ctypes.py_object(SystemExit)) == 1
+        else:
+            return False
+    except Exception as e:
+        logger.exception(e)
+        return False
 
 
 def up_first_case(string: str):

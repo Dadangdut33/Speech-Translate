@@ -23,7 +23,7 @@ folder_name = f"build/SpeechTranslate {version()}"
 
 build_exe_options = {
     "excludes": ["yapf", "ruff"],
-    "packages": ["torch", "soundfile", "sounddevice"],
+    "packages": ["torch", "soundfile", "sounddevice", "av", "faster-whisper"],
     "build_exe": folder_name
 }
 
@@ -57,7 +57,7 @@ with open("LICENSE", "r", encoding="utf-8") as f:
         f2.write(f.read())
 
 # copy README.md as README.txt to build folder
-with open("pre_install_note.txt", "r", encoding="utf-8") as f:
+with open("build/pre_install_note.txt", "r", encoding="utf-8") as f:
     with open(f"{folder_name}/README.txt", "w", encoding="utf-8") as f2:
         f2.write(f.read())
 

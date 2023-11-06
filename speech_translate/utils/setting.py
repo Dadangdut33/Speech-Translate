@@ -14,6 +14,7 @@ from speech_translate.utils.types import SettingDict
 default_setting: SettingDict = {
     "version": __setting_version__,
     "checkUpdateOnStart": True,
+    "first_open": True,
     # ------------------ #
     # App settings
     "transcribe": True,
@@ -210,6 +211,7 @@ class SettingJson:
                 # save old one as backup
                 self.save_old_setting(self.cache)
                 self.cache = default_setting  # load default
+                self.cache["first_open"] = False  # keep first_open to false because it's not first open
                 self.save(self.cache)  # save
                 notification = Notify()
                 notification.application_name = "Speech Translate"

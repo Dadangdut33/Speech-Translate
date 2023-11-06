@@ -345,7 +345,7 @@ class SettingRecord:
             "When using wav file, the I/O process of the recorded wav file might slow down the performance "
             "of the app significantly, especially on long buffers."
             "\n\nBoth setting will resample the audio to a 16k hz sample rate. Difference is, numpy array "
-            "uses librosa to resample the audio while temporary wav file uses ffmpeg.",
+            "uses scipy to resample the audio while temporary wav file uses ffmpeg.",
             wrapLength=400,
         )
 
@@ -944,8 +944,11 @@ class SettingRecord:
             self.close_meter_mic()
 
             # ddont show the meter, show failed message
-            self.audiometer_mic.pack_forget()
-            self.hidden_padder_mic.configure(text="Fail to load device. Check log", width=30, foreground="red")
+            try:
+                self.audiometer_mic.pack_forget()
+                self.hidden_padder_mic.configure(text="Fail to load device. Check log", width=30, foreground="red")
+            except Exception as e:
+                pass
 
     def call_set_meter_speaker(self, open=True):
         if system() == "Windows" and not self.on_start:
@@ -1017,8 +1020,11 @@ class SettingRecord:
             self.close_meter_speaker()
 
             # dont show the meter, show failed message
-            self.audiometer_speaker.pack_forget()
-            self.hidden_padder_speaker.configure(text="Fail to load device. Check log", width=30, foreground="red")
+            try:
+                self.audiometer_speaker.pack_forget()
+                self.hidden_padder_speaker.configure(text="Fail to load device. Check log", width=30, foreground="red")
+            except Exception as e:
+                pass
 
     def toggle_enable_threshold_mic(self, open=True):
         if "selected" in self.cbtn_threshold_enable_mic.state():
