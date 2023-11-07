@@ -285,7 +285,7 @@ def install_ffmpeg_windows():
     if not path.exists(ffmpeg_ps_script):
         logger.debug("ffmpeg_ps_script not found. Creating it...")
         # create it directly
-        with open(ffmpeg_ps_script, "w") as f:
+        with open(ffmpeg_ps_script, "w", encoding="utf-8") as f:
             f.write(
                 r"""
 param (
@@ -346,20 +346,24 @@ $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
 Write-Host "check it by running ffmpeg -version"    
             """
             )
-    logger.debug("Running ps script...")
+    logger.debug(f"Running ps script... {ffmpeg_ps_script}")
     # run the script
-    p = subprocess.Popen(
-        [
-            "powershell", "-ExecutionPolicy", "-noprofile", "-c",
-            rf"""Start-Process -Verb RunAs -Wait powershell.exe -Args "-noprofile -c Set-Location \`"$PWD\`"; & {ffmpeg_ps_script}"
-            """
-        ]
+    powershell_command = f"Start-Process powershell -ArgumentList '-NoProfile -ExecutionPolicy Bypass -File \"{ffmpeg_ps_script}\"' -Verb RunAs"
+    p = subprocess.run(
+        ['powershell', '-Command', powershell_command],
+        shell=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        encoding="utf-8"
     )
-    status = p.wait()
+
+    status = p.returncode
+    logger.debug("ffmpeg_ps_script return code: " + str(status))
 
     if status != 0:
         success = False
-        msg = "Error installing ffmpeg. Please install it manually."
+        msg = f"Error installing ffmpeg. {p.stderr}"
+        logger.debug(f"Error installing ffmpeg. {p.stderr}")
     else:
         success = True
         msg = "ffmpeg installed successfully."
@@ -370,11 +374,16 @@ def install_ffmpeg_linux():
     """
     Install ffmpeg on linux
     """
-    p = subprocess.Popen(["sudo", "apt", "install", "ffmpeg"])
-    status = p.wait()
+    p = subprocess.run(
+        ["sudo", "apt", "install", "ffmpeg"],
+        shell=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    status = p.returncode
     if status != 0:
         success = False
-        msg = "Error installing ffmpeg. Please install it manually."
+        msg = f"Error installing ffmpeg. {p.stderr}"
     else:
         success = True
         msg = "ffmpeg installed successfully."
@@ -386,11 +395,16 @@ def install_ffmpeg_macos():
     """
     Install ffmpeg on macos
     """
-    p = subprocess.Popen(["brew", "install", "ffmpeg"])
-    status = p.wait()
+    p = subprocess.run(
+        ["brew", "install", "ffmpeg"],
+        shell=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    status = p.returncode
     if status != 0:
         success = False
-        msg = "Error installing ffmpeg. Please install it manually."
+        msg = f"Error installing ffmpeg. {p.stderr}"
     else:
         success = True
         msg = "ffmpeg installed successfully."

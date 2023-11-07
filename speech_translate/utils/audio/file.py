@@ -66,7 +66,11 @@ def run_whisper(func, audio: str, task: str, fail_status: List, **kwargs):
     except Exception as e:
         logger.exception(e)
         fail_status[0] = True
-        fail_status[1] = e
+        if "The system cannot find the file specified" in str(e) and not gc.has_ffmpeg:
+            logger.error("FFmpeg not found in system path. Please install FFmpeg and add it to system path")
+            fail_status[1] = Exception("FFmpeg not found in system path. Please install FFmpeg and add it to system path")
+        else:
+            fail_status[1] = e
 
 
 def run_translate_api(
@@ -178,7 +182,11 @@ def run_translate_api(
     except Exception as e:
         logger.exception(e)
         fail_status[0] = True
-        fail_status[1] = e
+        if "The system cannot find the file specified" in str(e) and not gc.has_ffmpeg:
+            logger.error("FFmpeg not found in system path. Please install FFmpeg and add it to system path")
+            fail_status[1] = Exception("FFmpeg not found in system path. Please install FFmpeg and add it to system path")
+        else:
+            fail_status[1] = e
 
 
 # run in threaded environment with queue and exception to cancel
@@ -462,7 +470,6 @@ def process_file(
     try:
         gc.mw.disable_interactions()
         master = gc.mw.root
-        fp = None
         fp = FileProcessDialog(master, "File Import Progress", "export", ["Audio / Video File", "Status"], sj)
 
         logger.info("Start Process (FILE)")
@@ -702,7 +709,7 @@ def process_file(
         gc.mw.from_file_stop(prompt=False, notify=False)
 
         try:
-            if fp and fp.root.winfo_exists():
+            if fp and fp.root.winfo_exists():  # type: ignore
                 fp.root.after(1000, fp.root.destroy)  # destroy progress window
         except Exception as e:
             logger.exception(e)
@@ -743,7 +750,6 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
     try:
         gc.mw.disable_interactions()
         master = gc.mw.root
-        fp = None
         fp = FileProcessDialog(master, f"File {up_first_case(mode)} Progress", mode, ["Audio/Video File", "Status"], sj)
         task_short = {"refinement": "rf", "alignment": "al"}
 
@@ -805,6 +811,7 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
             adding = False
 
         def cancel():
+            assert gc.mw is not None
             if mode == "refinement":
                 gc.mw.refinement_stop(prompt=True, notify=True, master=fp.root)
             else:
@@ -924,7 +931,14 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
                     else:
                         logger.exception(e)
                         fail = True
-                        fail_msg = e
+                        if "The system cannot find the file specified" in str(fail_msg) and not gc.has_ffmpeg:
+                            logger.error("FFmpeg not found in system path. Please install FFmpeg and add it to system path")
+                            fail_msg = Exception(
+                                "FFmpeg not found in system path. Please install FFmpeg and add it to system path"
+                            )
+                        else:
+                            fail_msg = e
+
                         update_q_process(processed, gc.mod_file_counter, f"Failed to do {mode} (check log)")
 
             thread = Thread(target=run_mod, daemon=True)
@@ -979,7 +993,7 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
             logger.info(f"{mode} cancelled")
 
         try:
-            if fp and fp.root.winfo_exists():
+            if fp and fp.root.winfo_exists():  # type: ignore
                 fp.root.after(1000, fp.root.destroy)  # destroy progress window
         except Exception as e:
             logger.exception(e)
@@ -1007,7 +1021,6 @@ def translate_result(data_files: List, engine: str, lang_target: str):
     try:
         gc.mw.disable_interactions()
         master = gc.mw.root
-        fp = None
         fp = FileProcessDialog(master, "File Translate Progress", "translate", ["Source File", "Status"], sj)
 
         logger.info("Start Process (MOD FILE)")
@@ -1067,6 +1080,7 @@ def translate_result(data_files: List, engine: str, lang_target: str):
             adding = False
 
         def cancel():
+            assert gc.mw is not None
             gc.mw.translate_stop(prompt=True, notify=True, master=fp.root)
 
         def update_modal_ui():
@@ -1121,7 +1135,7 @@ def translate_result(data_files: List, engine: str, lang_target: str):
                 update_q_process(processed, gc.mod_file_counter, "Failed to parse or read file (check log)")
                 continue
 
-            lang_source = to_language_name(result.language)
+            lang_source = to_language_name(result.language)  # type: ignore
             tl_args["lang_source"] = lang_source  # convert from lang code to language name
             if not verify_language_in_key(lang_source, engine):
                 logger.warning(
@@ -1188,7 +1202,7 @@ def translate_result(data_files: List, engine: str, lang_target: str):
             logger.debug("Cancelled translate")
 
         try:
-            if fp and fp.root.winfo_exists():
+            if fp and fp.root.winfo_exists():  # type: ignore
                 fp.root.after(1000, fp.root.destroy)  # destroy progress window
         except Exception as e:
             logger.exception(e)

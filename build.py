@@ -101,9 +101,8 @@ with open(f"{folder_name}/version.txt", "w", encoding="utf-8") as f:
 
 # copy install_ffmpeg.ps1 to build folder
 print(">> Copying install_ffmpeg.ps1 to build folder")
-with open("install_ffmpeg.ps1", "r", encoding="utf-8") as f:
-    with open(f"{folder_name}/install_ffmpeg.ps1", "w", encoding="utf-8") as f2:
-        f2.write(f.read())
+shutil.copyfile("install_ffmpeg.ps1", f"{folder_name}/install_ffmpeg.ps1")
+shutil.copyfile("install_ffmpeg.ps1", f"{folder_name}/lib/install_ffmpeg.ps1")
 
 # create link to repo
 print(">> Creating link to repo")

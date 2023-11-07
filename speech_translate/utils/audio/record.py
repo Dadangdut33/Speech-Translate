@@ -709,8 +709,12 @@ def record_session(
             logger.info("Modal closed")
             logger.info("-" * 50)
     except Exception as e:
-        logger.error("Error in record session")
         logger.exception(e)
+        logger.error("Error in record session")
+        if "The system cannot find the file specified" in str(e) and not gc.has_ffmpeg:
+            logger.error("FFmpeg not found in system path. Please install FFmpeg and add it to system path")
+            e = Exception("FFmpeg not found in system path. Please install FFmpeg and add it to system path")
+
         assert gc.mw is not None
         mbox("Error in record session", f"{str(e)}", 2, gc.mw.root)
         gc.mw.rec_stop()

@@ -181,7 +181,6 @@ class MainWindow:
         gc.mw = self
         self.root = Tk()
         self.root.title(APP_NAME)
-        self.root.geometry(sj.cache["mw_size"])
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.root.minsize(600, 300)
         self.root.wm_attributes("-topmost", False)  # Default False
@@ -594,6 +593,7 @@ class MainWindow:
         bind_focus_recursively(self.root, self.root)
         self.splash.destroy()
         self.root.deiconify()
+        self.root.geometry(sj.cache["mw_size"])
         self.on_init()
         gc.running_after_id = self.root.after(1000, self.is_running_poll)
         # ------------------ Set Icon ------------------
@@ -778,8 +778,11 @@ class MainWindow:
                 if not success:
                     mbox("Error", msg, 2)
 
-                gc.has_ffmpeg = True
-                ffmpeg_installed = success
+                if check_ffmpeg_in_path()[0]:
+                    gc.has_ffmpeg = True
+                    ffmpeg_installed = success
+                else:
+                    ffmpeg_installed = False
             else:
                 ffmpeg_installed = False
                 user_cancel = True
