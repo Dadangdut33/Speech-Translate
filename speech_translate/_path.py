@@ -2,17 +2,23 @@ import os
 
 # Paths
 dir_project: str = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
-dir_user: str = os.path.abspath(os.path.join(dir_project, "user"))
+dir_user: str = os.path.abspath(os.path.join(dir_project, "_user"))
 dir_theme: str = os.path.abspath(os.path.join(dir_project, "theme"))
-dir_setting: str = os.path.abspath(os.path.join(dir_project, "setting"))
 dir_temp: str = os.path.abspath(os.path.join(dir_project, "temp"))
+dir_debug: str = os.path.abspath(os.path.join(dir_project, "debug"))
 dir_log: str = os.path.abspath(os.path.join(dir_project, "log"))
 dir_assets: str = os.path.abspath(os.path.join(dir_project, "assets"))
 dir_export: str = os.path.abspath(os.path.join(dir_project, "export"))
+dir_refinement: str = os.path.abspath(os.path.join(dir_export, "refinement"))
+dir_translate: str = os.path.abspath(os.path.join(dir_export, "translated"))
+dir_alignment: str = os.path.abspath(os.path.join(dir_export, "alignment"))
 app_icon: str = os.path.abspath(os.path.join(dir_assets, "icon.ico"))
+splash_image: str = os.path.abspath(os.path.join(dir_assets, "splash.png"))
+parameters_text: str = os.path.abspath(os.path.join(dir_assets, "parameter.txt"))
+ffmpeg_ps_script: str = os.path.abspath(os.path.join(dir_project, "..", "install_ffmpeg.ps1"))
 
 # verify app_icon exist or not
-if not os.path.exists(app_icon): 
+if not os.path.exists(app_icon):
     app_icon_missing = True
 else:
     app_icon_missing = False

@@ -1,0 +1,3 @@
+The app has been successfully installed, for more information about its usage please visit the wiki at https://github.com/Dadangdut33/Speech-Translate/wiki.
+
+For any questions or suggestions, feel free to add any issues or open a discussion on the repository.

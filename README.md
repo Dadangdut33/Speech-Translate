@@ -15,23 +15,40 @@
     <a href="https://github.com/Dadangdut33/Speech-Translate/network/members"><img alt="GitHub forks" src="https://img.shields.io/github/forks/Dadangdut33/Speech-Translate?style=social"></a>
 </p>
 
-Speech Translate is a practical application that combines OpenAI's Whisper ASR model with free translation APIs. It serves as a versatile tool for both real-time / live speech-to-text and speech translation, allowing the user to seamlessly convert spoken language into written text. Additionally, it has the option to import and transcribe audio / video files effortlessly. This application aims to expand whisper ability by combining it with some translation APIs while also providing a simple and easy to use interface to create a more practical application. This application is also open source, so you can contribute to this project if you want to. 
+Speech Translate is a practical application that combines OpenAI's Whisper ASR model with free translation APIs. It serves as a versatile tool for both real-time / live speech-to-text and speech translation, allowing the user to seamlessly convert spoken language into written text. Additionally, it has the option to import and transcribe audio / video files effortlessly. 
 
-<details open>
-    <summary>Preview</summary>
-    <p align="center">
-      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/1.png" width="700" alt="Speech Translate Looks">
-      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/2.png" width="700" alt="Setting transcription">
-      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/3.png" width="700" alt="Setting textbox">
-      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/4.png" width="700" alt="About window">
-      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/5.png" alt="Detached window preview">
-      Detached window preview
-      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/6.png" alt="Transcribe mode on detached window (English)">
-      Transcribe mode on detached window (English)
-      <img src="https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/7.png" alt="Translate mode on detached window (English to Indonesia)">
-      Translate mode on detached window (English to Indonesia)
-    </p>
-  </details>
+Speech Translate aims to expand whisper ability by combining it with some translation APIs while also providing a simple and easy to use interface to create a more practical application. This application is also open source, so you can contribute to this project if you want to. 
+
+<p align="center">
+  <img src="preview/1.png" width="700" alt="Speech Translate Preview">
+</p>
+
+<details close>
+  <summary>Preview - Usage</summary>
+  <p align="center">
+    <img src="preview/7.png" width="700" alt="Record">
+    <img src="preview/8.png" width="700" alt="File import">
+    <img src="preview/9.png" width="700" alt="File import in progress">
+    <img src="preview/10.png" width="700" alt="Align result">
+    <img src="preview/11.png" width="700" alt="Refine result">
+    <img src="preview/12.png" width="700" alt="Translate Result">
+    <img src="preview/13.png" width="700" alt="Transcribe mode on subtitle window (English)"><br />
+    Transcribe mode on detached window (English)    
+    <img src="preview/14.png" width="700" alt="Translate mode on subtitle window (English to Indonesia)"><br />
+    Translate mode on detached window (English to Indonesia)
+  </p>
+</details>
+
+<details close>
+  <summary>Preview - Setting</summary>
+  <p align="center">
+    <img src="preview/2.png" width="700" alt="Setting - General">
+    <img src="preview/3.png" width="700" alt="Setting - Record">
+    <img src="preview/4.png" width="700" alt="Setting - Transcribe">
+    <img src="preview/5.png" width="700" alt="Setting - Translate">
+    <img src="preview/6.png" width="700" alt="Setting - Textbox">
+  </p>
+</details>
 
 <br />
 
@@ -74,9 +91,16 @@ Speech Translate is a practical application that combines OpenAI's Whisper ASR m
 
 - Speaker input only work on windows 8 and above.
 - Internet connection (for translation with API)
-- [FFmpeg](https://ffmpeg.org/) is required to be installed and added to the PATH environment variable. You can download it [here](https://ffmpeg.org/download.html) and add it to your path manually OR you can do it automatically using the following commands:
+- [FFmpeg](https://ffmpeg.org/) is required to be installed and added to the PATH environment variable. You can do it when prompted in the app, or you can download it [here](https://ffmpeg.org/download.html) and add it to your path manually. Alternatively, you can also download and add it to path automatically by using the following commands:
 
-```
+```bash
+# on Windows using powershell (Also included in the release page, and can be run by right clicking and selecting "Run with PowerShell")
+# Must be run in an elevated PowerShell prompt (Run as administrator)
+Set-ExecutionPolicy RemoteSigned -Scope CurrentUser # Optional: Needed to run a remote script the first time
+& ([scriptblock]::Create(
+     (New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/install_ffmpeg.ps1')
+  )) -webdl
+
 # on Windows using Winget (Default package manager for Windows 10 and above)
 winget install --id=Gyan.FFmpeg  -e
 
@@ -106,20 +130,21 @@ brew install ffmpeg
 | medium |   769 M    |    `medium.en`     |      `medium`      |     ~5 GB     |      ~2x       |
 | large  |   1550 M   |        N/A         |      `large`       |    ~10 GB     |       1x       |
 
-\* This information is also available in the app (hover over the model selection in the app and there will be a tooltip about the model info). 
+\* This information is also available in the app (hover over the model selection in the app and there will be a tooltip about the model info). Also note that when using faster-whisper, the speed will be significantly faster and the model size will be reduced depending on the usage, for more information about this please visit [faster-whisper repository](https://github.com/guillaumekln/faster-whisper)
 
 
 # Installation
 
 > [!IMPORTANT]  
-> Make sure that you have installed [FFmpeg](https://ffmpeg.org/) and added it to the PATH environment variable. [See here](#requirements) for more info
+> Please take a look at the [Requirements](#requirements) first before installing. For more information about the usage of the app, please check the [wiki](https://github.com/Dadangdut33/Speech-Translate/wiki)
 
 ## From Prebuilt Binary
 
 1. Download the [latest release](https://github.com/Dadangdut33/Speech-Translate/releases/latest) (There are 2 versions, CPU and GPU)
 2. Install/extract the downloaded file
 3. Run the program
-4. Enjoy!
+4. Set the settings to your liking
+5. Enjoy!
 
 ## As A Module
 
@@ -143,9 +168,9 @@ You can then run the program by typing `speech-translate` in your terminal/conso
 
 **Notes For Installation as Module:**
 
-- If you are u**pdating from an older version**, you need to add `--upgrade --no-deps --force-reinstall` at the end of the command.
+- If you are **updating from an older version**, you need to add `--upgrade --force-reinstall` at the end of the command, if the update does not need new dependencies you can add `--no-deps` at the end of the command to speed up the installation process.
 - If you want to **install** from a **specific branch or commit**, you can do it by adding `@branch_name` or `@commit_hash` at the end of the url. Example: `pip install -U git+https://github.com/Dadangdut33/Speech-Translate.git@dev --extra-index-url https://download.pytorch.org/whl/cu118`
-- The **--extra-index-url here might not always be up to date**, so you can check the latest version of pytorch [here](https://pytorch.org/get-started/locally/). You can also check the available version of pytorch [here](https://download.pytorch.org/whl/torch_stable.html).
+- The **--extra-index-url here might not always be up to date**, so you can check the latest version of pytorch [here](https://pytorch.org/get-started/locally/). You can also check the available version of pytorch [here](https://download.pytorch.org/whl/torch_stable.html). If the newest version is not compatible then please keep using the current url shown here.
 
 # More Information
 

@@ -16,13 +16,13 @@ def install_requires():
     with open("requirements.txt", "r", encoding="utf-8") as f:
         req = f.read().splitlines()
         return req
-    
-print(install_requires())
+
 
 setup(
     name="SpeechTranslate",
     version=version(),
-    description="A realtime speech transcription and translation application using Whisper OpenAI and free translation API. Interface made using Tkinter. Code written fully in Python.",
+    description="A realtime speech transcription and translation application using Whisper OpenAI and free translation API."
+    " Interface made using Tkinter. Code written fully in Python.",
     long_description=read_me(),
     long_description_content_type="text/markdown",
     python_requires=">=3.8",
@@ -32,10 +32,16 @@ setup(
     packages=[
         "speech_translate",
         "speech_translate.utils",
-        "speech_translate.components",
-        "speech_translate.components.abstract",
-        "speech_translate.components.custom",
-        "speech_translate.components.window",
+        "speech_translate.utils.audio",
+        "speech_translate.utils.translate",
+        "speech_translate.utils.tk",
+        "speech_translate.utils.whisper",
+        "speech_translate.ui",
+        "speech_translate.ui.template",
+        "speech_translate.ui.custom",
+        "speech_translate.ui.window",
+        "speech_translate.ui.frame",
+        "speech_translate.ui.frame.settings",
         "speech_translate.assets",
         "speech_translate.theme",
         "speech_translate.theme.skip",
@@ -50,10 +56,8 @@ setup(
         "speech_translate.theme.sv.resource": ["*"],
     },
     install_requires=install_requires(),
-    entry_points={
-        "console_scripts": [
-            "speech-translate=speech_translate.__main__:main",
-        ]
-    },
+    entry_points={"console_scripts": [
+        "speech-translate=speech_translate.__main__:main",
+    ]},
     include_package_data=True,
 )

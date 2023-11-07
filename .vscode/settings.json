@@ -1,3 +1,27 @@
 {
-	"python.analysis.typeCheckingMode": "basic"
+	"python.languageServer": "Pylance",
+	"python.analysis.typeCheckingMode": "basic",
+	"[python]": {
+		"editor.defaultFormatter": "eeyore.yapf",
+		"editor.formatOnSave": true,
+		"editor.formatOnPaste": true,
+		"editor.formatOnType": false,
+		"editor.codeActionsOnSave": {
+			"source.fixAll": false,
+			"source.organizeImports": false,
+			"source.organizeImports.ruff": false,
+			"source.organizeImports.python": false,
+		}
+	},
+	"yapf.args": ["--style", "{based_on_style: pep8, indent_width: 4, column_limit: 125, BLANK_LINE_BEFORE_NESTED_CLASS_OR_DEF: false, DEDENT_CLOSING_BRACKETS: true}"],
+	"ruff.enable": true,
+	"ruff.lint.args": [
+		"--line-length",
+		"125"
+	],
+	"ruff.format.args": [
+		"--line-length",
+		"125"
+	],
+	"python.analysis.autoImportCompletions": false,
 }

@@ -1,18 +1,26 @@
 torch
 torchvision
 torchaudio
-deep-translator==1.11.0
+deep-translator==1.11.4
 notify-py==0.3.42
+loguru
 pillow==9.5.0
 pywin32==306; platform_system == "Windows"
-PyAudioWPatch==0.2.12.5; platform_system == "Windows"
+PyAudioWPatch==0.2.12.6; platform_system == "Windows"
 PyAudio==0.2.13; platform_system != "Windows"
-pystray==0.19.4
-requests==2.28.2
-scipy==1.10.1 
+pystray==0.19.5
+tkhtmlview==0.2.0
+tksheet==6.2.9
+requests==2.31.0
+scipy==1.11.3
 sounddevice==0.4.6
-soundfile==0.11.0
+soundfile==0.12.1
+webrtcvad==2.0.10
 darkdetect==0.8.0
 arabic-reshaper==3.0.0
-openai-whisper==20230314
-whisper-timestamped @ git+https://github.com/linto-ai/whisper-timestamped.git
+python-bidi==0.4.2
+matplotlib==3.8.0
+onnxruntime==1.16.1
+demucs==4.0.1
+stable-ts @ git+https://github.com/jianfch/stable-ts.git@5c512a1880b937025792d441b98f5a13ab5a735e
+faster-whisper==0.9.0
