@@ -10,6 +10,8 @@
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
+; Speech Translate     -> {EDE12D07-73B0-4B1F-91C3-A0ECE1AB3F7C}
+; Speech Translate CPU -> {1C434936-CD0D-47B4-AB60-29E8AD2AEE40}
 AppId={{EDE12D07-73B0-4B1F-91C3-A0ECE1AB3F7C}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
