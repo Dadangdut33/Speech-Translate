@@ -80,9 +80,10 @@ def unique_rec_list(list_of_data: List):
         unique_lists = []
         for obj in list_of_data:
             assert isinstance(obj, WhisperResult)
-            if obj.text not in seen:
+            check = f"{obj.text} {obj.all_tokens()}"
+            if check not in seen:
                 unique_lists.append(obj)
-                seen.add(obj.text)
+                seen.add(check)
     else:
         # Convert the list to a set to get unique values then convert them back to a list
         unique_lists = list(OrderedDict.fromkeys(list_of_data))
