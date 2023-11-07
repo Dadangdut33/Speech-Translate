@@ -8,7 +8,6 @@ from datetime import datetime
 from os import path, startfile
 from platform import system
 from random import choice
-from subprocess import Popen
 from tkinter import colorchooser, ttk
 from typing import Dict, List, Union
 from webbrowser import open_new
@@ -26,6 +25,13 @@ from speech_translate.ui.custom.tooltip import tk_tooltip
 from speech_translate.utils.types import ToInsert
 
 
+def launchWithoutConsole(command):
+    """Launches 'command' windowless and waits until finished"""
+    startupinfo = subprocess.STARTUPINFO()
+    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    return subprocess.Popen(command, startupinfo=startupinfo).wait()
+
+
 def kill_thread(thread: Thread) -> bool:
     ''' Attempt to kill thread, credits: https://github.com/JingheLee/KillThread
     
@@ -41,7 +47,10 @@ def kill_thread(thread: Thread) -> bool:
     '''
     try:
         if isinstance(thread, Thread):
-            return ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(thread.ident), ctypes.py_object(SystemExit)) == 1
+            return ctypes.pythonapi.PyThreadState_SetAsyncExc(
+                ctypes.c_long(thread.ident),  # type: ignore
+                ctypes.py_object(SystemExit)
+            ) == 1
         else:
             return False
     except Exception as e:
@@ -253,7 +262,7 @@ def check_ffmpeg_in_path():
     success = True
     msg = ""
     try:
-        Popen(["ffmpeg", "-version"])
+        launchWithoutConsole(["ffmpeg", "-version"])
         msg = "ffmpeg is in the path."
     except FileNotFoundError:
         success = False
@@ -338,7 +347,7 @@ Write-Host "check it by running ffmpeg -version"
             )
     logger.debug("Running ps script...")
     # run the script
-    p = Popen(
+    p = subprocess.Popen(
         [
             "powershell", "-ExecutionPolicy", "-noprofile", "-c",
             rf"""Start-Process -Verb RunAs -Wait powershell.exe -Args "-noprofile -c Set-Location \`"$PWD\`"; & {ffmpeg_ps_script}"
@@ -360,7 +369,7 @@ def install_ffmpeg_linux():
     """
     Install ffmpeg on linux
     """
-    p = Popen(["sudo", "apt", "install", "ffmpeg"])
+    p = subprocess.Popen(["sudo", "apt", "install", "ffmpeg"])
     status = p.wait()
     if status != 0:
         success = False
@@ -376,7 +385,7 @@ def install_ffmpeg_macos():
     """
     Install ffmpeg on macos
     """
-    p = Popen(["brew", "install", "ffmpeg"])
+    p = subprocess.Popen(["brew", "install", "ffmpeg"])
     status = p.wait()
     if status != 0:
         success = False

@@ -1,5 +1,6 @@
 import os
 import copy
+import subprocess
 from ast import literal_eval
 from platform import system
 from shlex import quote
@@ -26,6 +27,18 @@ else:
     # to get qsize on platform other than windows
     from .utils.custom.queue import MyQueue as Queue
     import pyaudio  # type: ignore
+
+
+# monkey patch subprocess.run
+class NoConsolePopen(subprocess.Popen):
+    def __init__(self, args, **kwargs):
+        if 'startupinfo' not in kwargs:
+            kwargs['startupinfo'] = subprocess.STARTUPINFO()
+            kwargs['startupinfo'].dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        super().__init__(args, **kwargs)
+
+
+subprocess.Popen = NoConsolePopen
 
 # remove numba warnings
 simplefilter("ignore", category=NumbaDeprecationWarning)

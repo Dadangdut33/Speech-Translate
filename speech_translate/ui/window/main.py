@@ -765,6 +765,8 @@ class MainWindow:
         self.root.after(2000, self.check_ffmpeg, gc.has_ffmpeg)
 
     def check_ffmpeg(self, has_ffmpeg: bool):
+        ffmpeg_installed = False
+        user_cancel = False
         if not has_ffmpeg:
             # prompt to install ffmpeg
             if mbox(
@@ -777,9 +779,14 @@ class MainWindow:
                     mbox("Error", msg, 2)
 
                 gc.has_ffmpeg = True
-                return success
+                ffmpeg_installed = success
+            else:
+                ffmpeg_installed = False
+                user_cancel = True
         else:
-            return True
+            ffmpeg_installed = True
+
+        return ffmpeg_installed, user_cancel
 
     # mic
     def cb_input_device_init(self):
@@ -1417,15 +1424,24 @@ class MainWindow:
                 return
 
         # check ffmpeg
-        success = self.check_ffmpeg(check_ffmpeg_in_path()[0])
+        success, user_cancel = self.check_ffmpeg(check_ffmpeg_in_path()[0])
         if not success:
             # ask if user want to continue processing
             if not mbox(
-                "Fail to install ffmpeg",
-                "The program fail to install and add ffmpeg to path. Do you still want to continue regardless of it?", 3,
-                self.root
+                "FFMpeg is not installed!",
+                "The program needs ffmpeg to process files and will probably not work without it. Do you still want to continue regardless of it?",
+                3, self.root
             ):
                 return
+
+        if user_cancel:
+            mbox(
+                "Cancelled",
+                "The program needs ffmpeg to process files and will probably not work without it. Please install it first.",
+                2,
+            )
+
+            return
 
         # ui changes
         self.tb_clear()
@@ -1492,15 +1508,24 @@ class MainWindow:
                     return False
 
             # check ffmpeg
-            success = self.check_ffmpeg(check_ffmpeg_in_path()[0])
+            success, user_cancel = self.check_ffmpeg(check_ffmpeg_in_path()[0])
             if not success:
                 # ask if user want to continue processing
                 if not mbox(
-                    "Fail to install ffmpeg",
-                    "The program fail to install and add ffmpeg to path. Do you still want to continue regardless of it?", 3,
-                    self.root
+                    "FFMpeg is not installed!",
+                    "The program needs ffmpeg to process files and will probably not work without it. Do you still want to continue regardless of it?",
+                    3, self.root
                 ):
-                    return False  # use choose to cancel
+                    return False
+
+            if user_cancel:
+                mbox(
+                    "Cancelled",
+                    "The program needs ffmpeg to process files and will probably not work without it. Please install it first.",
+                    2,
+                )
+
+                return False
 
             # ui changes
             self.tb_clear()
@@ -1584,15 +1609,24 @@ class MainWindow:
                 return False
 
             # check ffmpeg
-            success = self.check_ffmpeg(check_ffmpeg_in_path()[0])
+            success, user_cancel = self.check_ffmpeg(check_ffmpeg_in_path()[0])
             if not success:
                 # ask if user want to continue processing
                 if not mbox(
-                    "Fail to install ffmpeg",
-                    "The program fail to install and add ffmpeg to path. Do you still want to continue regardless of it?", 3,
-                    self.root
+                    "FFMpeg is not installed!",
+                    "The program needs ffmpeg to process files and will probably not work without it. Do you still want to continue regardless of it?",
+                    3, self.root
                 ):
                     return False
+
+            if user_cancel:
+                mbox(
+                    "Cancelled",
+                    "The program needs ffmpeg to process files and will probably not work without it. Please install it first.",
+                    2,
+                )
+
+                return False
 
             # ui changes
             self.tb_clear()
@@ -1660,15 +1694,24 @@ class MainWindow:
                 return False
 
             # check ffmpeg
-            success = self.check_ffmpeg(check_ffmpeg_in_path()[0])
+            success, user_cancel = self.check_ffmpeg(check_ffmpeg_in_path()[0])
             if not success:
                 # ask if user want to continue processing
                 if not mbox(
-                    "Fail to install ffmpeg",
-                    "The program fail to install and add ffmpeg to path. Do you still want to continue regardless of it?", 3,
-                    self.root
+                    "FFMpeg is not installed!",
+                    "The program needs ffmpeg to process files and will probably not work without it. Do you still want to continue regardless of it?",
+                    3, self.root
                 ):
                     return False
+
+            if user_cancel:
+                mbox(
+                    "Cancelled",
+                    "The program needs ffmpeg to process files and will probably not work without it. Please install it first.",
+                    2,
+                )
+
+                return False
 
             # ui changes
             self.tb_clear()
