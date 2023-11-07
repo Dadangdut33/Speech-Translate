@@ -13,7 +13,7 @@ from huggingface_hub.file_download import repo_folder_name
 
 from speech_translate._path import app_icon
 from speech_translate.ui.custom.message import mbox
-from speech_translate._logging import dir_log, current_log
+from speech_translate._logging import recent_stderr
 from speech_translate.globals import gc
 
 
@@ -215,7 +215,7 @@ def faster_whisper_download_with_progress_gui(
     root = Toplevel(master)
     root.title("Checking Model")
     root.transient(master)
-    root.geometry("980x180")
+    root.geometry("700x180")
     root.protocol("WM_DELETE_WINDOW", lambda: master.state("iconic"))  # minimize window when click close button
     root.geometry("+{}+{}".format(master.winfo_rootx() + 50, master.winfo_rooty() + 50))
     root.minsize(200, 100)
@@ -224,6 +224,9 @@ def faster_whisper_download_with_progress_gui(
         root.iconbitmap(app_icon)
     except Exception:
         pass
+
+    # clear recent_stderr
+    recent_stderr.clear()
 
     # add label that says downloading please wait
     failed = False
@@ -249,7 +252,7 @@ def faster_whisper_download_with_progress_gui(
     progress.pack(expand=True, fill="x", padx=10, pady=(2, 2))
     progress.start(15)
 
-    text_log = Text(f3, height=5, width=50, font=("Consolas", 8))
+    text_log = Text(f3, height=5, width=50, font=("Consolas", 10))
     text_log.pack(side="top", fill="both", expand=True, padx=10, pady=(0, 10))
     text_log.bind("<Key>", lambda event: "break")  # disable text box
     text_log.insert(1.0, "Checking model please wait...")
@@ -262,13 +265,8 @@ def faster_whisper_download_with_progress_gui(
             return "Unknown"
 
     def update_log():
-        try:
-            content = open(os.path.join(dir_log, current_log), "r", encoding="utf-8").read().strip()
-        except Exception as e:
-            content = "Failed to read log file\nError: " + str(e)
-
         # get only last 7 lines
-        content = "\n".join(content.split("\n")[-7:])
+        content = "\n".join(recent_stderr[-7:])
         text_log.delete(1.0, "end")
         text_log.insert(1.0, content)
         text_log.see("end")  # scroll to the bottom

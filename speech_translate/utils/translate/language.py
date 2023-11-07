@@ -249,12 +249,15 @@ def verify_language_in_key(lang: str, engine: str) -> bool:
 # select target engine
 gLang_target = list(google_lang.keys())
 gLang_target.pop(0)
+gLang_target.sort()
 
 libre_target = list(libre_lang.keys())
 libre_target.pop(0)
+libre_target.sort()
 
 myMemory_target = list(myMemory_lang.keys())
 myMemory_target.pop(0)
+myMemory_target.sort()
 
 engine_select_target_dict = {
     "Tiny (~32x speed)": ["English"],
@@ -269,6 +272,8 @@ engine_select_target_dict = {
 }
 
 # source engine
+# For source engine we need to check wether the language is compatible with whisper or not
+# if not then we remove it from the list
 google_whisper_compatible = list(google_lang.keys())
 for lang in google_whisper_compatible:
     if lang not in whisper_compatible:
@@ -286,6 +291,17 @@ for lang in myMemory_whisper_compatible:
 
 whisper_compatible_uppercase = [up_first_case(x) for x in whisper_compatible]
 whisper_source = ["Auto detect"] + whisper_compatible_uppercase
+whisper_source.sort()
+
+google_source = ["Auto detect"] + [up_first_case(x) for x in google_whisper_compatible]
+google_source.sort()
+
+libre_source = ["Auto detect"] + [up_first_case(x) for x in libre_whisper_compatible]
+libre_source.sort()
+
+myMemory_source = ["Auto detect"] + [up_first_case(x) for x in myMemory_whisper_compatible]
+myMemory_source.sort()
+
 engine_select_source_dict = {
     "Tiny (~32x speed)": whisper_source,
     "Base (~16x speed)": whisper_source,
@@ -293,7 +309,7 @@ engine_select_source_dict = {
     "Medium (~2x speed)": whisper_source,
     "Large (v1) (1x speed)": whisper_source,
     "Large (v2) (1x speed)": whisper_source,
-    "Google Translate": ["Auto detect"] + [up_first_case(x) for x in google_whisper_compatible],
-    "LibreTranslate": ["Auto detect"] + [up_first_case(x) for x in libre_whisper_compatible],
-    "MyMemoryTranslator": ["Auto detect"] + [up_first_case(x) for x in myMemory_whisper_compatible],
+    "Google Translate": google_source,
+    "LibreTranslate": libre_source,
+    "MyMemoryTranslator": myMemory_source,
 }

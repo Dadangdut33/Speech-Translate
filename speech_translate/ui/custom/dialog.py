@@ -1,4 +1,3 @@
-import os
 from tkinter import IntVar, ttk, Tk, Toplevel, filedialog, StringVar, BooleanVar, messagebox, Text
 from typing import List, Literal, Union
 from time import sleep
@@ -8,7 +7,7 @@ from tksheet import Sheet
 from loguru import logger
 
 from speech_translate._path import app_icon
-from speech_translate._logging import dir_log, current_log
+from speech_translate._logging import recent_stderr
 from speech_translate.ui.custom.tooltip import tk_tooltip, tk_tooltips
 from speech_translate.ui.custom.label import LabelTitleText
 from speech_translate.ui.custom.combobox import CategorizedComboBox, ComboboxWithKeyNav
@@ -198,25 +197,23 @@ class FileImportDialog(FileOperationDialog):
         super().__init__(master, title, "File Import", ["Audio / Video File"], submit_func, theme, **kwargs)
 
         def cb_engine_change(_event=None):
-            if _event:
-                # check if engine is whisper and currently in translate only mode
-                # if yes, will make the transcribe model combobox disabled
-                if _event in model_keys and self.var_task_transcribe.get() and not self.var_task_translate.get():
-                    self.cb_model.configure(state="disabled")
-                else:
-                    self.cb_model.configure(state="readonly")
-
-                # Then update the target cb list with checks
+            # check if engine is whisper and currently in translate only mode
+            # if yes, will make the source lang use based on the engine
+            if _event in model_keys and self.var_task_transcribe.get() and not self.var_task_translate.get():
+                self.cb_source_lang["values"] = engine_select_source_dict[self.var_engine.get()]
+            else:
                 self.cb_source_lang["values"] = engine_select_source_dict[self.var_model.get()]
-                self.cb_target_lang["values"] = engine_select_target_dict[self.var_engine.get()]
 
-                # check if the target lang is not in the new list
-                if self.cb_target_lang.get() not in self.cb_target_lang["values"]:
-                    self.cb_target_lang.current(0)
+            # Then update the target cb list with checks
+            self.cb_target_lang["values"] = engine_select_target_dict[self.var_engine.get()]
 
-                # check if the source lang is not in the new list
-                if self.cb_source_lang.get() not in self.cb_source_lang["values"]:
-                    self.cb_source_lang.current(0)
+            # check if the target lang is not in the new list
+            if self.cb_target_lang.get() not in self.cb_target_lang["values"]:
+                self.cb_target_lang.current(0)
+
+            # check if the source lang is not in the new list
+            if self.cb_source_lang.get() not in self.cb_source_lang["values"]:
+                self.cb_source_lang.current(0)
 
         def cbtn_task_change():
             if self.var_task_transcribe.get() and self.var_task_translate.get():
@@ -346,10 +343,9 @@ class TranslateResultDialog(FileOperationDialog):
         self.cb_model.pack_forget()
 
         def cb_engine_change(_event=None):
-            if _event:
-                self.cb_target_lang["values"] = engine_select_target_dict[self.var_engine.get()]
-                if self.cb_target_lang.get() not in self.cb_target_lang["values"]:
-                    self.cb_target_lang.current(0)
+            self.cb_target_lang["values"] = engine_select_target_dict[self.var_engine.get()]
+            if self.cb_target_lang.get() not in self.cb_target_lang["values"]:
+                self.cb_target_lang.current(0)
 
         # Translate engine
         ttk.Label(self.frame_top, text="Translate:").pack(padx=5, side="left")
@@ -673,7 +669,7 @@ class QueueDialog:
         self.frame_bottom = ttk.Frame(self.root)
         self.frame_bottom.pack(expand=True, fill="x", padx=5, pady=5)
 
-        self.text_log = Text(self.frame_bottom, height=4, width=50, font=("Consolas", 8))
+        self.text_log = Text(self.frame_bottom, height=4, width=50, font=("Consolas", 10))
         self.text_log.pack(side="top", fill="both", expand=True, padx=5, pady=(0, 5))
         self.text_log.bind("<Key>", lambda event: "break")
         self.text_log.insert(1.0, "Preparing...")
@@ -683,6 +679,9 @@ class QueueDialog:
             self.root.iconbitmap(app_icon)
         except Exception:
             pass
+
+        # clear recent_stderr
+        recent_stderr.clear()
 
         self.root.bind("<Configure>", lambda e: self.resize_sheet_width_to_window())
         self.root.after(0, self.after_show_called)
@@ -710,13 +709,8 @@ class QueueDialog:
         self.thread_refresh.start()
 
     def update_log(self):
-        try:
-            content = open(os.path.join(dir_log, current_log), "r", encoding="utf-8").read().strip()
-        except Exception as e:
-            content = "Failed to read log file\nError: " + str(e)
-
         # get only last 4 lines
-        content = "\n".join(content.split("\n")[-4:])
+        content = "\n".join(recent_stderr[-4:])
         self.text_log.delete(1.0, "end")
         self.text_log.insert(1.0, content)
         self.text_log.see("end")  # scroll to the bottom

@@ -650,7 +650,9 @@ class MainWindow:
             logger.info("Exit successful")
 
     def restart_app(self):
-        if gc.transcribing or gc.translating or gc.recording or (gc.dl_thread and gc.dl_thread.is_alive()):
+        if gc.transcribing or gc.translating or gc.recording or gc.file_processing or (
+            gc.dl_thread and gc.dl_thread.is_alive()
+        ):
             # prompt
             if not mbox(
                 "Restarting app...",
@@ -740,8 +742,6 @@ class MainWindow:
             self.radio_speaker.configure(state="disabled")
 
         # update on start
-        self.cb_source_lang["values"] = engine_select_source_dict[self.cb_model.get()]
-        self.cb_target_lang["values"] = engine_select_target_dict[self.cb_engine.get()]
         self.cb_engine_change()
         self.mode_change()
         self.cb_input_device_init()
@@ -1021,32 +1021,31 @@ class MainWindow:
             sj.save_key("speaker", self.cb_speaker.get())
 
     def cb_engine_change(self, _event=None):
-        if _event:
-            # check if engine is whisper and currently in translate only mode
-            # if yes, will make the transcribe model combobox disabled
-            if _event in model_keys and "selected" in self.cbtn_task_translate.state(
-            ) and "selected" not in self.cbtn_task_transcribe.state():
-                self.cb_model.configure(state="disabled")
-            else:
-                self.cb_model.configure(state="readonly")
-
-            sj.save_key("tl_engine", _event)
-
-            # Then update the target cb list with checks
+        # check if engine is whisper and currently in translate only mode
+        # if yes, will make the transcribe model combobox disabled
+        if _event in model_keys and "selected" in self.cbtn_task_translate.state(
+        ) and "selected" not in self.cbtn_task_transcribe.state():
+            self.cb_source_lang["values"] = engine_select_source_dict[self.cb_engine.get()]
+        else:
             self.cb_source_lang["values"] = engine_select_source_dict[self.cb_model.get()]
-            self.cb_target_lang["values"] = engine_select_target_dict[self.cb_engine.get()]
 
-            # check if the target lang is not in the new list
-            if self.cb_target_lang.get() not in self.cb_target_lang["values"]:
-                self.cb_target_lang.current(0)
+        # Then update the target cb list with checks
+        self.cb_target_lang["values"] = engine_select_target_dict[self.cb_engine.get()]
 
-            # check if the source lang is not in the new list
-            if self.cb_source_lang.get() not in self.cb_source_lang["values"]:
-                self.cb_source_lang.current(0)
+        # check if the target lang is not in the new list
+        if self.cb_target_lang.get() not in self.cb_target_lang["values"]:
+            self.cb_target_lang.current(0)
 
-            # save
-            sj.save_key("sourceLang", self.cb_source_lang.get())
-            sj.save_key("targetLang", self.cb_target_lang.get())
+        # check if the source lang is not in the new list
+        if self.cb_source_lang.get() not in self.cb_source_lang["values"]:
+            self.cb_source_lang.current(0)
+
+        # save
+        sj.save_key("sourceLang", self.cb_source_lang.get())
+        sj.save_key("targetLang", self.cb_target_lang.get())
+
+        if _event:
+            sj.save_key("tl_engine", _event)
 
     # clear textboxes
     def tb_clear(self):
@@ -1509,7 +1508,7 @@ class MainWindow:
             self.disable_interactions()
             self.btn_import_file.configure(text="Loading", command=lambda: self.from_file_stop(True), state="normal")
 
-            gc.enable_rec()  # Flag update
+            gc.enable_file_process()  # Flag update
 
             # Start thread
             try:
@@ -1550,7 +1549,7 @@ class MainWindow:
                 return
 
         logger.info("Cancelling file import processing...")
-        gc.disable_rec()
+        gc.disable_file_process()
         gc.disable_tc()
         gc.disable_tl()
         self.destroy_transient_toplevel("File Import Progress")
@@ -1600,7 +1599,7 @@ class MainWindow:
             self.start_loadBar()
             self.disable_interactions()
 
-            gc.enable_rec()  # Flag update
+            gc.enable_file_process()  # Flag update
 
             # Start thread
             try:
@@ -1631,7 +1630,7 @@ class MainWindow:
                 return
 
         logger.info("Cancelling refinement...")
-        gc.disable_rec()
+        gc.disable_file_process()
 
         if notify:
             mbox(
@@ -1676,7 +1675,7 @@ class MainWindow:
             self.start_loadBar()
             self.disable_interactions()
 
-            gc.enable_rec()  # Flag update
+            gc.enable_file_process()  # Flag update
 
             # Start thread
             try:
@@ -1707,7 +1706,7 @@ class MainWindow:
                 return
 
         logger.info("Cancelling alignment...")
-        gc.disable_rec()
+        gc.disable_file_process()
 
         if notify:
             mbox(
@@ -1722,6 +1721,14 @@ class MainWindow:
         self.enable_interactions()
 
     def translate_file(self):
+        if gc.dl_thread and gc.dl_thread.is_alive():
+            mbox(
+                "Please wait! A model is being downloaded",
+                "A Model is still being downloaded! Please wait until it finishes first!",
+                1,
+            )
+            return
+
         def do_process(engine, lang_target, files):
             # lang is lowered when send from TranslateResultDialog
             # no check because not using any model and no need for ffmpeg
@@ -1730,7 +1737,7 @@ class MainWindow:
             self.start_loadBar()
             self.disable_interactions()
 
-            gc.enable_rec()
+            gc.enable_file_process()
 
             # Start thread
             try:
@@ -1766,7 +1773,7 @@ class MainWindow:
                 return
 
         logger.info("Cancelling translation...")
-        gc.disable_rec()
+        gc.disable_file_process()
 
         if notify:
             mbox(

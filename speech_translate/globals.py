@@ -59,6 +59,7 @@ class BridgeClass:
         # Flags
         self.running: bool = True
         self.recording: bool = False
+        self.file_processing: bool = False
         self.transcribing: bool = False
         self.translating: bool = False
 
@@ -116,6 +117,12 @@ class BridgeClass:
 
     def disable_rec(self):
         self.recording = False
+
+    def enable_file_process(self):
+        self.file_processing = True
+
+    def disable_file_process(self):
+        self.file_processing = False
 
     def enable_tc(self):
         self.transcribing = True

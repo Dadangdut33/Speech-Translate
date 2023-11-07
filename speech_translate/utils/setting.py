@@ -20,7 +20,7 @@ default_setting: SettingDict = {
     "transcribe": True,
     "translate": True,
     "input": "mic",  # mic, speaker
-    "model": "tiny",
+    "model": "small",
     "verbose": False,
     "separate_with": "\\n",
     "mic": "",
@@ -29,7 +29,7 @@ default_setting: SettingDict = {
     "theme": "sun-valley-dark" if isDark() else "sun-valley-light",
     "supress_hidden_to_tray": False,
     "supress_device_warning": False,
-    "mw_size": "950x400",
+    "mw_size": "1000x500",
     "sw_size": "1000x620",
     "dir_log": "auto",
     "dir_model": "auto",
@@ -47,7 +47,7 @@ default_setting: SettingDict = {
     "debug_translate": False,
     # ------------------ #
     # Tl Settings
-    "sourceLang": "Auto Detect",
+    "sourceLang": "English",
     "targetLang": "Indonesian",
     "tl_engine": "Google Translate",
     "https_proxy": "",

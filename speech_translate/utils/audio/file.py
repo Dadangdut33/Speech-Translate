@@ -1,4 +1,5 @@
 from os import path
+import sys
 from datetime import datetime
 from threading import Thread
 from time import gmtime, sleep, strftime, time
@@ -58,8 +59,10 @@ def run_whisper(func, audio: str, task: str, fail_status: List, **kwargs):
     None
     """
     try:
+        sys.stderr.write(f"Running Whisper {task}...\n")
         result = func(audio, task=task, **kwargs)
         gc.data_queue.put(result)
+        sys.stderr.write(f"Whisper {task} done\n")
     except Exception as e:
         logger.exception(e)
         fail_status[0] = True
@@ -95,6 +98,7 @@ def run_translate_api(
         _description_
     """
     try:
+        sys.stderr.write(f"Running Translation with {engine}...\n")
         # translate every text and words in each segments, replace it
         segment_texts = [segment.text for segment in query.segments]
 
@@ -170,6 +174,7 @@ def run_translate_api(
             # remove trailing space in last word
             segment.words[-1].word = segment.words[-1].word.rstrip()
 
+        sys.stderr.write(f"Translation with {engine} done\n")
     except Exception as e:
         logger.exception(e)
         fail_status[0] = True
@@ -479,8 +484,6 @@ def process_file(
         )
         whisper_args = get_tc_args(stable_tc if transcribe else stable_tl, sj.cache)
         whisper_args["language"] = TO_LANGUAGE_CODE[lang_source.lower()] if not auto else None
-        if sj.cache["use_faster_whisper"] and lang_source == "english":  # to remove warning from stable-ts
-            whisper_args["language"] = None
 
         # update button text
         gc.mw.btn_import_file.configure(text="Cancel")
@@ -566,7 +569,7 @@ def process_file(
 
         def update_modal_ui():
             nonlocal t_start, current_file_counter
-            if gc.recording:
+            if gc.file_processing:
 
                 fp.lbl_files.set_text(text=f"{current_file_counter}/{len(data_files)}")
                 fp.lbl_elapsed.set_text(text=f"{strftime('%H:%M:%S', gmtime(time() - t_start))}")
@@ -609,7 +612,7 @@ def process_file(
         gc.enable_tl()
 
         for file in data_files:
-            if not gc.recording:  # if cancel button is pressed
+            if not gc.file_processing:  # if cancel button is pressed
                 return
 
             # Proccess it
@@ -809,7 +812,7 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
 
         def update_modal_ui():
             nonlocal t_start
-            if gc.recording:
+            if gc.file_processing:
 
                 fp.lbl_files.set_text(text=f"{gc.mod_file_counter}/{len(data_files)}")
                 fp.lbl_elapsed.set_text(text=f"{strftime('%H:%M:%S', gmtime(time() - t_start))}")
@@ -858,7 +861,7 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
             fail = False
             fail_msg = ""
 
-            if not gc.recording:  # if cancel button is pressed
+            if not gc.file_processing:  # if cancel button is pressed
                 return
 
             # name and get data
@@ -928,7 +931,7 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
             thread.start()
 
             while thread.is_alive():
-                if not gc.recording:  # borrow gc.recording to check if cancel button is pressed
+                if not gc.file_processing:
                     logger.debug(f"Cancelling {mode}")
                     kill_thread(thread)
                     raise Exception("Cancelled")
@@ -1068,7 +1071,7 @@ def translate_result(data_files: List, engine: str, lang_target: str):
 
         def update_modal_ui():
             nonlocal t_start
-            if gc.recording:
+            if gc.file_processing:
 
                 fp.lbl_files.set_text(text=f"{gc.mod_file_counter}/{len(data_files)}")
                 fp.lbl_elapsed.set_text(text=f"{strftime('%H:%M:%S', gmtime(time() - t_start))}")
@@ -1103,7 +1106,7 @@ def translate_result(data_files: List, engine: str, lang_target: str):
         gc.mw.start_loadBar()
 
         for file in data_files:
-            if not gc.recording:  # cancel button is pressed
+            if not gc.file_processing:  # cancel button is pressed
                 return
 
             # name and get data
@@ -1142,7 +1145,7 @@ def translate_result(data_files: List, engine: str, lang_target: str):
             thread.start()
 
             while thread.is_alive():
-                if not gc.recording:  # borrow gc.recording to check if cancel button is pressed
+                if not gc.file_processing:
                     logger.debug("Cancelling translation")
                     kill_thread(thread)
                     raise Exception("Cancelled")

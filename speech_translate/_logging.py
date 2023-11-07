@@ -23,32 +23,34 @@ def shorten_progress_bar(match):
     return f"{percentage} | {bar} |"
 
 
-class StreamStdoutToLogger(object):
-    """
-    Fake file-like stream object that redirects writes to a logger instance.
-    """
-    def __init__(self, level):
-        self.level = level
-        self.ignore_list = []
+# class StreamStdoutToLogger(object):
+#     """
+#     Fake file-like stream object that redirects writes to a logger instance.
+#     """
+#     def __init__(self, level):
+#         self.level = level
+#         self.ignore_list = []
 
-    def write(self, buf):
-        for line in buf.rstrip().splitlines():
-            line = line.strip()
+#     def write(self, buf):
+#         for line in buf.rstrip().splitlines():
+#             line = line.strip()
 
-            # ignore if any keywords from ignore_list is in the line
-            if any(x in line for x in self.ignore_list):
-                continue
+#             # ignore if any keywords from ignore_list is in the line
+#             if any(x in line for x in self.ignore_list):
+#                 continue
 
-            # checking if line is empty. exception use ^ ~ to point out the error
-            # but we don't need it in logger because logger is per line
-            check_empty = line.replace("^", "").replace("~", "").strip()
-            if len(check_empty) == 0:
-                continue
+#             # checking if line is empty. exception use ^ ~ to point out the error
+#             # but we don't need it in logger because logger is per line
+#             check_empty = line.replace("^", "").replace("~", "").strip()
+#             if len(check_empty) == 0:
+#                 continue
 
-            logger.log(self.level, line)
+#             logger.log(self.level, line)
 
-    def flush(self):
-        pass
+#     def flush(self):
+#         pass
+
+recent_stderr = []
 
 
 class StreamStderrToLogger(object):
@@ -60,7 +62,7 @@ class StreamStderrToLogger(object):
         # tqdm use stderr to print, so we should consider it as info
         self.considered_info = [
             "Downloading", "Fetching", "run_threaded", "Estimating duration from bitrate, this may be inaccurate",
-            "Transcribe", "Translate", "Refine", "Align"
+            "Transcribe", "Translate", "Refine", "Align", "Running", "done"
         ]
 
     def write(self, buf):
@@ -75,9 +77,16 @@ class StreamStderrToLogger(object):
 
             # check where is it from. if keywords from considered_info is in the line then log as info
             if any(x in line for x in self.considered_info):
-                logger.log("INFO", re.sub(r'(\d+%)(\s*)\|(.+?)\|', shorten_progress_bar, line))
+                shorten = re.sub(r'(\d+%)(\s*)\|(.+?)\|', shorten_progress_bar, line)
+                logger.log("INFO", shorten)
+                recent_stderr.append(shorten)
             else:
                 logger.log(self.level, line)
+                recent_stderr.append(line)
+
+            # limit to max 10
+            if len(recent_stderr) > 10:
+                recent_stderr.pop(0)
 
     def flush(self):
         pass
@@ -94,12 +103,12 @@ def init_logging(level):
     logger.remove()
 
     # add handler
-    stdout_id = logger.add(sys.stdout, level=level, backtrace=False, diagnose=True, format=log_format)
+    stdout_id = logger.add(sys.stderr, level=level, backtrace=False, diagnose=True, format=log_format)
     file_id = logger.add(
         dir_log + "/" + current_log, level="DEBUG", encoding="utf-8", backtrace=False, diagnose=True, format=log_format
     )
 
-    sys.stdout = StreamStdoutToLogger("INFO")
+    # sys.stdout = StreamStdoutToLogger("INFO")
     sys.stderr = StreamStderrToLogger("ERROR")
     # tqdm use stderr so we also need to redirect it
     # stderr might be more informative in its original form so you can comment it out if you want when developing
@@ -114,9 +123,9 @@ def change_log_level(level: str):
     file_id = logger.add(dir_log + "/" + current_log, level=level, encoding="utf-8", backtrace=False, diagnose=True)
 
 
-def update_stdout_ignore_list(ignore_list):
-    assert isinstance(sys.stdout, StreamStdoutToLogger)
-    sys.stdout.ignore_list = ignore_list
+# def update_stdout_ignore_list(ignore_list):
+#     assert isinstance(sys.stdout, StreamStdoutToLogger)
+#     sys.stdout.ignore_list = ignore_list
 
 
 def clear_current_log_file():

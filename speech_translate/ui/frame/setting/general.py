@@ -9,7 +9,7 @@ from loguru import logger
 
 from speech_translate.globals import sj, gc
 from speech_translate._path import dir_log, dir_temp, dir_debug
-from speech_translate._logging import current_log, update_stdout_ignore_list, change_log_level
+from speech_translate._logging import current_log, change_log_level
 from speech_translate.utils.helper import popup_menu, emoji_img, up_first_case
 from speech_translate.utils.whisper.download import verify_model_faster_whisper, verify_model_whisper, download_model, get_default_download_root
 from speech_translate.utils.helper import start_file
@@ -163,23 +163,6 @@ class SettingGeneral:
         self.entry_log.pack(side="left", padx=5, fill="x", expand=True)
         tk_tooltip(self.entry_log, "Directory of the app's log file.")
 
-        self.lbl_ignore_stdout = ttk.Label(self.f_logging_2, text="Ignore stdout", width=16)
-        self.lbl_ignore_stdout.pack(side="left", padx=5)
-        tk_tooltip(self.lbl_ignore_stdout, "Collection to ignore stdout / print from the console.")
-
-        self.entry_ignore_stdout = ttk.Entry(self.f_logging_2)
-        self.entry_ignore_stdout.pack(side="left", padx=5, fill="x", expand=True)
-        self.entry_ignore_stdout.insert(0, ', '.join(sj.cache["ignore_stdout"]))
-        self.entry_ignore_stdout.bind("<FocusOut>", lambda e: self.save_ignore_stdout())
-        self.entry_ignore_stdout.bind("<Return>", lambda e: self.save_ignore_stdout())
-
-        tk_tooltip(
-            self.entry_ignore_stdout,
-            "Collection to ignore stdout / print from the console with its input separated by comma.\n\n"
-            "This is useful if you want to ignore some of the stdout / print from the console.\n\n"
-            "Example: `Predicting silences(s) with VAD..., Predicted silences(s) with VAD`",
-            wrapLength=500,
-        )
         self.btn_log_config = ttk.Button(
             self.f_logging_1,
             image=self.wrench_emoji,
@@ -188,6 +171,22 @@ class SettingGeneral:
             command=lambda: popup_menu(self.root, self.menu_config_log),
         )
         self.btn_log_config.pack(side="left", padx=5, pady=5)
+
+        # self.lbl_ignore_stdout = ttk.Label(self.f_logging_2, text="Ignore stdout", width=16)
+        # self.lbl_ignore_stdout.pack(side="left", padx=5)
+        # tk_tooltip(self.lbl_ignore_stdout, "Collection to ignore stdout / print from the console.")
+        # self.entry_ignore_stdout = ttk.Entry(self.f_logging_2)
+        # self.entry_ignore_stdout.pack(side="left", padx=5, fill="x", expand=True)
+        # self.entry_ignore_stdout.insert(0, ', '.join(sj.cache["ignore_stdout"]))
+        # self.entry_ignore_stdout.bind("<FocusOut>", lambda e: self.save_ignore_stdout())
+        # self.entry_ignore_stdout.bind("<Return>", lambda e: self.save_ignore_stdout())
+        # tk_tooltip(
+        #     self.entry_ignore_stdout,
+        #     "Collection to ignore stdout / print from the console with its input separated by comma.\n\n"
+        #     "This is useful if you want to ignore some of the stdout / print from the console.\n\n"
+        #     "Example: `Predicting silences(s) with VAD..., Predicted silences(s) with VAD`",
+        #     wrapLength=500,
+        # )
 
         self.menu_config_log = Menu(self.master, tearoff=0)
         self.menu_config_log.add_command(
@@ -814,9 +813,9 @@ class SettingGeneral:
         if save:
             sj.save_key(key, "auto")
 
-    def save_ignore_stdout(self):
-        _input = self.entry_ignore_stdout.get().split(",")
-        _input = [i.strip() for i in _input if i.strip() != ""]  # remove any empty string or space
+    # def save_ignore_stdout(self):
+    #     _input = self.entry_ignore_stdout.get().split(",")
+    #     _input = [i.strip() for i in _input if i.strip() != ""]  # remove any empty string or space
 
-        sj.save_key("ignore_stdout", _input)
-        update_stdout_ignore_list(_input)
+    #     sj.save_key("ignore_stdout", _input)
+    #     update_stdout_ignore_list(_input)
