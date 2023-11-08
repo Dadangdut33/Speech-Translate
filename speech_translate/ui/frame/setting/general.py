@@ -365,6 +365,9 @@ class SettingGeneral:
         self.model_large_v2 = ModelDownloadFrame(
             self.f_mod_whisper, "Large (v2)", lambda: self.model_btn_checker("large-v2", self.model_large_v2.btn)
         )
+        self.model_large_v3 = ModelDownloadFrame(
+            self.f_mod_whisper, "Large (v3)", lambda: self.model_btn_checker("large-v3", self.model_large_v3.btn)
+        )
 
         self.model_faster_tiny = ModelDownloadFrame(
             self.f_mod_faster, "Tiny", lambda: self.model_btn_checker("tiny", self.model_faster_tiny.btn, True)
@@ -409,6 +412,10 @@ class SettingGeneral:
             self.f_mod_faster, "Large (v2)",
             lambda: self.model_btn_checker("large-v2", self.model_faster_large_v2.btn, True)
         )
+        # self.model_faster_large_v3 = ModelDownloadFrame(
+        #     self.f_mod_faster, "Large (v3)",
+        #     lambda: self.model_btn_checker("large-v3", self.model_faster_large_v3.btn, True)
+        # )
 
         # ------------------ Functions ------------------
         self.init_setting_once()
@@ -539,7 +546,7 @@ class SettingGeneral:
         It will first change btn state to disabled to prevent user from clicking it, set text to "Checking..."
         Then check it and change the text and state accordingly.
         """
-        # if button already says downloaded or download then return
+        # if button already says downloaded or download then return because it means it is already checked
         if btn["text"] in ["Downloaded", "Download"]:
             return
 
@@ -657,6 +664,20 @@ class SettingGeneral:
                     if "invalid command name" not in str(e):
                         logger.exception(e)
 
+            def threaded_large_v3():
+                try:
+                    self.model_btn_checker("large-v3", self.model_large_v3.btn)
+                except Exception as e:
+                    if "invalid command name" not in str(e):
+                        logger.exception(e)
+
+            # def threaded_large_v3_fw():
+            #     try:
+            #         self.model_btn_checker("large-v3", self.model_faster_large_v3.btn, True)
+            #     except Exception as e:
+            #         if "invalid command name" not in str(e):
+            #             logger.exception(e)
+
             check_tiny_w = Thread(target=threaded_tiny_w, daemon=True)
             check_tiny_fw = Thread(target=threaded_tiny_fw, daemon=True)
             check_base_w = Thread(target=threaded_base_w, daemon=True)
@@ -669,6 +690,8 @@ class SettingGeneral:
             check_large_v1_fw = Thread(target=threaded_large_v1_fw, daemon=True)
             check_large_v2_w = Thread(target=threaded_large_v2_w, daemon=True)
             check_large_v2_fw = Thread(target=threaded_large_v2_fw, daemon=True)
+            check_large_v3_w = Thread(target=threaded_large_v3, daemon=True)
+            # check_large_v3_fw = Thread(target=threaded_large_v3_fw, daemon=True)
 
             check_tiny_w.start()
             check_tiny_fw.start()
@@ -699,6 +722,11 @@ class SettingGeneral:
             check_large_v2_fw.start()
             check_large_v2_w.join()
             check_large_v2_fw.join()
+
+            check_large_v3_w.start()
+            # check_large_v3_fw.start()
+            check_large_v3_w.join()
+            # check_large_v3_fw.join()
 
             self.model_checked = True
         except Exception as e:

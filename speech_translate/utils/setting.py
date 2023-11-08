@@ -30,7 +30,7 @@ default_setting: SettingDict = {
     "supress_hidden_to_tray": False,
     "supress_device_warning": False,
     "mw_size": "1000x600",
-    "sw_size": "1000x620",
+    "sw_size": "1100x620",
     "dir_log": "auto",
     "dir_model": "auto",
     "file_slice_start": "",  # empty will be read as None

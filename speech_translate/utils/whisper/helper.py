@@ -24,6 +24,7 @@ model_select_dict = {
     "Medium (~2x speed)": "medium",
     "Large (v1) (1x speed)": "large-v1",
     "Large (v2) (1x speed)": "large-v2",
+    "Large (v3) (1x speed)": "large-v3",
 }
 model_keys = list(model_select_dict.keys())
 model_values = list(model_select_dict.values())
@@ -700,7 +701,7 @@ def get_model(
         model_tc, model_tl, stable_tc, stable_tl
     """
     model_tc, model_tl, stable_tc, stable_tl = None, None, None, None
-    if setting_cache["use_faster_whisper"]:
+    if setting_cache["use_faster_whisper"] and model_name_tc != "large-v3":  # large-v3 is not on faster whisper yet
         if transcribe and translate and model_name_tc == engine:  # same model for both transcribe and translate. Load only once
             logger.debug("Loading model for both transcribe and translate using faster-whisper | Load only once")
             model_tc = stable_whisper.load_faster_whisper(model_name_tc, **model_args)

@@ -1346,7 +1346,7 @@ class MainWindow:
             extramsg = "\n\n*Once started, you cannot cancel or pause the download for downloading faster whisper model." if use_faster_whisper else "\n\n*Once started, you can cancel or pause the download anytime you want."
 
             model_dir = sj.cache["dir_model"] if sj.cache["dir_model"] != "auto" else get_default_download_root()
-            if use_faster_whisper:
+            if use_faster_whisper and model_name != "large-v3":
                 ok = verify_model_faster_whisper(model_name, model_dir)
             else:
                 ok = verify_model_whisper(model_name, model_dir)
