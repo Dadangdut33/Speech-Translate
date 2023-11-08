@@ -1179,13 +1179,17 @@ class MainWindow:
         self.btn_tool.configure(state="normal")
         self.cb_model.configure(state="readonly")
         self.cb_engine.configure(state="readonly")
+        self.radio_mic.configure(state="normal")
+        self.radio_speaker.configure(state="normal")
         self.cb_source_lang.configure(state="readonly")
+        if "selected" not in self.cbtn_task_transcribe.state():
+            self.cb_model.configure(state="disabled")
+        else:
+            self.cb_model.configure(state="readonly")
         if "selected" not in self.cbtn_task_translate.state():
             self.cb_target_lang.configure(state="disabled")
         else:
             self.cb_target_lang.configure(state="readonly")
-        self.radio_mic.configure(state="normal")
-        self.radio_speaker.configure(state="normal")
 
     def start_loadBar(self):
         self.loadBar.configure(mode="indeterminate")

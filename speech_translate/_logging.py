@@ -62,7 +62,7 @@ class StreamStderrToLogger(object):
         # tqdm use stderr to print, so we should consider it as info
         self.considered_info = [
             "Downloading", "Fetching", "run_threaded", "Estimating duration from bitrate, this may be inaccurate",
-            "Transcribe", "Translate", "Refine", "Align", "Running", "done"
+            "Transcribe", "Translate", "Refine", "Align", "Running", "done", "Using cache found in"
         ]
 
     def write(self, buf):

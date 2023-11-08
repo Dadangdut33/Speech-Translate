@@ -25,6 +25,7 @@ from ..translate.translator import translate
 # index 0 (even) is the name of the file, index 1 (odd) is the status (True if success, False if failed)
 processed_tc = []
 processed_tl = []
+global_file_import_counter = 0
 
 
 def update_q_process(list_of_dict: List[dict], index: int, status: str) -> None:
@@ -238,6 +239,7 @@ def cancellable_tc(
     None
     """
     assert gc.mw is not None
+    global global_file_import_counter, processed_tc
     start = time()
 
     try:
@@ -303,6 +305,8 @@ def cancellable_tc(
         else:
             logger.exception(e)
             native_notify("Error: Transcribing Audio", str(e))
+    finally:
+        global_file_import_counter += 1
 
 
 def cancellable_tl(
@@ -347,6 +351,7 @@ def cancellable_tl(
     None
     """
     assert gc.mw is not None
+    global global_file_import_counter, processed_tl
     start = time()
 
     try:
@@ -437,6 +442,8 @@ def cancellable_tl(
         else:
             logger.exception(e)
             native_notify(f"Error: translation with {engine} failed", str(e))
+    finally:
+        global_file_import_counter += 1
 
 
 def process_file(
@@ -486,10 +493,10 @@ def process_file(
 
         # load model
         model_args = get_model_args(sj.cache)
-        _, _, stable_tc, stable_tl = get_model(
+        _, _, stable_tc, stable_tl, to_args = get_model(
             transcribe, translate, tl_engine_whisper, model_name_tc, engine, sj.cache, **model_args
         )
-        whisper_args = get_tc_args(stable_tc if transcribe else stable_tl, sj.cache)
+        whisper_args = get_tc_args(to_args, sj.cache)
         whisper_args["language"] = TO_LANGUAGE_CODE[lang_source.lower()] if not auto else None
 
         # update button text
@@ -501,11 +508,12 @@ def process_file(
         language = f"from {lang_source} to {lang_target}" if translate else lang_source
         logger.info(f"Model Args: {model_args}")
         logger.info(f"Process Args: {whisper_args}")
-        current_file_counter = 0
+        local_file_import_counter = 0
 
-        global processed_tc, processed_tl
+        global processed_tc, processed_tl, global_file_import_counter
         processed_tc = []
         processed_tl = []
+        global_file_import_counter = 0
         all_done = False
 
         def get_queue_data():
@@ -521,11 +529,14 @@ def process_file(
                         status += "Waiting"
 
                 if translate:
+                    if transcribe:
+                        status += ", "
+
                     temp = get_list_of_dict(processed_tl, "index", index)
                     if temp is not None:
-                        status += f", {temp['status']}"
+                        status += f"{temp['status']}"
                     else:
-                        status += ", Waiting"
+                        status += "Waiting"
 
                 show.append([file, status])
 
@@ -575,33 +586,42 @@ def process_file(
                 gc.mw.from_file_stop(prompt=False, notify=True)
 
         def update_modal_ui():
-            nonlocal t_start, current_file_counter
+            nonlocal t_start, local_file_import_counter
             if gc.file_processing:
 
-                fp.lbl_files.set_text(text=f"{current_file_counter}/{len(data_files)}")
+                fp.lbl_files.set_text(text=f"{local_file_import_counter}/{len(data_files)}")
                 fp.lbl_elapsed.set_text(text=f"{strftime('%H:%M:%S', gmtime(time() - t_start))}")
 
-                if current_file_counter > 0:
+                if local_file_import_counter > 0:
                     fp.lbl_files.set_text(
                         text=
-                        f"{current_file_counter}/{len(data_files)} ({filename_only(data_files[current_file_counter - 1])})"
+                        f"{local_file_import_counter}/{len(data_files)} ({filename_only(data_files[local_file_import_counter - 1])})"
                     )
                 else:
                     fp.lbl_files.set_text(
-                        text=f"{current_file_counter}/{len(data_files)} ({filename_only(data_files[current_file_counter])})"
+                        text=
+                        f"{local_file_import_counter}/{len(data_files)} ({filename_only(data_files[local_file_import_counter])})"
                     )
 
                 processed = ""
                 if transcribe:
                     processed += f"{gc.file_tced_counter} Transcribed"
                 if translate:
-                    processed += f", {gc.file_tled_counter} Translated"
+                    if transcribe:
+                        processed += ", "
+                    processed += f"{gc.file_tled_counter} Translated"
                 fp.lbl_processed.set_text(text=processed)
 
                 # update progressbar
-                prog_file_len = len(data_files) * 2 if transcribe and translate else len(data_files)
-                fp.progress_bar["value"] = (current_file_counter / prog_file_len * 100)
+                # times 2 if:
+                # - either transcribe and translating
+                # - or, only translating but not using whisper engine (which means it must get transcribed first, making the process twice)
+                if (transcribe and translate) or (not transcribe and translate and not tl_engine_whisper):
+                    prog_file_len = len(data_files) * 2
+                else:
+                    prog_file_len = len(data_files)
 
+                fp.progress_bar["value"] = (global_file_import_counter / prog_file_len * 100)
                 fp.queue_window.update_sheet(get_queue_data())
                 fp.root.after(1000, update_modal_ui)
 
@@ -645,7 +665,7 @@ def process_file(
             if translate and tl_engine_whisper and not transcribe:  # if only translating and using the whisper engine
                 proc_thread = Thread(
                     target=cancellable_tl,
-                    args=[file, lang_source, lang_target, stable_tl, engine, auto, save_name, current_file_counter],
+                    args=[file, lang_source, lang_target, stable_tl, engine, auto, save_name, global_file_import_counter],
                     kwargs=whisper_args,
                     daemon=True,
                 )
@@ -656,7 +676,7 @@ def process_file(
                     target=cancellable_tc,
                     args=[
                         file, lang_source, lang_target, stable_tc, stable_tl, auto, transcribe, translate, engine, save_name,
-                        current_file_counter
+                        global_file_import_counter
                     ],
                     kwargs=whisper_args,
                     daemon=True,
@@ -664,7 +684,7 @@ def process_file(
 
             proc_thread.start()
             proc_thread.join()  # wait for thread to finish until continue to next file
-            current_file_counter += 1
+            local_file_import_counter += 1
 
             while adding:
                 sleep(0.5)

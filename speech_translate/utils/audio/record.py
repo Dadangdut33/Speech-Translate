@@ -203,15 +203,15 @@ def record_session(
         use_temp = sj.cache["use_temp"]
 
         # cannot transcribe and translate concurrently. Will need to wait for the previous transcribe to finish
-        if translate and tl_engine_whisper:
+        if transcribe and translate and tl_engine_whisper:
             gc.tc_lock = Lock()
 
         # load model first
         model_args = get_model_args(sj.cache)
-        _, _, stable_tc, stable_tl = get_model(
+        _, _, stable_tc, stable_tl, to_args = get_model(
             transcribe, translate, tl_engine_whisper, model_name_tc, engine, sj.cache, **model_args
         )
-        whisper_args = get_tc_args(stable_tc if transcribe else stable_tl, sj.cache)
+        whisper_args = get_tc_args(to_args, sj.cache)
         whisper_args["verbose"] = None  # set to none so no printing of the progress to stdout
         whisper_args["language"] = TO_LANGUAGE_CODE[lang_source.lower()] if not auto else None
         if sj.cache["use_faster_whisper"] and lang_source == "english":
@@ -605,26 +605,26 @@ def record_session(
 
                     gc.update_tl(result, separator)
             else:
-                # transcribing and maybe translating
+                # transcribing or translating
                 if sj.cache["debug_realtime_record"] == 1:
                     logger.info("Transcribing")
 
                 gc.current_rec_status = "▶️ Recording ⟳ Transcribing"
                 # ----------------------------------
                 # checking for lock
-                if translate and tl_engine_whisper:
+                if transcribe and translate and tl_engine_whisper:
                     assert gc.tc_lock is not None
                     gc.tc_lock.acquire()
 
                 # transcribe
-                assert stable_tc is not None
+                assert stable_tc is not None, "Stable_tc model is None"
                 result: stable_whisper.WhisperResult = stable_tc(  # type: ignore
                     audio_target, task="transcribe", **whisper_args
                 )
 
                 # ----------------------------------
                 # checking for lock
-                if translate and tl_engine_whisper:
+                if transcribe and translate and tl_engine_whisper:
                     assert gc.tc_lock is not None
                     gc.tc_lock.release()
 
