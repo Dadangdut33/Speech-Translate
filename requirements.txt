@@ -22,5 +22,5 @@ python-bidi==0.4.2
 matplotlib==3.8.0
 onnxruntime==1.16.1
 demucs==4.0.1
-stable-ts @ git+https://github.com/jianfch/stable-ts.git@5c512a1880b937025792d441b98f5a13ab5a735e
+stable-ts @ git+https://github.com/jianfch/stable-ts.git@b336735ff784bb59690eec8f9f706b0151dda74c
 faster-whisper==0.9.0

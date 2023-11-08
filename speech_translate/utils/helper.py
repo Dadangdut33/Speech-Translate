@@ -80,14 +80,14 @@ def unique_rec_list(list_of_data: List):
         unique_lists = []
         for obj in list_of_data:
             assert isinstance(obj, WhisperResult)
-            tokens = ""
+            meta = ""
             try:
-                tokens = obj.all_tokens()
-                tokens = " ".join([str(token) for token in tokens])
+                # get some metadata in first segment to make it more unique
+                meta = f"{obj.segments[0].avg_logprob:.4f} {obj.segments[0].compression_ratio:.4f} {obj.segments[0].no_speech_prob:.4f}"
             except Exception:
                 pass
 
-            check = f"{obj.text} {tokens}"
+            check = f"{obj.text} {meta}"
             if check not in seen:
                 unique_lists.append(obj)
                 seen.add(check)
