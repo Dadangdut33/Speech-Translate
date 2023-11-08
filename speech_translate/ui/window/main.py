@@ -127,6 +127,9 @@ class Splash(Toplevel):
         self.geometry(geometry)
         self.overrideredirect(True)
         self.resizable(False, False)
+        self.lift()
+        self.attributes('-topmost', True)
+        self.after_idle(self.attributes, '-topmost', False)
 
         self.x = 0
         self.y = 0
@@ -594,6 +597,9 @@ class MainWindow:
         self.splash.destroy()
         self.root.deiconify()
         self.root.geometry(sj.cache["mw_size"])
+        self.root.lift()
+        self.root.attributes('-topmost', True)
+        self.root.after_idle(self.root.attributes, '-topmost', False)
         self.on_init()
         gc.running_after_id = self.root.after(1000, self.is_running_poll)
         # ------------------ Set Icon ------------------
@@ -1184,7 +1190,12 @@ class MainWindow:
         self.radio_mic.configure(state="normal")
         self.radio_speaker.configure(state="normal")
         self.cb_source_lang.configure(state="readonly")
-        self.cb_model.configure(state="readonly")
+
+        if self.cb_engine.get() in model_keys and "selected" in self.cbtn_task_translate.state(
+        ) and "selected" not in self.cbtn_task_transcribe.state():
+            self.cb_model.configure(state="disabled")
+        else:
+            self.cb_model.configure(state="readonly")
         if "selected" not in self.cbtn_task_translate.state():
             self.cb_target_lang.configure(state="disabled")
         else:
@@ -1348,6 +1359,8 @@ class MainWindow:
             if use_faster_whisper and model_name != "large-v3":
                 ok = verify_model_faster_whisper(model_name, model_dir)
             else:
+                if model_name == "large-v3":
+                    logger.warning("large-v3 is not available on faster whisper yet, using whisper instead")
                 ok = verify_model_whisper(model_name, model_dir)
 
             if not ok:
@@ -1415,7 +1428,7 @@ class MainWindow:
 
         # Checking args
         tc, tl, m_key, engine, source, target, mic, speaker = self.get_args()
-        if source == target and (tc and tl):
+        if source == target and tl:
             mbox("Invalid options!", "Source and target language cannot be the same", 2)
             return
 
@@ -1424,7 +1437,7 @@ class MainWindow:
         if not status:
             return
 
-        if engine in model_keys:
+        if engine in model_keys and tl:
             status, engine = self.check_model(engine, source == "english", "recording", self.rec)
             if not status:
                 return
@@ -1508,7 +1521,7 @@ class MainWindow:
             if not status:
                 return False
 
-            if engine in model_keys:
+            if engine in model_keys and tl:
                 status, engine = self.check_model(engine, source == "english", "file import", self.import_file)
                 if not status:
                     return False

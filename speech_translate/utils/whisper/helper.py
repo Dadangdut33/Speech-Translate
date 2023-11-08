@@ -727,6 +727,9 @@ def get_model(
                 model_tc = stable_whisper.load_faster_whisper(model_name_tc, **model_args)
                 stable_tc = model_tc.transcribe_stable  # type: ignore
     else:
+        if model_name_tc == "large-v3":
+            logger.warning("large-v3 is not available on faster whisper yet, using whisper instead")
+
         if transcribe and translate and model_name_tc == engine:  # same model for both transcribe and translate. Load only once
             logger.debug("Loading model for both transcribe and translate using whisper | Load only once")
             model_tc = stable_whisper.load_model(model_name_tc, **model_args)
@@ -752,7 +755,15 @@ def get_model(
                 model_tc = stable_whisper.load_model(model_name_tc, **model_args)
                 stable_tc = model_tc.transcribe_stable
 
-    load_to_tc_args = stable_tc if stable_tc is not None else stable_tl
+    load_to_tc_args = stable_tc if stable_tc is not None else stable_tl  # making sure that the load_to_tc_args is not None
+
+    logger.debug("Model loaded. Status:")
+    logger.debug(f"TC: {model_tc}")
+    logger.debug(f"TL: {model_tl}")
+    logger.debug(f"func_tc: {stable_tc}")
+    logger.debug(f"func_tl: {stable_tl}")
+    logger.debug(f"load_to_tc_args: {load_to_tc_args}")
+
     return model_tc, model_tl, stable_tc, stable_tl, load_to_tc_args
 
 
