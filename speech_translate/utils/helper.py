@@ -80,7 +80,14 @@ def unique_rec_list(list_of_data: List):
         unique_lists = []
         for obj in list_of_data:
             assert isinstance(obj, WhisperResult)
-            check = f"{obj.text} {obj.all_tokens()}"
+            tokens = ""
+            try:
+                tokens = obj.all_tokens()
+                tokens = " ".join([str(token) for token in tokens])
+            except Exception:
+                pass
+
+            check = f"{obj.text} {tokens}"
             if check not in seen:
                 unique_lists.append(obj)
                 seen.add(check)
