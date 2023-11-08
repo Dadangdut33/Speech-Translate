@@ -45,7 +45,7 @@ clear_dir("./speech_translate/log")
 clear_dir("./speech_translate/temp")
 print(">> Done")
 
-folder_name = f"build/SpeechTranslate {version()}"
+folder_name = f"build/SpeechTranslate {version()} {get_env_name()}"
 
 build_exe_options = {
     "excludes": ["yapf", "ruff"],

@@ -2,10 +2,11 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Speech Translate"
-#define MyAppVersion "1.3.0"
+#define MyAppVersion "1.3.1"
 #define MyAppPublisher "Dadangdut33"
 #define MyAppURL "https://github.com/Dadangdut33/Speech-Translate"
 #define MyAppExeName "SpeechTranslate.exe"
+#define EnvName ".venv"
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
@@ -23,7 +24,7 @@ AppUpdatesURL={#MyAppURL}
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
-LicenseFile=build\SpeechTranslate {#MyAppVersion}\LICENSE.txt
+LicenseFile=build\SpeechTranslate {#MyAppVersion} {#EnvName}\LICENSE.txt
 InfoBeforeFile=build\pre_install_note.txt
 InfoAfterFile=build\post_install_note.txt
 ; Remove the following line to run in administrative install mode (install for all users.)
@@ -43,8 +44,8 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "build\SpeechTranslate {#MyAppVersion}\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "build\SpeechTranslate {#MyAppVersion}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "build\SpeechTranslate {#MyAppVersion} {#EnvName}\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "build\SpeechTranslate {#MyAppVersion} {#EnvName}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
