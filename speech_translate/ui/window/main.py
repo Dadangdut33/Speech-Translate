@@ -742,9 +742,9 @@ class MainWindow:
             self.radio_speaker.configure(state="disabled")
 
         # update on start
-        self.cb_engine_change()
         self.mode_change()
         self.cb_input_device_init()
+        self.cb_engine_change(sj.cache["tl_engine"])
 
         windows_os_only([self.radio_speaker, self.cb_speaker, self.lbl_speaker, self.btn_config_speaker])
 
@@ -1036,8 +1036,10 @@ class MainWindow:
         if _event in model_keys and "selected" in self.cbtn_task_translate.state(
         ) and "selected" not in self.cbtn_task_transcribe.state():
             self.cb_source_lang["values"] = engine_select_source_dict[self.cb_engine.get()]
+            self.cb_model.configure(state="disabled")
         else:
             self.cb_source_lang["values"] = engine_select_source_dict[self.cb_model.get()]
+            self.cb_model.configure(state="readonly")
 
         # Then update the target cb list with checks
         self.cb_target_lang["values"] = engine_select_target_dict[self.cb_engine.get()]
@@ -1130,7 +1132,7 @@ class MainWindow:
             self.cb_source_lang.configure(state="readonly")
             self.cb_target_lang.configure(state="readonly")
             self.cb_engine.configure(state="readonly")
-            self.cb_model.configure(state="disabled")
+            self.cb_model.configure(state="readonly")
             self.enable_rec()
 
         else:  # both not selected
@@ -1182,10 +1184,7 @@ class MainWindow:
         self.radio_mic.configure(state="normal")
         self.radio_speaker.configure(state="normal")
         self.cb_source_lang.configure(state="readonly")
-        if "selected" not in self.cbtn_task_transcribe.state():
-            self.cb_model.configure(state="disabled")
-        else:
-            self.cb_model.configure(state="readonly")
+        self.cb_model.configure(state="readonly")
         if "selected" not in self.cbtn_task_translate.state():
             self.cb_target_lang.configure(state="disabled")
         else:

@@ -662,7 +662,8 @@ def process_file(
                     )
                 )
 
-            if translate and tl_engine_whisper and not transcribe:  # if only translating and using the whisper engine
+            # if only translating and using the whisper engine
+            if translate and tl_engine_whisper and not transcribe:
                 proc_thread = Thread(
                     target=cancellable_tl,
                     args=[file, lang_source, lang_target, stable_tl, engine, auto, save_name, global_file_import_counter],

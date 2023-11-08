@@ -199,10 +199,12 @@ class FileImportDialog(FileOperationDialog):
         def cb_engine_change(_event=None):
             # check if engine is whisper and currently in translate only mode
             # if yes, will make the source lang use based on the engine
-            if _event in model_keys and self.var_task_transcribe.get() and not self.var_task_translate.get():
+            if _event in model_keys and self.var_task_translate.get() and not self.var_task_transcribe.get():
                 self.cb_source_lang["values"] = engine_select_source_dict[self.var_engine.get()]
+                self.cb_model.configure(state="disabled")
             else:
                 self.cb_source_lang["values"] = engine_select_source_dict[self.var_model.get()]
+                self.cb_model.configure(state="readonly")
 
             # Then update the target cb list with checks
             self.cb_target_lang["values"] = engine_select_target_dict[self.var_engine.get()]
@@ -234,7 +236,7 @@ class FileImportDialog(FileOperationDialog):
                 self.cb_source_lang.configure(state="readonly")
                 self.cb_target_lang.configure(state="readonly")
                 self.cb_engine.configure(state="readonly")
-                self.cb_model.configure(state="disabled")
+                self.cb_model.configure(state="readonly")
                 self.btn_start.configure(state="normal")
 
             else:
@@ -298,6 +300,7 @@ class FileImportDialog(FileOperationDialog):
         self.cb_target_lang["values"] = engine_select_target_dict[self.var_engine.get()]
 
         cbtn_task_change()
+        cb_engine_change(self.var_model.get())
 
     def add_data(self):
         files = filedialog.askopenfilenames(

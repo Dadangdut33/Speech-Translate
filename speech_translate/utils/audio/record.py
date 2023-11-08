@@ -579,8 +579,8 @@ def record_session(
                     remove(temp_list[0])
                     temp_list.pop(0)
 
+            # If only translating and its using whisper engine
             if translate and tl_engine_whisper and not transcribe:
-                # If only translating and its using whisper engine
                 if sj.cache["debug_realtime_record"] == 1:
                     logger.info("Translating")
                 gc.current_rec_status = "▶️ Recording ⟳ Translating"
@@ -605,7 +605,8 @@ def record_session(
 
                     gc.update_tl(result, separator)
             else:
-                # transcribing or translating
+                # will automatically check translate on or not depend on input
+                # translate is called from here because other engine need to get transcribed text first if translating
                 if sj.cache["debug_realtime_record"] == 1:
                     logger.info("Transcribing")
 
@@ -616,7 +617,7 @@ def record_session(
                     assert gc.tc_lock is not None
                     gc.tc_lock.acquire()
 
-                # transcribe
+                # transcribe first
                 assert stable_tc is not None, "Stable_tc model is None"
                 result: stable_whisper.WhisperResult = stable_tc(  # type: ignore
                     audio_target, task="transcribe", **whisper_args
