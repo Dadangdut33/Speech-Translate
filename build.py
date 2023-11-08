@@ -39,6 +39,7 @@ def clear_dir(dir):
 
 
 print(">> Clearing code folder")
+clear_dir("./speech_translate/_user")
 clear_dir("./speech_translate/export")
 clear_dir("./speech_translate/debug")
 clear_dir("./speech_translate/log")
