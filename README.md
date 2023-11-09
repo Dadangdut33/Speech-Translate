@@ -54,33 +54,33 @@ Speech Translate aims to expand whisper ability by combining it with some transl
 
 <h1>Table Of Contents</h1>
 
-- [Features](#features)
-- [Requirements](#requirements)
-- [Installation](#installation)
+- [🚀 Features](#-features)
+- [📜 Requirements](#-requirements)
+- [🔧 Installation](#-installation)
   - [From Prebuilt Binary](#from-prebuilt-binary)
   - [As A Module](#as-a-module)
   - [From Git](#from-git)
-- [More Information](#more-information)
-- [Building / Developing / Compiling Yourself](#building--developing--compiling-yourself)
+- [📚 More Information](#-more-information)
+- [🛠️ Building / Developing / Compiling Yourself](#️-building--developing--compiling-yourself)
   - [Setup](#setup)
   - [Running the app](#running-the-app)
   - [Building](#building)
   - [Compatibility](#compatibility)
-- [Contributing](#contributing)
+- [💡 Contributing](#-contributing)
 - [License](#license)
 - [Attribution](#attribution)
 - [Other](#other)
 
-# Features
+# 🚀 Features
 
-- Speech to text and/or Speech translation (transcribed text can be translated to other languages) with live input from mic or speaker
-- Customizable [subtitle window](https://github.com/Dadangdut33/Speech-Translate/raw/master/preview/13.png) for live speech to text and/or speech translation
-- Batch file processing of audio / video files for transcription and translation with output of (.txt .srt .ass .tsv .vtt .json)
-- Result [refinement](https://github.com/jianfch/stable-ts#refinement)
+- Speech to text and/or Speech translation (transcribed text can be translated to other languages) with live input from mic or speaker 🎙️
+- Customizable [subtitle window](https://github.com/Dadangdut33/Speech-Translate/raw/master/preview/13.png) for live speech to text and/or speech translation 
+- Batch file processing of audio / video files for transcription and translation with output of (.txt .srt .ass .tsv .vtt .json) 📂
+- Result [refinement](https://github.com/jianfch/stable-ts#refinement) 
 - Result [alignment](https://github.com/jianfch/stable-ts#alignment)
 - Result translation (Translate only the result.json)
 
-# Requirements
+# 📜 Requirements
 
 - Compatible OS: 
 
@@ -136,7 +136,7 @@ brew install ffmpeg
 \* This information is also available in the app (hover over the model selection in the app and there will be a tooltip about the model info). Also note that when using faster-whisper, the speed will be significantly faster and the model size will be reduced depending on the usage, for more information about this please visit [faster-whisper repository](https://github.com/guillaumekln/faster-whisper)
 
 
-# Installation
+# 🔧 Installation
 
 > [!IMPORTANT]  
 > Please take a look at the [Requirements](#requirements) first before installing. For more information about the usage of the app, please check the [wiki](https://github.com/Dadangdut33/Speech-Translate/wiki)
@@ -179,11 +179,11 @@ You can then run the program by typing `speech-translate` in your terminal/conso
 
 If you prefer cloning the app directly from git/github, you can follow the guide in [development](https://github.com/Dadangdut33/Speech-Translate/wiki/Development) instead. Doing it this way might also provide a more stable environment.
 
-# More Information
+# 📚 More Information
 
 Check out the [wiki](https://github.com/Dadangdut33/Speech-Translate/wiki) for more information about the app, user settings, how to use it, and more.
 
-# Building / Developing / Compiling Yourself
+# 🛠️ Building / Developing / Compiling Yourself
 
 > [!IMPORTANT]  
 > Make sure that you have installed [FFmpeg](https://ffmpeg.org/) and added it to the PATH environment variable. [See here](#requirements) for more info
@@ -222,7 +222,7 @@ To compile it into an exe run `python build.py build_exe` in the **root director
 This project should be compatible with Windows (preferrably windows 10 or later) and other platforms. But I haven't tested it extensively on other platforms. If you find any bugs or issues, feel free to create an issue.
 
 
-# Contributing
+# 💡 Contributing
 
 Feel free to contribute to this project by forking the repository, making your changes, and submitting a pull request. You can also contribute by creating an issue if you find a bug or have a feature request. Also, feel free to give this project a star if you like it.
 
