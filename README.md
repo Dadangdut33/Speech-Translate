@@ -73,10 +73,12 @@ Speech Translate aims to expand whisper ability by combining it with some transl
 
 # Features
 
-- Speech to text
-- Speech translation (transcribed text can be translated to other languages)
-- Live input from mic and speaker
-- Batch file processing of audio / video files for transcription and translation with output of (.txt .srt .tsv .vtt .json)
+- Speech to text and/or Speech translation (transcribed text can be translated to other languages) with live input from mic or speaker
+- Customizable [subtitle window](https://github.com/Dadangdut33/Speech-Translate/raw/master/preview/13.png) for live speech to text and/or speech translation
+- Batch file processing of audio / video files for transcription and translation with output of (.txt .srt .ass .tsv .vtt .json)
+- Result [refinement](https://github.com/jianfch/stable-ts#refinement)
+- Result [alignment](https://github.com/jianfch/stable-ts#alignment)
+- Result translation (Translate only the result.json)
 
 # Requirements
 
