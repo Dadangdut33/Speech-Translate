@@ -816,7 +816,7 @@ class FileProcessDialog:
         )
         self.cbtn_open_folder.pack(side="left", fill="x", padx=5, pady=5)
 
-        self.queue_window = QueueDialog(self.root, "Result Translate Queue", header, [[]], theme=sj.cache["theme"])
+        self.queue_window = QueueDialog(self.root, f"{title} Queue", header, [[]], theme=sj.cache["theme"])
         self.queue_window.update_sheet()
 
         self.btn_add = ttk.Button(self.frame_btn_1, text="Add", state="disabled")
