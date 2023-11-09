@@ -3,11 +3,11 @@ from platform import processor, release, system, version
 from signal import SIGINT, signal  # Import the signal module to handle Ctrl+C
 from threading import Thread
 from time import strftime
-from tkinter import Frame, Menu, StringVar, Tk, Toplevel, filedialog, ttk, Canvas
+from tkinter import Frame, Menu, StringVar, Tk, Toplevel, filedialog, ttk
 from typing import Dict, Literal
 
 from loguru import logger
-from PIL import Image, ImageDraw, ImageTk
+from PIL import Image, ImageDraw
 from pystray import Icon as icon
 from pystray import Menu as menu
 from pystray import MenuItem as item
@@ -15,7 +15,7 @@ from torch import cuda
 from stable_whisper import WhisperResult
 
 from speech_translate._constants import APP_NAME
-from speech_translate._path import app_icon, splash_image
+from speech_translate._path import app_icon
 from speech_translate._version import __version__
 from speech_translate.ui.custom.checkbutton import CustomCheckButton
 from speech_translate.ui.custom.combobox import CategorizedComboBox, ComboboxWithKeyNav
@@ -120,60 +120,6 @@ class AppTray:
         gc.running = False
 
 
-class Splash(Toplevel):
-    def __init__(self, parent, geometry):
-        Toplevel.__init__(self, parent)
-        self.title("Splash")
-        self.geometry(geometry)
-        self.overrideredirect(True)
-        self.resizable(False, False)
-        self.lift()
-        self.attributes('-topmost', True)
-        self.after_idle(self.attributes, '-topmost', False)
-
-        self.x = 0
-        self.y = 0
-        self.bind("<Button-1>", self.start_move)
-        self.bind("<ButtonRelease-1>", self.stop_move)
-        self.bind("<B1-Motion>", self.on_motion)
-
-        # load image file
-        try:
-            self.image = Image.open(splash_image)
-            self.image = self.image.resize((640, 360))
-        except Exception:
-            logger.error("Splash image not found")
-            self.image = Image.new("RGB", (640, 360), "black")
-
-        # load image to canvas
-        self.canvas = Canvas(self, width=768, height=345, highlightthickness=0)
-        self.canvas.pack(pady=0, ipady=0)
-
-        self.imgtk = ImageTk.PhotoImage(self.image)
-        self.canvas.create_image(0, 170, anchor="w", image=self.imgtk)
-
-        self.loadbar = ttk.Progressbar(self, orient="horizontal", length=200, mode="indeterminate")
-        self.loadbar.pack(side="bottom", fill="x", pady=0, ipady=0)
-        self.loadbar.start(15)
-
-        ## required to make window show before the program gets to the mainloop
-        self.update()
-
-    def start_move(self, event):
-        self.x = event.x_root - self.winfo_x()
-        self.y = event.y_root - self.winfo_y()
-
-    def stop_move(self, event):
-        self.x = None
-        self.y = None
-
-    def on_motion(self, event):
-        if self.x is not None and self.y is not None:
-            new_x = event.x_root - self.x
-            new_y = event.y_root - self.y
-            self.geometry("+%s+%s" % (new_x, new_y))
-
-
 class MainWindow:
     """
     Main window of the app
@@ -214,9 +160,6 @@ class MainWindow:
         gc.theme_lists.insert(len(gc.theme_lists), "custom")
 
         set_ui_style(sj.cache["theme"])
-
-        self.splash = Splash(self.root, f"640x360+{self.root.winfo_x() + 300}+{self.root.winfo_y() + 200}")
-        self.root.withdraw()
 
         gc.wrench_emoji = emoji_img(16, "     🛠️")
         gc.folder_emoji = emoji_img(13, " 📂")
@@ -594,8 +537,6 @@ class MainWindow:
 
         # ------------------ on Start ------------------
         bind_focus_recursively(self.root, self.root)
-        self.splash.destroy()
-        self.root.deiconify()
         self.root.geometry(sj.cache["mw_size"])
         self.root.lift()
         self.root.attributes('-topmost', True)

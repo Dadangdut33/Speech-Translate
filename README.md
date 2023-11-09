@@ -59,6 +59,7 @@ Speech Translate aims to expand whisper ability by combining it with some transl
 - [Installation](#installation)
   - [From Prebuilt Binary](#from-prebuilt-binary)
   - [As A Module](#as-a-module)
+  - [From Git](#from-git)
 - [More Information](#more-information)
 - [Building / Developing / Compiling Yourself](#building--developing--compiling-yourself)
   - [Setup](#setup)
@@ -172,6 +173,10 @@ You can then run the program by typing `speech-translate` in your terminal/conso
 - If you want to **install** from a **specific branch or commit**, you can do it by adding `@branch_name` or `@commit_hash` at the end of the url. Example: `pip install -U git+https://github.com/Dadangdut33/Speech-Translate.git@dev --extra-index-url https://download.pytorch.org/whl/cu118`
 - The **--extra-index-url here might not always be up to date**, so you can check the latest version of pytorch [here](https://pytorch.org/get-started/locally/). You can also check the available version of pytorch [here](https://download.pytorch.org/whl/torch_stable.html). If the newest version is not compatible then please keep using the current url shown here.
 
+## From Git
+
+If you prefer cloning the app directly from git/github, you can follow the guide in [development](https://github.com/Dadangdut33/Speech-Translate/wiki/Development) instead. Doing it this way might also provide a more stable environment.
+
 # More Information
 
 Check out the [wiki](https://github.com/Dadangdut33/Speech-Translate/wiki) for more information about the app, user settings, how to use it, and more.
@@ -196,7 +201,7 @@ Check out the [wiki](https://github.com/Dadangdut33/Speech-Translate/wiki) for m
 2. Activate your virtual environment by running `source venv/bin/activate`
 3. Install all the dependencies needed by running `pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu118` if you are using GPU or `pip install -r requirements.txt` if you are using CPU.
 4. Make sure to have ffmpeg installed and added to your PATH
-5. Get to root directory and Run the script by typing `python Main.py`
+5. Get to root directory and Run the script by typing `python Run.py`
 
 ## Running the app
 
@@ -204,7 +209,11 @@ You can run the app by running the [`Run.py`](./Run.py) located in **root direct
 
 ## Building
 
-Before compiling the project, make sure you have installed all the dependencies and setup your pytorch correctly. Your pytorch version will control wether the app will use GPU or CPU (that's why it's recommended to make virtual environment for the project). The pre compiled version in this project is built using cx_freeze, i have provided the script in [build.py](./build.py). To compile it into an exe run `python build.py build` in the **root directory**. This will produce an executable file in the `build` directory. After that, use innosetup script to create an installer. You can use the provided [installer.iss](./installer.iss) to create an installer. 
+**Before compiling the project**, make sure you have installed all the dependencies and setup your pytorch correctly. Your pytorch version will control wether the app will use GPU or CPU (that's why it's recommended to make virtual environment for the project). 
+
+The pre compiled version in this project is built using cx_freeze, we have provided the script in [build.py](./build.py). This build script is only configured for windows build at the moment, but feel free to contribute if you know how to build properly for other OS.
+
+To compile it into an exe run `python build.py build_exe` in the **root directory**. This will produce a folder containing the compiled project alongside an executable in the `build` directory. After that, use innosetup script to create an installer. You can use the provided [installer.iss](./installer.iss) to create the installer. 
 
 ## Compatibility
 
