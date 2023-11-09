@@ -123,7 +123,7 @@ sudo pacman -S ffmpeg
 brew install ffmpeg
 ```
 
-- Recommended to have capable GPU with CUDA compatibility to run each model. Each model has different requirements, for more information you can check it directly at the [whisper repository](https://github.com/openai/whisper).
+- Recommended to have capable [GPU with CUDA compatibility](https://developer.nvidia.com/cuda-gpus) (prebuilt version is using CUDA 11.8) to run each model. Each whisper model has different requirements, for more information you can check it directly at the [whisper repository](https://github.com/openai/whisper).
 
 |  Size  | Parameters | English-only model | Multilingual model | Required VRAM | Relative speed |
 |:------:|:----------:|:------------------:|:------------------:|:-------------:|:--------------:|
@@ -142,6 +142,9 @@ brew install ffmpeg
 > Please take a look at the [Requirements](#requirements) first before installing. For more information about the usage of the app, please check the [wiki](https://github.com/Dadangdut33/Speech-Translate/wiki)
 
 ## From Prebuilt Binary
+
+> [!NOTE]  
+> The prebuilt binary is shipped with CUDA 11.8, so it will only work with GPU that has CUDA 11.8 compatibility. If your GPU is not compatible, you can try [installation as module](#as-a-module) or [from git](#From-Git) below.
 
 1. Download the [latest release](https://github.com/Dadangdut33/Speech-Translate/releases/latest) (There are 2 versions, CPU and GPU)
 2. Install/extract the downloaded file
@@ -163,6 +166,8 @@ To install as module, we can use pip, with the following command.
   
   `pip install -U git+https://github.com/Dadangdut33/Speech-Translate.git --extra-index-url https://download.pytorch.org/whl/cu118`
 
+  cu118 here means CUDA 11.8, you can change it to other version if you need to. You can check older version of pytorch [here](https://pytorch.org/get-started/previous-versions/) or [here](https://download.pytorch.org/whl/torch_stable.html).
+
 - **CPU** only:
   
   `pip install -U git+https://github.com/Dadangdut33/Speech-Translate.git`
@@ -173,7 +178,7 @@ You can then run the program by typing `speech-translate` in your terminal/conso
 
 - If you are **updating from an older version**, you need to add `--upgrade --force-reinstall` at the end of the command, if the update does not need new dependencies you can add `--no-deps` at the end of the command to speed up the installation process.
 - If you want to **install** from a **specific branch or commit**, you can do it by adding `@branch_name` or `@commit_hash` at the end of the url. Example: `pip install -U git+https://github.com/Dadangdut33/Speech-Translate.git@dev --extra-index-url https://download.pytorch.org/whl/cu118`
-- The **--extra-index-url here might not always be up to date**, so you can check the latest version of pytorch [here](https://pytorch.org/get-started/locally/). You can also check the available version of pytorch [here](https://download.pytorch.org/whl/torch_stable.html). If the newest version is not compatible then please keep using the current url shown here.
+- The **--extra-index-url here might not always be up to date or compatible with your system**. You can check the latest version of pytorch [here](https://pytorch.org/get-started/locally/). You can check older version of pytorch [here](https://pytorch.org/get-started/previous-versions/) or [here](https://download.pytorch.org/whl/torch_stable.html).
 
 ## From Git
 
