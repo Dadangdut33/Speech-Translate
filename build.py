@@ -38,6 +38,13 @@ def clear_dir(dir):
         print(f">> Failed to clear {dir} reason: {e}")
 
 
+def get_whisper_version_from_requirements_txt():
+    with open("requirements.txt", "r", encoding="utf-8") as f:
+        for line in f.readlines():
+            if line.startswith("openai-whisper"):
+                return line.split("==")[1].strip()
+
+
 print(">> Clearing code folder")
 clear_dir("./speech_translate/_user")
 clear_dir("./speech_translate/export")
@@ -45,12 +52,13 @@ clear_dir("./speech_translate/debug")
 clear_dir("./speech_translate/log")
 clear_dir("./speech_translate/temp")
 print(">> Done")
+print("Whisper version:", get_whisper_version_from_requirements_txt())
 
 folder_name = f"build/SpeechTranslate {version()} {get_env_name()}"
 
 build_exe_options = {
     "excludes": ["yapf", "ruff"],
-    "packages": ["torch", "soundfile", "sounddevice", "av"],
+    "packages": ["torch", "soundfile", "sounddevice", "av", "stable_whisper", "faster_whisper", "whisper"],
     "build_exe": folder_name
 }
 
@@ -82,6 +90,13 @@ print(">> Copying some more files...")
 # we need to copy av.libs to foldername/lib because cx_freeze doesn't copy it for some reason
 print(">> Copying av.libs to lib folder")
 shutil.copytree(f"{get_env_name()}/Lib/site-packages/av.libs", f"{folder_name}/lib/av.libs")
+
+# we also need to copy openai_whisper-{version}.dist-info to foldername/lib because cx_freeze doesn't copy it
+print(">> Copying whisper metadata to lib folder")
+shutil.copytree(
+    f"{get_env_name()}/Lib/site-packages/openai_whisper-{get_whisper_version_from_requirements_txt()}.dist-info",
+    f"{folder_name}/lib/openai_whisper-{get_whisper_version_from_requirements_txt()}.dist-info"
+)
 
 # copy Lincese as license.txt to build folder
 print(">> Creating license.txt to build folder")
