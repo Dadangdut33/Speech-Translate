@@ -9,7 +9,7 @@ from speech_translate._constants import APP_NAME
 from speech_translate._path import app_icon
 from speech_translate._version import __version__
 from speech_translate.ui.custom.tooltip import tk_tooltip
-from speech_translate.globals import gc, sj
+from speech_translate.linker import bc, sj
 from speech_translate.utils.helper import open_url, native_notify
 
 
@@ -87,7 +87,7 @@ class AboutWindow:
         self.lbl_check_update.bind("<Button-1>", self.update_func)
         self.tooltip_check_update = tk_tooltip(self.lbl_check_update, "Click to check for update")
 
-        self.lbl_cuda = ttk.Label(self.f_bot_l_2, text="CUDA: " + gc.cuda)
+        self.lbl_cuda = ttk.Label(self.f_bot_l_2, text="CUDA: " + bc.cuda)
         self.lbl_cuda.pack(padx=5, pady=2, ipadx=0, side="left")
 
         # Button
@@ -95,7 +95,7 @@ class AboutWindow:
         self.btn_ok.pack(padx=5, pady=5, side="right")
 
         # ------------------------------
-        gc.about = self
+        bc.about = self
         self.checking = False
         self.checkingOnStart = False
         self.checkedGet = None

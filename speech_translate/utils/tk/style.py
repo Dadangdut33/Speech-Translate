@@ -17,7 +17,7 @@ from tkinter import ttk, TclError
 
 from loguru import logger
 
-from speech_translate.globals import gc, sj
+from speech_translate.linker import bc, sj
 from speech_translate._path import dir_theme
 from speech_translate.ui.custom.message import mbox
 
@@ -34,37 +34,37 @@ def set_ui_style(theme: str, root=None):
         logger.exception(e)
         logger.debug("Setting theme failed, converting back to default native theme")
         mbox("Error", f"Failed to set `{theme}` theme, converting back to default native theme", 2, root)
-        theme = gc.native_theme
+        theme = bc.native_theme
         set_theme(theme)
         sj.save_key("theme", theme)
 
     # -----------------------
-    assert gc.style is not None
+    assert bc.style is not None
     # Global style
-    if "light" in theme.lower() or theme == gc.native_theme:
+    if "light" in theme.lower() or theme == bc.native_theme:
         logger.debug("Setting custom light theme style")
-        gc.style.configure("Bottom.TFrame", background="#f0f0f0")
-        gc.style.configure("Brighter.TFrame", background="#ffffff")
-        gc.style.configure("BrighterTFrameBg.TLabel", background="#ffffff")
-        gc.style.configure("Darker.TFrame", background="#000000")
+        bc.style.configure("Bottom.TFrame", background="#f0f0f0")
+        bc.style.configure("Brighter.TFrame", background="#ffffff")
+        bc.style.configure("BrighterTFrameBg.TLabel", background="#ffffff")
+        bc.style.configure("Darker.TFrame", background="#000000")
     else:
         logger.debug("Setting custom dark theme style")
-        gc.style.configure("Bottom.TFrame", background="#1e1e1e")
-        gc.style.configure("Brighter.TFrame", background="#2e2e2e")
-        gc.style.configure("BrighterTFrameBg.TLabel", background="#2e2e2e")
-        gc.style.configure("Darker.TFrame", background="#bdbdbd")
+        bc.style.configure("Bottom.TFrame", background="#1e1e1e")
+        bc.style.configure("Brighter.TFrame", background="#2e2e2e")
+        bc.style.configure("BrighterTFrameBg.TLabel", background="#2e2e2e")
+        bc.style.configure("Darker.TFrame", background="#bdbdbd")
 
     return success
 
 
 def get_root() -> tk.Tk:
-    assert gc.mw is not None
-    return gc.mw.root
+    assert bc.mw is not None
+    return bc.mw.root
 
 
 def get_style() -> ttk.Style:
-    assert gc.style is not None
-    return gc.style
+    assert bc.style is not None
+    return bc.style
 
 
 def init_theme():

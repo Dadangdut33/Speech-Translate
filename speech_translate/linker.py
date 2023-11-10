@@ -1,6 +1,5 @@
 import os
 import copy
-import subprocess
 from ast import literal_eval
 from platform import system
 from shlex import quote
@@ -8,12 +7,10 @@ from threading import Lock, Thread
 from tkinter import ttk
 from PIL import ImageTk
 from typing import TYPE_CHECKING, List, Literal, Optional, Sequence, Union
-from warnings import simplefilter
 
 from stable_whisper import WhisperResult
 from arabic_reshaper import reshape
 from bidi.algorithm import get_display
-from numba.core.errors import NumbaDeprecationWarning, NumbaPendingDeprecationWarning
 
 from speech_translate.utils.types import ToInsert
 from speech_translate.utils.helper import generate_color, html_to_separator, wrap_result
@@ -27,23 +24,6 @@ else:
     # to get qsize on platform other than windows
     from .utils.custom.queue import MyQueue as Queue
     import pyaudio  # type: ignore
-
-
-# monkey patch subprocess.run
-class NoConsolePopen(subprocess.Popen):
-    def __init__(self, args, **kwargs):
-        if 'startupinfo' not in kwargs:
-            kwargs['startupinfo'] = subprocess.STARTUPINFO()
-            kwargs['startupinfo'].dwFlags |= subprocess.STARTF_USESHOWWINDOW
-        super().__init__(args, **kwargs)
-
-
-subprocess.Popen = NoConsolePopen
-
-# remove numba warnings
-simplefilter("ignore", category=NumbaDeprecationWarning)
-simplefilter("ignore", category=NumbaPendingDeprecationWarning)
-simplefilter("ignore", category=UserWarning)  # supress general user warning like in pytorch
 
 # Forward declaration for type hinting
 if TYPE_CHECKING:
@@ -412,4 +392,4 @@ class BridgeClass:
 
 
 # ------------------ #
-gc = BridgeClass()
+bc = BridgeClass()

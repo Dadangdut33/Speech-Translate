@@ -8,7 +8,7 @@ from speech_translate.ui.frame.setting.record import SettingRecord
 from speech_translate.ui.frame.setting.textbox import SettingTextbox
 from speech_translate.ui.frame.setting.transcribe import SettingTranscribe
 from speech_translate.ui.frame.setting.translate import SettingTranslate
-from speech_translate.globals import gc, sj
+from speech_translate.linker import bc, sj
 from speech_translate.utils.helper import bind_focus_recursively
 
 
@@ -18,7 +18,7 @@ class SettingWindow:
     """
     def __init__(self, master: Tk):
         # Flags
-        gc.sw = self  # Add self to global class
+        bc.sw = self  # Add self to global class
 
         self.root = Toplevel(master)
 

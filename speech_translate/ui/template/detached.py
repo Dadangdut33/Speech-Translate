@@ -6,7 +6,7 @@ from speech_translate._path import app_icon
 from speech_translate.ui.custom.label import DraggableHtmlLabel
 from speech_translate.ui.custom.message import mbox
 from speech_translate.ui.custom.tooltip import tk_tooltip
-from speech_translate.globals import gc, sj
+from speech_translate.linker import bc, sj
 from speech_translate.utils.audio.beep import beep
 from speech_translate.utils.helper import emoji_img
 
@@ -44,10 +44,10 @@ class SubtitleWindow:
         self.no_title_bar = IntVar()
         self.click_through = IntVar()
         if winType == "tc":
-            gc.ex_tcw = self  # type: ignore
+            bc.ex_tcw = self  # type: ignore
             self.winString = "Transcribe"
         elif winType == "tl":
-            gc.ex_tlw = self  # type: ignore
+            bc.ex_tlw = self  # type: ignore
             self.winString = "Translate"
 
         self.lbl_text = DraggableHtmlLabel(self.root, self.root)
@@ -230,7 +230,7 @@ class SubtitleWindow:
         self.root.overrideredirect(True if self.no_title_bar.get() == 1 else False)
 
     def update_window_bg(self):
-        assert gc.style is not None
+        assert bc.style is not None
         self.root.configure(background=sj.cache[f"tb_ex_{self.winType}_bg_color"])
         self.lbl_text.configure(background=sj.cache[f"tb_ex_{self.winType}_bg_color"])
 

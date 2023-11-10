@@ -30,7 +30,7 @@ from speech_translate.ui.custom.label import LabelTitleText
 from speech_translate.ui.custom.message import mbox
 from speech_translate.ui.custom.audio import AudioMeter
 from speech_translate._logging import logger
-from speech_translate.globals import gc, sj
+from speech_translate.linker import bc, sj
 from speech_translate.utils.audio.device import get_db, get_device_details, get_frame_duration, get_speech, resample_sr
 
 from ..helper import cbtn_invoker, generate_temp_filename, get_channel_int, get_proxies, native_notify, separator_to_html, unique_rec_list
@@ -76,9 +76,8 @@ def record_session(
     ----
     None
     """
-    assert gc.mw is not None
-    # print_disabled = False
-    master = gc.mw.root
+    assert bc.mw is not None
+    master = bc.mw.root
     root = Toplevel(master)
     root.title("Loading...")
     root.transient(master)
@@ -206,7 +205,7 @@ def record_session(
 
         # cannot transcribe and translate concurrently. Will need to wait for the previous transcribe to finish
         if transcribe and translate and tl_engine_whisper:
-            gc.tc_lock = Lock()
+            bc.tc_lock = Lock()
 
         # load model first
         model_args = get_model_args(sj.cache)
@@ -226,7 +225,7 @@ def record_session(
         # if only translate to english using whisper engine
         task = "translate" if tl_engine_whisper and translate and not transcribe else "transcribe"
 
-        gc.mw.stop_loadBar(rec_type)
+        bc.mw.stop_loadBar(rec_type)
         # ----------------- Get device -----------------
         logger.info("-" * 50)
         logger.info(f"Task: {task}")
@@ -264,12 +263,12 @@ def record_session(
         paused = False
         duration_seconds = 0
         modal_update_rate = 100
-        gc.current_rec_status = "💤 Idle"
-        gc.auto_detected_lang = "~"
+        bc.current_rec_status = "💤 Idle"
+        bc.auto_detected_lang = "~"
         language = f"{lang_source} → {lang_target}" if translate else lang_source
 
         def stop_recording():
-            gc.recording = False  # only set flag to false because cleanup is handled directly down below
+            bc.recording = False  # only set flag to false because cleanup is handled directly down below
             btn_stop.configure(state="disabled", text="Stopping...")  # disable btn
             btn_pause.configure(state="disabled")
 
@@ -277,15 +276,15 @@ def record_session(
             nonlocal paused
             paused = not paused
             if paused:
-                if gc.stream:
-                    gc.stream.stop_stream()
+                if bc.stream:
+                    bc.stream.stop_stream()
                 btn_pause.configure(text="Resume")
                 root.title(f"Recording {rec_type} (Paused)")
-                gc.current_rec_status = "⏸️ Paused"
+                bc.current_rec_status = "⏸️ Paused"
                 update_status_lbl()
             else:
-                if gc.stream:
-                    gc.stream.start_stream()
+                if bc.stream:
+                    bc.stream.start_stream()
                 btn_pause.configure(text="Pause")
                 root.title(f"Recording {rec_type}")
                 update_modal_ui()
@@ -358,17 +357,17 @@ def record_session(
             auto_break_buffer = state
 
         def update_status_lbl():
-            lbl_status.configure(text=gc.current_rec_status)
+            lbl_status.configure(text=bc.current_rec_status)
 
         def update_modal_ui():
             nonlocal timerStart, paused, modal_after
-            if gc.recording and not paused:
+            if bc.recording and not paused:
                 timer = strftime("%H:%M:%S", gmtime(time() - timerStart))
-                data_queue_size = gc.data_queue.qsize() * chunk_size / 1024  # approx buffer size in kb
+                data_queue_size = bc.data_queue.qsize() * chunk_size / 1024  # approx buffer size in kb
 
                 lbl_timer.configure(
                     text=f"REC: {timer} | "
-                    f"{language if not auto else language.replace('auto detect', f'auto detect ({gc.auto_detected_lang})')}"
+                    f"{language if not auto else language.replace('auto detect', f'auto detect ({bc.auto_detected_lang})')}"
                 )
                 lbl_buffer.set_text(
                     f"{round(duration_seconds, 2)}/{round(max_record_time, 2)} sec ({round(data_queue_size, 2)} kb)"
@@ -423,8 +422,8 @@ def record_session(
 
         # ----------------- Start recording -----------------
         # recording session init
-        gc.tc_sentences = []
-        gc.tl_sentences = []
+        bc.tc_sentences = []
+        bc.tl_sentences = []
         global prev_tl_res, max_db, min_db, is_silence, was_recording, t_silence
         temp_list = []
         prev_tc_res = ""
@@ -440,7 +439,7 @@ def record_session(
         t_silence = time()
         max_db = MAX_THRESHOLD
         min_db = MIN_THRESHOLD
-        gc.stream = p.open(
+        bc.stream = p.open(
             format=pyaudio.paInt16,  # 16 bit audio
             channels=num_of_channels,
             rate=sr_ori,
@@ -465,25 +464,25 @@ def record_session(
             # append and remove text that is exactly the same same
             # Some dupe might accidentally happened so we need to remove it
             if transcribe:
-                gc.tc_sentences.append(prev_tc_res)
-                gc.tc_sentences = unique_rec_list(gc.tc_sentences)
-                if len(gc.tc_sentences) > max_sentences:
-                    gc.tc_sentences.pop(0)
-                gc.update_tc(None, separator)
+                bc.tc_sentences.append(prev_tc_res)
+                bc.tc_sentences = unique_rec_list(bc.tc_sentences)
+                if len(bc.tc_sentences) > max_sentences:
+                    bc.tc_sentences.pop(0)
+                bc.update_tc(None, separator)
             if translate:
-                gc.tl_sentences.append(prev_tl_res)
-                gc.tl_sentences = unique_rec_list(gc.tl_sentences)
-                if len(gc.tl_sentences) > max_sentences:
-                    gc.tl_sentences.pop(0)
-                gc.update_tl(None, separator)
+                bc.tl_sentences.append(prev_tl_res)
+                bc.tl_sentences = unique_rec_list(bc.tl_sentences)
+                if len(bc.tl_sentences) > max_sentences:
+                    bc.tl_sentences.pop(0)
+                bc.update_tl(None, separator)
 
         # transcribing loop
-        while gc.recording:
+        while bc.recording:
             if paused:
                 sleep(0.1)
                 continue
 
-            if gc.data_queue.empty():
+            if bc.data_queue.empty():
                 # no audio is being recorded, Could be because threshold is not met or because device is paused
                 # in case of speaker device, it will pause the stream  when the speaker is not playing anything
                 if auto_break_buffer:
@@ -491,7 +490,7 @@ def record_session(
                     if is_silence and time() - t_silence > 1:
                         is_silence = False
                         break_buffer_store_update()
-                        gc.current_rec_status = "💤 Idle (Buffer Cleared)"
+                        bc.current_rec_status = "💤 Idle (Buffer Cleared)"
                         if sj.cache["debug_realtime_record"] == 1:
                             logger.debug("Silence found for more than 1 second. Buffer reseted")
                 continue
@@ -512,8 +511,8 @@ def record_session(
             next_transcribe_time = now + transcribe_rate
 
             # Getting the stream data from the queue while also clearing the queue.
-            while not gc.data_queue.empty():
-                data = gc.data_queue.get()
+            while not bc.data_queue.empty():
+                data = bc.data_queue.get()
                 last_sample += data
 
             if sj.cache["debug_realtime_record"] == 1:
@@ -586,7 +585,7 @@ def record_session(
             if translate and tl_engine_whisper and not transcribe:
                 if sj.cache["debug_realtime_record"] == 1:
                     logger.info("Translating")
-                gc.current_rec_status = "▶️ Recording ⟳ Translating"
+                bc.current_rec_status = "▶️ Recording ⟳ Translating"
 
                 # translate
                 result: stable_whisper.WhisperResult = stable_tl( # type: ignore
@@ -594,7 +593,7 @@ def record_session(
                 )
 
                 text = result.text.strip()
-                gc.auto_detected_lang = result.language or "~"
+                bc.auto_detected_lang = result.language or "~"
 
                 if len(text) > 0:
                     prev_tl_res = result
@@ -606,19 +605,19 @@ def record_session(
                         else:
                             logger.debug(f"{text}")
 
-                    gc.update_tl(result, separator)
+                    bc.update_tl(result, separator)
             else:
                 # will automatically check translate on or not depend on input
                 # translate is called from here because other engine need to get transcribed text first if translating
                 if sj.cache["debug_realtime_record"] == 1:
                     logger.info("Transcribing")
 
-                gc.current_rec_status = "▶️ Recording ⟳ Transcribing"
+                bc.current_rec_status = "▶️ Recording ⟳ Transcribing"
                 # ----------------------------------
                 # checking for lock
                 if transcribe and translate and tl_engine_whisper:
-                    assert gc.tc_lock is not None
-                    gc.tc_lock.acquire()
+                    assert bc.tc_lock is not None
+                    bc.tc_lock.acquire()
 
                 # transcribe first
                 assert stable_tc is not None, "Stable_tc model is None"
@@ -629,11 +628,11 @@ def record_session(
                 # ----------------------------------
                 # checking for lock
                 if transcribe and translate and tl_engine_whisper:
-                    assert gc.tc_lock is not None
-                    gc.tc_lock.release()
+                    assert bc.tc_lock is not None
+                    bc.tc_lock.release()
 
                 text = result.text.strip()
-                gc.auto_detected_lang = result.language or "~"
+                bc.auto_detected_lang = result.language or "~"
 
                 if len(text) > 0:
                     prev_tc_res = result
@@ -644,7 +643,7 @@ def record_session(
                         else:
                             logger.debug(f"New text: {text}")
 
-                    gc.update_tc(result, separator)
+                    bc.update_tc(result, separator)
 
                     # check translating or not
                     if translate:
@@ -667,31 +666,31 @@ def record_session(
             if duration_seconds > max_record_time:
                 break_buffer_store_update()
 
-            gc.current_rec_status = "▶️ Recording"  # reset status
+            bc.current_rec_status = "▶️ Recording"  # reset status
         else:
             logger.debug("Stopping Record Session")
 
-            gc.current_rec_status = "⚠️ Stopping stream"
+            bc.current_rec_status = "⚠️ Stopping stream"
             update_status_lbl()
             logger.info("-" * 50)
             logger.info("Stopping stream")
-            gc.stream.stop_stream()
-            gc.stream.close()
+            bc.stream.stop_stream()
+            bc.stream.close()
 
-            gc.current_rec_status = "⚠️ Terminating pyaudio"
+            bc.current_rec_status = "⚠️ Terminating pyaudio"
             update_status_lbl()
             logger.info("Terminating pyaudio")
             p.terminate()
 
             # empty the queue
-            gc.current_rec_status = "⚠️ Emptying queue"
+            bc.current_rec_status = "⚠️ Emptying queue"
             update_status_lbl()
             logger.info("Emptying queue")
-            while not gc.data_queue.empty():
-                gc.data_queue.get()
+            while not bc.data_queue.empty():
+                bc.data_queue.get()
 
             if not sj.cache["keep_temp"]:
-                gc.current_rec_status = "⚠️ Cleaning up audioFiles (if any)"
+                bc.current_rec_status = "⚠️ Cleaning up audioFiles (if any)"
                 update_status_lbl()
                 logger.info("Cleaning up audioFiles (if any)")
                 for audio in temp_list:
@@ -701,10 +700,10 @@ def record_session(
                         pass
                 logger.info("Done!")
 
-            gc.current_rec_status = "⏹️ Stopped"
+            bc.current_rec_status = "⏹️ Stopped"
             update_status_lbl()
             audiometer.stop()
-            gc.mw.after_rec_stop()
+            bc.mw.after_rec_stop()
             if modal_after:
                 root.after_cancel(modal_after)
             if root.winfo_exists():
@@ -715,14 +714,14 @@ def record_session(
     except Exception as e:
         logger.exception(e)
         logger.error("Error in record session")
-        if "The system cannot find the file specified" in str(e) and not gc.has_ffmpeg:
+        if "The system cannot find the file specified" in str(e) and not bc.has_ffmpeg:
             logger.error("FFmpeg not found in system path. Please install FFmpeg and add it to system path")
             e = Exception("FFmpeg not found in system path. Please install FFmpeg and add it to system path")
 
-        assert gc.mw is not None
-        mbox("Error in record session", f"{str(e)}", 2, gc.mw.root)
-        gc.mw.rec_stop()
-        gc.mw.after_rec_stop()
+        assert bc.mw is not None
+        mbox("Error in record session", f"{str(e)}", 2, bc.mw.root)
+        bc.mw.rec_stop()
+        bc.mw.after_rec_stop()
         if modal_after:
             root.after_cancel(modal_after)
         if root.winfo_exists():
@@ -745,7 +744,7 @@ def record_cb(in_data, frame_count, time_info, status):
         in_data = resampled
 
     if not threshold_enable:
-        gc.data_queue.put(in_data)  # record regardless of db
+        bc.data_queue.put(in_data)  # record regardless of db
     else:
         # only record if db is above threshold
         db = get_db(in_data)
@@ -763,10 +762,10 @@ def record_cb(in_data, frame_count, time_info, status):
             audiometer.set_recording(is_speech)
 
             if is_speech:
-                gc.data_queue.put(in_data)
+                bc.data_queue.put(in_data)
                 was_recording = True
             else:
-                gc.current_rec_status = "💤 Idle"
+                bc.current_rec_status = "💤 Idle"
                 # toggle only once
                 if was_recording:
                     was_recording = False
@@ -775,10 +774,10 @@ def record_cb(in_data, frame_count, time_info, status):
                         t_silence = time()
         else:
             if db > threshold_db:
-                gc.data_queue.put(in_data)
+                bc.data_queue.put(in_data)
                 was_recording = True
             else:
-                gc.current_rec_status = "💤 Idle"
+                bc.current_rec_status = "💤 Idle"
                 # toggle only once
                 if was_recording:
                     was_recording = False
@@ -796,17 +795,17 @@ def tl_whisper_threaded(
     **whisper_args,
 ):
     """Translate using whisper but run in thread"""
-    assert gc.mw is not None
-    gc.enable_tl()
+    assert bc.mw is not None
+    bc.enable_tl()
 
     global prev_tl_res
     try:
-        assert gc.tc_lock is not None
-        with gc.tc_lock:
+        assert bc.tc_lock is not None
+        with bc.tc_lock:
             result: stable_whisper.WhisperResult = stable_tl(audio, task="translate", **whisper_args)
 
         text = result.text.strip()
-        gc.auto_detected_lang = result.language or "~"
+        bc.auto_detected_lang = result.language or "~"
 
         if len(text) > 0:
             prev_tl_res = result
@@ -818,18 +817,18 @@ def tl_whisper_threaded(
                 else:
                     logger.debug(f"{text}")
 
-            gc.update_tl(result, separator)
+            bc.update_tl(result, separator)
     except Exception as e:
         logger.exception(e)
         native_notify("Error: translating failed", str(e))
     finally:
-        gc.disable_tl()  # flag processing as done
+        bc.disable_tl()  # flag processing as done
 
 
 def tl_api(text: str, lang_source: str, lang_target: str, engine: str, separator: str):
     """Translate the result of realtime_recording_thread using translation API"""
-    assert gc.mw is not None
-    gc.enable_tl()
+    assert bc.mw is not None
+    bc.enable_tl()
 
     try:
         global prev_tl_res, sentences_tl
@@ -850,9 +849,9 @@ def tl_api(text: str, lang_source: str, lang_target: str, engine: str, separator
         result = result[0]
         if result is not None and len(result) > 0:
             prev_tl_res = result.strip()
-            gc.update_tl(result.strip(), separator)
+            bc.update_tl(result.strip(), separator)
     except Exception as e:
         logger.exception(e)
         native_notify("Error: translating failed", str(e))
     finally:
-        gc.disable_tl()  # flag processing as done
+        bc.disable_tl()  # flag processing as done

@@ -29,7 +29,7 @@ from speech_translate.ui.window.setting import SettingWindow
 from speech_translate.ui.window.transcribed import TcsWindow
 from speech_translate.ui.window.translated import TlsWindow
 from speech_translate._logging import init_logging
-from speech_translate.globals import gc, sj
+from speech_translate.linker import bc, sj
 from speech_translate.utils.audio.device import (
     get_default_host_api, get_default_input_device, get_default_output_device, get_host_apis, get_input_devices,
     get_output_devices
@@ -49,7 +49,7 @@ from speech_translate.utils.tk.style import get_current_theme, get_theme_list, i
 # Function to handle Ctrl+C and exit just like clicking the exit button
 def signal_handler(sig, frame):
     logger.info("Received Ctrl+C, exiting...")
-    gc.running = False
+    bc.running = False
 
 
 signal(SIGINT, signal_handler)  # Register the signal handler for Ctrl+C
@@ -63,7 +63,7 @@ class AppTray:
         self.icon: icon = None  # type: ignore
         self.menu: menu = None  # type: ignore
         self.menu_items = None  # type: ignore
-        gc.tray = self
+        bc.tray = self
         self.create_tray()
         logger.info("Tray created")
 
@@ -100,22 +100,22 @@ class AppTray:
 
     # -- Open app
     def open_app(self):
-        assert gc.mw is not None  # Show main window
-        gc.mw.show_window()
+        assert bc.mw is not None  # Show main window
+        bc.mw.show_window()
 
     # -- Open setting window
     def open_setting(self):
-        assert gc.sw is not None
-        gc.sw.show()
+        assert bc.sw is not None
+        bc.sw.show()
 
     # -- Open about window
     def open_about(self):
-        assert gc.about is not None
-        gc.about.show()
+        assert bc.about is not None
+        bc.about.show()
 
     # -- Exit app by flagging runing false to stop main loop
     def exit_app(self):
-        gc.running = False
+        bc.running = False
 
 
 class MainWindow:
@@ -125,7 +125,7 @@ class MainWindow:
     def __init__(self):
         # ------------------ Window ------------------
         # UI
-        gc.mw = self
+        bc.mw = self
         self.root = Tk()
         self.root.title(APP_NAME)
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
@@ -139,33 +139,33 @@ class MainWindow:
 
         # Styles
         self.style = ttk.Style()
-        gc.style = self.style
+        bc.style = self.style
 
         init_theme()
-        gc.native_theme = get_current_theme()  # get first theme before changing
-        gc.theme_lists = list(get_theme_list())
+        bc.native_theme = get_current_theme()  # get first theme before changing
+        bc.theme_lists = list(get_theme_list())
 
         # rearrange some positions
         try:
-            gc.theme_lists.remove("sv")
+            bc.theme_lists.remove("sv")
         except Exception:  # sv theme is not available
-            gc.theme_lists.remove("sun-valley-dark")
-            gc.theme_lists.remove("sun-valley-light")
+            bc.theme_lists.remove("sun-valley-dark")
+            bc.theme_lists.remove("sun-valley-light")
 
-        gc.theme_lists.remove(gc.native_theme)  # remove native theme from list
-        gc.theme_lists.insert(0, gc.native_theme)  # add native theme to top of list
-        logger.debug(f"Available Theme to use: {gc.theme_lists}")
-        gc.theme_lists.insert(len(gc.theme_lists), "custom")
+        bc.theme_lists.remove(bc.native_theme)  # remove native theme from list
+        bc.theme_lists.insert(0, bc.native_theme)  # add native theme to top of list
+        logger.debug(f"Available Theme to use: {bc.theme_lists}")
+        bc.theme_lists.insert(len(bc.theme_lists), "custom")
 
         set_ui_style(sj.cache["theme"])
 
-        gc.wrench_emoji = emoji_img(16, "     🛠️")
-        gc.folder_emoji = emoji_img(13, " 📂")
-        gc.open_emoji = emoji_img(13, "     ↗️")
-        gc.trash_emoji = emoji_img(13, "     🗑️")
-        gc.reset_emoji = emoji_img(13, " 🔄")
-        gc.question_emoji = emoji_img(16, "❓")
-        gc.cuda = check_cuda_and_gpu()
+        bc.wrench_emoji = emoji_img(16, "     🛠️")
+        bc.folder_emoji = emoji_img(13, " 📂")
+        bc.open_emoji = emoji_img(13, "     ↗️")
+        bc.trash_emoji = emoji_img(13, "     🗑️")
+        bc.reset_emoji = emoji_img(13, " 🔄")
+        bc.question_emoji = emoji_img(16, "❓")
+        bc.cuda = check_cuda_and_gpu()
 
         # ------------------ Frames ------------------
         self.f1_toolbar = ttk.Frame(self.root)
@@ -319,7 +319,7 @@ class MainWindow:
 
         self.btn_config_hostAPI = ttk.Button(
             self.f3_1_row1,
-            image=gc.wrench_emoji,
+            image=bc.wrench_emoji,
             compound="center",
             width=3,
             command=lambda: popup_menu(self.root, self.menu_hostAPI),
@@ -338,7 +338,7 @@ class MainWindow:
 
         self.btn_config_mic = ttk.Button(
             self.f3_1_row2,
-            image=gc.wrench_emoji,
+            image=bc.wrench_emoji,
             compound="center",
             width=3,
             command=lambda: popup_menu(self.root, self.menu_mic),
@@ -358,7 +358,7 @@ class MainWindow:
 
         self.btn_config_speaker = ttk.Button(
             self.f3_1_row3,
-            image=gc.wrench_emoji,
+            image=bc.wrench_emoji,
             compound="center",
             width=3,
             command=lambda: popup_menu(self.root, self.menu_speaker),
@@ -540,7 +540,7 @@ class MainWindow:
         self.root.attributes('-topmost', True)
         self.root.after_idle(self.root.attributes, '-topmost', False)
         self.on_init()
-        gc.running_after_id = self.root.after(1000, self.is_running_poll)
+        bc.running_after_id = self.root.after(1000, self.is_running_poll)
         # ------------------ Set Icon ------------------
         try:
             self.root.iconbitmap(app_icon)
@@ -559,33 +559,33 @@ class MainWindow:
 
     def cleanup(self):
         # cancel the is_running_poll
-        self.root.after_cancel(gc.running_after_id)
+        self.root.after_cancel(bc.running_after_id)
 
-        gc.disable_rec()
-        gc.disable_tc()
-        gc.disable_tl()
+        bc.disable_rec()
+        bc.disable_tc()
+        bc.disable_tl()
 
         logger.info("Stopping tray...")
-        if gc.tray:
-            gc.tray.icon.stop()
+        if bc.tray:
+            bc.tray.icon.stop()
 
         # destroy windows
         logger.info("Destroying windows...")
-        gc.sw.root.destroy()  # type: ignore
-        gc.about.root.destroy()  # type: ignore
-        gc.ex_tcw.root.destroy()  # type: ignore
-        gc.ex_tlw.root.destroy()  # type: ignore
+        bc.sw.root.destroy()  # type: ignore
+        bc.about.root.destroy()  # type: ignore
+        bc.ex_tcw.root.destroy()  # type: ignore
+        bc.ex_tlw.root.destroy()  # type: ignore
         self.root.destroy()
 
-        if gc.dl_thread and gc.dl_thread.is_alive():
+        if bc.dl_thread and bc.dl_thread.is_alive():
             logger.info("Killing download process...")
-            gc.cancel_dl = True
+            bc.cancel_dl = True
 
     # Quit the app
     def quit_app(self):
         # save window size
         self.save_win_size()
-        gc.sw.save_win_size()  # type: ignore
+        bc.sw.save_win_size()  # type: ignore
 
         self.cleanup()
         logger.info("Exiting...")
@@ -595,8 +595,8 @@ class MainWindow:
             logger.info("Exit successful")
 
     def restart_app(self):
-        if gc.transcribing or gc.translating or gc.recording or gc.file_processing or (
-            gc.dl_thread and gc.dl_thread.is_alive()
+        if bc.transcribing or bc.translating or bc.recording or bc.file_processing or (
+            bc.dl_thread and bc.dl_thread.is_alive()
         ):
             # prompt
             if not mbox(
@@ -610,7 +610,7 @@ class MainWindow:
 
         # save window size
         self.save_win_size()
-        gc.sw.save_win_size()  # type: ignore
+        bc.sw.save_win_size()  # type: ignore
 
         self.cleanup()
         logger.info("Restarting...")  # restart
@@ -633,10 +633,10 @@ class MainWindow:
 
     # check if the app is running or not, to close the app from tray
     def is_running_poll(self):
-        if not gc.running:
+        if not bc.running:
             self.quit_app()
 
-        gc.running_after_id = self.root.after(1000, self.is_running_poll)
+        bc.running_after_id = self.root.after(1000, self.is_running_poll)
 
     # Toggle Stay on top
     def toggle_always_on_top(self):
@@ -645,24 +645,24 @@ class MainWindow:
 
     # ------------------ Open External Window ------------------
     def open_about(self, _event=None):
-        assert gc.about is not None
-        gc.about.show()
+        assert bc.about is not None
+        bc.about.show()
 
     def open_setting(self, _event=None):
-        assert gc.sw is not None
-        gc.sw.show()
+        assert bc.sw is not None
+        bc.sw.show()
 
     def open_log(self, _event=None):
-        assert gc.lw is not None
-        gc.lw.show()
+        assert bc.lw is not None
+        bc.lw.show()
 
     def open_detached_tcw(self, _event=None):
-        assert gc.ex_tcw is not None
-        gc.ex_tcw.show()
+        assert bc.ex_tcw is not None
+        bc.ex_tcw.show()
 
     def open_detached_tlw(self, _event=None):
-        assert gc.ex_tlw is not None
-        gc.ex_tlw.show()
+        assert bc.ex_tlw is not None
+        bc.ex_tlw.show()
 
     # ------------------ Functions ------------------
     # error
@@ -706,8 +706,8 @@ class MainWindow:
             self.root.after(100, first_open)
 
         # check ffmpeg
-        gc.has_ffmpeg = check_ffmpeg_in_path()[0]
-        self.root.after(2000, self.check_ffmpeg, gc.has_ffmpeg)
+        bc.has_ffmpeg = check_ffmpeg_in_path()[0]
+        self.root.after(2000, self.check_ffmpeg, bc.has_ffmpeg)
 
     def check_ffmpeg(self, has_ffmpeg: bool):
         ffmpeg_installed = False
@@ -724,7 +724,7 @@ class MainWindow:
                     mbox("Error", msg, 2)
 
                 if check_ffmpeg_in_path()[0]:
-                    gc.has_ffmpeg = True
+                    bc.has_ffmpeg = True
                     ffmpeg_installed = success
                 else:
                     ffmpeg_installed = False
@@ -1007,11 +1007,11 @@ class MainWindow:
 
     # clear textboxes
     def tb_clear(self):
-        gc.clear_all()
+        bc.clear_all()
 
     # Swap textboxes
     def tb_swap_content(self):
-        gc.swap_textbox()
+        bc.swap_textbox()
 
     # swap select language and textbox
     def cb_swap_lang(self):
@@ -1030,7 +1030,7 @@ class MainWindow:
 
         # swap text only if mode is transcribe and translate
         # if "selected" in self.cbtn_task_transcribe.state() and "selected" in self.cbtn_task_translate.state():
-        gc.swap_textbox()
+        bc.swap_textbox()
 
     # change mode
     def mode_change(self, _event=None):
@@ -1151,7 +1151,7 @@ class MainWindow:
 
         # **change text only**, the function is already set before in the rec function
         if rec_type == "mic" or rec_type == "speaker":
-            if not gc.recording:
+            if not bc.recording:
                 return
             self.btn_record.configure(text="Stop")
         elif rec_type == "file":
@@ -1174,7 +1174,7 @@ class MainWindow:
     def export_rec(self, mode: Literal["Transcribe", "Translate"]):
         fileName = f"{mode}d {strftime('%Y-%m-%d %H-%M-%S')}"
         text = str(self.tb_transcribed.get(1.0, "end")) if mode == "Transcribe" else str(self.tb_translated.get(1.0, "end"))
-        results = gc.tc_sentences if mode == "Transcribe" else gc.tl_sentences
+        results = bc.tc_sentences if mode == "Transcribe" else bc.tl_sentences
 
         # check types. If results contains str that means export is only .txt
         if not any(isinstance(res, str) for res in results):
@@ -1271,7 +1271,7 @@ class MainWindow:
         if not mbox("Cancel confirmation", "Are you sure you want to cancel downloading?", 3, self.root):
             return
 
-        gc.cancel_dl = True  # Raise flag to stop
+        bc.cancel_dl = True  # Raise flag to stop
 
     def after_model_dl(self, taskname, task):
         # ask if user wants to continue using the model
@@ -1324,13 +1324,13 @@ class MainWindow:
                         if sj.cache["dir_model"] != "auto":
                             kwargs = {"download_root": sj.cache["dir_model"]}
 
-                        gc.dl_thread = Thread(
+                        bc.dl_thread = Thread(
                             target=download_model,
                             args=(model_name, self.root),
                             kwargs=kwargs,
                             daemon=True,
                         )
-                        gc.dl_thread.start()
+                        bc.dl_thread.start()
                     except Exception as e:
                         logger.exception(e)
                         self.errorNotif(str(e))
@@ -1358,7 +1358,7 @@ class MainWindow:
             )
             return
 
-        if gc.dl_thread and gc.dl_thread.is_alive():
+        if bc.dl_thread and bc.dl_thread.is_alive():
             mbox(
                 "Please wait! A model is being downloaded",
                 "A Model is still being downloaded! Please wait until it finishes first!",
@@ -1429,7 +1429,7 @@ class MainWindow:
         self.disable_interactions()
         self.btn_record.configure(text="Loading", command=self.rec_stop, state="normal")
 
-        gc.enable_rec()  # Flag update    # Disable recording is by button input
+        bc.enable_rec()  # Flag update    # Disable recording is by button input
 
         # Start thread
         try:
@@ -1448,7 +1448,7 @@ class MainWindow:
 
     def rec_stop(self):
         logger.info("Recording Stopped")
-        gc.disable_rec()
+        bc.disable_rec()
 
         self.btn_record.configure(text="Stopping...", state="disabled")
 
@@ -1463,7 +1463,7 @@ class MainWindow:
 
     # From file
     def import_file(self):
-        if gc.dl_thread and gc.dl_thread.is_alive():
+        if bc.dl_thread and bc.dl_thread.is_alive():
             mbox(
                 "Please wait! A model is being downloaded",
                 "A Model is still being downloaded! Please wait until it finishes first!",
@@ -1533,7 +1533,7 @@ class MainWindow:
             self.disable_interactions()
             self.btn_import_file.configure(text="Loading", command=lambda: self.from_file_stop(True), state="normal")
 
-            gc.enable_file_process()  # Flag update
+            bc.enable_file_process()  # Flag update
 
             # Start thread
             try:
@@ -1574,16 +1574,16 @@ class MainWindow:
                 return
 
         logger.info("Cancelling file import processing...")
-        gc.disable_file_process()
-        gc.disable_tc()
-        gc.disable_tl()
+        bc.disable_file_process()
+        bc.disable_tc()
+        bc.disable_tl()
         self.destroy_transient_toplevel("File Import Progress")
 
         if notify:
             mbox(
                 "Cancelled",
-                f"Cancelled file import processing\n\nTranscribed {gc.file_tced_counter} "
-                f"and translated {gc.file_tled_counter} file",
+                f"Cancelled file import processing\n\nTranscribed {bc.file_tced_counter} "
+                f"and translated {bc.file_tled_counter} file",
                 0,
                 self.root,
             )
@@ -1594,7 +1594,7 @@ class MainWindow:
         self.enable_interactions()
 
     def refine_file(self):
-        if gc.dl_thread and gc.dl_thread.is_alive():
+        if bc.dl_thread and bc.dl_thread.is_alive():
             mbox(
                 "Please wait! A model is being downloaded",
                 "A Model is still being downloaded! Please wait until it finishes first!",
@@ -1633,7 +1633,7 @@ class MainWindow:
             self.start_loadBar()
             self.disable_interactions()
 
-            gc.enable_file_process()  # Flag update
+            bc.enable_file_process()  # Flag update
 
             # Start thread
             try:
@@ -1664,12 +1664,12 @@ class MainWindow:
                 return
 
         logger.info("Cancelling refinement...")
-        gc.disable_file_process()
+        bc.disable_file_process()
 
         if notify:
             mbox(
                 "Cancelled",
-                f"Cancelled refinement process\n\nRefined {gc.mod_file_counter} file",
+                f"Cancelled refinement process\n\nRefined {bc.mod_file_counter} file",
                 0,
                 self.root,
             )
@@ -1679,7 +1679,7 @@ class MainWindow:
         self.enable_interactions()
 
     def align_file(self):
-        if gc.dl_thread and gc.dl_thread.is_alive():
+        if bc.dl_thread and bc.dl_thread.is_alive():
             mbox(
                 "Please wait! A model is being downloaded",
                 "A Model is still being downloaded! Please wait until it finishes first!",
@@ -1718,7 +1718,7 @@ class MainWindow:
             self.start_loadBar()
             self.disable_interactions()
 
-            gc.enable_file_process()  # Flag update
+            bc.enable_file_process()  # Flag update
 
             # Start thread
             try:
@@ -1749,12 +1749,12 @@ class MainWindow:
                 return
 
         logger.info("Cancelling alignment...")
-        gc.disable_file_process()
+        bc.disable_file_process()
 
         if notify:
             mbox(
                 "Cancelled",
-                f"Cancelled alignment process\n\nAligned {gc.mod_file_counter} file",
+                f"Cancelled alignment process\n\nAligned {bc.mod_file_counter} file",
                 0,
                 self.root,
             )
@@ -1764,7 +1764,7 @@ class MainWindow:
         self.enable_interactions()
 
     def translate_file(self):
-        if gc.dl_thread and gc.dl_thread.is_alive():
+        if bc.dl_thread and bc.dl_thread.is_alive():
             mbox(
                 "Please wait! A model is being downloaded",
                 "A Model is still being downloaded! Please wait until it finishes first!",
@@ -1780,7 +1780,7 @@ class MainWindow:
             self.start_loadBar()
             self.disable_interactions()
 
-            gc.enable_file_process()
+            bc.enable_file_process()
 
             # Start thread
             try:
@@ -1816,12 +1816,12 @@ class MainWindow:
                 return
 
         logger.info("Cancelling translation...")
-        gc.disable_file_process()
+        bc.disable_file_process()
 
         if notify:
             mbox(
                 "Cancelled",
-                f"Cancelled translation process\n\nTranslated {gc.mod_file_counter} file",
+                f"Cancelled translation process\n\nTranslated {bc.mod_file_counter} file",
                 0,
                 self.root,
             )

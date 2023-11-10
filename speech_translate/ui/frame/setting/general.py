@@ -7,7 +7,7 @@ from speech_translate.ui.custom.combobox import ComboboxWithKeyNav
 
 from loguru import logger
 
-from speech_translate.globals import sj, gc
+from speech_translate.linker import sj, bc
 from speech_translate._path import dir_log, dir_temp, dir_debug
 from speech_translate._logging import current_log, change_log_level
 from speech_translate.utils.helper import popup_menu, emoji_img, up_first_case
@@ -487,7 +487,7 @@ class SettingGeneral:
 
     def model_download(self, model: str, btn: ttk.Button, use_faster_whisper: bool) -> None:
         # if already downloading then return
-        if gc.dl_thread and gc.dl_thread.is_alive():
+        if bc.dl_thread and bc.dl_thread.is_alive():
             mbox("Already downloading", "Please wait for the current download to finish.", 0, self.root)
             return
 
@@ -513,13 +513,13 @@ class SettingGeneral:
 
         # Download model
         try:
-            gc.dl_thread = Thread(
+            bc.dl_thread = Thread(
                 target=download_model,
                 args=(model, self.root),
                 daemon=True,
                 kwargs=kwargs,
             )
-            gc.dl_thread.start()
+            bc.dl_thread.start()
 
             btn.configure(text="Downloading...", state="disabled")
         except Exception as e:
@@ -538,7 +538,7 @@ class SettingGeneral:
             return
 
         btn.configure(text="Download", command=lambda: self.model_download(model, btn, False), state="normal")
-        gc.cancel_dl = True  # Raise flag to stop
+        bc.cancel_dl = True  # Raise flag to stop
 
     def model_btn_checker(self, model: str, btn: ttk.Button, faster_whisper: bool = False) -> None:
         """
@@ -736,7 +736,7 @@ class SettingGeneral:
             self.checking_model = False
 
     def fill_theme(self):
-        self.cb_theme["values"] = gc.theme_lists
+        self.cb_theme["values"] = bc.theme_lists
         self.cb_theme.set(sj.cache["theme"])
         self.initial_theme = sj.cache["theme"]
         self.entry_theme.pack_forget()
@@ -751,8 +751,8 @@ class SettingGeneral:
             self.root,
         ):
             #
-            assert gc.mw is not None
-            gc.mw.restart_app()
+            assert bc.mw is not None
+            bc.mw.restart_app()
 
     def cb_theme_change(self, _event=None):
         if self.cb_theme.get() == "custom":
@@ -788,13 +788,13 @@ class SettingGeneral:
             mbox("Error", "Theme name cannot be empty", 0, self.root)
             return
 
-        if theme_name in gc.theme_lists:
+        if theme_name in bc.theme_lists:
             mbox("Error", "Theme name already exist", 0, self.root)
             return
 
         if set_ui_style(theme_name, self.root):
             # add the theme to the list
-            gc.theme_lists.append(theme_name)
+            bc.theme_lists.append(theme_name)
 
             # save the theme
             sj.save_key("theme", theme_name)

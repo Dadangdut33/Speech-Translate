@@ -10,7 +10,7 @@ from speech_translate._path import app_icon, dir_log
 from speech_translate.ui.custom.checkbutton import CustomCheckButton
 from speech_translate.ui.custom.message import mbox
 from speech_translate._logging import current_log, clear_current_log_file
-from speech_translate.globals import gc, sj
+from speech_translate.linker import bc, sj
 from speech_translate.utils.helper import bind_focus_recursively, start_file, tb_copy_only
 
 
@@ -27,7 +27,7 @@ class LogWindow:
         self.is_open = False
         self.stay_on_top = False
         self.thread_refresh = None
-        gc.lw = self
+        bc.lw = self
 
         # Frames
         self.f_1 = ttk.Frame(self.root)

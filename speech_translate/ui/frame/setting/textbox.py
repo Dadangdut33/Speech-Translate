@@ -9,7 +9,7 @@ from speech_translate._constants import PREVIEW_WORDS, APP_NAME
 from speech_translate.ui.custom.checkbutton import CustomCheckButton
 from speech_translate.ui.custom.combobox import ComboboxWithKeyNav
 from speech_translate.ui.custom.spinbox import SpinboxNumOnly
-from speech_translate.globals import sj, gc
+from speech_translate.linker import sj, bc
 from speech_translate.utils.helper import choose_color, generate_color, emoji_img
 from speech_translate.ui.custom.tooltip import tk_tooltip, tk_tooltips
 
@@ -720,13 +720,13 @@ class SettingTextbox:
         self.tb_preview_4.insert("end", "TL Subtitle window: " + to_insert)
 
     def preview_changes_tb(self):
-        if gc.mw is None:
+        if bc.mw is None:
             return
 
         self.tb_delete()
         self.tb_insert_preview()
 
-        gc.mw.tb_transcribed.configure(
+        bc.mw.tb_transcribed.configure(
             font=(
                 self.cb_mw_tc_font.get(),
                 int(self.spn_mw_tc_font_size.get()),
@@ -741,7 +741,7 @@ class SettingTextbox:
             )
         )
 
-        gc.mw.tb_translated.configure(
+        bc.mw.tb_translated.configure(
             font=(
                 self.cb_mw_tl_font.get(),
                 int(self.spn_mw_tl_font_size.get()),
@@ -756,8 +756,8 @@ class SettingTextbox:
             )
         )
 
-        assert gc.ex_tcw is not None
-        gc.ex_tcw.update_window_bg()
+        assert bc.ex_tcw is not None
+        bc.ex_tcw.update_window_bg()
         self.tb_preview_3.configure(
             font=(
                 self.cb_ex_tc_font.get(),
@@ -768,8 +768,8 @@ class SettingTextbox:
             background=self.entry_ex_tc_bg_color.get(),
         )
 
-        assert gc.ex_tlw is not None
-        gc.ex_tlw.update_window_bg()
+        assert bc.ex_tlw is not None
+        bc.ex_tlw.update_window_bg()
         self.tb_preview_4.configure(
             font=(
                 self.cb_ex_tl_font.get(),

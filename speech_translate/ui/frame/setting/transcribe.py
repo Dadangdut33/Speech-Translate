@@ -7,7 +7,7 @@ from datetime import datetime
 
 from stable_whisper import result_to_ass, result_to_srt_vtt, result_to_tsv, load_model, load_faster_whisper
 
-from speech_translate.globals import sj, gc
+from speech_translate.linker import sj, bc
 from speech_translate._path import dir_export, parameters_text
 from speech_translate.utils.helper import filename_only, popup_menu, start_file, up_first_case
 from speech_translate.utils.whisper.helper import get_temperature, parse_args_stable_ts
@@ -624,7 +624,7 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
 
         self.btn_export_config = ttk.Button(
             self.f_export_3,
-            image=gc.wrench_emoji,
+            image=bc.wrench_emoji,
             compound="center",
             width=3,
             command=lambda: popup_menu(self.root, self.menu_config_export)
@@ -633,24 +633,24 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
 
         self.menu_config_export = Menu(self.master, tearoff=0)
         self.menu_config_export.add_command(
-            label="Open", image=gc.open_emoji, compound="left", command=lambda: start_file(self.entry_export.get())
+            label="Open", image=bc.open_emoji, compound="left", command=lambda: start_file(self.entry_export.get())
         )
         self.menu_config_export.add_separator()
         self.menu_config_export.add_command(
             label="Change Folder",
-            image=gc.folder_emoji,
+            image=bc.folder_emoji,
             compound="left",
             command=lambda: self.change_path("dir_export", self.entry_export)
         )
         self.menu_config_export.add_command(
             label="Set Back to Default",
-            image=gc.reset_emoji,
+            image=bc.reset_emoji,
             compound="left",
             command=lambda: self.path_default("dir_export", self.entry_export, dir_export),
         )
         self.menu_config_export.add_separator()
         self.menu_config_export.add_command(
-            label="Empty Export Folder", image=gc.trash_emoji, compound="left", command=lambda: self.clear_export()
+            label="Empty Export Folder", image=bc.trash_emoji, compound="left", command=lambda: self.clear_export()
         )
 
         self.cbtn_auto_open_export = CustomCheckButton(
@@ -752,7 +752,7 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
         )
         self.btn_help_export_format = ttk.Button(
             self.f_export_5,
-            image=gc.question_emoji,
+            image=bc.question_emoji,
             command=lambda: MBoxText("export-format", self.root, "Export formats", available_params),
             width=3,
         )
@@ -793,13 +793,13 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
             slice_start = int(self.spn_slice_file_start.get()) if self.spn_slice_file_start.get() != "" else None
             slice_end = int(self.spn_slice_file_end.get()) if self.spn_slice_file_end.get() != "" else None
 
-            assert gc.mw is not None
+            assert bc.mw is not None
             save_name = datetime.now().strftime(self.entry_export_format.get())
             save_name = save_name.replace("{file}", filename[slice_start:slice_end])
-            save_name = save_name.replace("{lang-source}", gc.mw.cb_source_lang.get())
-            save_name = save_name.replace("{lang-target}", gc.mw.cb_target_lang.get())
-            save_name = save_name.replace("{model}", gc.mw.cb_model.get())
-            save_name = save_name.replace("{engine}", gc.mw.cb_engine.get())
+            save_name = save_name.replace("{lang-source}", bc.mw.cb_source_lang.get())
+            save_name = save_name.replace("{lang-target}", bc.mw.cb_target_lang.get())
+            save_name = save_name.replace("{model}", bc.mw.cb_model.get())
+            save_name = save_name.replace("{engine}", bc.mw.cb_engine.get())
             save_name = save_name.replace("{task}", task)
             save_name = save_name.replace("{task-short}", short_task)
 

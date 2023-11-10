@@ -14,7 +14,7 @@ if system() == "Windows":
 else:
     import pyaudio  # type: ignore
 
-from speech_translate.globals import sj, gc
+from speech_translate.linker import sj, bc
 from speech_translate._constants import MIN_THRESHOLD, MAX_THRESHOLD, WHISPER_SR
 from speech_translate.utils.audio.device import get_db, get_device_details, get_frame_duration, get_speech, resample_sr
 from speech_translate.utils.helper import get_channel_int, cbtn_invoker, windows_os_only
@@ -334,7 +334,7 @@ class SettingRecord:
         self.radio_numpy_array.configure(command=lambda: sj.save_key("use_temp", False) or self.toggle_use_temp(False))
         self.radio_temp_file.configure(command=lambda: sj.save_key("use_temp", True) or self.toggle_use_temp(True))
 
-        self.lbl_hint_conversion = ttk.Label(self.f_processing_1, image=gc.help_emoji, compound="left")
+        self.lbl_hint_conversion = ttk.Label(self.f_processing_1, image=bc.help_emoji, compound="left")
         self.lbl_hint_conversion.pack(side="left", padx=5)
         tk_tooltip(
             self.lbl_hint_conversion,
@@ -417,7 +417,7 @@ class SettingRecord:
             "\n\nDefault value is 10 seconds.",
         )
 
-        self.lbl_hint_buffer_mic = ttk.Label(self.f_mic_recording_1, image=gc.help_emoji, compound="left")
+        self.lbl_hint_buffer_mic = ttk.Label(self.f_mic_recording_1, image=bc.help_emoji, compound="left")
         self.lbl_hint_buffer_mic.pack(side="left", padx=5)
 
         # 2
@@ -474,7 +474,7 @@ class SettingRecord:
             "\n\nDefault is checked",
         )
 
-        self.lbl_hint_threshold_mic = ttk.Label(self.f_mic_recording_3, image=gc.help_emoji, compound="left")
+        self.lbl_hint_threshold_mic = ttk.Label(self.f_mic_recording_3, image=bc.help_emoji, compound="left")
         self.lbl_hint_threshold_mic.pack(side="left", padx=5)
 
         # 4
@@ -573,7 +573,7 @@ class SettingRecord:
             "\n\nDefault value is 10 seconds.",
         )
 
-        self.lbl_hint_buffer_speaker = ttk.Label(self.f_speaker_recording_1, image=gc.help_emoji, compound="left")
+        self.lbl_hint_buffer_speaker = ttk.Label(self.f_speaker_recording_1, image=bc.help_emoji, compound="left")
         self.lbl_hint_buffer_speaker.pack(side="left", padx=5)
         tk_tooltips(
             [self.lbl_hint_buffer_mic, self.lbl_hint_buffer_speaker],
@@ -634,7 +634,7 @@ class SettingRecord:
         )
         self.cbtn_auto_break_buffer_speaker.pack(side="left", padx=5)
 
-        self.lbl_hint_threshold_speaker = ttk.Label(self.f_speaker_recording_3, image=gc.help_emoji, compound="left")
+        self.lbl_hint_threshold_speaker = ttk.Label(self.f_speaker_recording_3, image=bc.help_emoji, compound="left")
         self.lbl_hint_threshold_speaker.pack(side="left", padx=5)
         tk_tooltips(
             [self.lbl_hint_threshold_mic, self.lbl_hint_threshold_speaker],

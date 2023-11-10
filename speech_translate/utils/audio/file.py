@@ -11,7 +11,7 @@ from whisper.tokenizer import TO_LANGUAGE_CODE
 
 from speech_translate._path import dir_export, dir_alignment, dir_refinement, dir_translate
 from speech_translate._logging import logger
-from speech_translate.globals import gc, sj
+from speech_translate.linker import bc, sj
 from speech_translate.utils.translate.language import verify_language_in_key, get_whisper_key_from_similar
 from speech_translate.ui.custom.dialog import ModResultInputDialog, FileProcessDialog
 from speech_translate.ui.custom.message import mbox
@@ -62,12 +62,12 @@ def run_whisper(func, audio: str, task: str, fail_status: List, **kwargs):
     try:
         sys.stderr.write(f"Running Whisper {task}...\n")
         result = func(audio, task=task, **kwargs)
-        gc.data_queue.put(result)
+        bc.data_queue.put(result)
         sys.stderr.write(f"Whisper {task} done\n")
     except Exception as e:
         logger.exception(e)
         fail_status[0] = True
-        if "The system cannot find the file specified" in str(e) and not gc.has_ffmpeg:
+        if "The system cannot find the file specified" in str(e) and not bc.has_ffmpeg:
             logger.error("FFmpeg not found in system path. Please install FFmpeg and add it to system path")
             fail_status[1] = Exception("FFmpeg not found in system path. Please install FFmpeg and add it to system path")
         else:
@@ -183,7 +183,7 @@ def run_translate_api(
     except Exception as e:
         logger.exception(e)
         fail_status[0] = True
-        if "The system cannot find the file specified" in str(e) and not gc.has_ffmpeg:
+        if "The system cannot find the file specified" in str(e) and not bc.has_ffmpeg:
             logger.error("FFmpeg not found in system path. Please install FFmpeg and add it to system path")
             fail_status[1] = Exception("FFmpeg not found in system path. Please install FFmpeg and add it to system path")
         else:
@@ -238,7 +238,7 @@ def cancellable_tc(
     -------
     None
     """
-    assert gc.mw is not None
+    assert bc.mw is not None
     global global_file_import_counter, processed_tc
     start = time()
 
@@ -260,7 +260,7 @@ def cancellable_tc(
         thread.start()
 
         while thread.is_alive():
-            if not gc.transcribing:
+            if not bc.transcribing:
                 logger.debug("Cancelling transcription")
                 kill_thread(thread)
                 raise Exception("Cancelled")
@@ -269,14 +269,14 @@ def cancellable_tc(
         if fail_status[0]:
             raise Exception(fail_status[1])
 
-        result_tc: stable_whisper.WhisperResult = gc.data_queue.get()
+        result_tc: stable_whisper.WhisperResult = bc.data_queue.get()
 
         # export if transcribe mode is on
         if transcribe:
             result_text = result_tc.text.strip()
 
             if len(result_text) > 0:
-                gc.file_tced_counter += 1
+                bc.file_tced_counter += 1
                 save_output_stable_ts(result_tc, path.join(export_to, f_name), sj.cache["export_to"], sj)
             else:
                 logger.warning("Transcribed Text is empty")
@@ -350,7 +350,7 @@ def cancellable_tl(
     -------
     None
     """
-    assert gc.mw is not None
+    assert bc.mw is not None
     global global_file_import_counter, processed_tl
     start = time()
 
@@ -374,7 +374,7 @@ def cancellable_tl(
             thread.start()
 
             while thread.is_alive():
-                if not gc.translating:
+                if not bc.translating:
                     logger.debug("Cancelling translation")
                     kill_thread(thread)
                     raise Exception("Cancelled")
@@ -383,7 +383,7 @@ def cancellable_tl(
             if fail_status[0]:
                 raise Exception(fail_status[1])
 
-            result_tl: stable_whisper.WhisperResult = gc.data_queue.get()
+            result_tl: stable_whisper.WhisperResult = bc.data_queue.get()
 
             # if whisper, sended text (toTranslate) is the audio file path
             resultTxt = result_tl.text.strip()
@@ -393,7 +393,7 @@ def cancellable_tl(
                 update_q_process(processed_tl, tracker_index, "TL Fail! Got empty translated text")
                 return
 
-            gc.file_tled_counter += 1
+            bc.file_tled_counter += 1
             save_output_stable_ts(result_tl, path.join(export_to, f_name), sj.cache["export_to"], sj)
         else:
             assert isinstance(query, stable_whisper.WhisperResult)
@@ -421,7 +421,7 @@ def cancellable_tl(
             thread.start()
 
             while thread.is_alive():
-                if not gc.translating:
+                if not bc.translating:
                     logger.debug("Cancelling translation")
                     kill_thread(thread)
                     raise Exception("Cancelled")
@@ -430,7 +430,7 @@ def cancellable_tl(
             if fail_status[0]:
                 raise Exception(fail_status[1])
 
-            gc.file_tled_counter += 1
+            bc.file_tled_counter += 1
             save_output_stable_ts(query, path.join(export_to, f_name), sj.cache["export_to"], sj)
 
         update_q_process(processed_tl, tracker_index, "Translated")
@@ -473,15 +473,15 @@ def process_file(
     -------
         None
     """
-    assert gc.mw is not None
+    assert bc.mw is not None
     try:
-        gc.mw.disable_interactions()
-        master = gc.mw.root
+        bc.mw.disable_interactions()
+        master = bc.mw.root
         fp = FileProcessDialog(master, "File Import Progress", "export", ["Audio / Video File", "Status"], sj)
 
         logger.info("Start Process (FILE)")
-        gc.file_tced_counter = 0
-        gc.file_tled_counter = 0
+        bc.file_tced_counter = 0
+        bc.file_tled_counter = 0
 
         auto = lang_source == "auto detect"
         tl_engine_whisper = engine in model_values
@@ -493,14 +493,14 @@ def process_file(
 
         # load model
         model_args = get_model_args(sj.cache)
-        _, _, stable_tc, stable_tl, to_args = get_model(
+        model_tc, model_tl, stable_tc, stable_tl, to_args = get_model(
             transcribe, translate, tl_engine_whisper, model_name_tc, engine, sj.cache, **model_args
         )
         whisper_args = get_tc_args(to_args, sj.cache)
         whisper_args["language"] = TO_LANGUAGE_CODE[get_whisper_key_from_similar(lang_source.lower())] if not auto else None
 
         # update button text
-        gc.mw.btn_import_file.configure(text="Cancel")
+        bc.mw.btn_import_file.configure(text="Cancel")
 
         t_start = time()
         adding = False
@@ -567,9 +567,9 @@ def process_file(
 
             if len(to_add) > 0:
                 if transcribe:
-                    current_file_counter = gc.file_tced_counter
+                    current_file_counter = bc.file_tced_counter
                 else:
-                    current_file_counter = gc.file_tled_counter
+                    current_file_counter = bc.file_tled_counter
                 data_files.extend(list(to_add))
                 fp.lbl_files.set_text(text=f"{current_file_counter}/{len(data_files)}")
 
@@ -581,13 +581,13 @@ def process_file(
             nonlocal canceled
             # confirm
             if mbox("Cancel confirmation", "Are you sure you want to cancel file process?", 3, master):
-                assert gc.mw is not None
+                assert bc.mw is not None
                 canceled = True
-                gc.mw.from_file_stop(prompt=False, notify=True)
+                bc.mw.from_file_stop(prompt=False, notify=True)
 
         def update_modal_ui():
             nonlocal t_start, local_file_import_counter
-            if gc.file_processing:
+            if bc.file_processing:
 
                 fp.lbl_files.set_text(text=f"{local_file_import_counter}/{len(data_files)}")
                 fp.lbl_elapsed.set_text(text=f"{strftime('%H:%M:%S', gmtime(time() - t_start))}")
@@ -605,11 +605,11 @@ def process_file(
 
                 processed = ""
                 if transcribe:
-                    processed += f"{gc.file_tced_counter} Transcribed"
+                    processed += f"{bc.file_tced_counter} Transcribed"
                 if translate:
                     if transcribe:
                         processed += ", "
-                    processed += f"{gc.file_tled_counter} Translated"
+                    processed += f"{bc.file_tled_counter} Translated"
                 fp.lbl_processed.set_text(text=processed)
 
                 # update progressbar
@@ -634,12 +634,12 @@ def process_file(
         fp.btn_cancel.configure(state="normal", command=cancel)
 
         update_modal_ui()
-        gc.mw.start_loadBar()
-        gc.enable_tc()
-        gc.enable_tl()
+        bc.mw.start_loadBar()
+        bc.enable_tc()
+        bc.enable_tl()
 
         for file in data_files:
-            if not gc.file_processing:  # if cancel button is pressed
+            if not bc.file_processing:  # if cancel button is pressed
                 return
 
             # Proccess it
@@ -696,8 +696,8 @@ def process_file(
         while not all_done:
             sleep(0.5)
 
-        gc.disable_tc()
-        gc.disable_tl()
+        bc.disable_tc()
+        bc.disable_tl()
 
         # destroy progress window
         if fp.root.winfo_exists():
@@ -706,19 +706,19 @@ def process_file(
         logger.info(f"End process (FILE) [Total time: {time() - t_start:.2f}s]")
 
         # turn off loadbar
-        gc.mw.stop_loadBar("file")
-        gc.disable_rec()  # update flag
+        bc.mw.stop_loadBar("file")
+        bc.disable_rec()  # update flag
 
-        if gc.file_tced_counter > 0 or gc.file_tled_counter > 0:
+        if bc.file_tced_counter > 0 or bc.file_tled_counter > 0:
             # open folder
             if sj.cache["auto_open_dir_export"]:
                 export_to = dir_export if sj.cache["dir_export"] == "auto" else sj.cache["dir_export"]
                 start_file(export_to)
 
         resultMsg = (
-            f"Transcribed {gc.file_tced_counter} file(s) and Translated {gc.file_tled_counter} file(s)"
+            f"Transcribed {bc.file_tced_counter} file(s) and Translated {bc.file_tled_counter} file(s)"
             if transcribe and translate else
-            f"Transcribed {gc.file_tced_counter} file(s)" if transcribe else f"Translated {gc.file_tled_counter} file(s)"
+            f"Transcribed {bc.file_tced_counter} file(s)" if transcribe else f"Translated {bc.file_tled_counter} file(s)"
         )
 
         if not canceled:
@@ -726,8 +726,8 @@ def process_file(
     except Exception as e:
         logger.error("Error occured while processing file(s)")
         logger.exception(e)
-        mbox("Error occured while processing file(s)", f"{str(e)}", 2, gc.mw.root)
-        gc.mw.from_file_stop(prompt=False, notify=False)
+        mbox("Error occured while processing file(s)", f"{str(e)}", 2, bc.mw.root)
+        bc.mw.from_file_stop(prompt=False, notify=False)
 
         try:
             if fp and fp.root.winfo_exists():  # type: ignore
@@ -736,8 +736,8 @@ def process_file(
             logger.exception(e)
             logger.warning("Failed to destroy progress window")
     finally:
-        gc.disable_rec()  # update flag
-        gc.mw.enable_interactions()
+        bc.disable_rec()  # update flag
+        bc.mw.enable_interactions()
         # reset processed list
         processed_tc = []
         processed_tl = []
@@ -767,15 +767,15 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
         _description_
     """
 
-    assert gc.mw is not None
+    assert bc.mw is not None
     try:
-        gc.mw.disable_interactions()
-        master = gc.mw.root
+        bc.mw.disable_interactions()
+        master = bc.mw.root
         fp = FileProcessDialog(master, f"File {up_first_case(mode)} Progress", mode, ["Audio/Video File", "Status"], sj)
         task_short = {"refinement": "rf", "alignment": "al"}
 
         logger.info("Start Process (MOD FILE)")
-        gc.mod_file_counter = 0
+        bc.mod_file_counter = 0
         adding = False
         action_name = "Refined" if mode == "refinement" else "Aligned"
         export_format: str = sj.cache["export_format"]
@@ -827,39 +827,39 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
                 else:
                     data_files.extend((source_f, mod_f))
 
-                fp.lbl_files.set_text(text=f"{gc.mod_file_counter}/{len(data_files)}")
+                fp.lbl_files.set_text(text=f"{bc.mod_file_counter}/{len(data_files)}")
 
             adding = False
 
         def cancel():
-            assert gc.mw is not None
+            assert bc.mw is not None
             if mode == "refinement":
-                gc.mw.refinement_stop(prompt=True, notify=True, master=fp.root)
+                bc.mw.refinement_stop(prompt=True, notify=True, master=fp.root)
             else:
-                gc.mw.alignment_stop(prompt=True, notify=True, master=fp.root)
+                bc.mw.alignment_stop(prompt=True, notify=True, master=fp.root)
 
         def update_modal_ui():
             nonlocal t_start
-            if gc.file_processing:
+            if bc.file_processing:
 
-                fp.lbl_files.set_text(text=f"{gc.mod_file_counter}/{len(data_files)}")
+                fp.lbl_files.set_text(text=f"{bc.mod_file_counter}/{len(data_files)}")
                 fp.lbl_elapsed.set_text(text=f"{strftime('%H:%M:%S', gmtime(time() - t_start))}")
 
-                if gc.mod_file_counter > 0:
+                if bc.mod_file_counter > 0:
                     fp.lbl_files.set_text(
                         text=
-                        f"{gc.mod_file_counter}/{len(data_files)} ({filename_only(data_files[gc.mod_file_counter - 1][0])})"
+                        f"{bc.mod_file_counter}/{len(data_files)} ({filename_only(data_files[bc.mod_file_counter - 1][0])})"
                     )
                 else:
                     fp.lbl_files.set_text(
-                        text=f"{gc.mod_file_counter}/{len(data_files)} ({filename_only(data_files[gc.mod_file_counter][0])})"
+                        text=f"{bc.mod_file_counter}/{len(data_files)} ({filename_only(data_files[bc.mod_file_counter][0])})"
                     )
 
-                fp.lbl_processed.set_text(text=f"{gc.mod_file_counter}")
+                fp.lbl_processed.set_text(text=f"{bc.mod_file_counter}")
 
                 # update progressbar
                 prog_file_len = len(data_files)
-                fp.progress_bar["value"] = (gc.mod_file_counter / prog_file_len * 100)
+                fp.progress_bar["value"] = (bc.mod_file_counter / prog_file_len * 100)
 
                 fp.queue_window.update_sheet(get_queue_data())
                 fp.root.after(1000, update_modal_ui)
@@ -877,7 +877,7 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
         fp.btn_cancel.configure(state="normal", command=cancel)
 
         update_modal_ui()
-        gc.mw.start_loadBar()
+        bc.mw.start_loadBar()
 
         if mode == "refinement":
             export_to = dir_refinement if sj.cache["dir_export"] == "auto" else sj.cache["dir_export"] + "/refinement"
@@ -889,7 +889,7 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
             fail = False
             fail_msg = ""
 
-            if not gc.file_processing:  # if cancel button is pressed
+            if not bc.file_processing:  # if cancel button is pressed
                 return
 
             # name and get data
@@ -913,7 +913,7 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
                 logger.warning("Program failed to parse or read file, please make sure that the input is a valid file")
                 fail = True
                 fail_msg = e
-                update_q_process(processed, gc.mod_file_counter, "Failed to parse or read file (check log)")
+                update_q_process(processed, bc.mod_file_counter, "Failed to parse or read file (check log)")
                 continue  # continue to next file
 
             if mode == "alignment":
@@ -923,10 +923,10 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
             def run_mod():
                 nonlocal mod_source, processed
                 try:
-                    update_q_process(processed, gc.mod_file_counter, f"Processing {mode}")
+                    update_q_process(processed, bc.mod_file_counter, f"Processing {mode}")
                     result = mod_function(audio, mod_source, **mod_args)
-                    gc.data_queue.put(result)
-                    update_q_process(processed, gc.mod_file_counter, f"{action_name}")
+                    bc.data_queue.put(result)
+                    update_q_process(processed, bc.mod_file_counter, f"{action_name}")
                 except Exception as e:
                     nonlocal fail, fail_msg
                     if "'NoneType' object is not iterable" in str(e):
@@ -934,26 +934,26 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
                         if mode == "refinement":
                             logger.warning("Found null token, now trying to re-transcribe with whisper model")
                             update_q_process(
-                                processed, gc.mod_file_counter,
+                                processed, bc.mod_file_counter,
                                 "Found null token, now trying to re-transcribe with whisper model"
                             )
                             transcribe_args = get_tc_args(model.transcribe, sj.cache)
                             logger.info(f"Process Args: {transcribe_args}")
                             result = model.transcribe(audio, **transcribe_args)
                             update_q_process(
-                                processed, gc.mod_file_counter, "Transcribed successfully, now trying to refine again"
+                                processed, bc.mod_file_counter, "Transcribed successfully, now trying to refine again"
                             )
                             result = mod_function(audio, result, **mod_args)
-                            update_q_process(processed, gc.mod_file_counter, "Refined")
-                            gc.data_queue.put(result)
+                            update_q_process(processed, bc.mod_file_counter, "Refined")
+                            bc.data_queue.put(result)
                         else:
                             fail = True
                             fail_msg = e
-                            update_q_process(processed, gc.mod_file_counter, f"Failed to do {mode} (check log)")
+                            update_q_process(processed, bc.mod_file_counter, f"Failed to do {mode} (check log)")
                     else:
                         logger.exception(e)
                         fail = True
-                        if "The system cannot find the file specified" in str(fail_msg) and not gc.has_ffmpeg:
+                        if "The system cannot find the file specified" in str(fail_msg) and not bc.has_ffmpeg:
                             logger.error("FFmpeg not found in system path. Please install FFmpeg and add it to system path")
                             fail_msg = Exception(
                                 "FFmpeg not found in system path. Please install FFmpeg and add it to system path"
@@ -961,13 +961,13 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
                         else:
                             fail_msg = e
 
-                        update_q_process(processed, gc.mod_file_counter, f"Failed to do {mode} (check log)")
+                        update_q_process(processed, bc.mod_file_counter, f"Failed to do {mode} (check log)")
 
             thread = Thread(target=run_mod, daemon=True)
             thread.start()
 
             while thread.is_alive():
-                if not gc.file_processing:
+                if not bc.file_processing:
                     logger.debug(f"Cancelling {mode}")
                     kill_thread(thread)
                     raise Exception("Cancelled")
@@ -977,9 +977,9 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
                 native_notify(f"Error: {mode} failed", str(fail_msg))
                 continue
 
-            result: stable_whisper.WhisperResult = gc.data_queue.get()
+            result: stable_whisper.WhisperResult = bc.data_queue.get()
             save_output_stable_ts(result, path.join(export_to, save_name), sj.cache["export_to"], sj)
-            gc.mod_file_counter += 1
+            bc.mod_file_counter += 1
 
             while adding:
                 sleep(0.3)
@@ -991,26 +991,26 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
         logger.info(f"End process ({mode}) [Total time: {time() - t_start:.2f}s]")
 
         # turn off loadbar
-        gc.mw.stop_loadBar()
+        bc.mw.stop_loadBar()
 
-        if gc.mod_file_counter > 0:
+        if bc.mod_file_counter > 0:
             # open folder
             if sj.cache["auto_open_dir_export"]:
                 start_file(export_to)
 
-        mbox(f"File {mode} Done", f"{action_name} {gc.mod_file_counter} file(s)", 0)
+        mbox(f"File {mode} Done", f"{action_name} {bc.mod_file_counter} file(s)", 0)
         # done, interaction is re enabled in main
     except Exception as e:
         if str(e) != "Cancelled":
             logger.error(f"Error occured while doing {mode}")
             logger.exception(e)
-            assert gc.mw is not None
-            mbox(f"Error occured while doing {mode}", f"{str(e)}", 2, gc.mw.root)
+            assert bc.mw is not None
+            mbox(f"Error occured while doing {mode}", f"{str(e)}", 2, bc.mw.root)
 
             if mode == "refinement":
-                gc.mw.refinement_stop(prompt=False, notify=False)
+                bc.mw.refinement_stop(prompt=False, notify=False)
             else:
-                gc.mw.alignment_stop(prompt=False, notify=False)
+                bc.mw.alignment_stop(prompt=False, notify=False)
         else:
             logger.info(f"{mode} cancelled")
 
@@ -1021,8 +1021,8 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
             logger.exception(e)
             logger.warning("Failed to destroy progress window")
     finally:
-        gc.disable_rec()  # making sure
-        gc.mw.enable_interactions()
+        bc.disable_rec()  # making sure
+        bc.mw.enable_interactions()
 
 
 def translate_result(data_files: List, engine: str, lang_target: str):
@@ -1039,14 +1039,14 @@ def translate_result(data_files: List, engine: str, lang_target: str):
         Language to translate to
     """
 
-    assert gc.mw is not None
+    assert bc.mw is not None
     try:
-        gc.mw.disable_interactions()
-        master = gc.mw.root
+        bc.mw.disable_interactions()
+        master = bc.mw.root
         fp = FileProcessDialog(master, "File Translate Progress", "translate", ["Source File", "Status"], sj)
 
         logger.info("Start Process (MOD FILE)")
-        gc.mod_file_counter = 0
+        bc.mod_file_counter = 0
         adding = False
         export_format: str = sj.cache["export_format"]
         file_slice_start = (None if sj.cache["file_slice_start"] == "" else int(sj.cache["file_slice_start"]))
@@ -1097,35 +1097,35 @@ def translate_result(data_files: List, engine: str, lang_target: str):
 
             if len(to_add) > 0:
                 data_files.extend(list(to_add))
-                fp.lbl_files.set_text(text=f"{gc.mod_file_counter}/{len(data_files)}")
+                fp.lbl_files.set_text(text=f"{bc.mod_file_counter}/{len(data_files)}")
 
             adding = False
 
         def cancel():
-            assert gc.mw is not None
-            gc.mw.translate_stop(prompt=True, notify=True, master=fp.root)
+            assert bc.mw is not None
+            bc.mw.translate_stop(prompt=True, notify=True, master=fp.root)
 
         def update_modal_ui():
             nonlocal t_start
-            if gc.file_processing:
+            if bc.file_processing:
 
-                fp.lbl_files.set_text(text=f"{gc.mod_file_counter}/{len(data_files)}")
+                fp.lbl_files.set_text(text=f"{bc.mod_file_counter}/{len(data_files)}")
                 fp.lbl_elapsed.set_text(text=f"{strftime('%H:%M:%S', gmtime(time() - t_start))}")
 
-                if gc.mod_file_counter > 0:
+                if bc.mod_file_counter > 0:
                     fp.lbl_files.set_text(
-                        text=f"{gc.mod_file_counter}/{len(data_files)} ({filename_only(data_files[gc.mod_file_counter - 1])})"
+                        text=f"{bc.mod_file_counter}/{len(data_files)} ({filename_only(data_files[bc.mod_file_counter - 1])})"
                     )
                 else:
                     fp.lbl_files.set_text(
-                        text=f"{gc.mod_file_counter}/{len(data_files)} ({filename_only(data_files[gc.mod_file_counter])})"
+                        text=f"{bc.mod_file_counter}/{len(data_files)} ({filename_only(data_files[bc.mod_file_counter])})"
                     )
 
-                fp.lbl_processed.set_text(text=f"{gc.mod_file_counter}")
+                fp.lbl_processed.set_text(text=f"{bc.mod_file_counter}")
 
                 # update progressbar
                 prog_file_len = len(data_files)
-                fp.progress_bar["value"] = (gc.mod_file_counter / prog_file_len * 100)
+                fp.progress_bar["value"] = (bc.mod_file_counter / prog_file_len * 100)
 
                 fp.queue_window.update_sheet(get_queue_data())
                 fp.root.after(1000, update_modal_ui)
@@ -1139,14 +1139,14 @@ def translate_result(data_files: List, engine: str, lang_target: str):
         fp.btn_cancel.configure(state="normal", command=cancel)
 
         update_modal_ui()
-        gc.mw.start_loadBar()
+        bc.mw.start_loadBar()
 
         for file in data_files:
-            if not gc.file_processing:  # cancel button is pressed
+            if not bc.file_processing:  # cancel button is pressed
                 return
 
             # name and get data
-            update_q_process(processed, gc.mod_file_counter, "Processing")
+            update_q_process(processed, bc.mod_file_counter, "Processing")
             try:
                 result = stable_whisper.WhisperResult(file)
             except Exception as e:
@@ -1154,7 +1154,7 @@ def translate_result(data_files: List, engine: str, lang_target: str):
                 logger.warning("Program failed to parse or read file, please make sure that the input is a valid file")
                 fail_status[0] = True
                 fail_status[1] = e
-                update_q_process(processed, gc.mod_file_counter, "Failed to parse or read file (check log)")
+                update_q_process(processed, bc.mod_file_counter, "Failed to parse or read file (check log)")
                 continue
 
             lang_source = to_language_name(result.language)  # type: ignore
@@ -1181,18 +1181,18 @@ def translate_result(data_files: List, engine: str, lang_target: str):
             thread.start()
 
             while thread.is_alive():
-                if not gc.file_processing:
+                if not bc.file_processing:
                     logger.debug("Cancelling translation")
                     kill_thread(thread)
                     raise Exception("Cancelled")
                 sleep(0.1)
 
             if fail_status[0]:
-                update_q_process(processed, gc.mod_file_counter, "Failed to translate (check log)")
+                update_q_process(processed, bc.mod_file_counter, "Failed to translate (check log)")
                 native_notify("Error: Translate failed", str(fail_status[1]))
                 continue  # continue to next file
 
-            gc.mod_file_counter += 1
+            bc.mod_file_counter += 1
             save_output_stable_ts(result, path.join(export_to, save_name), sj.cache["export_to"], sj)
 
             while adding:
@@ -1205,21 +1205,21 @@ def translate_result(data_files: List, engine: str, lang_target: str):
         logger.info(f"End process (Translate result) [Total time: {time() - t_start:.2f}s]")
 
         # turn off loadbar
-        gc.mw.stop_loadBar()
+        bc.mw.stop_loadBar()
 
-        if gc.mod_file_counter > 0:
+        if bc.mod_file_counter > 0:
             # open folder
             if sj.cache["auto_open_dir_translate"]:
                 start_file(export_to)
 
-        mbox("File Translate Done", f"Translated {gc.mod_file_counter} file(s)", 0)
+        mbox("File Translate Done", f"Translated {bc.mod_file_counter} file(s)", 0)
     except Exception as e:
         if str(e) != "Cancelled":
             logger.error("Error occured while translating file(s)")
             logger.exception(e)
-            assert gc.mw is not None
-            mbox("Error occured while processing file(s)", f"{str(e)}", 2, gc.mw.root)
-            gc.mw.translate_stop(prompt=False, notify=False)
+            assert bc.mw is not None
+            mbox("Error occured while processing file(s)", f"{str(e)}", 2, bc.mw.root)
+            bc.mw.translate_stop(prompt=False, notify=False)
         else:
             logger.debug("Cancelled translate")
 
@@ -1230,5 +1230,5 @@ def translate_result(data_files: List, engine: str, lang_target: str):
             logger.exception(e)
             logger.warning("Failed to destroy progress window")
     finally:
-        gc.disable_rec()  # update flag
-        gc.mw.enable_interactions()
+        bc.disable_rec()  # update flag
+        bc.mw.enable_interactions()

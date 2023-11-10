@@ -14,7 +14,7 @@ from huggingface_hub.file_download import repo_folder_name
 from speech_translate._path import app_icon
 from speech_translate.ui.custom.message import mbox
 from speech_translate._logging import recent_stderr
-from speech_translate.globals import gc
+from speech_translate.linker import bc
 
 
 def whisper_download_with_progress_gui(
@@ -130,11 +130,11 @@ def whisper_download_with_progress_gui(
 
         update_progress_bar()
         while True:
-            if gc.cancel_dl:
+            if bc.cancel_dl:
                 try:
                     logger.info("Download cancelled")
                     downloading = False
-                    gc.cancel_dl = False
+                    bc.cancel_dl = False
                     root.after(100, root.destroy)
                     mbox("Download Cancelled", f"Downloading of {model_name} model has been cancelled", 0, master)
                 except Exception:
@@ -174,8 +174,8 @@ def whisper_download_with_progress_gui(
         Thread(target=after_func, daemon=True).start()
 
     # tell setting window to check model again when it open
-    assert gc.sw is not None
-    gc.sw.f_general.model_checked = False
+    assert bc.sw is not None
+    bc.sw.f_general.model_checked = False
 
     mbox("Model Downloaded Success", f"{model_name} whisper model has been downloaded successfully", 0, master)
     return True
@@ -317,8 +317,8 @@ def faster_whisper_download_with_progress_gui(
     root.destroy()
 
     # tell setting window to check model again when it is opened
-    assert gc.sw is not None
-    gc.sw.f_general.model_checked = False
+    assert bc.sw is not None
+    bc.sw.f_general.model_checked = False
 
     if success := not failed:
         logger.info("Download finished")
