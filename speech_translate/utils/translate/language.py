@@ -1,217 +1,79 @@
-from ..helper import up_first_case
+from ..helper import up_first_case, get_similar_in_list
 from whisper.tokenizer import TO_LANGUAGE_CODE
+from typing import Dict
+
+from deep_translator import MyMemoryTranslator, GoogleTranslator
+from loguru import logger
+
+# * using deep_translator v1.11.1
+# * v1.11.4 seems to add weird language code for mymemory
 
 # List of whisper languages convert fromm the keys of TO_LANGUAGE_CODE
-whisper_compatible = list(TO_LANGUAGE_CODE.keys())
+WHISPER_LANG_LIST = list(TO_LANGUAGE_CODE.keys())
+WHISPER_LANG_LIST.sort()
 
 # List of supported languages by Google TL
-google_lang = {
-    "auto detect": "auto",
-    "afrikaans": "af",
-    "albanian": "sq",
-    "amharic": "am",
-    "arabic": "ar",
-    "armenian": "hy",
-    "azerbaijani": "aze_cyrl",
-    "basque": "eu",
-    "belarusian": "be",
-    "bengali": "bn",
-    "bosnian": "bs",
-    "bulgarian": "bg",
-    "burmese": "my",
-    "catalan:valencian": "cat",
-    "cebuano": "ceb",
-    "chinese": "zh-CN",
-    "chinese traditional": "zh-TW",
-    "corsican": "co",
-    "czech": "ces",
-    "danish": "da",
-    "dutch": "nl",
-    "english": "en",
-    "esperanto": "eo",
-    "estonian": "et",
-    "filipino (old-tagalog)": "tl",
-    "finnish": "fi",
-    "french": "fr",
-    "galician": "gl",
-    "georgian": "ka",
-    "german": "de",
-    "greek": "el",
-    "gujarati": "gu",
-    "haitian": "ht",
-    "hebrew": "iw",
-    "hindi": "hi",
-    "hungarian": "hu",
-    "icelandic": "is",
-    "indonesian": "id",
-    "irish": "ga",
-    "italian": "it",
-    "japanese": "ja",
-    "javanese": "jw",
-    "kannada": "kn",
-    "kazakh": "kk",
-    "khmer": "km",
-    "korean": "ko",
-    "korean vertical": "ko",
-    "kurdish": "ku",
-    "lao": "lo",
-    "latin": "la",
-    "latvian": "lv",
-    "lithuanian": "lt",
-    "luxembourgish": "lb",
-    "macedonian": "mk",
-    "malay": "ms",
-    "malayalam": "ml",
-    "maltese": "mt",
-    "maori": "mi",
-    "marathi": "mr",
-    "mongolian": "mn",
-    "nepali": "ne",
-    "norwegian": "no",
-    "persian": "fa",
-    "polish": "pl",
-    "portuguese": "pt",
-    "punjabi": "pa",
-    "romanian": "ro",
-    "russian": "ru",
-    "serbian": "sr",
-    "spanish": "es",
-    "sundanese": "su",
-    "swahili": "sw",
-    "swedish": "sv",
-    "tajik": "tg",
-    "tamil": "ta",
-    "tatar": "tt",
-    "telugu": "te",
-    "thai": "th",
-    "turkish": "tr",
-    "ukrainian": "uk",
-    "urdu": "ur",
-    "uzbek": "uz",
-    "vietnamese": "vi",
-    "welsh": "cy",
-    "yiddish": "yi",
-    "yoruba": "yo",
-}
-
-# List of supported languages by libreTranslate
-libre_lang = {
-    "auto detect": "auto",
-    "arabic": "ar",
-    "chinese": "zh",
-    "dutch": "nl",
-    "english": "en",
-    "finnish": "fi",
-    "french": "fr",
-    "german": "de",
-    "hindi": "hi",
-    "hungarian": "hu",
-    "indonesian": "id",
-    "irish": "ga",
-    "italian": "it",
-    "japanese": "ja",
-    "korean": "ko",
-    "polish": "pl",
-    "portuguese": "pt",
-    "russian": "ru",
-    "spanish": "es",
-    "swedish": "sv",
-    "turkish": "tr",
-    "ukrainian": "uk",
-    "vietnamese": "vi",
-}
+GOOGLE_KEY_VAL = GoogleTranslator().get_supported_languages(as_dict=True)
+assert isinstance(GOOGLE_KEY_VAL, Dict)
+GOOGLE_KEY_VAL["auto detect"] = "auto"
+if "filipino" in GOOGLE_KEY_VAL.keys():
+    GOOGLE_KEY_VAL["filipino (tagalog)"] = GOOGLE_KEY_VAL.pop("filipino")
 
 # List of supported languages by MyMemoryTranslator
-myMemory_lang = {
+MYMEMORY_KEY_VAL = MyMemoryTranslator().get_supported_languages(as_dict=True)
+assert isinstance(MYMEMORY_KEY_VAL, Dict)
+if "filipino" in MYMEMORY_KEY_VAL.keys():
+    MYMEMORY_KEY_VAL["filipino (tagalog)"] = MYMEMORY_KEY_VAL.pop("filipino")
+# no auto for mymemory
+
+# List of supported languages by libreTranslate. Taken from LibreTranslate.com docs v1.5.1
+LIBRE_KEY_VAL = {
     "auto detect": "auto",
-    "afrikaans": "af",
+    "english": "en",
     "albanian": "sq",
-    "amharic": "am",
     "arabic": "ar",
-    "armenian": "hy",
     "azerbaijani": "az",
-    "basque": "eu",
-    "belarusian": "be",
     "bengali": "bn",
-    "bosnian": "bs",
     "bulgarian": "bg",
-    "burmese": "my",
     "catalan": "ca",
-    "cebuano": "ceb",
-    "chinese": "zh-CN",
-    "chinese traditional": "zh-TW",
-    "corsican": "co",
+    "chinese": "zh",
+    "chinese (traditional)": "zt",
     "czech": "cs",
     "danish": "da",
     "dutch": "nl",
-    "english": "en",
     "esperanto": "eo",
-    "estonian": "et",
-    "filipino": "fil",
-    "filipino (tagalog)": "tl",
     "finnish": "fi",
     "french": "fr",
-    "galician": "gl",
-    "georgian": "ka",
     "german": "de",
     "greek": "el",
-    "gujarati": "gu",
-    "haitian": "ht",
-    "hausa": "ha",
-    "hawaiian": "haw",
     "hebrew": "he",
     "hindi": "hi",
     "hungarian": "hu",
-    "icelandic": "is",
     "indonesian": "id",
     "irish": "ga",
     "italian": "it",
     "japanese": "ja",
-    "javanese": "jw",
-    "kannada": "kn",
-    "kazakh": "kk",
-    "khmer": "km",
     "korean": "ko",
-    "kurdish": "ku",
-    "lao": "lo",
-    "latin": "la",
     "latvian": "lv",
     "lithuanian": "lt",
-    "luxembourgish": "lb",
-    "macedonian": "mk",
     "malay": "ms",
-    "malayalam": "ml",
-    "maltese": "mt",
-    "maori": "mi",
-    "marathi": "mr",
-    "mongolian": "mn",
-    "nepali": "ne",
-    "norwegian": "no",
+    "norwegian": "nb",
     "persian": "fa",
     "polish": "pl",
     "portuguese": "pt",
-    "punjabi": "pa",
     "romanian": "ro",
     "russian": "ru",
-    "samoan": "sm",
     "serbian": "sr",
+    "slovak": "sk",
+    "slovenian": "sl",
     "spanish": "es",
-    "sundanese": "su",
-    "swahili": "sw",
     "swedish": "sv",
-    "tajik": "tg",
-    "tamil": "ta",
-    "telugu": "te",
+    "tagalog": "tl",
     "thai": "th",
     "turkish": "tr",
     "ukrainian": "uk",
     "urdu": "ur",
-    "uzbek": "uz",
     "vietnamese": "vi",
-    "welsh": "cy",
-    "xhosa": "xh",
-    "yiddish": "yi",
-    "yoruba": "yo",
 }
 
 
@@ -237,81 +99,151 @@ def verify_language_in_key(lang: str, engine: str) -> bool:
 
     """
     if engine == "Google Translate":
-        return lang in google_lang.keys()
+        return lang in GOOGLE_KEY_VAL.keys()
     elif engine == "LibreTranslate":
-        return lang in libre_lang.keys()
+        return lang in LIBRE_KEY_VAL.keys()
     elif engine == "MyMemoryTranslator":
-        return lang in myMemory_lang.keys()
+        return lang in MYMEMORY_KEY_VAL.keys()
     else:
         raise ValueError("Engine not found")
 
 
-# select target engine
-gLang_target = list(google_lang.keys())
-gLang_target.pop(0)
-gLang_target.sort()
+def get_whisper_key_from_similar(similar: str) -> str:
+    """Get whisper key from similar. This is used because we want to keep the original language name for the translation engine
+    So everytime we want to set the whisper language, we must call this function first to get the correct whisper key
 
-libre_target = list(libre_lang.keys())
-libre_target.pop(0)
-libre_target.sort()
+    Parameters
+    ----------
+    similar : str
+        Similar language
 
-myMemory_target = list(myMemory_lang.keys())
-myMemory_target.pop(0)
-myMemory_target.sort()
+    Returns
+    -------
+    str
+        Whisper key
 
-engine_select_target_dict = {
-    "Tiny (~32x speed)": ["English"],
-    "Base (~16x speed)": ["English"],
-    "Small (~6x speed)": ["English"],
-    "Medium (~2x speed)": ["English"],
-    "Large (v1) (1x speed)": ["English"],
-    "Large (v2) (1x speed)": ["English"],
-    "Large (v3) (1x speed)": ["English"],
-    "Google Translate": [up_first_case(x) for x in gLang_target],
-    "LibreTranslate": [up_first_case(x) for x in libre_target],
-    "MyMemoryTranslator": [up_first_case(x) for x in myMemory_target],
+    Raises
+    ------
+    ValueError
+        If the similar language is not found
+
+    """
+
+    logger.debug("GETTING WHISPER KEY FROM SIMILAR LANGUAGE NAME")
+    should_be_there = get_similar_in_list(WHISPER_LANG_LIST, similar.lower())
+
+    if len(should_be_there) != 0:
+        logger.debug(f"Found key {should_be_there[0]} while searching for {similar}")
+        logger.debug(f"FULL KEY GET {should_be_there}")
+        return should_be_there[0]
+    else:
+        raise ValueError(
+            f"Fail to get whisper key from similar while searching for {similar}. Please report this as a bug to https://github.com/Dadangdut33/Speech-Translate/issues"
+        )
+
+
+# * For Target Remove any auto detect from the list
+WHISPER_TARGET = ["English"]
+
+GOOGLE_TARGET = list(GOOGLE_KEY_VAL.keys())
+GOOGLE_TARGET.remove("auto detect")
+GOOGLE_TARGET = [up_first_case(x) for x in GOOGLE_TARGET]
+GOOGLE_TARGET.sort()
+
+LIBRE_TARGET = list(LIBRE_KEY_VAL.keys())
+LIBRE_TARGET.remove("auto detect")
+LIBRE_TARGET = [up_first_case(x) for x in LIBRE_TARGET]
+LIBRE_TARGET.sort()
+
+MY_MEMORY_TARGET = list(MYMEMORY_KEY_VAL.keys())
+MY_MEMORY_TARGET = [up_first_case(x) for x in MY_MEMORY_TARGET]
+MY_MEMORY_TARGET.sort()
+# no auto for mymemory
+
+# * FOR TARGET LANGUAGE SELECTION
+# for target language, it does not matter wether the target is compatible with whisper or not
+# because in this part whisper is used for transcribing the audio only
+# for whisper though, it can only translate into english
+ENGINE_TARGET_DICT = {
+    # selecting whisper as the tl engine
+    "Tiny (~32x speed)": WHISPER_TARGET,
+    "Base (~16x speed)": WHISPER_TARGET,
+    "Small (~6x speed)": WHISPER_TARGET,
+    "Medium (~2x speed)": WHISPER_TARGET,
+    "Large (v1) (1x speed)": WHISPER_TARGET,
+    "Large (v2) (1x speed)": WHISPER_TARGET,
+    "Large (v3) (1x speed)": WHISPER_TARGET,
+    # selecting TL API as the tl engine
+    "Google Translate": GOOGLE_TARGET,
+    "LibreTranslate": LIBRE_TARGET,
+    "MyMemoryTranslator": MY_MEMORY_TARGET,
 }
 
-# source engine
+# * source engine
 # For source engine we need to check wether the language is compatible with whisper or not
 # if not then we remove it from the list
-google_whisper_compatible = list(google_lang.keys())
-for lang in google_whisper_compatible:
-    if lang not in whisper_compatible:
-        google_whisper_compatible.remove(lang)
+# we keep the original language name for the translation engine here, so that its easy to pass to the tl engine
+# But we must remember that when getting the whisper key we need to use get_whisper_key_from_similar
 
-libre_whisper_compatible = list(libre_lang.keys())
-for lang in libre_whisper_compatible:
-    if lang not in whisper_compatible:
-        libre_whisper_compatible.remove(lang)
+# --- GOOGLE --- | Filtering
+to_remove = []
+GOOGLE_WHISPER_COMPATIBLE = GOOGLE_TARGET.copy()
+for i, lang in enumerate(GOOGLE_WHISPER_COMPATIBLE):
+    is_it_there = get_similar_in_list(WHISPER_LANG_LIST, lang)
+    if len(is_it_there) == 0:
+        to_remove.append(lang)
+GOOGLE_WHISPER_COMPATIBLE = [x for x in GOOGLE_WHISPER_COMPATIBLE if x not in to_remove]
 
-myMemory_whisper_compatible = list(myMemory_lang.keys())
-for lang in myMemory_whisper_compatible:
-    if lang not in whisper_compatible:
-        myMemory_whisper_compatible.remove(lang)
+# --- LIBRE --- | Filtering
+to_remove = []
+LIBRE_WHISPER_COMPATIBLE = LIBRE_TARGET.copy()
+for i, lang in enumerate(LIBRE_WHISPER_COMPATIBLE):
+    is_it_there = get_similar_in_list(WHISPER_LANG_LIST, lang)
+    if len(is_it_there) == 0:
+        to_remove.append(lang)
+LIBRE_WHISPER_COMPATIBLE = [x for x in LIBRE_WHISPER_COMPATIBLE if x not in to_remove]
 
-whisper_compatible_uppercase = [up_first_case(x) for x in whisper_compatible]
-whisper_source = ["Auto detect"] + whisper_compatible_uppercase
-whisper_source.sort()
+# --- MYMEMORY --- | Filtering
+to_remove = []
+MYMEMORY_WHISPER_COMPATIBLE = MY_MEMORY_TARGET.copy()
+for i, lang in enumerate(MYMEMORY_WHISPER_COMPATIBLE):
+    is_it_there = get_similar_in_list(WHISPER_LANG_LIST, lang)
+    if len(is_it_there) == 0:
+        to_remove.append(lang)
+MYMEMORY_WHISPER_COMPATIBLE = [x for x in MYMEMORY_WHISPER_COMPATIBLE if x not in to_remove]
 
-google_source = ["Auto detect"] + [up_first_case(x) for x in google_whisper_compatible]
-google_source.sort()
+# --- SOURCES ---
+WHISPER_LIST_UPPED = [up_first_case(x) for x in WHISPER_LANG_LIST]
+WHISPER_LIST_UPPED.sort()
+WHISPER_SOURCE = ["Auto detect"] + WHISPER_LIST_UPPED
 
-libre_source = ["Auto detect"] + [up_first_case(x) for x in libre_whisper_compatible]
-libre_source.sort()
+GOOGLE_LIST_UPPED = [up_first_case(x) for x in GOOGLE_WHISPER_COMPATIBLE]
+GOOGLE_LIST_UPPED.sort()
+GOOGLE_SOURCE = ["Auto detect"] + GOOGLE_LIST_UPPED
 
-myMemory_source = ["Auto detect"] + [up_first_case(x) for x in myMemory_whisper_compatible]
-myMemory_source.sort()
+LIBRE_LIST_UPPED = [up_first_case(x) for x in LIBRE_WHISPER_COMPATIBLE]
+LIBRE_LIST_UPPED.sort()
+LIBRE_SOURCE = ["Auto detect"] + LIBRE_LIST_UPPED
 
-engine_select_source_dict = {
-    "Tiny (~32x speed)": whisper_source,
-    "Base (~16x speed)": whisper_source,
-    "Small (~6x speed)": whisper_source,
-    "Medium (~2x speed)": whisper_source,
-    "Large (v1) (1x speed)": whisper_source,
-    "Large (v2) (1x speed)": whisper_source,
-    "Large (v3) (1x speed)": whisper_source,
-    "Google Translate": google_source,
-    "LibreTranslate": libre_source,
-    "MyMemoryTranslator": myMemory_source,
+MYMEMORY_SOURCE = [up_first_case(x) for x in MYMEMORY_WHISPER_COMPATIBLE]
+MYMEMORY_SOURCE.sort()
+
+# FOR SOURCE LANGUAGE SELECTION
+# so the basic idea is that
+# for whisper, we use the whisper source because every language from whisper can be used as source when translating using whisper
+# other than that, we filter the language that is not compatible with whisper to make sure that the language is compatible
+# between whisper and the engine
+ENGINE_SOURCE_DICT = {
+    # selecting whisper as the tl engine
+    "Tiny (~32x speed)": WHISPER_SOURCE,
+    "Base (~16x speed)": WHISPER_SOURCE,
+    "Small (~6x speed)": WHISPER_SOURCE,
+    "Medium (~2x speed)": WHISPER_SOURCE,
+    "Large (v1) (1x speed)": WHISPER_SOURCE,
+    "Large (v2) (1x speed)": WHISPER_SOURCE,
+    "Large (v3) (1x speed)": WHISPER_SOURCE,
+    # selecting TL API as the tl engine
+    "Google Translate": GOOGLE_SOURCE,
+    "LibreTranslate": LIBRE_SOURCE,
+    "MyMemoryTranslator": MYMEMORY_SOURCE,
 }

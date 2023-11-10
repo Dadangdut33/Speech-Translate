@@ -35,12 +35,10 @@ from speech_translate.utils.audio.device import (
     get_output_devices
 )
 from speech_translate.utils.helper import (
-    OpenUrl, bind_focus_recursively, emoji_img, native_notify, open_folder, popup_menu, similar, tb_copy_only, up_first_case,
-    windows_os_only, check_ffmpeg_in_path, install_ffmpeg
+    open_url, bind_focus_recursively, emoji_img, native_notify, open_folder, popup_menu, similar, tb_copy_only,
+    up_first_case, windows_os_only, check_ffmpeg_in_path, install_ffmpeg
 )
-from speech_translate.utils.translate.language import (
-    engine_select_source_dict, engine_select_target_dict, whisper_compatible
-)
+from speech_translate.utils.translate.language import (ENGINE_SOURCE_DICT, ENGINE_TARGET_DICT, WHISPER_LANG_LIST)
 from speech_translate.utils.whisper.helper import append_dot_en, model_keys, model_select_dict, save_output_stable_ts
 from speech_translate.utils.whisper.download import download_model, get_default_download_root, verify_model_faster_whisper, verify_model_whisper
 from speech_translate.utils.audio.record import record_session
@@ -228,7 +226,7 @@ class MainWindow:
         self.lbl_source.pack(side="left", padx=5, pady=5)
 
         self.cb_source_lang = ComboboxWithKeyNav(
-            self.f1_toolbar, values=engine_select_source_dict["Google Translate"], state="readonly"
+            self.f1_toolbar, values=ENGINE_SOURCE_DICT["Google Translate"], state="readonly"
         )  # initial value
         self.cb_source_lang.set(sj.cache["sourceLang"])
         self.cb_source_lang.pack(side="left", padx=5, pady=5, fill="x", expand=True)
@@ -239,7 +237,7 @@ class MainWindow:
         self.lbl_to.pack(side="left", padx=5, pady=5)
 
         self.cb_target_lang = ComboboxWithKeyNav(
-            self.f1_toolbar, values=[up_first_case(x) for x in whisper_compatible], state="readonly"
+            self.f1_toolbar, values=[up_first_case(x) for x in WHISPER_LANG_LIST], state="readonly"
         )  # initial value
         self.cb_target_lang.set(sj.cache["targetLang"])
         self.cb_target_lang.pack(side="left", padx=5, pady=5, fill="x", expand=True)
@@ -522,7 +520,7 @@ class MainWindow:
         self.fm_help.add_command(label="About", command=self.open_about, accelerator="F1")
         self.fm_help.add_command(
             label="Open documentation / wiki",
-            command=lambda: OpenUrl("https://github.com/Dadangdut33/Speech-Translate/wiki")
+            command=lambda: open_url("https://github.com/Dadangdut33/Speech-Translate/wiki")
         )
         self.menubar.add_cascade(label="Help", menu=self.fm_help)
 
@@ -701,7 +699,7 @@ class MainWindow:
                 " Would you like to open the documentation to learn more about the app?"
                 "\n\n*You can also open it later from the help menu.", 3, self.root
             ):
-                OpenUrl("https://github.com/Dadangdut33/Speech-Translate/wiki")
+                open_url("https://github.com/Dadangdut33/Speech-Translate/wiki")
             sj.save_key("first_open", False)
 
         if sj.cache["first_open"]:
@@ -982,14 +980,15 @@ class MainWindow:
         # if yes, will make the transcribe model combobox disabled
         if _event in model_keys and "selected" in self.cbtn_task_translate.state(
         ) and "selected" not in self.cbtn_task_transcribe.state():
-            self.cb_source_lang["values"] = engine_select_source_dict[self.cb_engine.get()]
+            logger.debug("Whisper engine selected, disabling transcribe model combobox")
+            self.cb_source_lang["values"] = ENGINE_SOURCE_DICT[self.cb_model.get()]
             self.cb_model.configure(state="disabled")
         else:
-            self.cb_source_lang["values"] = engine_select_source_dict[self.cb_model.get()]
+            self.cb_source_lang["values"] = ENGINE_SOURCE_DICT[self.cb_engine.get()]
             self.cb_model.configure(state="readonly")
 
         # Then update the target cb list with checks
-        self.cb_target_lang["values"] = engine_select_target_dict[self.cb_engine.get()]
+        self.cb_target_lang["values"] = ENGINE_TARGET_DICT[self.cb_engine.get()]
 
         # check if the target lang is not in the new list
         if self.cb_target_lang.get() not in self.cb_target_lang["values"]:
@@ -1383,6 +1382,27 @@ class MainWindow:
             if not status:
                 return
 
+        # check when using libre
+        if engine == "LibreTranslate":
+            # check wether libre_host is set or not
+            if sj.cache["libre_host"].strip() == "":
+                mbox(
+                    "LibreTranslate host is not set!",
+                    "LibreTranslate host is not set! Please set it first in the settings!",
+                    2,
+                )
+                return False
+
+            # check api key
+            if not sj.cache["supress_libre_api_key_warning"] and sj.cache["libre_api_key"].strip() == "":
+                if not mbox(
+                    "LibreTranslate API key is not set!",
+                    "WARNING!! LibreTranslate API key is not set! Do you want to continue anyway?",
+                    3,
+                    self.root,
+                ):
+                    return False
+
         # check ffmpeg
         success, user_cancel = self.check_ffmpeg(check_ffmpeg_in_path()[0])
         if not success:
@@ -1466,6 +1486,26 @@ class MainWindow:
                 status, engine = self.check_model(engine, source == "english", "file import", self.import_file)
                 if not status:
                     return False
+
+            if engine == "LibreTranslate":
+                # check wether libre_host is set or not
+                if sj.cache["libre_host"].strip() == "":
+                    mbox(
+                        "LibreTranslate host is not set!",
+                        "LibreTranslate host is not set! Please set it first in the settings!",
+                        2,
+                    )
+                    return False
+
+                # check api key
+                if not sj.cache["supress_libre_api_key_warning"] and sj.cache["libre_api_key"].strip() == "":
+                    if not mbox(
+                        "LibreTranslate API key is not set!",
+                        "WARNING!! LibreTranslate API key is not set! Do you want to continue anyway?",
+                        3,
+                        self.root,
+                    ):
+                        return False
 
             # check ffmpeg
             success, user_cancel = self.check_ffmpeg(check_ffmpeg_in_path()[0])

@@ -12,9 +12,7 @@ from speech_translate.ui.custom.tooltip import tk_tooltip, tk_tooltips
 from speech_translate.ui.custom.label import LabelTitleText
 from speech_translate.ui.custom.combobox import CategorizedComboBox, ComboboxWithKeyNav
 from speech_translate.utils.whisper.helper import model_keys
-from speech_translate.utils.translate.language import (
-    engine_select_source_dict, engine_select_target_dict, whisper_compatible_uppercase
-)
+from speech_translate.utils.translate.language import (ENGINE_SOURCE_DICT, ENGINE_TARGET_DICT, WHISPER_LIST_UPPED)
 
 
 class MultipleChoiceQuestion:
@@ -200,14 +198,14 @@ class FileImportDialog(FileOperationDialog):
             # check if engine is whisper and currently in translate only mode
             # if yes, will make the source lang use based on the engine
             if _event in model_keys and self.var_task_translate.get() and not self.var_task_transcribe.get():
-                self.cb_source_lang["values"] = engine_select_source_dict[self.var_engine.get()]
+                self.cb_source_lang["values"] = ENGINE_SOURCE_DICT[self.var_model.get()]
                 self.cb_model.configure(state="disabled")
             else:
-                self.cb_source_lang["values"] = engine_select_source_dict[self.var_model.get()]
+                self.cb_source_lang["values"] = ENGINE_SOURCE_DICT[self.var_engine.get()]
                 self.cb_model.configure(state="readonly")
 
             # Then update the target cb list with checks
-            self.cb_target_lang["values"] = engine_select_target_dict[self.var_engine.get()]
+            self.cb_target_lang["values"] = ENGINE_TARGET_DICT[self.var_engine.get()]
 
             # check if the target lang is not in the new list
             if self.cb_target_lang.get() not in self.cb_target_lang["values"]:
@@ -296,8 +294,8 @@ class FileImportDialog(FileOperationDialog):
         self.var_target_lang.set(kwargs["set_cb_target_lang"])
         self.var_task_transcribe.set(kwargs["set_task_transcribe"])
         self.var_task_translate.set(kwargs["set_task_translate"])
-        self.cb_source_lang["values"] = engine_select_source_dict[self.var_model.get()]
-        self.cb_target_lang["values"] = engine_select_target_dict[self.var_engine.get()]
+        self.cb_source_lang["values"] = ENGINE_SOURCE_DICT[self.var_model.get()]
+        self.cb_target_lang["values"] = ENGINE_TARGET_DICT[self.var_engine.get()]
 
         cbtn_task_change()
         cb_engine_change(self.var_model.get())
@@ -346,7 +344,7 @@ class TranslateResultDialog(FileOperationDialog):
         self.cb_model.pack_forget()
 
         def cb_engine_change(_event=None):
-            self.cb_target_lang["values"] = engine_select_target_dict[self.var_engine.get()]
+            self.cb_target_lang["values"] = ENGINE_TARGET_DICT[self.var_engine.get()]
             if self.cb_target_lang.get() not in self.cb_target_lang["values"]:
                 self.cb_target_lang.current(0)
 
@@ -374,7 +372,7 @@ class TranslateResultDialog(FileOperationDialog):
 
         self.var_engine.set(kwargs["set_cb_engine"])
         self.var_target_lang.set(kwargs["set_cb_target_lang"])
-        self.cb_target_lang["values"] = engine_select_target_dict[self.var_engine.get()]
+        self.cb_target_lang["values"] = ENGINE_TARGET_DICT[self.var_engine.get()]
 
         # add ? tooltip to frame_top
         self.hint = ttk.Label(self.frame_top, text="?", cursor="question_arrow", font="TkDefaultFont 9 bold")
@@ -533,7 +531,7 @@ class ModResultInputDialog:
             self.f_3.pack(padx=5, expand=True, fill="x")
 
             ttk.Label(self.f_3, text="Language", width=14).pack(padx=(0, 5), side="left")
-            self.select_cb = ComboboxWithKeyNav(self.f_3, values=["None"] + whisper_compatible_uppercase, state="readonly")
+            self.select_cb = ComboboxWithKeyNav(self.f_3, values=["None"] + WHISPER_LIST_UPPED, state="readonly")
             self.select_cb.pack(fill="x", expand=True, side="left")
             self.select_cb.current(0)
             self.select_cb.bind("<<ComboboxSelected>>", lambda e: lang_change(self.select_cb.get()))

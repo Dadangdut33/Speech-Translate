@@ -54,6 +54,7 @@ default_setting: SettingDict = {
     "https_proxy_enable": False,
     "http_proxy": "",
     "http_proxy_enable": False,
+    "supress_libre_api_key_warning": False,
     "libre_api_key": "",
     "libre_host": "",
     "libre_port": "",

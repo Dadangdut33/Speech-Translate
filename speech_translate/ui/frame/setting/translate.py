@@ -143,7 +143,7 @@ class SettingTranslate:
         tk_tooltips(
             [self.lbl_libre_host, self.entry_libre_host],
             "The host of Libre Translate. You can check out the official "
-            "instance/mirrors at https://github.com/LibreTranslate/LibreTranslate or host your own instance",
+            "instance/mirrors at https://github.com/LibreTranslate/LibreTranslate or host your own instance. Keep in mind that the language code that is set for libretranslate in this app is for libretranslate version 1.5.1",
             wrapLength=330,
         )
 
@@ -165,4 +165,14 @@ class SettingTranslate:
             style="Switch.TCheckbutton"
         )
         self.cbtn_libre_https.pack(side="left", padx=5, pady=(0, 5))
-        tk_tooltip(self.cbtn_libre_https, "Set it to false if you're hosting locally.")
+        tk_tooltip(self.cbtn_libre_https, "Tips: Set it to false if you're hosting locally.")
+
+        self.cbtn_supress_empty_api_key = CustomCheckButton(
+            self.f_libre_1,
+            sj.cache["supress_libre_api_key_warning"],
+            lambda x: sj.save_key("supress_libre_api_key_warning", x),
+            text="Supress Empty API Key",
+            style="Switch.TCheckbutton"
+        )
+        self.cbtn_supress_empty_api_key.pack(side="left", padx=5, pady=(0, 5))
+        tk_tooltip(self.cbtn_supress_empty_api_key, "Supress warning when libre api key is empty.")

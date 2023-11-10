@@ -16,6 +16,8 @@ import torch
 import stable_whisper
 from whisper.tokenizer import TO_LANGUAGE_CODE
 
+from speech_translate.utils.translate.language import get_whisper_key_from_similar
+
 if system() == "Windows":
     import pyaudiowpatch as pyaudio
 else:
@@ -213,7 +215,8 @@ def record_session(
         )
         whisper_args = get_tc_args(to_args, sj.cache)
         whisper_args["verbose"] = None  # set to none so no printing of the progress to stdout
-        whisper_args["language"] = TO_LANGUAGE_CODE[lang_source.lower()] if not auto else None
+        whisper_args["language"] = TO_LANGUAGE_CODE[get_whisper_key_from_similar(lang_source.lower())] if not auto else None
+
         if sj.cache["use_faster_whisper"] and lang_source == "english":
             whisper_args["language"] = None  # to remove warning from stable-ts
         if sj.cache["use_faster_whisper"] and not use_temp:

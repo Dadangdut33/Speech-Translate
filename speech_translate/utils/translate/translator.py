@@ -1,11 +1,13 @@
 from typing import Dict, List
 from speech_translate._logging import logger
 from ..helper import get_similar_keys, no_connection_notify
-from .language import google_lang, libre_lang, myMemory_lang
+from .language import GOOGLE_KEY_VAL, LIBRE_KEY_VAL, MYMEMORY_KEY_VAL
+
+import requests
 
 # Import the translator
 try:
-    from deep_translator import GoogleTranslator, MyMemoryTranslator, LibreTranslator
+    from deep_translator import GoogleTranslator, MyMemoryTranslator
 except Exception as e:
     GoogleTranslator = None
     MyMemoryTranslator = None
@@ -27,7 +29,6 @@ class TranslationConnection:
     def __init__(self, GoogleTranslator, MyMemoryTranslator):
         self.GoogleTranslator = GoogleTranslator
         self.MyMemoryTranslator = MyMemoryTranslator
-        self.LibreTranslator = LibreTranslator
 
 
 TlCon = TranslationConnection(GoogleTranslator, MyMemoryTranslator)
@@ -53,21 +54,24 @@ def google_tl(text: List[str], from_lang: str, to_lang: str, proxies: Dict, debu
     result = ""
     # --- Get lang code ---
     try:
+        assert isinstance(GOOGLE_KEY_VAL, Dict)
         try:
-            from_LanguageCode_Google = google_lang[from_lang]
-            to_LanguageCode_Google = google_lang[to_lang]
+            LCODE_FROM = GOOGLE_KEY_VAL[from_lang]
+            LCODE_TO = GOOGLE_KEY_VAL[to_lang]
         except KeyError:
             logger.warning("Language Code Undefined. Trying to get similar keys")
             try:
-                from_LanguageCode_Google = google_lang[get_similar_keys(google_lang, from_lang)[0]]
+                LCODE_FROM = GOOGLE_KEY_VAL[get_similar_keys(GOOGLE_KEY_VAL, from_lang)[0]]
+                logger.debug(f"Got similar key for GOOGLE LANG {from_lang}: {LCODE_FROM}")
             except KeyError:
                 logger.warning("Source Language Code Undefined. Using auto")
-                from_LanguageCode_Google = "auto"
-            to_LanguageCode_Google = google_lang[get_similar_keys(google_lang, to_lang)[0]]
+                LCODE_FROM = "auto"
+            LCODE_TO = GOOGLE_KEY_VAL[get_similar_keys(GOOGLE_KEY_VAL, to_lang)[0]]
     except KeyError as e:
         logger.exception(e)
         return is_Success, "Error Language Code Undefined"
 
+    # using deep_translator v 1.11.1
     # --- Translate ---
     try:
         if TlCon.GoogleTranslator is None:
@@ -79,11 +83,10 @@ def google_tl(text: List[str], from_lang: str, to_lang: str, proxies: Dict, debu
                 no_connection_notify()
                 return is_Success, "Error: Not connected to internet"
 
-        result = TlCon.GoogleTranslator(source=from_LanguageCode_Google, target=to_LanguageCode_Google,
-                                        proxies=proxies).translate_batch(text)
+        result = TlCon.GoogleTranslator(source=LCODE_FROM, target=LCODE_TO, proxies=proxies).translate_batch(text)
         is_Success = True
     except Exception as e:
-        logger.exception(str(e))
+        logger.exception(e)
         result = str(e)
     finally:
         if debug_log:
@@ -113,19 +116,24 @@ def memory_tl(text: List[str], from_lang: str, to_lang: str, proxies: Dict, debu
     result = ""
     # --- Get lang code ---
     try:
+        assert isinstance(MYMEMORY_KEY_VAL, Dict)
         try:
-            from_LanguageCode_Memory = myMemory_lang[from_lang]
-            to_LanguageCode_Memory = myMemory_lang[to_lang]
+            LCODE_FROM = MYMEMORY_KEY_VAL[from_lang]
+            LCODE_TO = MYMEMORY_KEY_VAL[to_lang]
         except KeyError:
+            logger.warning("Language Code Undefined. Trying to get similar keys")
             try:
-                from_LanguageCode_Memory = myMemory_lang[get_similar_keys(myMemory_lang, from_lang)[0]]
+                LCODE_FROM = MYMEMORY_KEY_VAL[get_similar_keys(MYMEMORY_KEY_VAL, from_lang)[0]]
+                logger.debug(f"Got similar key for GOOGLE LANG {from_lang}: {LCODE_FROM}")
             except KeyError:
                 logger.warning("Source Language Code Undefined. Using auto")
-                from_LanguageCode_Memory = "auto"
-            to_LanguageCode_Memory = myMemory_lang[get_similar_keys(myMemory_lang, to_lang)[0]]
+                LCODE_FROM = "auto"
+            LCODE_TO = MYMEMORY_KEY_VAL[get_similar_keys(MYMEMORY_KEY_VAL, to_lang)[0]]
     except KeyError as e:
         logger.exception(e)
         return is_Success, "Error Language Code Undefined"
+
+    # using deep_translator v 1.11.1
     # --- Translate ---
     try:
         if TlCon.MyMemoryTranslator is None:
@@ -137,12 +145,11 @@ def memory_tl(text: List[str], from_lang: str, to_lang: str, proxies: Dict, debu
                 no_connection_notify()
                 return is_Success, "Error: Not connected to internet"
 
-        result = TlCon.MyMemoryTranslator(source=from_LanguageCode_Memory, target=to_LanguageCode_Memory,
-                                          proxies=proxies).translate_batch(text)
+        result = TlCon.MyMemoryTranslator(source=LCODE_FROM, target=LCODE_TO, proxies=proxies).translate_batch(text)
         is_Success = True
     except Exception as e:
-        logger.exception(str(e))
         result = str(e)
+        logger.exception(e)
     finally:
         if debug_log:
             logger.info("-" * 50)
@@ -187,54 +194,48 @@ def libre_tl(
     # --- Get lang code ---
     try:
         try:
-            from_LanguageCode_Libre = libre_lang[from_lang]
-            to_LanguageCode_Libre = libre_lang[to_lang]
+            from_lang_code = LIBRE_KEY_VAL[from_lang]
+            to_LanguageCode_Libre = LIBRE_KEY_VAL[to_lang]
         except KeyError:
             try:
-                from_LanguageCode_Libre = libre_lang[get_similar_keys(libre_lang, from_lang)[0]]
+                from_lang_code = LIBRE_KEY_VAL[get_similar_keys(LIBRE_KEY_VAL, from_lang)[0]]
+                logger.debug(f"Got similar key for LIBRE LANG {from_lang}: {from_lang_code}")
             except KeyError:
                 logger.warning("Source Language Code Undefined. Using auto")
-                from_LanguageCode_Libre = "auto"
-            to_LanguageCode_Libre = libre_lang[get_similar_keys(libre_lang, to_lang)[0]]
+                from_lang_code = "auto"
+            to_LanguageCode_Libre = LIBRE_KEY_VAL[get_similar_keys(LIBRE_KEY_VAL, to_lang)[0]]
     except KeyError as e:
         logger.exception(e)
         return is_Success, "Error Language Code Undefined"
+
+    # shoot from API directly using requests
     # --- Translate ---
     try:
-        args = {}
-        if libre_host != "":
-            httpStr = "https" if libre_https else "http"
-            libre_port = ":" + libre_port if libre_port != "" else ""
-            args["custom_url"] = httpStr + "://" + libre_host + libre_port + "/translate"
-            args["use_free_api"] = False
+        req = {"q": text, "source": from_lang_code, "target": to_LanguageCode_Libre, "format": "text"}
+        httpStr = "https" if libre_https else "http"
+
+        if libre_port != "":
+            adr = httpStr + "://" + libre_host + ":" + libre_port + "/translate"
+        else:
+            adr = httpStr + "://" + libre_host + "/translate"
 
         if libre_api_key != "":
-            args["api_key"] = libre_api_key
-            args["use_free_api"] = False
-        else:
-            args["api_key"] = "-"  # need to pass something to avoid error
-            args["use_free_api"] = True
+            req["api_key"] = libre_api_key
 
-        #     is_Success = True
-        if TlCon.LibreTranslator is None:
-            try:
-                from deep_translator import LibreTranslator
+        arr = []
+        for q in text:
+            response = requests.post(adr, json=req, proxies=proxies).json()
+            if "error" in response:
+                raise Exception(response["error"])
 
-                TlCon.LibreTranslator = LibreTranslator
-            except Exception:
-                no_connection_notify()
-                return is_Success, "Error: Not connected to internet"
+            translated = response["translatedText"]
+            arr.append(translated)
 
-        result = TlCon.LibreTranslator(
-            source=from_LanguageCode_Libre,
-            target=to_LanguageCode_Libre,
-            proxies=proxies,
-            **args,
-        ).translate_batch(text)
+        result = arr
         is_Success = True
     except Exception as e:
         result = str(e)
-        logger.exception(str(e))
+        logger.exception(e)
         if "NewConnectionError" in str(e):
             result = "Error: Could not connect. Please make sure that the server is running and the port is correct."
             " If you are not hosting it yourself, please try again with an internet connection."
@@ -276,5 +277,9 @@ def translate(engine: str, text: List[str], from_lang: str, to_lang: str, proxie
     """
     if engine not in tl_dict:
         raise ValueError(f"Invalid engine. Engine {engine} not found")
+
+    # making sure that it is in lower case
+    from_lang = from_lang.lower()
+    to_lang = to_lang.lower()
 
     return tl_dict[engine](text, from_lang, to_lang, proxies, debug_log, **kwargs)

@@ -63,14 +63,94 @@ def up_first_case(string: str):
 
 
 def get_list_of_dict(list_of_dict: List[Dict], key: str, value):
+    """Get list of dict by key and value.
+
+    Parameters
+    ----------
+    list_of_dict : List[Dict]
+        List of dict to search
+    key : str
+        Key to search
+    value : 
+        Value to search
+
+    Returns
+    -------
+    Dict
+        Dict that match the key and value
+    """
     return next((item for item in list_of_dict if item[key] == value), None)
 
 
-def get_similar_keys(_dict: Dict, key: str):
-    return [k for k in _dict.keys() if key.lower() in k.lower()]
+def get_similar_keys(_dict: Dict, search_key: str):
+    """Get similar key in a dict by key.
+
+    This will search wether search_key is in the dict provided or not.
+    The first search, it will search if the `search_key is in _dict` (case insensitive).
+    If not found then it will do another search but using the key of the dict as the key to search in key_search
+    (`key_search in _key_of_dict`)
+
+    Parameters
+    ----------
+    _dict : Dict
+        _description_
+    key : str
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
+
+    get = [k for k in _dict.keys() if search_key.lower() in k.lower()]
+    if len(get) == 0:
+        # reverse search from the dict
+        get = [k for k in _dict.keys() if k.lower() in search_key.lower()]
+    return get
+
+
+def get_similar_in_list(_list: List, search_key: str):
+    """Get similar item in a list by key.
+
+    This will search wether search_key is in the list provided or not.
+    The first search, it will search if the `search_key is in _list` (case insensitive).
+    If not found then it will do another search but using the key of the list as the key to search in key_search
+    (`key_search in _key_of_list`)
+
+    Parameters
+    ----------
+    _list : List
+        List to search
+    key : str
+        Key to search
+
+    Returns
+    -------
+    List
+        List of similar item
+    """
+
+    get = [k for k in _list if search_key.lower() in k.lower()]
+    if len(get) == 0:
+        # reverse search from the list
+        get = [k for k in _list if k.lower() in search_key.lower()]
+    return get
 
 
 def unique_rec_list(list_of_data: List):
+    """To get unique list for the record session
+
+    Parameters
+    ----------
+    list_of_data : List
+        List of data to get unique
+
+    Returns
+    -------
+    List
+        List of unique data
+    """
     # check first, if the list is empty
     if len(list_of_data) == 0:
         return list_of_data
@@ -98,7 +178,23 @@ def unique_rec_list(list_of_data: List):
     return unique_lists
 
 
-def generate_color(accuracy, low_color, high_color):
+def generate_color(accuracy: float, low_color: str, high_color: str):
+    """Generate color based on accuracy
+
+    Parameters
+    ----------
+    accuracy : float
+        Accuracy to map
+    low_color : str
+        Low color in hexadecimal (with #)
+    high_color : str
+        High color in hexadecimal (with #)
+
+    Returns
+    -------
+    str
+        Color in hexadecimal (with #)
+    """
     low_color = low_color[1:]  # Remove the # from the hexadecimal color
     high_color = high_color[1:]  # Remove the # from the hexadecimal color
     # Map accuracy to a custom gradient color between low_color and high_color
@@ -115,6 +211,18 @@ def generate_color(accuracy, low_color, high_color):
 
 
 def separator_to_html(separator: str):
+    """Convert separator string to html
+
+    Parameters
+    ----------
+    separator : str
+        Separator string
+
+    Returns
+    -------
+    str
+        HTML string
+    """
     # Define the mapping for escape sequences.
     html_equivalents = {
         '\t': '&nbsp;&nbsp;&nbsp;&nbsp;',  # Replace tabs with four non-breaking spaces.
@@ -132,13 +240,25 @@ def separator_to_html(separator: str):
 
 
 def html_to_separator(separator: str):
+    """Convert html string to separator
+
+    Parameters
+    ----------
+    separator : str
+        HTML string
+
+    Returns
+    -------
+    str
+        Separator string
+    """
     # Define the mapping for escape sequences.
     html_equivalents = {
-        '&nbsp;&nbsp;&nbsp;&nbsp;': '\t',  # Replace tabs with four non-breaking spaces.
-        '<br>': '\n',  # Replace newlines with <br> elements.
-        '<br/>': '\n',  # Replace newlines with <br> elements.
-        '<br />': '\n',  # Replace newlines with <br> elements.
-        '&nbsp;': ' ',  # Replace regular spaces with non-breaking spaces.
+        '&nbsp;&nbsp;&nbsp;&nbsp;': '\t',  # Replace &nbsp;&nbsp;&nbsp;&nbsp; tabs with tabs.
+        '<br>': '\n',  # Replace <br> elements with newlines.
+        '<br/>': '\n',  # Replace <br/> elements with newlines.
+        '<br />': '\n',  # Replace <br /> elements with newlines.
+        '&nbsp;': ' ',  # Replace &nbsp; with regular spaces.
     }
 
     # Iterate through the text and apply replacements.
@@ -146,20 +266,6 @@ def html_to_separator(separator: str):
         separator = separator.replace(char, html_equiv)
 
     return separator
-
-
-def get_bg_color(window: tk.Tk):
-    """
-    Get the background color of the window
-    """
-    bg = window.cget("bg")
-    if bg == "SystemButtonFace":
-        bg_rgb = window.winfo_rgb("SystemButtonFace")
-        background_color = "#{:02X}{:02X}{:02X}".format(bg_rgb[0] // 256, bg_rgb[1] // 256, bg_rgb[2] // 256)
-    else:
-        background_color = bg
-
-    return background_color
 
 
 def wrap_result(res: List[ToInsert], max_line_length: int):
@@ -433,7 +539,7 @@ def install_ffmpeg():
         return False, "Unknown OS."
 
 
-def OpenUrl(url: str):
+def open_url(url: str):
     """
     To open a url in the default browser
     """
@@ -441,7 +547,7 @@ def OpenUrl(url: str):
         open_new(url)
     except Exception as e:
         logger.exception(e)
-        native_notify("Error", "Cannot open the url specified.")
+        native_notify("Error", f"Cannot open the url specified. Reason: {e}")
 
 
 def get_channel_int(channel_string: str):
@@ -512,7 +618,18 @@ def filename_only(filename: str):
     return filename
 
 
-def chooseColor(theWidget, initialColor, parent):
+def choose_color(theWidget, initialColor, parent):
+    """Choose color from colorchooser and insert it to theWidget
+
+    Parameters
+    ----------
+    theWidget : 
+        widget to insert the color
+    initialColor : str
+        initial color
+    parent : 
+        tk window or toplevel
+    """
     color = colorchooser.askcolor(initialcolor=initialColor, title="Choose a color", parent=parent)
     if color[1] is not None:
         theWidget.delete(0, "end")
@@ -530,6 +647,19 @@ def popup_menu(root: Union[tk.Tk, tk.Toplevel], menu: tk.Menu):
 
 
 def tb_copy_only(event):
+    """Copy only in text box
+
+    Parameters
+    ----------
+    event :
+        event
+        
+
+    Returns
+    -------
+    str
+        "break" if not allowed
+    """
     key = event.keysym
 
     # Allow
@@ -546,6 +676,20 @@ def tb_copy_only(event):
 
 
 def emoji_img(size, text):
+    """Generate emoji image
+
+    Parameters
+    ----------
+    size : int
+        size of the image
+    text : str
+        emoji text
+
+    Returns
+    -------
+    ImageTk.PhotoImage
+        the emoji but in image format
+    """
     font = ImageFont.truetype("seguiemj.ttf", size=int(round(size * 72 / 96, 0)))
     # pixels = points * 96 / 72 : 96 is windowsDPI
     im = Image.new("RGBA", (size, size), (255, 255, 255, 0))

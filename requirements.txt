@@ -1,7 +1,7 @@
 torch
 torchvision
 torchaudio
-deep-translator==1.11.4
+deep-translator==1.11.1
 notify-py==0.3.42
 loguru
 pillow==9.5.0

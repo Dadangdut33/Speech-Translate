@@ -27,7 +27,7 @@ theme_list = ["sun-valley-light", "sun-valley-dark"]
 def set_ui_style(theme: str, root=None):
     success = False
     try:
-        logger.debug("Setting theme: %s", theme)
+        logger.debug(f"Setting theme: {theme}")
         set_theme(theme)
         success = True
     except Exception as e:

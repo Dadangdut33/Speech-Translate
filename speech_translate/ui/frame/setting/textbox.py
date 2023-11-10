@@ -10,7 +10,7 @@ from speech_translate.ui.custom.checkbutton import CustomCheckButton
 from speech_translate.ui.custom.combobox import ComboboxWithKeyNav
 from speech_translate.ui.custom.spinbox import SpinboxNumOnly
 from speech_translate.globals import sj, gc
-from speech_translate.utils.helper import chooseColor, generate_color, emoji_img
+from speech_translate.utils.helper import choose_color, generate_color, emoji_img
 from speech_translate.ui.custom.tooltip import tk_tooltip, tk_tooltips
 
 
@@ -380,7 +380,7 @@ class SettingTextbox:
         self.entry_ex_tc_font_color.pack(side="left", padx=5)
         self.entry_ex_tc_font_color.bind(
             "<Button-1>",
-            lambda e: chooseColor(self.entry_ex_tc_font_color, self.entry_ex_tc_font_color.get(), self.root) or sj.
+            lambda e: choose_color(self.entry_ex_tc_font_color, self.entry_ex_tc_font_color.get(), self.root) or sj.
             save_key("tb_ex_tc_font_color", self.entry_ex_tc_font_color.get()) or self.preview_changes_tb(),
         )
         self.entry_ex_tc_font_color.bind("<Key>", lambda e: "break")
@@ -392,7 +392,7 @@ class SettingTextbox:
         self.entry_ex_tc_bg_color.pack(side="left", padx=5)
         self.entry_ex_tc_bg_color.bind(
             "<Button-1>",
-            lambda e: chooseColor(self.entry_ex_tc_bg_color, self.entry_ex_tc_bg_color.get(), self.root) or sj.
+            lambda e: choose_color(self.entry_ex_tc_bg_color, self.entry_ex_tc_bg_color.get(), self.root) or sj.
             save_key("tb_ex_tc_bg_color", self.entry_ex_tc_bg_color.get()) or self.preview_changes_tb(),
         )
         self.entry_ex_tc_bg_color.bind("<Key>", lambda e: "break")
@@ -489,7 +489,7 @@ class SettingTextbox:
         self.entry_ex_tl_font_color.pack(side="left", padx=5)
         self.entry_ex_tl_font_color.bind(
             "<Button-1>",
-            lambda e: chooseColor(self.entry_ex_tl_font_color, self.entry_ex_tl_font_color.get(), self.root) or sj.
+            lambda e: choose_color(self.entry_ex_tl_font_color, self.entry_ex_tl_font_color.get(), self.root) or sj.
             save_key("tb_ex_tl_font_color", self.entry_ex_tl_font_color.get()) or self.preview_changes_tb(),
         )
         self.entry_ex_tl_font_color.bind("<Key>", lambda e: "break")
@@ -501,7 +501,7 @@ class SettingTextbox:
         self.entry_ex_tl_bg_color.pack(side="left", padx=5)
         self.entry_ex_tl_bg_color.bind(
             "<Button-1>",
-            lambda e: chooseColor(self.entry_ex_tl_bg_color, self.entry_ex_tl_bg_color.get(), self.root) or sj.
+            lambda e: choose_color(self.entry_ex_tl_bg_color, self.entry_ex_tl_bg_color.get(), self.root) or sj.
             save_key("tb_ex_tl_bg_color", self.entry_ex_tl_bg_color.get()) or self.preview_changes_tb(),
         )
         self.entry_ex_tl_bg_color.bind("<Key>", lambda e: "break")
@@ -524,7 +524,7 @@ class SettingTextbox:
         self.entry_gradient_low_conf.pack(side="left", padx=5)
         self.entry_gradient_low_conf.bind(
             "<Button-1>",
-            lambda e: chooseColor(self.entry_gradient_low_conf, self.entry_gradient_low_conf.get(), self.root) or sj.
+            lambda e: choose_color(self.entry_gradient_low_conf, self.entry_gradient_low_conf.get(), self.root) or sj.
             save_key("gradient_low_conf", self.entry_gradient_low_conf.get()) or self.preview_changes_tb(),
         )
         self.entry_gradient_low_conf.bind("<Key>", lambda e: "break")
@@ -537,7 +537,7 @@ class SettingTextbox:
         self.entry_gradient_high_conf.pack(side="left", padx=5)
         self.entry_gradient_high_conf.bind(
             "<Button-1>",
-            lambda e: chooseColor(self.entry_gradient_high_conf, self.entry_gradient_high_conf.get(), self.root) or sj.
+            lambda e: choose_color(self.entry_gradient_high_conf, self.entry_gradient_high_conf.get(), self.root) or sj.
             save_key("gradient_high_conf", self.entry_gradient_high_conf.get()) or self.preview_changes_tb(),
         )
         self.entry_gradient_high_conf.bind("<Key>", lambda e: "break")

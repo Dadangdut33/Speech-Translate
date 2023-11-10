@@ -12,7 +12,7 @@ from whisper.tokenizer import TO_LANGUAGE_CODE
 from speech_translate._path import dir_export, dir_alignment, dir_refinement, dir_translate
 from speech_translate._logging import logger
 from speech_translate.globals import gc, sj
-from speech_translate.utils.translate.language import verify_language_in_key
+from speech_translate.utils.translate.language import verify_language_in_key, get_whisper_key_from_similar
 from speech_translate.ui.custom.dialog import ModResultInputDialog, FileProcessDialog
 from speech_translate.ui.custom.message import mbox
 
@@ -497,7 +497,7 @@ def process_file(
             transcribe, translate, tl_engine_whisper, model_name_tc, engine, sj.cache, **model_args
         )
         whisper_args = get_tc_args(to_args, sj.cache)
-        whisper_args["language"] = TO_LANGUAGE_CODE[lang_source.lower()] if not auto else None
+        whisper_args["language"] = TO_LANGUAGE_CODE[get_whisper_key_from_similar(lang_source.lower())] if not auto else None
 
         # update button text
         gc.mw.btn_import_file.configure(text="Cancel")
@@ -917,7 +917,8 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
                 continue  # continue to next file
 
             if mode == "alignment":
-                mod_args["language"] = TO_LANGUAGE_CODE[file[2].lower()] if file[2] is not None else None
+                mod_args["language"] = TO_LANGUAGE_CODE[get_whisper_key_from_similar(file[2].lower())
+                                                        ] if file[2] is not None else None
 
             def run_mod():
                 nonlocal mod_source, processed
