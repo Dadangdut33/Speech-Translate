@@ -100,14 +100,14 @@ class SettingWindow:
     def show(self):
         self.root.after(0, self.root.deiconify)
 
-        if not self.f_general.model_checked:
+        if not self.f_general.model_checked and sj.cache["auto_verify_model_on_first_setting_open"]:
             Thread(target=self.f_general.check_model_on_first_open, daemon=True).start()
 
         self.notebook_change()
 
     def notebook_change(self, _event=None):
-        pos = str(self.tab_control.index(self.tab_control.select()))
-        if pos == "1":
+        pos = self.tab_control.index(self.tab_control.select())
+        if pos == 1:
             Thread(target=self.f_record.call_both_with_wait, daemon=True).start()
         else:
             Thread(target=self.f_record.call_both_with_wait, args=[False], daemon=True).start()

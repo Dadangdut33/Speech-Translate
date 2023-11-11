@@ -84,6 +84,7 @@ class SettingDict(TypedDict):
     sw_size: str
     dir_log: str
     dir_model: str
+    auto_verify_model_on_first_setting_open: bool
     file_slice_start: str
     file_slice_end: str
     parse_arabic: bool

@@ -5,6 +5,7 @@ from speech_translate.ui.custom.checkbutton import CustomCheckButton
 from speech_translate.ui.custom.message import MBoxText, mbox
 from datetime import datetime
 
+from loguru import logger
 from stable_whisper import result_to_ass, result_to_srt_vtt, result_to_tsv, load_model, load_faster_whisper
 
 from speech_translate.linker import sj, bc
@@ -911,6 +912,7 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
         sj.save_key("temperature", value)
 
     def verify_raw_args(self, value: str):
+        logger.debug("verifying whisper args")
         loop_for = ["load", "transcribe", "align", "refine", "save"]
         custom_func = {"load": [load_model, load_faster_whisper], "save": [result_to_ass, result_to_srt_vtt, result_to_tsv]}
         kwargs = {"show_parsed": False}

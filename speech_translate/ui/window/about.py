@@ -87,8 +87,12 @@ class AboutWindow:
         self.lbl_check_update.bind("<Button-1>", self.update_func)
         self.tooltip_check_update = tk_tooltip(self.lbl_check_update, "Click to check for update")
 
-        self.lbl_cuda = ttk.Label(self.f_bot_l_2, text="CUDA: " + bc.cuda)
+        self.lbl_cuda = ttk.Label(self.f_bot_l_2, text="Device: " + bc.cuda)
         self.lbl_cuda.pack(padx=5, pady=2, ipadx=0, side="left")
+        tk_tooltip(
+            self.lbl_cuda,
+            "Detected CUDA Device.\n\nNote that your device still need to be compatible with the CUDA version used by the program (CUDA 11.8) in order to be used.",
+        )
 
         # Button
         self.btn_ok = ttk.Button(self.f_bot_r, text="Ok", command=self.on_closing, width=10, style="Accent.TButton")

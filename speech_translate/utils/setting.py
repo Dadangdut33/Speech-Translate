@@ -33,6 +33,7 @@ default_setting: SettingDict = {
     "sw_size": "1100x620",
     "dir_log": "auto",
     "dir_model": "auto",
+    "auto_verify_model_on_first_setting_open": True,
     "file_slice_start": "",  # empty will be read as None
     "file_slice_end": "",  # empty will be read as None
     "parse_arabic": True,

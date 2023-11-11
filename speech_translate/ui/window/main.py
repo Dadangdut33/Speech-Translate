@@ -595,6 +595,9 @@ class MainWindow:
             logger.info("Exit successful")
 
     def restart_app(self):
+        logger.debug("Restarting app...")
+        logger.debug(f"Flag tc: {bc.transcribing} | Flag tl: {bc.translating} | Flag rec: {bc.recording}")
+        logger.debug(f"Flag file_processing: {bc.file_processing} | Flag dl: {bc.dl_thread and bc.dl_thread.is_alive()}")
         if bc.transcribing or bc.translating or bc.recording or bc.file_processing or (
             bc.dl_thread and bc.dl_thread.is_alive()
         ):
@@ -1573,7 +1576,7 @@ class MainWindow:
             ):
                 return
 
-        logger.info("Cancelling file import processing...")
+        logger.info("Stopping file import processing...")
         bc.disable_file_process()
         bc.disable_tc()
         bc.disable_tl()
@@ -1592,6 +1595,7 @@ class MainWindow:
         self.loadBar.configure(mode="determinate")
         self.btn_import_file.configure(text="Import file", command=self.import_file)
         self.enable_interactions()
+        logger.info("Stopped")
 
     def refine_file(self):
         if bc.dl_thread and bc.dl_thread.is_alive():
@@ -1663,7 +1667,7 @@ class MainWindow:
             ):
                 return
 
-        logger.info("Cancelling refinement...")
+        logger.info("Stopping refinement...")
         bc.disable_file_process()
 
         if notify:
@@ -1677,6 +1681,7 @@ class MainWindow:
         self.loadBar.stop()
         self.loadBar.configure(mode="determinate")
         self.enable_interactions()
+        logger.info("Stopped")
 
     def align_file(self):
         if bc.dl_thread and bc.dl_thread.is_alive():
@@ -1748,7 +1753,7 @@ class MainWindow:
             ):
                 return
 
-        logger.info("Cancelling alignment...")
+        logger.info("Stopping alignment...")
         bc.disable_file_process()
 
         if notify:
@@ -1762,6 +1767,7 @@ class MainWindow:
         self.loadBar.stop()
         self.loadBar.configure(mode="determinate")
         self.enable_interactions()
+        logger.info("Stopped")
 
     def translate_file(self):
         if bc.dl_thread and bc.dl_thread.is_alive():
@@ -1815,7 +1821,7 @@ class MainWindow:
             ):
                 return
 
-        logger.info("Cancelling translation...")
+        logger.info("Stopping translation...")
         bc.disable_file_process()
 
         if notify:
@@ -1829,6 +1835,7 @@ class MainWindow:
         self.loadBar.stop()
         self.loadBar.configure(mode="determinate")
         self.enable_interactions()
+        logger.info("Stopped")
 
 
 def get_gpu_info():
@@ -1856,7 +1863,7 @@ def check_cuda_and_gpu():
         else:
             count = cuda.device_count()
             gpus = [cuda.get_device_name(i) for i in range(count)]
-            result = f"Using {count} GPU(s): {', '.join(gpus)}"
+            result = f"Detected {count} GPU(s): {', '.join(gpus)}"
     except Exception as e:
         logger.exception(e)
         result = "CUDA fail to check! Failed to detect GPU"

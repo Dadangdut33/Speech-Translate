@@ -1,3 +1,4 @@
+import gc
 from ast import literal_eval
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -209,7 +210,7 @@ def record_session(
 
         # load model first
         model_args = get_model_args(sj.cache)
-        _, _, stable_tc, stable_tl, to_args = get_model(
+        _model_tc, _model_tl, stable_tc, stable_tl, to_args = get_model(
             transcribe, translate, tl_engine_whisper, model_name_tc, engine, sj.cache, **model_args
         )
         whisper_args = get_tc_args(to_args, sj.cache)
@@ -701,6 +702,9 @@ def record_session(
                 logger.info("Done!")
 
             bc.current_rec_status = "⏹️ Stopped"
+
+            del _model_tc, _model_tl, stable_tc, stable_tl, to_args
+
             update_status_lbl()
             audiometer.stop()
             bc.mw.after_rec_stop()
@@ -727,6 +731,8 @@ def record_session(
         if root.winfo_exists():
             root.destroy()  # close if not destroyed
     finally:
+        torch.cuda.empty_cache()
+        gc.collect()
         logger.info("Record session ended")
 
 

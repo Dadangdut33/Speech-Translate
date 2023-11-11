@@ -42,7 +42,6 @@ class StreamStderrToLogger(object):
         ]
 
     def write(self, buf):
-        use_original = False
         for line in buf.rstrip().splitlines():
             line = line.strip().replace("[A", "")
 
@@ -62,10 +61,7 @@ class StreamStderrToLogger(object):
                 if len(recent_stderr) > 10:
                     recent_stderr.pop(0)
             else:
-                use_original = True
-
-        if use_original:
-            logger.log("ERROR", buf)
+                logger.log(self.level, line)
 
     def flush(self):
         pass

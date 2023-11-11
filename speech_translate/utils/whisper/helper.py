@@ -3,12 +3,12 @@ import csv
 import json
 import os
 from typing import List, Literal, Optional, Union
-from faster_whisper import WhisperModel
 
 import torch
 import stable_whisper
 from stable_whisper.alignment import align, refine
 from stable_whisper.utils import str_to_valid_type, isolate_useful_options
+from faster_whisper import WhisperModel
 from whisper.tokenizer import LANGUAGES
 from whisper.utils import optional_int, optional_float
 from whisper import DecodingOptions

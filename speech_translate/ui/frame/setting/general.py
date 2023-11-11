@@ -285,6 +285,9 @@ class SettingGeneral:
         self.f_model_1 = ttk.Frame(self.ft1lf_model)
         self.f_model_1.pack(side="top", fill="x", pady=5, padx=5)
 
+        self.f_model_2 = ttk.Frame(self.ft1lf_model)
+        self.f_model_2.pack(side="top", fill="x", pady=0, padx=5)
+
         self.lf_model_whisper = ttk.LabelFrame(self.ft1lf_model, text="Whisper Model")
         self.lf_model_whisper.pack(side="top", fill="x", padx=5, pady=5)
 
@@ -303,6 +306,20 @@ class SettingGeneral:
         self.entry_model = ttk.Entry(self.f_model_1, cursor="hand2", width=100)
         self.entry_model.pack(side="left", padx=5, fill="x", expand=True)
         tk_tooltip(self.entry_model, "Location of the model file.")
+
+        self.cbtn_auto_verify_model_on_first_setting_open = CustomCheckButton(
+            self.f_model_2,
+            sj.cache["auto_verify_model_on_first_setting_open"],
+            lambda x: sj.save_key("auto_verify_model_on_first_setting_open", x),
+            text="Auto check model on start",
+            style="Switch.TCheckbutton"
+        )
+        self.cbtn_auto_verify_model_on_first_setting_open.pack(side="left", padx=5)
+        tk_tooltip(
+            self.cbtn_auto_verify_model_on_first_setting_open,
+            "Check if model is downloaded on first setting open.\n\n"
+            "If you have a lot of model downloaded, this could take a while and might use RAM depending on the model size.",
+        )
 
         self.btn_model_config = ttk.Button(
             self.f_model_1,
@@ -694,33 +711,33 @@ class SettingGeneral:
             # check_large_v3_fw = Thread(target=threaded_large_v3_fw, daemon=True)
 
             check_tiny_w.start()
-            check_tiny_fw.start()
             check_tiny_w.join()
+            check_tiny_fw.start()
             check_tiny_fw.join()
 
             check_base_w.start()
-            check_base_fw.start()
             check_base_w.join()
+            check_base_fw.start()
             check_base_fw.join()
 
             check_small_w.start()
-            check_small_fw.start()
             check_small_w.join()
+            check_small_fw.start()
             check_small_fw.join()
 
             check_medium_w.start()
-            check_medium_fw.start()
             check_medium_w.join()
+            check_medium_fw.start()
             check_medium_fw.join()
 
             check_large_v1_w.start()
-            check_large_v1_fw.start()
             check_large_v1_w.join()
+            check_large_v1_fw.start()
             check_large_v1_fw.join()
 
             check_large_v2_w.start()
-            check_large_v2_fw.start()
             check_large_v2_w.join()
+            check_large_v2_fw.start()
             check_large_v2_fw.join()
 
             check_large_v3_w.start()

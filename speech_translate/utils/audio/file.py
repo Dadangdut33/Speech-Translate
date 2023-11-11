@@ -1,5 +1,6 @@
-from os import path
 import sys
+import gc
+from os import path
 from datetime import datetime
 from threading import Thread
 from time import gmtime, sleep, strftime, time
@@ -8,6 +9,7 @@ from typing import List, Literal, Union, Dict
 
 import stable_whisper  # https://github.com/jianfch/stable-ts # has no static annotation hence many type ignore
 from whisper.tokenizer import TO_LANGUAGE_CODE
+from torch import cuda
 
 from speech_translate._path import dir_export, dir_alignment, dir_refinement, dir_translate
 from speech_translate._logging import logger
@@ -493,7 +495,7 @@ def process_file(
 
         # load model
         model_args = get_model_args(sj.cache)
-        model_tc, model_tl, stable_tc, stable_tl, to_args = get_model(
+        _model_tc, _model_tl, stable_tc, stable_tl, to_args = get_model(
             transcribe, translate, tl_engine_whisper, model_name_tc, engine, sj.cache, **model_args
         )
         whisper_args = get_tc_args(to_args, sj.cache)
@@ -705,6 +707,7 @@ def process_file(
 
         logger.info(f"End process (FILE) [Total time: {time() - t_start:.2f}s]")
 
+        del _model_tc, _model_tl, stable_tc, stable_tl, to_args, whisper_args
         # turn off loadbar
         bc.mw.stop_loadBar("file")
         bc.disable_rec()  # update flag
@@ -724,10 +727,12 @@ def process_file(
         if not canceled:
             mbox(f"File {taskname} Done", resultMsg, 0, master)
     except Exception as e:
+        bc.disable_file_process()
+        bc.disable_tc()
+        bc.disable_tl()
         logger.error("Error occured while processing file(s)")
         logger.exception(e)
         mbox("Error occured while processing file(s)", f"{str(e)}", 2, bc.mw.root)
-        bc.mw.from_file_stop(prompt=False, notify=False)
 
         try:
             if fp and fp.root.winfo_exists():  # type: ignore
@@ -736,8 +741,9 @@ def process_file(
             logger.exception(e)
             logger.warning("Failed to destroy progress window")
     finally:
-        bc.disable_rec()  # update flag
-        bc.mw.enable_interactions()
+        cuda.empty_cache()
+        gc.collect()
+        bc.mw.from_file_stop(prompt=False, notify=False)
         # reset processed list
         processed_tc = []
         processed_tl = []
@@ -921,7 +927,7 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
                                                         ] if file[2] is not None else None
 
             def run_mod():
-                nonlocal mod_source, processed
+                nonlocal mod_source, processed, model, mod_function
                 try:
                     update_q_process(processed, bc.mod_file_counter, f"Processing {mode}")
                     result = mod_function(audio, mod_source, **mod_args)
@@ -991,6 +997,7 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
         logger.info(f"End process ({mode}) [Total time: {time() - t_start:.2f}s]")
 
         # turn off loadbar
+        del model, mod_dict, mod_function
         bc.mw.stop_loadBar()
 
         if bc.mod_file_counter > 0:
@@ -1001,16 +1008,12 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
         mbox(f"File {mode} Done", f"{action_name} {bc.mod_file_counter} file(s)", 0)
         # done, interaction is re enabled in main
     except Exception as e:
+        bc.disable_file_process()
         if str(e) != "Cancelled":
             logger.error(f"Error occured while doing {mode}")
             logger.exception(e)
             assert bc.mw is not None
             mbox(f"Error occured while doing {mode}", f"{str(e)}", 2, bc.mw.root)
-
-            if mode == "refinement":
-                bc.mw.refinement_stop(prompt=False, notify=False)
-            else:
-                bc.mw.alignment_stop(prompt=False, notify=False)
         else:
             logger.info(f"{mode} cancelled")
 
@@ -1021,8 +1024,12 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
             logger.exception(e)
             logger.warning("Failed to destroy progress window")
     finally:
-        bc.disable_rec()  # making sure
-        bc.mw.enable_interactions()
+        cuda.empty_cache()
+        gc.collect()
+        if mode == "refinement":
+            bc.mw.refinement_stop(prompt=False, notify=False)
+        else:
+            bc.mw.alignment_stop(prompt=False, notify=False)
 
 
 def translate_result(data_files: List, engine: str, lang_target: str):
@@ -1214,12 +1221,12 @@ def translate_result(data_files: List, engine: str, lang_target: str):
 
         mbox("File Translate Done", f"Translated {bc.mod_file_counter} file(s)", 0)
     except Exception as e:
+        bc.disable_file_process()
         if str(e) != "Cancelled":
             logger.error("Error occured while translating file(s)")
             logger.exception(e)
             assert bc.mw is not None
             mbox("Error occured while processing file(s)", f"{str(e)}", 2, bc.mw.root)
-            bc.mw.translate_stop(prompt=False, notify=False)
         else:
             logger.debug("Cancelled translate")
 
@@ -1230,5 +1237,4 @@ def translate_result(data_files: List, engine: str, lang_target: str):
             logger.exception(e)
             logger.warning("Failed to destroy progress window")
     finally:
-        bc.disable_rec()  # update flag
-        bc.mw.enable_interactions()
+        bc.mw.translate_stop(prompt=False, notify=False)
