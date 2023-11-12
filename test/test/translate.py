@@ -26,20 +26,30 @@ test_string = "Hello world"
 logger.debug("---------------------------------------------------------")
 logger.debug("testing google target")
 
+fail_info = []
 for key in GOOGLE_TARGET:
     key = key.lower()
     assert isinstance(GOOGLE_KEY_VAL, Dict)
     lang_code = GOOGLE_KEY_VAL[key]
 
-    logger.debug(f"Translating {test_string} to {key}")
-    res = GoogleTranslator(source="english", target=lang_code).translate(test_string)
-    logger.debug(f"Translated {test_string} to {key} with result {res}")
+    try:
+        logger.debug(f"Translating {test_string} to {key}")
+        res = GoogleTranslator(source="english", target=lang_code).translate(test_string)
+        logger.debug(f"Translated {test_string} to {key} with result {res}")
+
+    except Exception as e:
+        logger.exception(e)
+        fail_info.append([key, lang_code, f"got err {e}"])
+        logger.debug(f"Failed google {len(fail_info)} times")
+
+logger.debug(f"Failed google translate {len(fail_info)} times")
+logger.debug(f"Failed on: {fail_info}")
 
 # MYMEMORY
 logger.debug("---------------------------------------------------------")
 logger.debug("testing mymemory target")
 
-fail_mymemory = 0
+fail_info = []
 for key in MY_MEMORY_TARGET:
     key = key.lower()
     assert isinstance(MYMEMORY_KEY_VAL, Dict)
@@ -49,8 +59,13 @@ for key in MY_MEMORY_TARGET:
         logger.debug(f"Translating {test_string} to {key}")
         res = MyMemoryTranslator(source="english", target=lang_code).translate(test_string)
         logger.debug(f"Translated {test_string} to {key} with result {res}")
+        if "invalid" in str(res).lower():
+            fail_info.append([key, lang_code, "got invalid"])
+            logger.debug(f"Failed mymemory {len(fail_info)} times")
     except Exception as e:
-        logger.exception(f"Error {str(e)}")
-        fail_mymemory += 1
+        logger.exception(e)
+        fail_info.append([key, lang_code, f"got err {e}"])
+        logger.debug(f"Failed mymemory {len(fail_info)} times")
 
-logger.debug(f"Failed {fail_mymemory} times")
+logger.debug(f"Failed mymemory {len(fail_info)} times")
+logger.debug(f"Failed on: {fail_info}")

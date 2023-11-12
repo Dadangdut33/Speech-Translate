@@ -224,6 +224,7 @@ def libre_tl(
 
         arr = []
         for q in text:
+            req["q"] = q
             response = requests.post(adr, json=req, proxies=proxies).json()
             if "error" in response:
                 raise Exception(response["error"])

@@ -1,3 +1,4 @@
+import copy
 from ..helper import up_first_case, get_similar_in_list
 from whisper.tokenizer import TO_LANGUAGE_CODE
 from typing import Dict
@@ -13,18 +14,24 @@ WHISPER_LANG_LIST = list(TO_LANGUAGE_CODE.keys())
 WHISPER_LANG_LIST.sort()
 
 # List of supported languages by Google TL
-GOOGLE_KEY_VAL = GoogleTranslator().get_supported_languages(as_dict=True)
+GOOGLE_KEY_VAL = copy.deepcopy(GoogleTranslator().get_supported_languages(as_dict=True))
 assert isinstance(GOOGLE_KEY_VAL, Dict)
 GOOGLE_KEY_VAL["auto detect"] = "auto"
 if "filipino" in GOOGLE_KEY_VAL.keys():
     GOOGLE_KEY_VAL["filipino (tagalog)"] = GOOGLE_KEY_VAL.pop("filipino")
 
 # List of supported languages by MyMemoryTranslator
-MYMEMORY_KEY_VAL = MyMemoryTranslator().get_supported_languages(as_dict=True)
+MYMEMORY_KEY_VAL = copy.deepcopy(MyMemoryTranslator().get_supported_languages(as_dict=True))
 assert isinstance(MYMEMORY_KEY_VAL, Dict)
 if "filipino" in MYMEMORY_KEY_VAL.keys():
     MYMEMORY_KEY_VAL["filipino (tagalog)"] = MYMEMORY_KEY_VAL.pop("filipino")
-# no auto for mymemory
+# remove key that gives error or invalid -> this is get from testing the key in test/test/translate.py
+MYMEMORY_KEY_VAL.pop("aymara")
+MYMEMORY_KEY_VAL.pop("dogri")
+MYMEMORY_KEY_VAL.pop("javanese")
+MYMEMORY_KEY_VAL.pop("konkani")
+MYMEMORY_KEY_VAL.pop("krio")
+MYMEMORY_KEY_VAL.pop("oromo")
 
 # List of supported languages by libreTranslate. Taken from LibreTranslate.com docs v1.5.1
 LIBRE_KEY_VAL = {
