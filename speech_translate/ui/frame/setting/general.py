@@ -509,14 +509,17 @@ class SettingGeneral:
             return
 
         # confirmation using mbox
-        extramsg = "\n\n*Once started, you cannot cancel or pause the download for downloading faster whisper model." if use_faster_whisper else "\n\n*Once started, you can cancel or pause the download anytime you want."
-        if not mbox("Download confirmation", f"Are you sure you want to download {model} model?" + extramsg, 3, self.root):
+        if not mbox("Download confirmation", f"Are you sure you want to download {model} model?", 3, self.root):
             return
 
         def after_func():
             btn.configure(text="Downloaded", state="disabled")
 
-        kwargs = {"after_func": after_func, "use_faster_whisper": use_faster_whisper}
+        kwargs = {
+            "after_func": after_func,
+            "use_faster_whisper": use_faster_whisper,
+            "cancel_func": lambda: self.cancel_model_download(model, btn)
+        }
 
         # verify first
         if sj.cache["dir_model"] != "auto":
@@ -526,7 +529,6 @@ class SettingGeneral:
             if verify_model_whisper(model):  # already downloaded
                 after_func()
                 return
-            kwargs["cancel_func"] = lambda: self.cancel_model_download(model, btn)
 
         # Download model
         try:

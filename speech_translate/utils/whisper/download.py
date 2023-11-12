@@ -36,7 +36,9 @@ def download_model(model_key, root_win, cancel_func=None, after_func=None, downl
     if not use_faster_whisper:
         return whisper_download_with_progress_gui(root_win, model_key, model_id, download_root, cancel_func, after_func)
     else:
-        return faster_whisper_download_with_progress_gui(root_win, model_key, model_id, download_root, after_func)
+        return faster_whisper_download_with_progress_gui(
+            root_win, model_key, model_id, download_root, cancel_func, after_func
+        )
 
 
 # verify downloaded model sha

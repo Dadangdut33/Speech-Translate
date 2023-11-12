@@ -523,8 +523,7 @@ class MainWindow:
             command=lambda: open_url("https://github.com/Dadangdut33/Speech-Translate/wiki")
         )
         self.fm_help.add_command(
-            label="Visit Repository",
-            command=lambda: open_url("https://github.com/Dadangdut33/Speech-Translate")
+            label="Visit Repository", command=lambda: open_url("https://github.com/Dadangdut33/Speech-Translate")
         )
         self.menubar.add_cascade(label="Help", menu=self.fm_help)
 
@@ -1300,7 +1299,6 @@ class MainWindow:
             # check model first
             model_name = append_dot_en(key, is_english)
             use_faster_whisper = sj.cache["use_faster_whisper"]
-            extramsg = "\n\n*Once started, you cannot cancel or pause the download for downloading faster whisper model." if use_faster_whisper else "\n\n*Once started, you can cancel or pause the download anytime you want."
 
             model_dir = sj.cache["dir_model"] if sj.cache["dir_model"] != "auto" else get_default_download_root()
             if use_faster_whisper and model_name != "large-v3":
@@ -1313,7 +1311,7 @@ class MainWindow:
             if not ok:
                 if mbox(
                     "Model is not downloaded yet!",
-                    f"`{model_name + '` Whisper'  if not use_faster_whisper else model_name + '` Faster Whisper'} Model not found! You will need to download it first!\n\nDo you want to download it now?{extramsg}",
+                    f"`{model_name + '` Whisper'  if not use_faster_whisper else model_name + '` Faster Whisper'} Model not found! You will need to download it first!\n\nDo you want to download it now?",
                     3,
                     self.root,
                 ):
@@ -1322,11 +1320,9 @@ class MainWindow:
                     try:
                         kwargs = {
                             "after_func": lambda: self.after_model_dl(taskname, task),
-                            "use_faster_whisper": use_faster_whisper
+                            "use_faster_whisper": use_faster_whisper,
+                            "cancel_func": self.model_dl_cancel
                         }
-
-                        if not use_faster_whisper:
-                            kwargs["cancel_func"] = self.model_dl_cancel
 
                         if sj.cache["dir_model"] != "auto":
                             kwargs = {"download_root": sj.cache["dir_model"]}
