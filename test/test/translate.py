@@ -18,7 +18,7 @@ from speech_translate.utils.translate.language import ( # noqa: E402
 # this time we are checking the key for translation. We want to see wether the translation works or not
 # this check may took a while because we are testing all the language
 # feel free to comment any engine that you dont want to test
-# i dont add test for libre because i added and tested the code from the docs directly and nowadays there is rarely any free libre server that is up
+# i dont add test for libre because i added and tested the code from the docs directly and there is rarely any free libre server that is up
 
 test_string = "Hello world"
 

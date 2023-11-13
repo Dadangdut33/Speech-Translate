@@ -134,10 +134,7 @@ logger.debug(
     f"length of mymemory source (mymemory translate language that is compatible with whisper): {len(MYMEMORY_SOURCE)} "
 )
 logger.debug(f"length of mymemory target (all mymemory translate compatible): {len(MY_MEMORY_TARGET)} ")
-
 logger.debug("---------------------------------------------------------")
-logger.debug("Please note that mymemory might show more than google but in actuality it is not")
-logger.debug("some of the language code in mymemory wont work and will return either error code or throw error literally")
-logger.debug("to verify this you can run the test in test/test/translate.py")
+logger.info("To verify each language compatibility with the translator, you can run the test in test/test/translate.py")
 
 sys.path.remove(toAdd)
