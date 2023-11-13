@@ -214,10 +214,15 @@ class SettingGeneral:
             self.f_logging_3,
             sj.cache["verbose"],
             lambda x: sj.save_key("verbose", x),
-            text="Verbose logging for whisper",
+            text="Verbose logging for whisper in record",
             style="Switch.TCheckbutton"
         )
         self.cbtn_verbose.pack(side="left", padx=5)
+        tk_tooltip(
+            self.cbtn_verbose,
+            "Show more details of the whisper when recording.\n\n"
+            "Enabling could slow down the app.",
+        )
 
         self.cbtn_keep_log = CustomCheckButton(
             self.f_logging_4,
@@ -227,6 +232,11 @@ class SettingGeneral:
             style="Switch.TCheckbutton"
         )
         self.cbtn_keep_log.pack(side="left", padx=5)
+        tk_tooltip(
+            self.cbtn_keep_log,
+            "Keep log files after closing the app.\n\n"
+            "If this is disabled, the log files will be deleted every time the app is opened.",
+        )
 
         self.lbl_loglevel = ttk.Label(self.f_logging_4, text="— Log level")
         self.lbl_loglevel.pack(side="left", padx=(0, 5))
@@ -264,7 +274,7 @@ class SettingGeneral:
             self.cbtn_debug_recorded_audio,
             "Save recorded audio as .wav file in the debug folder. "
             "Keep in mind that the files in that directory will be deleted automatically every time the app run\n\n"
-            "Enabling Could slow the app down.",
+            "Enabling could slow down the app.",
             wrapLength=300,
         )
 
@@ -276,6 +286,11 @@ class SettingGeneral:
             style="Switch.TCheckbutton"
         )
         self.cbtn_debug_translate.pack(side="left", padx=5, pady=(0, 5))
+        tk_tooltip(
+            self.cbtn_debug_translate,
+            "Show some debugging process of the translation.\n\n"
+            "Enabling could slow down the app.",
+        )
 
         # model
         self.ft1lf_model = LabelFrame(self.master, text="• Model")
@@ -318,7 +333,7 @@ class SettingGeneral:
         tk_tooltip(
             self.cbtn_auto_verify_model_on_first_setting_open,
             "Check if model is downloaded on first setting open.\n\n"
-            "If you have a lot of model downloaded, this could take a while and might use RAM depending on the model size.",
+            "If you have a lot of model downloaded, this could take a while and might use lots of your RAM / Memory depending on the model size.",
         )
 
         self.btn_model_config = ttk.Button(

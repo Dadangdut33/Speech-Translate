@@ -206,13 +206,12 @@ class FileImportDialog(FileOperationDialog):
             # check if engine is whisper and currently in translate only mode
             # if yes, will make the source lang use based on the engine
             if _event in model_keys and self.var_task_translate.get() and not self.var_task_transcribe.get():
-                self.cb_source_lang["values"] = ENGINE_SOURCE_DICT[self.var_model.get()]
                 self.cb_model.configure(state="disabled")
             else:
-                self.cb_source_lang["values"] = ENGINE_SOURCE_DICT[self.var_engine.get()]
                 self.cb_model.configure(state="readonly")
 
             # Then update the target cb list with checks
+            self.cb_source_lang["values"] = ENGINE_SOURCE_DICT[self.var_engine.get()]
             self.cb_target_lang["values"] = ENGINE_TARGET_DICT[self.var_engine.get()]
 
             # check if the target lang is not in the new list

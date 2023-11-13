@@ -985,14 +985,12 @@ class MainWindow:
         # if yes, will make the transcribe model combobox disabled
         if _event in model_keys and "selected" in self.cbtn_task_translate.state(
         ) and "selected" not in self.cbtn_task_transcribe.state():
-            logger.debug("Whisper engine selected, disabling transcribe model combobox")
-            self.cb_source_lang["values"] = ENGINE_SOURCE_DICT[self.cb_model.get()]
             self.cb_model.configure(state="disabled")
         else:
-            self.cb_source_lang["values"] = ENGINE_SOURCE_DICT[self.cb_engine.get()]
             self.cb_model.configure(state="readonly")
 
         # Then update the target cb list with checks
+        self.cb_source_lang["values"] = ENGINE_SOURCE_DICT[self.cb_engine.get()]
         self.cb_target_lang["values"] = ENGINE_TARGET_DICT[self.cb_engine.get()]
 
         # check if the target lang is not in the new list
@@ -1083,7 +1081,11 @@ class MainWindow:
             self.cb_source_lang.configure(state="readonly")
             self.cb_target_lang.configure(state="readonly")
             self.cb_engine.configure(state="readonly")
-            self.cb_model.configure(state="readonly")
+            if self.cb_engine.get() in model_keys:
+                self.cb_model.configure(state="disabled")
+            else:
+                self.cb_model.configure(state="readonly")
+
             self.enable_rec()
 
         else:  # both not selected

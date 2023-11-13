@@ -276,7 +276,8 @@ class BridgeClass:
                     for word in segment.words:
                         confidence_total_word += word.probability
 
-                    confidence = confidence_total_word / len(segment.words)
+                    word_len = len(segment.words) if len(segment.words) != 0 else 1
+                    confidence = confidence_total_word / word_len
 
                     store_list.append(
                         {
