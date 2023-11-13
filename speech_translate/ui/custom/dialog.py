@@ -685,6 +685,13 @@ class QueueDialog:
 
         self.sheet = Sheet(self.frame, headers=headers, show_x_scrollbar=False)
         self.sheet.enable_bindings()
+        self.sheet.disable_bindings(
+            "right_click_popup_menu",
+            "rc_insert_column",
+            "rc_delete_column",
+            "rc_insert_row",
+            "rc_delete_row",
+        )
         self.sheet.edit_bindings(enable=False)
         self.sheet.pack(expand=True, fill="both")
         self.sheet.change_theme("dark green" if "dark" in theme else "light blue")

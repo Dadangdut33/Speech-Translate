@@ -26,14 +26,7 @@ def clear_dir(dir):
     try:
         if not os.path.exists(dir):
             return
-        if os.path.isdir(dir):
-            for f in os.listdir(dir):
-                os.remove(os.path.join(dir, f))
-
-            # remove the folder
-            os.rmdir(dir)
-        else:
-            os.remove(dir)
+        shutil.rmtree(dir)
     except Exception as e:
         print(f">> Failed to clear {dir} reason: {e}")
 

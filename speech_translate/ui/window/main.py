@@ -1830,7 +1830,7 @@ class MainWindow:
         tc, tl, m_key, engine, source, target, _mic, _speaker = self.get_args()
         kwargs = {
             "set_cb_model": m_key,
-            "set_cb_engine": engine,
+            "set_cb_engine": engine if engine not in model_keys else "Google Translate",
             "set_cb_target_lang": up_first_case(target),
         }
 
