@@ -311,7 +311,10 @@ def snapshot_download(
 def faster_whisper_download_with_progress_gui(
     master: Union[Tk, Toplevel], model_name: str, repo_id: str, cache_dir: str, cancel_func, after_func
 ):
-    """Download a model from the Hugging Face Hub with a progress bar that does not show the progress, only there to show that the program is not frozen and is in fact downloading something
+    """Download a model from the Hugging Face Hub with a progress bar that does not show the progress, 
+    only there to show that the program is not frozen and is in fact downloading something.
+
+    We instead read from the customized logger to get the download progress and show it in the text box
 
     Parameters
     ----------
@@ -335,14 +338,14 @@ def faster_whisper_download_with_progress_gui(
     os.makedirs(cache_dir, exist_ok=True)  # make cache dir if not exist
 
     storage_folder = os.path.join(cache_dir, repo_folder_name(repo_id=repo_id, repo_type="model"))
-    allow_patterns = ["config.json", "model.bin", "tokenizer.json", "vocabulary.*"]
+    allow_patterns = ["config.json", "preprocessor_config.json", "model.bin", "tokenizer.json", "vocabulary.*"]
     kwargs = {"local_files_only": False, "allow_patterns": allow_patterns, "resume_download": True, "cache_dir": cache_dir}
 
     # Show toplevel window
     root = Toplevel(master)
     root.title("Checking Model")
     root.transient(master)
-    root.geometry("700x180")
+    root.geometry("600x180")
     root.protocol("WM_DELETE_WINDOW", lambda: master.state("iconic"))  # minimize window when click close button
     root.geometry("+{}+{}".format(master.winfo_rootx() + 50, master.winfo_rooty() + 50))
     root.minsize(200, 100)
@@ -375,7 +378,7 @@ def faster_whisper_download_with_progress_gui(
     lbl_status_text.pack(side="left", padx=5, pady=(5, 0))
 
     btn_cancel = ttk.Button(f1, text="Cancel", command=cancel_func, style="Accent.TButton")
-    btn_cancel.pack(side="left", padx=5, pady=(5, 0))
+    btn_cancel.pack(side="right", padx=(5, 10), pady=(5, 0))
 
     # add progress bar that just goes back and forth
     progress = ttk.Progressbar(f2, orient="horizontal", length=200, mode="indeterminate")

@@ -100,6 +100,14 @@ class FileOperationDialog:
         self.cb_model.pack(padx=5, side="left")
         self.var_model.set(kwargs["set_cb_model"])
 
+        tk_tooltips(
+            [self.lbl_model, self.cb_model],
+            "Each Whisper model have different requirements. Please refer to the specs below:"
+            "\n- Tiny: ~1 GB Vram\n- Base: ~1 GB Vram\n- Small: ~2 GB Vram\n- Medium: ~5 GB Vram\n- Large: ~10 GB Vram"
+            "*It is recommended to use Faster-Whisper to make the model run 4 times faster for the same accuracy while using less memory (you can change this option in setting)",
+            wrapLength=400,
+        )
+
         self.frame_sheet = ttk.Frame(self.root)
         self.frame_sheet.pack(expand=True, fill="both", padx=5, pady=5)
         self.sheet = Sheet(self.frame_sheet, headers=headers, show_x_scrollbar=False)
@@ -245,20 +253,28 @@ class FileImportDialog(FileOperationDialog):
                 self.btn_start.configure(state="disabled")
 
         # Translate engine
-        ttk.Label(self.frame_top, text="Translate:").pack(padx=5, side="left")
+        self.lbl_engine = ttk.Label(self.frame_top, text="Translate:")
+        self.lbl_engine.pack(padx=5, side="left")
         self.var_engine = StringVar(self.root)
         self.cb_engine = CategorizedComboBox(
             self.root,
             self.frame_top, {
                 "Whisper": model_keys,
                 "Google Translate": [],
+                "MyMemoryTranslator": [],
                 "LibreTranslate": [],
-                "MyMemoryTranslator": []
             },
             cb_engine_change,
             textvariable=self.var_engine
         )
         self.cb_engine.pack(padx=5, side="left")
+        tk_tooltips(
+            [self.lbl_engine, self.cb_engine],
+            "Same as transcribe, larger models are more accurate but are slower and require more power.\n"
+            "\nIt is recommended to use google translate for the best result.\n\nIf you want full offline capability, "
+            "you can use libretranslate by hosting it yourself locally",
+            wrapLength=400,
+        )
 
         # Lang from
         self.lbl_source_lang = ttk.Label(self.frame_top, text="From:")
@@ -349,19 +365,26 @@ class TranslateResultDialog(FileOperationDialog):
                 self.cb_target_lang.current(0)
 
         # Translate engine
-        ttk.Label(self.frame_top, text="Translate:").pack(padx=5, side="left")
+        self.lbl_engine = ttk.Label(self.frame_top, text="Translate:")
+        self.lbl_engine.pack(padx=5, side="left")
         self.var_engine = StringVar(self.root)
         self.cb_engine = CategorizedComboBox(
             self.root,
             self.frame_top, {
                 "Google Translate": [],
+                "MyMemoryTranslator": [],
                 "LibreTranslate": [],
-                "MyMemoryTranslator": []
             },
             cb_engine_change,
             textvariable=self.var_engine
         )
         self.cb_engine.pack(padx=5, side="left")
+        tk_tooltips(
+            [self.lbl_engine, self.cb_engine],
+            "It is recommended to use google translate for the best result.\n\nIf you want full offline capability, "
+            "you can use libretranslate by hosting it yourself locally",
+            wrapLength=400,
+        )
 
         # Lang to
         self.lbl_target_lang = ttk.Label(self.frame_top, text="To:")
@@ -448,7 +471,7 @@ class AlignmentDialog(FileOperationDialog):
         source_f, mode_f, lang = ModResultInputDialog(self.root, "Add File Pair", self.mode, with_lang=True).get_input()
 
         if source_f and mode_f:
-            self.data_list.append([source_f, mode_f, lang])
+            self.data_list.append([source_f, mode_f, str(lang).lower()])
             self.update_sheet()
 
 

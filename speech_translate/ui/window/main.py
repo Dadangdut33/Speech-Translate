@@ -194,8 +194,7 @@ class MainWindow:
             [self.lbl_model, self.cb_model],
             "Each Whisper model have different requirements. Please refer to the specs below:"
             "\n- Tiny: ~1 GB Vram\n- Base: ~1 GB Vram\n- Small: ~2 GB Vram\n- Medium: ~5 GB Vram\n- Large: ~10 GB Vram"
-            "\n\nBy default, Speech Translate uses Faster-Whisper through Stable-Ts which according to its claim should "
-            "make the model run 4 times faster for the same accuracy while using less memory (you can change this option in setting)",
+            "*It is recommended to use Faster-Whisper to make the model run 4 times faster for the same accuracy while using less memory (you can change this option in setting)",
             wrapLength=400,
         )
 
@@ -207,16 +206,16 @@ class MainWindow:
             self.root, self.f1_toolbar, {
                 "Whisper": model_keys,
                 "Google Translate": [],
+                "MyMemoryTranslator": [],
                 "LibreTranslate": [],
-                "MyMemoryTranslator": []
             }, self.cb_engine_change
         )
         self.cb_engine.set(sj.cache["tl_engine"])
         self.cb_engine.pack(side="left", fill="x", padx=5, pady=5, expand=True)
         tk_tooltips(
-            [self.lbl_engine],
+            [self.lbl_engine, self.cb_engine],
             "Same as transcribe, larger models are more accurate but are slower and require more power.\n"
-            "It is recommended to use google translate for the best result. If you want full offline capability, "
+            "\nIt is recommended to use google translate for the best result.\n\nIf you want full offline capability, "
             "you can use libretranslate by hosting it yourself locally",
             wrapLength=400,
         )
@@ -1301,11 +1300,9 @@ class MainWindow:
             use_faster_whisper = sj.cache["use_faster_whisper"]
 
             model_dir = sj.cache["dir_model"] if sj.cache["dir_model"] != "auto" else get_default_download_root()
-            if use_faster_whisper and model_name != "large-v3":
+            if use_faster_whisper:
                 ok = verify_model_faster_whisper(model_name, model_dir)
             else:
-                if model_name == "large-v3":
-                    logger.warning("large-v3 is not available on faster whisper yet, using whisper instead")
                 ok = verify_model_whisper(model_name, model_dir)
 
             if not ok:
@@ -1376,14 +1373,24 @@ class MainWindow:
             return
 
         # check model first
-        status, model_tc = self.check_model(m_key, source == "english", "mic record", self.rec)
-        if not status:
-            return
+        tl_whisper = engine in model_keys
+        model_tc = None
+        if tc:  # check tc model if tc
+            status, model_tc = self.check_model(m_key, source == "english", "mic record", self.rec)
+            if not status:
+                return
 
-        if engine in model_keys and tl:
+        if tl and tl_whisper:
+            # if tl and using whisper engine, check model
             status, engine = self.check_model(engine, source == "english", "recording", self.rec)
             if not status:
                 return
+
+        # if only tl and using whisper, replace model_tc with engine
+        if tl and not tc and tl_whisper:
+            model_tc = engine
+
+        assert model_tc is not None, "model_tc is not set, this should not happened. Report this as a bug at https://github.com/Dadangdut33/Speech-Translate/issues"
 
         # check when using libre
         if engine == "LibreTranslate":
@@ -1475,20 +1482,30 @@ class MainWindow:
             return
 
         def do_process(m_key, engine, source, target, tc, tl, files):
+            tl_whisper = engine in model_keys
             # lang is lowered when send from FileImportDialog
             if source == target and tl:
                 mbox("Invalid options!", "Source and target language cannot be the same", 2)
                 return False
 
             # check model first
-            status, model_tc = self.check_model(m_key, source == "english", "file import", self.import_file)
-            if not status:
-                return False
+            model_tc = None
+            if tc:  # check tc model if tc
+                status, model_tc = self.check_model(m_key, source == "english", "file import", self.import_file)
+                if not status:
+                    return False
 
-            if engine in model_keys and tl:
+            if tl and tl_whisper:
+                # if tl and using whisper engine, check model
                 status, engine = self.check_model(engine, source == "english", "file import", self.import_file)
                 if not status:
                     return False
+
+            # if only tl and using whisper, replace model_tc with engine
+            if tl and not tc and tl_whisper:
+                model_tc = engine
+
+            assert model_tc is not None, "model_tc is not set, this should not happened. Report this as a bug at https://github.com/Dadangdut33/Speech-Translate/issues"
 
             if engine == "LibreTranslate":
                 # check wether libre_host is set or not
@@ -1607,6 +1624,7 @@ class MainWindow:
             return
 
         def do_process(m_key, files):
+            # file = (source_file, mod_file)
             # check model first
             status, model_tc = self.check_model(m_key, False, "file refinement", self.refine_file)
             if not status:
@@ -1693,8 +1711,16 @@ class MainWindow:
             return
 
         def do_process(m_key, files):
-            # check model first
-            status, model_tc = self.check_model(m_key, False, "file alignment", self.align_file)
+            # file = (source_file, mod_file, lang)
+            # filter lang to check all english or not
+            all_english = True
+            for file in files:
+                if file[2].lower() != "english":
+                    all_english = False
+                    break
+
+            # load .en model if all language is english
+            status, model_tc = self.check_model(m_key, all_english, "file alignment", self.align_file)
             if not status:
                 return False
 

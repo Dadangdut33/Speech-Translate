@@ -443,7 +443,7 @@ def cancellable_tl(
             logger.info("Translation cancelled")
         else:
             logger.exception(e)
-            native_notify(f"Error: translation with {engine} failed", str(e))
+            native_notify(f"Error: translation with {engine} failed ", str(e) + " Check log for details")
     finally:
         global_file_import_counter += 1
 
@@ -665,7 +665,7 @@ def process_file(
                 )
 
             # if only translating and using the whisper engine
-            if translate and tl_engine_whisper and not transcribe:
+            if translate and not transcribe and tl_engine_whisper:
                 proc_thread = Thread(
                     target=cancellable_tl,
                     args=[file, lang_source, lang_target, stable_tl, engine, auto, save_name, global_file_import_counter],
@@ -891,7 +891,7 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
             export_to = dir_alignment if sj.cache["dir_export"] == "auto" else sj.cache["dir_export"] + "/alignment"
 
         for file in data_files:
-            # file = (source_file, mode_file, lang) -> lang is only present if mode is alignment
+            # file = (source_file, mod_file, lang) -> lang is only present if mode is alignment
             fail = False
             fail_msg = ""
 
@@ -980,7 +980,7 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
                 sleep(0.1)
 
             if fail:
-                native_notify(f"Error: {mode} failed", str(fail_msg))
+                native_notify(f"Error: {mode} failed", str(fail_msg) + " Check log for details")
                 continue
 
             result: stable_whisper.WhisperResult = bc.data_queue.get()
@@ -1196,7 +1196,7 @@ def translate_result(data_files: List, engine: str, lang_target: str):
 
             if fail_status[0]:
                 update_q_process(processed, bc.mod_file_counter, "Failed to translate (check log)")
-                native_notify("Error: Translate failed", str(fail_status[1]))
+                native_notify("Error: Translate failed", str(fail_status[1]) + " Check log for details")
                 continue  # continue to next file
 
             bc.mod_file_counter += 1

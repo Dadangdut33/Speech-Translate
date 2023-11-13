@@ -429,10 +429,10 @@ class SettingGeneral:
             self.f_mod_faster, "Large (v2)",
             lambda: self.model_btn_checker("large-v2", self.model_faster_large_v2.btn, True)
         )
-        # self.model_faster_large_v3 = ModelDownloadFrame(
-        #     self.f_mod_faster, "Large (v3)",
-        #     lambda: self.model_btn_checker("large-v3", self.model_faster_large_v3.btn, True)
-        # )
+        self.model_faster_large_v3 = ModelDownloadFrame(
+            self.f_mod_faster, "Large (v3)",
+            lambda: self.model_btn_checker("large-v3", self.model_faster_large_v3.btn, True)
+        )
 
         # ------------------ Functions ------------------
         self.init_setting_once()
@@ -690,12 +690,12 @@ class SettingGeneral:
                     if "invalid command name" not in str(e):
                         logger.exception(e)
 
-            # def threaded_large_v3_fw():
-            #     try:
-            #         self.model_btn_checker("large-v3", self.model_faster_large_v3.btn, True)
-            #     except Exception as e:
-            #         if "invalid command name" not in str(e):
-            #             logger.exception(e)
+            def threaded_large_v3_fw():
+                try:
+                    self.model_btn_checker("large-v3", self.model_faster_large_v3.btn, True)
+                except Exception as e:
+                    if "invalid command name" not in str(e):
+                        logger.exception(e)
 
             check_tiny_w = Thread(target=threaded_tiny_w, daemon=True)
             check_tiny_fw = Thread(target=threaded_tiny_fw, daemon=True)
@@ -710,7 +710,7 @@ class SettingGeneral:
             check_large_v2_w = Thread(target=threaded_large_v2_w, daemon=True)
             check_large_v2_fw = Thread(target=threaded_large_v2_fw, daemon=True)
             check_large_v3_w = Thread(target=threaded_large_v3, daemon=True)
-            # check_large_v3_fw = Thread(target=threaded_large_v3_fw, daemon=True)
+            check_large_v3_fw = Thread(target=threaded_large_v3_fw, daemon=True)
 
             check_tiny_w.start()
             check_tiny_w.join()
@@ -743,9 +743,9 @@ class SettingGeneral:
             check_large_v2_fw.join()
 
             check_large_v3_w.start()
-            # check_large_v3_fw.start()
             check_large_v3_w.join()
-            # check_large_v3_fw.join()
+            check_large_v3_fw.start()
+            check_large_v3_fw.join()
 
             self.model_checked = True
         except Exception as e:

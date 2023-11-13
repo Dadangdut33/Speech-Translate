@@ -701,7 +701,7 @@ def get_model(
         model_tc, model_tl, stable_tc, stable_tl
     """
     model_tc, model_tl, stable_tc, stable_tl = None, None, None, None
-    if setting_cache["use_faster_whisper"] and model_name_tc != "large-v3":  # large-v3 is not on faster whisper yet
+    if setting_cache["use_faster_whisper"] and model_name_tc:
         if transcribe and translate and model_name_tc == engine:  # same model for both transcribe and translate. Load only once
             logger.debug("Loading model for both transcribe and translate using faster-whisper | Load only once")
             model_tc = stable_whisper.load_faster_whisper(model_name_tc, **model_args)
@@ -727,9 +727,6 @@ def get_model(
                 model_tc = stable_whisper.load_faster_whisper(model_name_tc, **model_args)
                 stable_tc = model_tc.transcribe_stable  # type: ignore
     else:
-        if model_name_tc == "large-v3":
-            logger.warning("large-v3 is not available on faster whisper yet, using whisper instead")
-
         if transcribe and translate and model_name_tc == engine:  # same model for both transcribe and translate. Load only once
             logger.debug("Loading model for both transcribe and translate using whisper | Load only once")
             model_tc = stable_whisper.load_model(model_name_tc, **model_args)

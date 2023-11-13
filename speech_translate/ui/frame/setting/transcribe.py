@@ -60,13 +60,13 @@ class SettingTranscribe:
             self.f_whisper_args_0,
             sj.cache["use_faster_whisper"],
             lambda x: sj.save_key("use_faster_whisper", x),
-            text="Use Faster Whisper When Possible",
+            text="Use Faster Whisper",
             style="Switch.TCheckbutton",
         )
         self.cbtn_use_faster_whisper.pack(side="left", padx=5)
         tk_tooltip(
             self.cbtn_use_faster_whisper,
-            "Use faster whisper model when possible. (Large-v3 is not supported yet)\n\nUsing faster whisper will make the implementation up to 4 times faster than openai/whisper for the same accuracy while using less memory. \n\nDefault is checked",
+            "Use faster whisper instead of whisper model.\n\nUsing faster whisper will make the implementation up to 4 times faster than openai/whisper for the same accuracy while using less memory. \n\nDefault is checked",
         )
 
         # decoding options

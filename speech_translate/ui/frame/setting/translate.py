@@ -142,9 +142,11 @@ class SettingTranslate:
         self.entry_libre_host.bind("<KeyRelease>", lambda e: sj.save_key("libre_host", self.entry_libre_host.get()))
         tk_tooltips(
             [self.lbl_libre_host, self.entry_libre_host],
-            "The host of Libre Translate. You can check out the official "
-            "instance/mirrors at https://github.com/LibreTranslate/LibreTranslate or host your own instance. Keep in mind that the language code that is set for libretranslate in this app is for libretranslate version 1.5.1",
-            wrapLength=330,
+            "The host of Libre Translate (example: libretranslate.com or localhost)."
+            "\n\nYou can check out the official instance/mirrors at https://github.com/LibreTranslate/LibreTranslate or host your own instance."
+            "\n\nIt is recommended to host your own instance for free and faster result without limit"
+            "\n\nAlso, keep in mind that the language code that is set for libretranslate in this app is for libretranslate version 1.5.1",
+            wrapLength=400,
         )
 
         self.lbl_libre_port = ttk.Label(self.f_libre_1, text="Port")
