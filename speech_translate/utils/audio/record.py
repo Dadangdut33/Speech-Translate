@@ -222,6 +222,10 @@ def record_session(
         if sj.cache["use_faster_whisper"] and not use_temp:
             whisper_args["input_sr"] = WHISPER_SR  # when using numpy array as input, will need to set input_sr
 
+        # if both demucs and vad is enabled, use file instead of numpy array to avoid error
+        if whisper_args["demucs"] and whisper_args["vad"]:
+            use_temp = True
+
         cuda_device = model_args["device"]
         # if only translate to english using whisper engine
         task = "translate" if tl_engine_whisper and translate and not transcribe else "transcribe"
@@ -232,6 +236,7 @@ def record_session(
         logger.info(f"Task: {task}")
         logger.info(f"Model: {model_name_tc}")
         logger.info(f"Engine: {engine}")
+        logger.info(f"CUDA: {cuda_device}")
         logger.info(f"Auto mode: {auto}")
         logger.info(f"Source Languange: {lang_source}")
         if translate:
@@ -577,11 +582,6 @@ def record_session(
                 if sj.cache["debug_realtime_record"] == 1:
                     logger.debug(f"File Write Time: {time() - timeNow}")
 
-                # delete the oldest file if the temp list is too long
-                if len(temp_list) > sj.cache["max_temp"] and not sj.cache["keep_temp"]:
-                    remove(temp_list[0])
-                    temp_list.pop(0)
-
             # If only translating and its using whisper engine
             if translate and tl_engine_whisper and not transcribe:
                 if sj.cache["debug_realtime_record"] == 1:
@@ -662,6 +662,10 @@ def record_session(
 
                         tl_thread.start()
                         tl_thread.join()
+
+            if use_temp and not sj.cache["keep_temp"]:
+                remove(audio_target)  # type: ignore
+                temp_list.remove(audio_target)
 
             # break up the buffer If we've reached max recording time
             if duration_seconds > max_record_time:

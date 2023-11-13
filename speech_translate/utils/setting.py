@@ -33,7 +33,7 @@ default_setting: SettingDict = {
     "sw_size": "1100x620",
     "dir_log": "auto",
     "dir_model": "auto",
-    "auto_verify_model_on_first_setting_open": True,
+    "auto_verify_model_on_first_setting_open": False,
     "file_slice_start": "",  # empty will be read as None
     "file_slice_end": "",  # empty will be read as None
     "parse_arabic": True,
@@ -65,7 +65,6 @@ default_setting: SettingDict = {
     "debug_recorded_audio": False,
     # temp
     "use_temp": False,
-    "max_temp": 200,
     "keep_temp": False,
     # mic - device option
     "sample_rate_mic": 16000,

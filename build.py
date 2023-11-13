@@ -19,6 +19,10 @@ def version():
 # instead of the one in the python folder
 print(">> Building SpeechTranslate version", version())
 print(">> Environment:", get_env_name())
+# run build_patch.py
+print(">> Running build_patch.py")
+os.system("python build_patch.py")
+print(">> Done")
 
 
 def clear_dir(dir):
@@ -52,7 +56,8 @@ folder_name = f"build/SpeechTranslate {version()} {get_env_name()}"
 build_exe_options = {
     "excludes": ["yapf", "ruff"],
     "packages": ["torch", "soundfile", "sounddevice", "av", "stable_whisper", "faster_whisper", "whisper"],
-    "build_exe": folder_name
+    "build_exe": folder_name,
+    "include_msvcr": True
 }
 
 base = "Win32GUI" if sys.platform == "win32" else None

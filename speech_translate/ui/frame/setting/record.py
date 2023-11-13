@@ -324,8 +324,8 @@ class SettingRecord:
         tk_tooltip(
             self.radio_temp_file,
             "If checked, will use temporary created wav files to fed the audio to the Whisper model "
-            "instead of using numpy arrays.\n\nUsing this might help to fix error related to device (which rarely happens), "
-            "but it could slow down the process especially if the buffer is long"
+            "instead of using numpy arrays.\n\nUsing this might help to fix error related to device or conversion in record session (which rarely happens), "
+            "but it could slow down the process especially if the buffer is long. When both VAD and Demucs are enabled in record session, this option will be used automatically."
             ".\n\nDefault value is unchecked.",
             wrapLength=400,
         )
@@ -340,29 +340,13 @@ class SettingRecord:
             self.lbl_hint_conversion,
             "Convert method is the method used to process the audio before feeding it to the model."
             "\n\nNumpy array is the default and recommended method. It is faster and more efficient. "
-            "If there are any errors related to device, try using the temporary wav file."
+            "If there are any errors related to device or conversion in the record session, try using the temporary wav file."
             "\n\nTemporary wav file is slower and less efficient but might be more accurate in some cases. "
             "When using wav file, the I/O process of the recorded wav file might slow down the performance "
             "of the app significantly, especially on long buffers."
             "\n\nBoth setting will resample the audio to a 16k hz sample rate. Difference is, numpy array "
             "uses scipy to resample the audio while temporary wav file uses ffmpeg.",
             wrapLength=400,
-        )
-
-        self.lbl_max_temp = ttk.Label(self.f_processing_2, text="Max Temp Files", width=14)
-        self.lbl_max_temp.pack(side="left", padx=5, pady=(0, 5))
-        self.spn_max_temp = SpinboxNumOnly(
-            self.root,
-            self.f_processing_2,
-            50,
-            1000,
-            lambda x: sj.save_key("max_temp", int(x)),
-            initial_value=sj.cache["max_temp"]
-        )
-        self.spn_max_temp.pack(side="left", padx=5, pady=(0, 5))
-        tk_tooltips(
-            [self.spn_max_temp, self.lbl_max_temp],
-            "Set max number of temporary files kept when recording.\n\nDefault value is 200.",
         )
 
         self.cbtn_keep_temp = CustomCheckButton(

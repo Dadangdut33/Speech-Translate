@@ -146,6 +146,7 @@ class FileOperationDialog:
         except Exception:
             pass
 
+        self.update_btn_start()
         self.root.after(100, self.adjust_window_size)
         self.root.bind("<Configure>", lambda e: self.resize_sheet_width_to_window())
 
@@ -162,6 +163,13 @@ class FileOperationDialog:
 
     def update_sheet(self):
         self.sheet.set_sheet_data(self.data_list, reset_col_positions=False)
+        self.update_btn_start()
+
+    def update_btn_start(self):
+        if len(self.data_list) > 0:
+            self.btn_start.configure(state="normal")
+        else:
+            self.btn_start.configure(state="disabled")
 
     def resize_sheet_width_to_window(self, with_check=True):
         w = self.root.winfo_width()
@@ -228,21 +236,30 @@ class FileImportDialog(FileOperationDialog):
                 self.cb_engine.configure(state="readonly")
                 self.cb_source_lang.configure(state="readonly")
                 self.cb_target_lang.configure(state="readonly")
-                self.btn_start.configure(state="normal")
+                if len(self.data_list) > 0:
+                    self.btn_start.configure(state="normal")
+                else:
+                    self.btn_start.configure(state="disabled")
 
             elif self.var_task_transcribe.get() and not self.var_task_translate.get():
                 self.cb_source_lang.configure(state="readonly")
                 self.cb_target_lang.configure(state="disabled")
                 self.cb_engine.configure(state="disabled")
                 self.cb_model.configure(state="readonly")
-                self.btn_start.configure(state="normal")
+                if len(self.data_list) > 0:
+                    self.btn_start.configure(state="normal")
+                else:
+                    self.btn_start.configure(state="disabled")
 
             elif not self.var_task_transcribe.get() and self.var_task_translate.get():
                 self.cb_source_lang.configure(state="readonly")
                 self.cb_target_lang.configure(state="readonly")
                 self.cb_engine.configure(state="readonly")
                 self.cb_model.configure(state="readonly")
-                self.btn_start.configure(state="normal")
+                if len(self.data_list) > 0:
+                    self.btn_start.configure(state="normal")
+                else:
+                    self.btn_start.configure(state="disabled")
 
             else:
                 self.cb_source_lang.configure(state="disabled")
@@ -312,8 +329,8 @@ class FileImportDialog(FileOperationDialog):
         self.cb_source_lang["values"] = ENGINE_SOURCE_DICT[self.var_model.get()]
         self.cb_target_lang["values"] = ENGINE_TARGET_DICT[self.var_engine.get()]
 
-        cbtn_task_change()
         cb_engine_change(self.var_model.get())
+        cbtn_task_change()
 
     def add_data(self):
         files = filedialog.askopenfilenames(

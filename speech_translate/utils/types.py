@@ -116,7 +116,6 @@ class SettingDict(TypedDict):
     debug_recorded_audio: bool
     # temp
     use_temp: bool
-    max_temp: int
     keep_temp: bool
     # mic - device option
     sample_rate_mic: int
