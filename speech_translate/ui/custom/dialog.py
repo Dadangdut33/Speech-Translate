@@ -210,27 +210,92 @@ class FileImportDialog(FileOperationDialog):
     def __init__(self, master, title: str, submit_func, theme: str, **kwargs):
         super().__init__(master, title, "File Import", ["Audio / Video File"], submit_func, theme, **kwargs)
 
-        def cb_engine_change(_event=None):
-            # check if engine is whisper and currently in translate only mode
-            # if yes, will make the source lang use based on the engine
-            if _event in model_keys and self.var_task_translate.get() and not self.var_task_transcribe.get():
-                self.cb_model.configure(state="disabled")
-            else:
-                self.cb_model.configure(state="readonly")
+        self.var_task_transcribe = BooleanVar(self.root)
+        self.var_task_translate = BooleanVar(self.root)
+        # Translate engine
+        self.lbl_engine = ttk.Label(self.frame_top, text="Translate:")
+        self.lbl_engine.pack(padx=5, side="left")
+        self.var_engine = StringVar(self.root)
+        self.cb_engine = CategorizedComboBox(
+            self.root,
+            self.frame_top, {
+                "Whisper": model_keys,
+                "Google Translate": [],
+                "MyMemoryTranslator": [],
+                "LibreTranslate": [],
+            },
+            self.cb_engine_change,
+            textvariable=self.var_engine
+        )
+        self.cb_engine.pack(padx=5, side="left")
+        tk_tooltips(
+            [self.lbl_engine, self.cb_engine],
+            "Same as transcribe, larger models are more accurate but are slower and require more power.\n"
+            "\nIt is recommended to use google translate for the best result.\n\nIf you want full offline capability, "
+            "you can use libretranslate by hosting it yourself locally",
+            wrapLength=400,
+        )
 
-            # Then update the target cb list with checks
-            self.cb_source_lang["values"] = ENGINE_SOURCE_DICT[self.var_engine.get()]
-            self.cb_target_lang["values"] = ENGINE_TARGET_DICT[self.var_engine.get()]
+        # Lang from
+        self.lbl_source_lang = ttk.Label(self.frame_top, text="From:")
+        self.lbl_source_lang.pack(padx=5, side="left")
+        self.var_source_lang = StringVar(self.root)
+        self.cb_source_lang = ComboboxWithKeyNav(self.frame_top, textvariable=self.var_source_lang, state="readonly")
+        self.cb_source_lang.pack(padx=5, side="left")
 
-            # check if the target lang is not in the new list
-            if self.cb_target_lang.get() not in self.cb_target_lang["values"]:
-                self.cb_target_lang.current(0)
+        # Lang to
+        self.lbl_target_lang = ttk.Label(self.frame_top, text="To:")
+        self.lbl_target_lang.pack(padx=5, side="left")
+        self.var_target_lang = StringVar(self.root)
+        self.cb_target_lang = ComboboxWithKeyNav(self.frame_top, textvariable=self.var_target_lang, state="readonly")
+        self.cb_target_lang.pack(padx=5, side="left")
 
-            # check if the source lang is not in the new list
-            if self.cb_source_lang.get() not in self.cb_source_lang["values"]:
-                self.cb_source_lang.current(0)
+        # Task
+        self.lbl_task = ttk.Label(self.frame_top, text="Task:")
+        self.lbl_task.pack(padx=5, side="left")
 
-        def cbtn_task_change():
+        self.cbtn_transcribe = ttk.Checkbutton(
+            self.frame_top, text="Transcribe", variable=self.var_task_transcribe, command=self.cbtn_task_change
+        )
+        self.cbtn_transcribe.pack(padx=5, side="left")
+        self.cbtn_translate = ttk.Checkbutton(
+            self.frame_top, text="Translate", variable=self.var_task_translate, command=self.cbtn_task_change
+        )
+        self.cbtn_translate.pack(padx=5, side="left")
+
+        self.var_engine.set(kwargs["set_cb_engine"])
+        self.var_source_lang.set(kwargs["set_cb_source_lang"])
+        self.var_target_lang.set(kwargs["set_cb_target_lang"])
+        self.var_task_transcribe.set(kwargs["set_task_transcribe"])
+        self.var_task_translate.set(kwargs["set_task_translate"])
+        self.cb_source_lang["values"] = ENGINE_SOURCE_DICT[self.var_model.get()]
+        self.cb_target_lang["values"] = ENGINE_TARGET_DICT[self.var_engine.get()]
+
+        self.cb_engine_change(self.var_model.get())
+        self.cbtn_task_change()
+
+    def cb_engine_change(self, _event=None):
+        # check if engine is whisper and currently in translate only mode
+        # if yes, will make the source lang use based on the engine
+        if _event in model_keys and self.var_task_translate.get() and not self.var_task_transcribe.get():
+            self.cb_model.configure(state="disabled")
+        else:
+            self.cb_model.configure(state="readonly")
+
+        # Then update the target cb list with checks
+        self.cb_source_lang["values"] = ENGINE_SOURCE_DICT[self.var_engine.get()]
+        self.cb_target_lang["values"] = ENGINE_TARGET_DICT[self.var_engine.get()]
+
+        # check if the target lang is not in the new list
+        if self.cb_target_lang.get() not in self.cb_target_lang["values"]:
+            self.cb_target_lang.current(0)
+
+        # check if the source lang is not in the new list
+        if self.cb_source_lang.get() not in self.cb_source_lang["values"]:
+            self.cb_source_lang.current(0)
+
+    def cbtn_task_change(self):
+        try:
             if self.var_task_transcribe.get() and self.var_task_translate.get():
                 self.cb_model.configure(state="readonly")
                 self.cb_engine.configure(state="readonly")
@@ -267,70 +332,8 @@ class FileImportDialog(FileOperationDialog):
                 self.cb_engine.configure(state="disabled")
                 self.cb_model.configure(state="disabled")
                 self.btn_start.configure(state="disabled")
-
-        # Translate engine
-        self.lbl_engine = ttk.Label(self.frame_top, text="Translate:")
-        self.lbl_engine.pack(padx=5, side="left")
-        self.var_engine = StringVar(self.root)
-        self.cb_engine = CategorizedComboBox(
-            self.root,
-            self.frame_top, {
-                "Whisper": model_keys,
-                "Google Translate": [],
-                "MyMemoryTranslator": [],
-                "LibreTranslate": [],
-            },
-            cb_engine_change,
-            textvariable=self.var_engine
-        )
-        self.cb_engine.pack(padx=5, side="left")
-        tk_tooltips(
-            [self.lbl_engine, self.cb_engine],
-            "Same as transcribe, larger models are more accurate but are slower and require more power.\n"
-            "\nIt is recommended to use google translate for the best result.\n\nIf you want full offline capability, "
-            "you can use libretranslate by hosting it yourself locally",
-            wrapLength=400,
-        )
-
-        # Lang from
-        self.lbl_source_lang = ttk.Label(self.frame_top, text="From:")
-        self.lbl_source_lang.pack(padx=5, side="left")
-        self.var_source_lang = StringVar(self.root)
-        self.cb_source_lang = ComboboxWithKeyNav(self.frame_top, textvariable=self.var_source_lang, state="readonly")
-        self.cb_source_lang.pack(padx=5, side="left")
-
-        # Lang to
-        self.lbl_target_lang = ttk.Label(self.frame_top, text="To:")
-        self.lbl_target_lang.pack(padx=5, side="left")
-        self.var_target_lang = StringVar(self.root)
-        self.cb_target_lang = ComboboxWithKeyNav(self.frame_top, textvariable=self.var_target_lang, state="readonly")
-        self.cb_target_lang.pack(padx=5, side="left")
-
-        # Task
-        self.lbl_task = ttk.Label(self.frame_top, text="Task:")
-        self.lbl_task.pack(padx=5, side="left")
-
-        self.var_task_transcribe = BooleanVar(self.root)
-        self.var_task_translate = BooleanVar(self.root)
-        self.cbtn_transcribe = ttk.Checkbutton(
-            self.frame_top, text="Transcribe", variable=self.var_task_transcribe, command=cbtn_task_change
-        )
-        self.cbtn_transcribe.pack(padx=5, side="left")
-        self.cbtn_translate = ttk.Checkbutton(
-            self.frame_top, text="Translate", variable=self.var_task_translate, command=cbtn_task_change
-        )
-        self.cbtn_translate.pack(padx=5, side="left")
-
-        self.var_engine.set(kwargs["set_cb_engine"])
-        self.var_source_lang.set(kwargs["set_cb_source_lang"])
-        self.var_target_lang.set(kwargs["set_cb_target_lang"])
-        self.var_task_transcribe.set(kwargs["set_task_transcribe"])
-        self.var_task_translate.set(kwargs["set_task_translate"])
-        self.cb_source_lang["values"] = ENGINE_SOURCE_DICT[self.var_model.get()]
-        self.cb_target_lang["values"] = ENGINE_TARGET_DICT[self.var_engine.get()]
-
-        cb_engine_change(self.var_model.get())
-        cbtn_task_change()
+        except AttributeError:
+            pass
 
     def add_data(self):
         files = filedialog.askopenfilenames(
@@ -349,6 +352,9 @@ class FileImportDialog(FileOperationDialog):
             self.data_list.append([file])
 
         self.update_sheet()
+
+    def update_btn_start(self):
+        self.cbtn_task_change()
 
     def adjust_window_size(self):
         self.resize_sheet_width_to_window()
@@ -375,11 +381,7 @@ class TranslateResultDialog(FileOperationDialog):
         self.lbl_model.pack_forget()
         self.cb_model.pack_forget()
 
-        def cb_engine_change(_event=None):
-            self.cb_target_lang["values"] = ENGINE_TARGET_DICT[self.var_engine.get()]
-            if self.cb_target_lang.get() not in self.cb_target_lang["values"]:
-                self.cb_target_lang.current(0)
-
+        self.var_target_lang = StringVar(self.root)
         # Translate engine
         self.lbl_engine = ttk.Label(self.frame_top, text="Translate:")
         self.lbl_engine.pack(padx=5, side="left")
@@ -391,7 +393,7 @@ class TranslateResultDialog(FileOperationDialog):
                 "MyMemoryTranslator": [],
                 "LibreTranslate": [],
             },
-            cb_engine_change,
+            self.cb_engine_change,
             textvariable=self.var_engine
         )
         self.cb_engine.pack(padx=5, side="left")
@@ -405,13 +407,11 @@ class TranslateResultDialog(FileOperationDialog):
         # Lang to
         self.lbl_target_lang = ttk.Label(self.frame_top, text="To:")
         self.lbl_target_lang.pack(padx=5, side="left")
-        self.var_target_lang = StringVar(self.root)
         self.cb_target_lang = ComboboxWithKeyNav(self.frame_top, textvariable=self.var_target_lang, state="readonly")
         self.cb_target_lang.pack(padx=5, side="left")
 
         self.var_engine.set(kwargs["set_cb_engine"])
         self.var_target_lang.set(kwargs["set_cb_target_lang"])
-        self.cb_target_lang["values"] = ENGINE_TARGET_DICT[self.var_engine.get()]
 
         # add ? tooltip to frame_top
         self.hint = ttk.Label(self.frame_top, text="?", cursor="question_arrow", font="TkDefaultFont 9 bold")
@@ -421,6 +421,15 @@ class TranslateResultDialog(FileOperationDialog):
             "Translate result of a transcription file. For this to work, you need to have a .json file of Whisper Result first.",
             wrapLength=300
         )
+        self.cb_engine_change(self.var_engine.get())
+
+    def cb_engine_change(self, _event=None):
+        try:
+            self.cb_target_lang["values"] = ENGINE_TARGET_DICT[self.var_engine.get()]
+            if self.cb_target_lang.get() not in self.cb_target_lang["values"]:
+                self.cb_target_lang.current(0)
+        except AttributeError:
+            pass
 
     def add_data(self):
         files = filedialog.askopenfilenames(
