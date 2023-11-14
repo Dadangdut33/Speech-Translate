@@ -212,6 +212,7 @@ class SettingTranscribe:
         self.lbl_suppress_tokens.pack(side="left", padx=5)
         self.entry_supress_tokens = ttk.Entry(self.f_whisper_args_1, width=30)
         self.entry_supress_tokens.pack(side="left", padx=5, fill="x")
+        self.entry_supress_tokens.insert(0, sj.cache["suppress_tokens"])
         self.entry_supress_tokens.bind(
             "<KeyRelease>", lambda e: sj.save_key("suppress_tokens", self.entry_supress_tokens.get())
         )
