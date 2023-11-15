@@ -1,4 +1,3 @@
-import gc
 from ast import literal_eval
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -369,14 +368,14 @@ def record_session(
             nonlocal timerStart, paused, modal_after
             if bc.recording and not paused:
                 timer = strftime("%H:%M:%S", gmtime(time() - timerStart))
-                data_queue_size = bc.data_queue.qsize() * chunk_size / 1024  # approx buffer size in kb
+                data_queue_size = (bc.data_queue.qsize() * chunk_size * 2) / 1024  # approx buffer size in kb
 
                 lbl_timer.configure(
                     text=f"REC: {timer} | "
                     f"{language if not auto else language.replace('auto detect', f'auto detect ({bc.auto_detected_lang})')}"
                 )
                 lbl_buffer.set_text(
-                    f"{round(duration_seconds, 2)}/{round(max_record_time, 2)} sec ({round(data_queue_size, 2)} kb)"
+                    f"{round(duration_seconds, 2)}/{round(max_record_time, 2)} sec (~{round(data_queue_size, 2)} kb)"
                 )
                 # update progress / buffer percentage
                 progress_buffer["value"] = duration_seconds / max_record_time * 100
@@ -681,11 +680,13 @@ def record_session(
             logger.info("Stopping stream")
             bc.stream.stop_stream()
             bc.stream.close()
+            bc.stream = None
 
             bc.current_rec_status = "⚠️ Terminating pyaudio"
             update_status_lbl()
             logger.info("Terminating pyaudio")
             p.terminate()
+            p = None
 
             # empty the queue
             bc.current_rec_status = "⚠️ Emptying queue"
@@ -736,7 +737,6 @@ def record_session(
             root.destroy()  # close if not destroyed
     finally:
         torch.cuda.empty_cache()
-        gc.collect()
         logger.info("Record session ended")
 
 

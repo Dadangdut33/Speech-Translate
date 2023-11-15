@@ -293,11 +293,13 @@ def wrap_result(res: List[ToInsert], max_line_length: int):
         wrapped_text = textwrap.wrap(text, width=max_line_length, break_long_words=False)
 
         # Create a list of dictionaries with wrapped text and the same color
-        wrapped_res.extend([{'text': line, 'color': color, 'is_last': False} for line in wrapped_text])
+        wrapped_res.extend([{'text': line + "<br />", 'color': color, 'is_last': False} for line in wrapped_text])
 
         if len(wrapped_res) > 0:
             # mark last part of each sentence
             wrapped_res[-1]['is_last'] = True
+            # remove space at the end of the last part of each sentence
+            wrapped_res[-1]['text'] = wrapped_res[-1]['text'].removesuffix("<br />")
 
     return wrapped_res
 

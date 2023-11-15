@@ -755,11 +755,10 @@ def get_model(
     load_to_tc_args = stable_tc if stable_tc is not None else stable_tl  # making sure that the load_to_tc_args is not None
 
     logger.debug("Model loaded. Status:")
-    logger.debug(f"TC: {model_tc}")
-    logger.debug(f"TL: {model_tl}")
-    logger.debug(f"func_tc: {stable_tc}")
-    logger.debug(f"func_tl: {stable_tl}")
-    logger.debug(f"load_to_tc_args: {load_to_tc_args}")
+    logger.debug(f"TC: {'Set' if model_tc else 'Not Set'}")
+    logger.debug(f"TL: {'Set' if model_tl else 'Not Set'}")
+    logger.debug(f"func_tc: {'Set' if stable_tc else 'Not Set'}")
+    logger.debug(f"func_tl: {'Set' if stable_tl else 'Not Set'}")
 
     return model_tc, model_tl, stable_tc, stable_tl, load_to_tc_args
 
