@@ -29,6 +29,7 @@ default_setting: SettingDict = {
     "theme": "sun-valley-dark" if isDark() else "sun-valley-light",
     "supress_hidden_to_tray": False,
     "supress_device_warning": False,
+    "bypass_no_internet": False,
     "mw_size": "1000x600",
     "sw_size": "1100x620",
     "dir_log": "auto",

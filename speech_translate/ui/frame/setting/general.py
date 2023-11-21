@@ -530,10 +530,16 @@ class SettingGeneral:
         def after_func():
             btn.configure(text="Downloaded", state="disabled")
 
+        def failed_func():
+            btn.configure(
+                text="Download", command=lambda: self.model_download(model, btn, use_faster_whisper), state="normal"
+            )
+
         kwargs = {
             "after_func": after_func,
             "use_faster_whisper": use_faster_whisper,
-            "cancel_func": lambda: self.cancel_model_download(model, btn)
+            "cancel_func": lambda: self.cancel_model_download(model, btn),
+            "failed_func": failed_func,
         }
 
         # verify first
@@ -574,7 +580,7 @@ class SettingGeneral:
         btn.configure(text="Download", command=lambda: self.model_download(model, btn, False), state="normal")
         bc.cancel_dl = True  # Raise flag to stop
 
-    def model_btn_checker(self, model: str, btn: ttk.Button, faster_whisper: bool = False) -> None:
+    def model_btn_checker(self, model: str, btn: ttk.Button, faster_whisper: bool = False, on_start=False) -> None:
         """
         Helper to check if model is downloaded.
         It will first change btn state to disabled to prevent user from clicking it, set text to "Checking..."
@@ -587,15 +593,24 @@ class SettingGeneral:
         btn.configure(text="Checking...", state="disabled")
 
         model_dir = sj.cache["dir_model"] if sj.cache["dir_model"] != "auto" else get_default_download_root()
-        if faster_whisper:
-            downloaded = verify_model_faster_whisper(model, model_dir)
-        else:
-            downloaded = verify_model_whisper(model, model_dir)
+        try:
+            if faster_whisper:
+                downloaded = verify_model_faster_whisper(model, model_dir)
+            else:
+                downloaded = verify_model_whisper(model, model_dir)
 
-        if downloaded:
-            btn.configure(text="Downloaded", state="disabled")
-        else:
+            if downloaded:
+                btn.configure(text="Downloaded", state="disabled")
+            else:
+                btn.configure(
+                    text="Download", command=lambda: self.model_download(model, btn, faster_whisper), state="normal"
+                )
+        except Exception as e:
             btn.configure(text="Download", command=lambda: self.model_download(model, btn, faster_whisper), state="normal")
+            if "HTTPSConnectionPool" in str(e):
+                logger.error("Fail checking model! No Internet Connection! / Host might be down")
+            else:
+                logger.exception(e)
 
     def check_model_on_first_open(self):
         """

@@ -10,7 +10,7 @@ from speech_translate.ui.custom.download import whisper_download_with_progress_g
 
 
 # donwload function
-def download_model(model_key, root_win, cancel_func=None, after_func=None, download_root=None, use_faster_whisper=False):
+def download_model(model_key, root_win, **kwargs):
     """Download a model from the official model repository
 
     Parameters
@@ -27,18 +27,19 @@ def download_model(model_key, root_win, cancel_func=None, after_func=None, downl
     model_bytes : bytes
         the model checkpoint as a byte string
     """
+    download_root = kwargs.pop("download_root", None)
     if download_root is None:
         download_root = get_default_download_root()
+
+    use_faster_whisper = kwargs.pop("use_faster_whisper")
 
     model_id = whisper._MODELS[model_key] if not use_faster_whisper else FW_MODELS[model_key]
 
     # call different download function
     if not use_faster_whisper:
-        return whisper_download_with_progress_gui(root_win, model_key, model_id, download_root, cancel_func, after_func)
+        return whisper_download_with_progress_gui(root_win, model_key, model_id, download_root, **kwargs)
     else:
-        return faster_whisper_download_with_progress_gui(
-            root_win, model_key, model_id, download_root, cancel_func, after_func
-        )
+        return faster_whisper_download_with_progress_gui(root_win, model_key, model_id, download_root, **kwargs)
 
 
 # verify downloaded model sha

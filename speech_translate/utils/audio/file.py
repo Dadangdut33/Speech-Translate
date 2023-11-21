@@ -119,6 +119,9 @@ def run_translate_api(
                 logger.warning("Some part of the text might not be translated")
                 return
 
+            if isinstance(result, str):
+                raise Exception(result)
+
             # dont forget to also add space back because its removed automatically in the api call
             segment.text = result.pop(0) + " "
 
@@ -188,6 +191,9 @@ def run_translate_api(
         if "The system cannot find the file specified" in str(e) and not bc.has_ffmpeg:
             logger.error("FFmpeg not found in system path. Please install FFmpeg and add it to system path")
             fail_status[1] = Exception("FFmpeg not found in system path. Please install FFmpeg and add it to system path")
+        elif "HTTPSConnectionPool" in str(e):
+            logger.error("No internet or fail to reach host!")
+            fail_status[1] = Exception("Fail to reach host! Might be because of no internet connection or host is down")
         else:
             fail_status[1] = e
 
@@ -943,15 +949,23 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
                                 processed, bc.mod_file_counter,
                                 "Found null token, now trying to re-transcribe with whisper model"
                             )
-                            transcribe_args = get_tc_args(model.transcribe, sj.cache)
-                            logger.info(f"Process Args: {transcribe_args}")
-                            result = model.transcribe(audio, **transcribe_args)
-                            update_q_process(
-                                processed, bc.mod_file_counter, "Transcribed successfully, now trying to refine again"
-                            )
-                            result = mod_function(audio, result, **mod_args)
-                            update_q_process(processed, bc.mod_file_counter, "Refined")
-                            bc.data_queue.put(result)
+                            try:
+                                transcribe_args = get_tc_args(model.transcribe, sj.cache)
+                                logger.info(f"Process Args: {transcribe_args}")
+                                result = model.transcribe(audio, **transcribe_args)
+                                update_q_process(
+                                    processed, bc.mod_file_counter, "Transcribed successfully, now trying to refine again"
+                                )
+                                result = mod_function(audio, result, **mod_args)
+                                update_q_process(processed, bc.mod_file_counter, "Refined")
+                                bc.data_queue.put(result)
+                            except Exception as e:
+                                logger.exception(e)
+                                fail = True
+                                fail_msg = e
+                                update_q_process(
+                                    processed, bc.mod_file_counter, f"Failed to do {mode} on re-transcribe (check log)"
+                                )
                         else:
                             fail = True
                             fail_msg = e

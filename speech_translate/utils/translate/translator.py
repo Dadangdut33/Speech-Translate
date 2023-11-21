@@ -12,6 +12,7 @@ except Exception as e:
     GoogleTranslator = None
     MyMemoryTranslator = None
     if "HTTPSConnectionPool" in str(e):
+        logger.error("No Internet Connection! / Host might be down")
         no_connection_notify()
     else:
         no_connection_notify("Uncaught Error", str(e))

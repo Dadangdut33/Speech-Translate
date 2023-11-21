@@ -581,14 +581,14 @@ def native_notify(title: str, message: str):
 
 
 def no_connection_notify(
-    customTitle: str = "No Internet Connection",
-    customMessage: str = "Translation for engine other than Whisper or your local LibreTranslate Deployment "
+    title: str = "No Internet Connection / Host might be down",
+    msg: str = "Translation for engine other than Whisper or your local LibreTranslate Deployment "
     "(If you have one) will not work until you reconnect to the internet.",
 ):
     """
-    Notify user that they are not connected to the internet
+    Notify user that they are probably not connected to the internet
     """
-    native_notify(customTitle, customMessage)
+    native_notify(title, msg)
 
 
 def generate_temp_filename(base_dir):

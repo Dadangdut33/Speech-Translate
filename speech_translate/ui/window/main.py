@@ -671,8 +671,11 @@ class MainWindow:
 
     # ------------------ Functions ------------------
     # error
-    def errorNotif(self, err: str):
-        native_notify("Unexpected Error!", err)
+    def errorNotif(self, err: str, use_mbox=False, title="Unexpected Error!"):
+        if use_mbox:
+            mbox(title, err, 2, self.root)
+        else:
+            native_notify(title, err)
 
     def copy_tb(self, theType: Literal["transcribed", "translated"]):
         tb_dict = {"transcribed": self.tb_transcribed, "translated": self.tb_translated}
@@ -1309,9 +1312,9 @@ class MainWindow:
                     break
 
     def check_model(self, key, is_english, taskname, task):
+        model_name = append_dot_en(key, is_english)
         try:
             # check model first
-            model_name = append_dot_en(key, is_english)
             use_faster_whisper = sj.cache["use_faster_whisper"]
 
             model_dir = sj.cache["dir_model"] if sj.cache["dir_model"] != "auto" else get_default_download_root()
@@ -1352,11 +1355,25 @@ class MainWindow:
 
                 # return false to stop previous task regardless of the answer
                 return False, ""
-            return True, model_name
+            else:
+                return True, model_name
         except Exception as e:
-            logger.exception(e)
-            self.errorNotif(str(e))
-            return False, ""
+            if "HTTPSConnectionPool" in str(e):
+                logger.error("No Internet Connection! / Host might be down")
+                self.errorNotif(
+                    "Fail to check for model!", title="No Internet Connection! / Host might be down", use_mbox=True
+                )
+
+                if sj.cache["bypass_no_internet"]:
+                    logger.info("Bypassing no internet check")
+                    return True, model_name  # here we assume model is downloaded
+                else:
+                    return False, ""
+            else:
+                logger.exception(e)
+                self.errorNotif(str(e), use_mbox=True)
+
+                return False, ""
 
     # ------------------ Rec ------------------
     def rec(self):

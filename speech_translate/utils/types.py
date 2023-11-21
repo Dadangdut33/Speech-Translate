@@ -80,6 +80,7 @@ class SettingDict(TypedDict):
     theme: str
     supress_hidden_to_tray: bool
     supress_device_warning: bool
+    bypass_no_internet: bool
     mw_size: str
     sw_size: str
     dir_log: str

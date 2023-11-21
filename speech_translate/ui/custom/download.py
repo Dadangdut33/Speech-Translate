@@ -27,7 +27,31 @@ def whisper_download_with_progress_gui(
     download_root: str,
     cancel_func,
     after_func,
+    failed_func,
 ):
+    """Download a model from whisper provided URL, the code is directly modified from whisper code with many modifications.
+
+    Parameters
+    ----------
+    master : Union[Tk, Toplevel]
+        Master window
+    model_name : str
+        The model name to download
+    url : str
+        The url to download
+    download_root : str
+        The download directory
+    cancel_func: function
+        function to run to cancel download
+    after_func : function
+        Function to run after download is finished when download is successful
+    failed_func: function
+        function to run when it fails to download
+    Returns
+    -------
+    bool
+        True if download is successful, False otherwise
+    """
     os.makedirs(download_root, exist_ok=True)
 
     expected_sha256 = url.split("/")[-2]
@@ -94,71 +118,90 @@ def whisper_download_with_progress_gui(
     btn_pause = ttk.Button(btn_frame, text="Pause", command=pause_download)
     btn_pause.pack(side="left", fill="x", padx=5, pady=5, expand=True)
 
+    btn_cancel = ttk.Button(btn_frame, text="Cancel", command=cancel_func, style="Accent.TButton")
+    btn_cancel.pack(side="left", fill="x", padx=5, pady=5, expand=True)
+
     downloading = True
-    with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
-        buffer_size = 8192
-        length = int(source.info().get("Content-Length"))
-        length_in_mb = length / 1024 / 1024
+    try:
+        with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
+            buffer_size = 8192
+            length = int(source.info().get("Content-Length"))
+            length_in_mb = length / 1024 / 1024
 
-        progress_bar = ttk.Progressbar(progress_frame, orient="horizontal", length=300, mode="determinate")
-        progress_bar.pack(side="left", fill="x", padx=5, pady=5, expand=True)
+            progress_bar = ttk.Progressbar(progress_frame, orient="horizontal", length=300, mode="determinate")
+            progress_bar.pack(side="left", fill="x", padx=5, pady=5, expand=True)
 
-        global bytes_read
-        bytes_read = 0
+            global bytes_read
+            bytes_read = 0
 
-        def update_progress_bar():
-            if downloading:
-                # get how many percent of the file has been downloaded
-                global bytes_read
-                percent = bytes_read / length * 100
-                progress_bar["value"] = percent
+            def update_progress_bar():
+                if downloading:
+                    # get how many percent of the file has been downloaded
+                    global bytes_read
+                    percent = bytes_read / length * 100
+                    progress_bar["value"] = percent
 
-                # update label with mb downloaded
-                mb_downloaded = bytes_read / 1024 / 1024
+                    # update label with mb downloaded
+                    mb_downloaded = bytes_read / 1024 / 1024
 
-                if not paused:
-                    lbl_status_text["text"] = (
-                        f"Downloading {model_name} model ({mb_downloaded:.2f}/{length_in_mb:.2f} MB)"
-                        if percent < 100 else f"Downloading {model_name} model (100%)"
-                    )
-                    root.after(100, update_progress_bar)
-                else:
-                    lbl_status_text[
-                        "text"
-                    ] = f"Paused downloading for {model_name} model ({bytes_read / 1024 / 1024:.2f}/{length_in_mb:.2f} MB)"
+                    if not paused:
+                        lbl_status_text["text"] = (
+                            f"Downloading {model_name} model ({mb_downloaded:.2f}/{length_in_mb:.2f} MB)"
+                            if percent < 100 else f"Downloading {model_name} model (100%)"
+                        )
+                        root.after(100, update_progress_bar)
+                    else:
+                        lbl_status_text[
+                            "text"
+                        ] = f"Paused downloading for {model_name} model ({bytes_read / 1024 / 1024:.2f}/{length_in_mb:.2f} MB)"
 
-        btn_cancel = ttk.Button(btn_frame, text="Cancel", command=cancel_func, style="Accent.TButton")
-        btn_cancel.pack(side="left", fill="x", padx=5, pady=5, expand=True)
+            update_progress_bar()
+            while True:
+                if bc.cancel_dl:
+                    try:
+                        logger.info("Download cancelled")
+                        downloading = False
+                        bc.cancel_dl = False
+                        root.after(100, root.destroy)
+                        mbox("Download Cancelled", f"Downloading of {model_name} model has been cancelled", 0, master)
+                    except Exception:
+                        pass
 
-        update_progress_bar()
-        while True:
-            if bc.cancel_dl:
-                try:
-                    logger.info("Download cancelled")
+                    # download stopped, stop running this function
+                    return False
+
+                if paused:
+                    # sleep for 1 second
+                    sleep(1)
+                    continue
+
+                buffer = source.read(buffer_size)
+                if not buffer:
                     downloading = False
-                    bc.cancel_dl = False
-                    root.after(100, root.destroy)
-                    mbox("Download Cancelled", f"Downloading of {model_name} model has been cancelled", 0, master)
-                except Exception:
-                    pass
+                    break
 
-                # download stopped, stop running this function
-                return False
+                output.write(buffer)
+                bytes_read += len(buffer)
 
-            if paused:
-                # sleep for 1 second
-                sleep(1)
-                continue
+            root.after(1000, root.destroy)
+    except Exception as e:
+        try:
+            if "getaddrinfo failed" in str(e):
+                logger.info("Download Failed! No connection or host might be down!")
+                root.after(100, root.destroy)
+                mbox(
+                    "Download Failed",
+                    f"Downloading of {model_name} model has failed because of no connection or host might be down!", 0,
+                    master
+                )
+            else:
+                mbox("Download Failed", f"Downloading of {model_name} model has failed because of {str(e)}", 0, master)
+        except Exception:
+            pass
 
-            buffer = source.read(buffer_size)
-            if not buffer:
-                downloading = False
-                break
-
-            output.write(buffer)
-            bytes_read += len(buffer)
-
-        root.after(1000, root.destroy)
+        failed_func()
+        # download failed, stop running this function
+        return False
 
     model_bytes = open(download_target, "rb").read()
     if sha256(model_bytes).hexdigest() != expected_sha256:
@@ -309,7 +352,7 @@ def snapshot_download(
 
 
 def faster_whisper_download_with_progress_gui(
-    master: Union[Tk, Toplevel], model_name: str, repo_id: str, cache_dir: str, cancel_func, after_func
+    master: Union[Tk, Toplevel], model_name: str, repo_id: str, cache_dir: str, cancel_func, after_func, failed_func
 ):
     """Download a model from the Hugging Face Hub with a progress bar that does not show the progress, 
     only there to show that the program is not frozen and is in fact downloading something.
@@ -326,9 +369,12 @@ def faster_whisper_download_with_progress_gui(
         The model id to download
     cache_dir : str
         The download directory
+    cancel_func: function
+        function to run to cancel download
     after_func : function
         Function to run after download is finished when download is successful
-
+    failed_func: function
+        function to run when it fails to download
     Returns
     -------
     bool
@@ -474,6 +520,7 @@ def faster_whisper_download_with_progress_gui(
 
         mbox("Model Downloaded Success", f"{model_name} faster whisper model has been downloaded successfully", 0, master)
     else:
+        failed_func()
         logger.info("Download failed")
         mbox("Model Download Failed", msg, 0, master)
 

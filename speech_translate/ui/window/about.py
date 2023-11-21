@@ -10,7 +10,7 @@ from speech_translate._path import app_icon
 from speech_translate._version import __version__
 from speech_translate.ui.custom.tooltip import tk_tooltip
 from speech_translate.linker import bc, sj
-from speech_translate.utils.helper import open_url, native_notify
+from speech_translate.utils.helper import open_url, native_notify, no_connection_notify
 
 
 # Classes
@@ -181,6 +181,10 @@ class AboutWindow:
 
             self.checking = False
         except Exception as e:
-            logger.exception(e)
+            if "HTTPSConnectionPool" in str(e):
+                logger.error("No Internet Connection! / Host might be down")
+                no_connection_notify(msg="Fail to check for update!")
+            else:
+                logger.exception(e)
         finally:
             self.checking = False
