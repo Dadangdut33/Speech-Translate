@@ -173,13 +173,14 @@ MY_MEMORY_TARGET.sort()
 # for whisper though, it can only translate into english
 ENGINE_TARGET_DICT = {
     # selecting whisper as the tl engine
-    "Tiny (~32x speed)": WHISPER_TARGET,
-    "Base (~16x speed)": WHISPER_TARGET,
-    "Small (~6x speed)": WHISPER_TARGET,
-    "Medium (~2x speed)": WHISPER_TARGET,
-    "Large (v1) (1x speed)": WHISPER_TARGET,
-    "Large (v2) (1x speed)": WHISPER_TARGET,
-    "Large (v3) (1x speed)": WHISPER_TARGET,
+    "⚡ Tiny [1GB VRAM] (Fastest)": WHISPER_TARGET,
+    "🚀 Base [1GB VRAM] (Faster)": WHISPER_TARGET,
+    "⛵ Small [2GB VRAM] (Moderate)": WHISPER_TARGET,
+    "🌀 Medium [5GB VRAM] (Accurate)": WHISPER_TARGET,
+    "🐌 Large V1 [10GB VRAM] (Most Accurate)": WHISPER_TARGET,
+    "🐌 Large V2 [10GB VRAM] (Most Accurate)": WHISPER_TARGET,
+    "🐌 Large V3 [10GB VRAM] (Most Accurate)": WHISPER_TARGET,
+    # selecting whisper as the tl engine
     # selecting TL API as the tl engine
     "Google Translate": GOOGLE_TARGET,
     "LibreTranslate": LIBRE_TARGET,
@@ -242,13 +243,13 @@ MYMEMORY_SOURCE.sort()
 # between whisper and the engine
 ENGINE_SOURCE_DICT = {
     # selecting whisper as the tl engine
-    "Tiny (~32x speed)": WHISPER_SOURCE,
-    "Base (~16x speed)": WHISPER_SOURCE,
-    "Small (~6x speed)": WHISPER_SOURCE,
-    "Medium (~2x speed)": WHISPER_SOURCE,
-    "Large (v1) (1x speed)": WHISPER_SOURCE,
-    "Large (v2) (1x speed)": WHISPER_SOURCE,
-    "Large (v3) (1x speed)": WHISPER_SOURCE,
+    "⚡ Tiny [1GB VRAM] (Fastest)": WHISPER_SOURCE,
+    "🚀 Base [1GB VRAM] (Faster)": WHISPER_SOURCE,
+    "⛵ Small [2GB VRAM] (Moderate)": WHISPER_SOURCE,
+    "🌀 Medium [5GB VRAM] (Accurate)": WHISPER_SOURCE,
+    "🐌 Large V1 [10GB VRAM] (Most Accurate)": WHISPER_SOURCE,
+    "🐌 Large V2 [10GB VRAM] (Most Accurate)": WHISPER_SOURCE,
+    "🐌 Large V3 [10GB VRAM] (Most Accurate)": WHISPER_SOURCE,
     # selecting TL API as the tl engine
     "Google Translate": GOOGLE_SOURCE,
     "LibreTranslate": LIBRE_SOURCE,

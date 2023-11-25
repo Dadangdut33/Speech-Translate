@@ -27,6 +27,7 @@ default_setting: SettingDict = {
     "speaker": "",
     "hostAPI": "",
     "theme": "sun-valley-dark" if isDark() else "sun-valley-light",
+    "show_audio_visualizer": True,
     "supress_hidden_to_tray": False,
     "supress_device_warning": False,
     "bypass_no_internet": False,
@@ -37,7 +38,6 @@ default_setting: SettingDict = {
     "auto_verify_model_on_first_setting_open": False,
     "file_slice_start": "",  # empty will be read as None
     "file_slice_end": "",  # empty will be read as None
-    "parse_arabic": True,
     # ------------------ #
     # logging
     "keep_log": False,
@@ -92,7 +92,7 @@ default_setting: SettingDict = {
     "threshold_auto_speaker": True,
     "threshold_auto_mode_speaker": 3,
     "threshold_db_speaker": -20.0,
-    "auto_break_buffer_speaker": False,
+    "auto_break_buffer_speaker": True,
     "max_buffer_speaker": 10,
     "max_sentences_speaker": 5,
     # Transcribe settings
@@ -105,6 +105,10 @@ default_setting: SettingDict = {
     "export_format": "%Y-%m-%d %H_%M {file}_{task}",
     # txt csv json srt ass vtt tsv
     "export_to": ["txt", "srt", "json"],
+    "segment_max_words": "",
+    "segment_max_chars": "",
+    "segment_split_or_newline": "split",
+    "segment_even_split": True,
     "segment_level": True,  # 1 of this must be true
     "word_level": True,  # 1 of this must be true
     "visualize_suppression": False,

@@ -13,6 +13,7 @@ from pystray import Menu as menu
 from pystray import MenuItem as item
 from torch import cuda
 from stable_whisper import WhisperResult
+from tkhtmlview import HTMLText
 
 from speech_translate._constants import APP_NAME
 from speech_translate._path import app_icon
@@ -21,7 +22,6 @@ from speech_translate.ui.custom.checkbutton import CustomCheckButton
 from speech_translate.ui.custom.combobox import CategorizedComboBox, ComboboxWithKeyNav
 from speech_translate.ui.custom.dialog import FileImportDialog, RefinementDialog, AlignmentDialog, TranslateResultDialog, prompt_with_choices
 from speech_translate.ui.custom.message import mbox
-from speech_translate.ui.custom.text import ColoredText
 from speech_translate.ui.custom.tooltip import tk_tooltip, tk_tooltips
 from speech_translate.ui.window.about import AboutWindow
 from speech_translate.ui.window.log import LogWindow
@@ -183,7 +183,7 @@ class MainWindow:
         # ------------------ Elements ------------------
         # -- f1_toolbar
         # model
-        self.lbl_model = ttk.Label(self.f1_toolbar, text="Transcribe:")
+        self.lbl_model = ttk.Label(self.f1_toolbar, text="Transcribe Model:")
         self.lbl_model.pack(side="left", fill="x", padx=5, pady=5, expand=False)
 
         self.cb_model = ComboboxWithKeyNav(self.f1_toolbar, values=model_keys, state="readonly")
@@ -192,8 +192,9 @@ class MainWindow:
         self.cb_model.bind("<<ComboboxSelected>>", lambda _: sj.save_key("model", model_select_dict[self.cb_model.get()]))
         tk_tooltips(
             [self.lbl_model, self.cb_model],
-            "Each Whisper model have different requirements. Please refer to the specs below:"
-            "\n- Tiny: ~1 GB Vram\n- Base: ~1 GB Vram\n- Small: ~2 GB Vram\n- Medium: ~5 GB Vram\n- Large: ~10 GB Vram"
+            "Each Whisper model have different requirements. The larger the model, the more accurate it will be but it will need more resources and time to do its task.\n\n"
+            "In terms of speed, they are relatively like this:\n"
+            "- Tiny: ~32x speed\n- Base: ~16x speed\n- Small: ~6x speed\n- Medium: ~2x speed\n- Large: ~1x speed\n\n"
             "*It is recommended to use Faster-Whisper to make the model run 4 times faster for the same accuracy while using less memory (you can change this option in setting)",
             wrapLength=400,
         )
@@ -257,13 +258,7 @@ class MainWindow:
         self.sb_transcribed = ttk.Scrollbar(self.tb_transcribed_bg)
         self.sb_transcribed.pack(side="right", fill="y")
 
-        self.tb_transcribed = ColoredText(
-            self.tb_transcribed_bg,
-            height=5,
-            width=25,
-            relief="flat",
-            font=(sj.cache["tb_mw_tc_font"], sj.cache["tb_mw_tc_font_size"]),
-        )
+        self.tb_transcribed = HTMLText(self.tb_transcribed_bg, height=5, width=25, background=self.root.cget('bg'))
         self.tb_transcribed.bind("<Key>", tb_copy_only)
         self.tb_transcribed.pack(side="left", fill="both", expand=True, padx=1, pady=1)
         self.tb_transcribed.configure(yscrollcommand=self.sb_transcribed.set)
@@ -275,13 +270,7 @@ class MainWindow:
         self.sb_translated = ttk.Scrollbar(self.tb_translated_bg)
         self.sb_translated.pack(side="right", fill="y")
 
-        self.tb_translated = ColoredText(
-            self.tb_translated_bg,
-            height=5,
-            width=25,
-            relief="flat",
-            font=(sj.cache["tb_mw_tl_font"], sj.cache["tb_mw_tl_font_size"]),
-        )
+        self.tb_translated = HTMLText(self.tb_translated_bg, height=5, width=25, background=self.root.cget('bg'))
         self.tb_translated.bind("<Key>", tb_copy_only)
         self.tb_translated.pack(fill="both", expand=True, padx=1, pady=1)
         self.tb_translated.configure(yscrollcommand=self.sb_translated.set)
@@ -525,6 +514,8 @@ class MainWindow:
             label="Visit Repository", command=lambda: open_url("https://github.com/Dadangdut33/Speech-Translate")
         )
         self.menubar.add_cascade(label="Help", menu=self.fm_help)
+        self.fm_help.add_separator()
+        self.fm_help.add_command(label="Check for updates", command=self.check_update)
 
         self.root.configure(menu=self.menubar)
 
@@ -652,6 +643,10 @@ class MainWindow:
     def open_about(self, _event=None):
         assert bc.about is not None
         bc.about.show()
+
+    def check_update(self, _event=None):
+        assert bc.about is not None
+        bc.about.check_for_update(notify_up_to_date=True)
 
     def open_setting(self, _event=None):
         assert bc.sw is not None
@@ -1336,7 +1331,8 @@ class MainWindow:
                         kwargs = {
                             "after_func": lambda: self.after_model_dl(taskname, task),
                             "use_faster_whisper": use_faster_whisper,
-                            "cancel_func": self.model_dl_cancel
+                            "cancel_func": self.model_dl_cancel,
+                            "failed_func": lambda: None
                         }
 
                         if sj.cache["dir_model"] != "auto":

@@ -68,6 +68,20 @@ class SettingGeneral:
             style="Switch.TCheckbutton"
         )
         self.cbtn_update_on_start.pack(side="left", padx=5, pady=5)
+        tk_tooltip(self.cbtn_update_on_start, "Check for app update on start.")
+
+        self.cbtn_show_audio_visualizer = CustomCheckButton(
+            self.f_application_1,
+            sj.cache["show_audio_visualizer"],
+            lambda x: sj.save_key("show_audio_visualizer", x),
+            text="Show audio visualizer",
+            style="Switch.TCheckbutton"
+        )
+        self.cbtn_show_audio_visualizer.pack(side="left", padx=5, pady=5)
+        tk_tooltip(
+            self.cbtn_show_audio_visualizer,
+            "Show audio visualizer when recording and in the record setting window.\n\nDisabling could improve performance."
+        )
 
         self.cbtn_supress_hidden_to_tray = CustomCheckButton(
             self.f_application_1,
@@ -77,6 +91,7 @@ class SettingGeneral:
             style="Switch.TCheckbutton"
         )
         self.cbtn_supress_hidden_to_tray.pack(side="left", padx=5, pady=5)
+        tk_tooltip(self.cbtn_supress_hidden_to_tray, "Supress notification when app is hidden to tray.")
 
         self.cbtn_supress_device_warning = CustomCheckButton(
             self.f_application_1,
@@ -392,13 +407,13 @@ class SettingGeneral:
             self.f_mod_whisper, "Medium (en)", lambda: self.model_btn_checker("medium.en", self.model_medium_eng.btn)
         )
         self.model_large_v1 = ModelDownloadFrame(
-            self.f_mod_whisper, "Large (v1)", lambda: self.model_btn_checker("large-v1", self.model_large_v1.btn)
+            self.f_mod_whisper, "Large V1", lambda: self.model_btn_checker("large-v1", self.model_large_v1.btn)
         )
         self.model_large_v2 = ModelDownloadFrame(
-            self.f_mod_whisper, "Large (v2)", lambda: self.model_btn_checker("large-v2", self.model_large_v2.btn)
+            self.f_mod_whisper, "Large V2", lambda: self.model_btn_checker("large-v2", self.model_large_v2.btn)
         )
         self.model_large_v3 = ModelDownloadFrame(
-            self.f_mod_whisper, "Large (v3)", lambda: self.model_btn_checker("large-v3", self.model_large_v3.btn)
+            self.f_mod_whisper, "Large V3", lambda: self.model_btn_checker("large-v3", self.model_large_v3.btn)
         )
 
         self.model_faster_tiny = ModelDownloadFrame(
@@ -436,17 +451,14 @@ class SettingGeneral:
         )
 
         self.model_faster_large_v1 = ModelDownloadFrame(
-            self.f_mod_faster, "Large (v1)",
-            lambda: self.model_btn_checker("large-v1", self.model_faster_large_v1.btn, True)
+            self.f_mod_faster, "Large V1", lambda: self.model_btn_checker("large-v1", self.model_faster_large_v1.btn, True)
         )
 
         self.model_faster_large_v2 = ModelDownloadFrame(
-            self.f_mod_faster, "Large (v2)",
-            lambda: self.model_btn_checker("large-v2", self.model_faster_large_v2.btn, True)
+            self.f_mod_faster, "Large V2", lambda: self.model_btn_checker("large-v2", self.model_faster_large_v2.btn, True)
         )
         self.model_faster_large_v3 = ModelDownloadFrame(
-            self.f_mod_faster, "Large (v3)",
-            lambda: self.model_btn_checker("large-v3", self.model_faster_large_v3.btn, True)
+            self.f_mod_faster, "Large V3", lambda: self.model_btn_checker("large-v3", self.model_faster_large_v3.btn, True)
         )
 
         # ------------------ Functions ------------------

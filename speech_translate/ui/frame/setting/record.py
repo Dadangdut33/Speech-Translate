@@ -783,6 +783,9 @@ class SettingRecord:
         if self.on_start:
             return
 
+        if not sj.cache["show_audio_visualizer"]:
+            return
+
         mic = Thread(target=self.call_set_meter_mic, daemon=True, args=[open])
         mic.start()
         mic.join()
@@ -863,6 +866,10 @@ class SettingRecord:
         if self.on_start:
             return
 
+        if not sj.cache["show_audio_visualizer"]:
+            self.close_meter_mic()
+            return
+
         Thread(target=self.set_meter_mic, daemon=True, args=[open]).start()
 
     def close_meter_mic(self):
@@ -936,6 +943,10 @@ class SettingRecord:
 
     def call_set_meter_speaker(self, open=True):
         if system() == "Windows" and not self.on_start:
+            if not sj.cache["show_audio_visualizer"]:
+                self.close_meter_speaker()
+                return
+
             Thread(target=self.set_meter_speaker, daemon=True, args=[open]).start()
 
     def close_meter_speaker(self):

@@ -210,7 +210,7 @@ def generate_color(accuracy: float, low_color: str, high_color: str):
     return color
 
 
-def separator_to_html(separator: str):
+def str_separator_to_html(separator: str):
     """Convert separator string to html
 
     Parameters
@@ -226,7 +226,7 @@ def separator_to_html(separator: str):
     # Define the mapping for escape sequences.
     html_equivalents = {
         '\t': '&nbsp;&nbsp;&nbsp;&nbsp;',  # Replace tabs with four non-breaking spaces.
-        '\n': '<br>',  # Replace newlines with <br> elements.
+        '\n': '<br/>‎',  # Replace newlines with <br /> elements.
         ' ': '&nbsp;',  # Replace regular spaces with non-breaking spaces.
     }
     # render it as safe html
@@ -236,34 +236,8 @@ def separator_to_html(separator: str):
     for char, html_equiv in html_equivalents.items():
         separator = separator.replace(char, html_equiv)
 
-    return separator
-
-
-def html_to_separator(separator: str):
-    """Convert html string to separator
-
-    Parameters
-    ----------
-    separator : str
-        HTML string
-
-    Returns
-    -------
-    str
-        Separator string
-    """
-    # Define the mapping for escape sequences.
-    html_equivalents = {
-        '&nbsp;&nbsp;&nbsp;&nbsp;': '\t',  # Replace &nbsp;&nbsp;&nbsp;&nbsp; tabs with tabs.
-        '<br>': '\n',  # Replace <br> elements with newlines.
-        '<br/>': '\n',  # Replace <br/> elements with newlines.
-        '<br />': '\n',  # Replace <br /> elements with newlines.
-        '&nbsp;': ' ',  # Replace &nbsp; with regular spaces.
-    }
-
-    # Iterate through the text and apply replacements.
-    for char, html_equiv in html_equivalents.items():
-        separator = separator.replace(char, html_equiv)
+    # remove the last ‎ from the separator
+    separator = separator.removesuffix("‎")
 
     return separator
 
@@ -298,8 +272,7 @@ def wrap_result(res: List[ToInsert], max_line_length: int):
         if len(wrapped_res) > 0:
             # mark last part of each sentence
             wrapped_res[-1]['is_last'] = True
-            # remove space at the end of the last part of each sentence
-            wrapped_res[-1]['text'] = wrapped_res[-1]['text'].removesuffix("<br />")
+            wrapped_res[-1]['text'] = wrapped_res[-1]['text'].removesuffix("<br />")  # remove the last <br /> from the last part of the sentence
 
     return wrapped_res
 

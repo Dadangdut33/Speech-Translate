@@ -15,6 +15,10 @@ class AudioMeter(Canvas):
         self.auto = False
         self.recording = False
         self.after_id = None
+        self.disabled = False
+
+    def set_disabled(self, disabled):
+        self.disabled = disabled
 
     def set_db(self, db):
         self.db = db
@@ -35,6 +39,9 @@ class AudioMeter(Canvas):
         self.recording = recording
 
     def start(self):
+        if self.disabled:
+            return
+
         self.running = True
         self.update_visual()
 

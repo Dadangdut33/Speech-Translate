@@ -96,15 +96,16 @@ class FileOperationDialog:
         self.lbl_model.pack(padx=5, side="left")
 
         self.var_model = StringVar(self.root)
-        self.cb_model = ComboboxWithKeyNav(self.frame_top, textvariable=self.var_model, values=model_keys)
-        self.cb_model.pack(padx=5, side="left")
+        self.cb_model = ComboboxWithKeyNav(self.frame_top, textvariable=self.var_model, values=model_keys, state="readonly")
+        self.cb_model.pack(padx=5, side="left", fill="x", expand=True)
         self.var_model.set(kwargs["set_cb_model"])
 
         tk_tooltips(
             [self.lbl_model, self.cb_model],
-            "Each Whisper model have different requirements. Please refer to the specs below:"
-            "\n- Tiny: ~1 GB Vram\n- Base: ~1 GB Vram\n- Small: ~2 GB Vram\n- Medium: ~5 GB Vram\n- Large: ~10 GB Vram"
-            "*It is recommended to use Faster-Whisper to make the model run 4 times faster for the same accuracy while using less memory (you can change this option in setting)",
+            "Each Whisper model have different requirements. The larger the model, the more accurate it will be but it will need more resources and time to do its task.\n\n"
+            "In terms of speed, they are relatively like this:\n"
+            "- Tiny: ~32x speed\n- Base: ~16x speed\n- Small: ~6x speed\n- Medium: ~2x speed\n- Large: ~1x speed\n\n"
+            "It is recommended to use Faster-Whisper to make the model run 4 times faster for the same accuracy while using less memory (you can change this option in setting)",
             wrapLength=400,
         )
 
@@ -227,7 +228,7 @@ class FileImportDialog(FileOperationDialog):
             self.cb_engine_change,
             textvariable=self.var_engine
         )
-        self.cb_engine.pack(padx=5, side="left")
+        self.cb_engine.pack(padx=5, side="left", fill="x", expand=True)
         tk_tooltips(
             [self.lbl_engine, self.cb_engine],
             "Same as transcribe, larger models are more accurate but are slower and require more power.\n"
@@ -241,14 +242,14 @@ class FileImportDialog(FileOperationDialog):
         self.lbl_source_lang.pack(padx=5, side="left")
         self.var_source_lang = StringVar(self.root)
         self.cb_source_lang = ComboboxWithKeyNav(self.frame_top, textvariable=self.var_source_lang, state="readonly")
-        self.cb_source_lang.pack(padx=5, side="left")
+        self.cb_source_lang.pack(padx=5, side="left", fill="x", expand=True)
 
         # Lang to
         self.lbl_target_lang = ttk.Label(self.frame_top, text="To:")
         self.lbl_target_lang.pack(padx=5, side="left")
         self.var_target_lang = StringVar(self.root)
         self.cb_target_lang = ComboboxWithKeyNav(self.frame_top, textvariable=self.var_target_lang, state="readonly")
-        self.cb_target_lang.pack(padx=5, side="left")
+        self.cb_target_lang.pack(padx=5, side="left", fill="x", expand=True)
 
         # Task
         self.lbl_task = ttk.Label(self.frame_top, text="Task:")

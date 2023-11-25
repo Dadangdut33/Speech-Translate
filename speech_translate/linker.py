@@ -9,11 +9,9 @@ from PIL import ImageTk
 from typing import TYPE_CHECKING, List, Literal, Optional, Sequence, Union
 
 from stable_whisper import WhisperResult
-from arabic_reshaper import reshape
-from bidi.algorithm import get_display
 
 from speech_translate.utils.types import ToInsert
-from speech_translate.utils.helper import generate_color, html_to_separator, wrap_result
+from speech_translate.utils.helper import generate_color, str_separator_to_html, wrap_result
 from ._path import dir_debug, dir_export, dir_log, dir_temp, dir_user
 from .utils.setting import SettingJson
 
@@ -129,28 +127,6 @@ class BridgeClass:
     def disable_tl(self):
         self.translating = False
 
-    def parse_to_tb(self, text: str):
-        """Do some preprocessing to the text before inserting it to the text box.
-        
-        It will do the following:
-        - replace html back to normal text.
-        - Parse arabic text to be displayed correctly in tkinter text box if enabled.
-        Parameters
-        ----------
-        text : str
-            Text to be parsed.
-        
-        Returns
-        -------
-        str
-            Parsed text.
-        """
-        text = html_to_separator(text)
-        if sj.cache["parse_arabic"]:
-            return str(get_display(reshape(text)))
-
-        return text
-
     def insert_to_mw(self, text: str, mode: Literal["tc", "tl"], separator: str):
         assert self.mw is not None
         if mode == "tc":
@@ -197,46 +173,39 @@ class BridgeClass:
 
                 index += 1
 
-        # # wrap result with the max length of the line set by the user
+        # wrap result with the max length of the line set by the user
         if sj.cache.get(f"tb_{mode}_limit_max_per_line"):
             # Previously is_last is None, but now its either True or False
             # is last will determine the line break
             copied_res = wrap_result(copied_res, sj.cache.get(f"tb_{mode}_max_per_line", 0))
 
-        # insert to each respective area
-        # before inserting check some value:
+        # insert to each respective area !! before inserting check some value:
         # if last, there will be a separator already so no need to add line break
-        if "mw" in mode:
-            assert self.mw is not None
-            mw = self.mw.tb_transcribed if "tc" in mode else self.mw.tb_translated
-            for res in copied_res:
-                temp = res["text"] + "\n" if res["is_last"] is False else res["text"]
-                if res["color"] is not None and {sj.cache.get(f"tb_{mode}_use_conf_color")}:
-                    mw.insert_with_color(self.parse_to_tb(res["text"]), res["color"])
-                else:
-                    mw.insert("end", self.parse_to_tb(res["text"]))
-        else:
-            assert self.ex_tcw and self.ex_tlw is not None
-            ex = self.ex_tcw.lbl_text if "tc" in mode else self.ex_tlw.lbl_text
-            to_insert = ""
-            for res in copied_res:
-                temp = res["text"] + "<br />" if res["is_last"] is False else res["text"]
-                color = res["color"] if {sj.cache.get(f"tb_{mode}_use_conf_color")
-                                         } else sj.cache.get(f"tb_{mode}_font_color")
-                if res["color"] is not None:
-                    to_insert += f'''<span style="color: {color}">{temp}</span>'''
-                else:
-                    to_insert += f'''<span style="color: {sj.cache.get(f"tb_{mode}_font_color")}">{temp}</span>'''
+        to_insert = ""
+        for res in copied_res:
+            temp = res["text"] + "<br />" if res["is_last"] is False else res["text"]
+            color = res["color"] if {sj.cache.get(f"tb_{mode}_use_conf_color")} else sj.cache.get(f"tb_{mode}_font_color")
+            if res["color"] is not None:
+                to_insert += f'''<span style="color: {color}">{temp}</span>'''
+            else:
+                to_insert += f'''<span style="color: {sj.cache.get(f"tb_{mode}_font_color")}">{temp}</span>'''
 
-            # Update the text
-            ex.set_html(
-                f'''<div style='font-family: {sj.cache.get(f"tb_{mode}_font")}; text-align: left; 
-                font-size: {sj.cache.get(f"tb_{mode}_font_size")}px; 
-                background-color: {sj.cache.get(f"tb_{mode}_bg_color")}; 
-                font-weight: {"bold" if sj.cache.get(f"tb_{mode}_font_bold") else "normal"};'>
+        insert = f'''<div style='font-family: {sj.cache.get(f"tb_{mode}_font")}; text-align: left;
+                    font-size: {sj.cache.get(f"tb_{mode}_font_size")}px; replace-background-color:;
+                    font-weight: {"bold" if sj.cache.get(f"tb_{mode}_font_bold") else "normal"};'>
                         {to_insert}
                     </div>'''
-            )
+
+        if "mw" in mode:
+            assert self.mw is not None
+            tb = self.mw.tb_transcribed if "tc" in mode else self.mw.tb_translated
+            insert.replace("replace-background-color:;", f'background-color: {self.mw.root.cget("bg")};')
+            self.mw.root.after(0, tb.set_html, insert)
+        else:
+            assert self.ex_tcw and self.ex_tlw is not None
+            lbl = self.ex_tcw.lbl_text if "tc" in mode else self.ex_tlw.lbl_text
+            insert.replace("replace-background-color:;", f'background-color: {sj.cache.get(f"tb_{mode}_bg_color")};')
+            lbl.after(0, lbl.set_html, insert)
 
     def map_result_lists(self, source_list: Sequence[Union[WhisperResult, str]], store_list: List[ToInsert], separator: str):
         """
@@ -322,7 +291,7 @@ class BridgeClass:
     def swap_textbox(self):
         """Swap the text box between the transcribed and translated"""
         assert self.mw is not None
-        separator = literal_eval(quote(sj.cache["separate_with"]))
+        separator = str_separator_to_html(literal_eval(quote(sj.cache["separate_with"])))
         self.tc_sentences, self.tl_sentences = self.tl_sentences, self.tc_sentences
         self.update_tc(None, separator)
         self.update_tl(None, separator)
@@ -342,8 +311,6 @@ class BridgeClass:
         if new_res is not None:
             total_len += self.map_result_lists([new_res], res_with_conf, separator)
 
-        self.clear_mw_tc()
-        self.clear_ex_tc()
         self.update_result_display(total_len, res_with_conf, "mw_tc")
         self.update_result_display(total_len, res_with_conf, "ex_tc")
 
@@ -362,26 +329,24 @@ class BridgeClass:
         if new_res is not None:
             total_len += self.map_result_lists([new_res], res_with_conf, separator)
 
-        self.clear_mw_tl()
-        self.clear_ex_tl()
         self.update_result_display(total_len, res_with_conf, "mw_tl")
         self.update_result_display(total_len, res_with_conf, "ex_tl")
 
     def clear_mw_tc(self):
         assert self.mw is not None
-        self.mw.tb_transcribed.clear_text_and_tags()
+        self.mw.tb_transcribed.delete("1.0", "end")
 
     def clear_mw_tl(self):
         assert self.mw is not None
-        self.mw.tb_translated.clear_text_and_tags()
+        self.mw.tb_translated.delete("1.0", "end")
 
     def clear_ex_tc(self):
         assert self.ex_tcw is not None
-        self.ex_tcw.lbl_text.delete("1.0", "end")
+        self.ex_tcw.lbl_text.set_html("")
 
     def clear_ex_tl(self):
         assert self.ex_tlw is not None
-        self.ex_tlw.lbl_text.delete("1.0", "end")
+        self.ex_tlw.lbl_text.set_html("")
 
     def clear_all(self):
         self.tc_sentences = []

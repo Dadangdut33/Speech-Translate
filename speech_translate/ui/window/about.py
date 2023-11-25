@@ -132,7 +132,7 @@ class AboutWindow:
     def open_dl_link(self, _event=None):
         open_url("https://github.com/Dadangdut33/Speech-Translate/releases/tag/latest")
 
-    def check_for_update(self, _event=None, onStart=False):
+    def check_for_update(self, _event=None, notify_up_to_date=False):
         if self.checking:
             return
 
@@ -144,9 +144,9 @@ class AboutWindow:
         self.root.update()
         logger.info("Checking for update...")
 
-        Thread(target=self.req_update_check, daemon=True).start()
+        Thread(target=self.req_update_check, daemon=True, args=[notify_up_to_date]).start()
 
-    def req_update_check(self):
+    def req_update_check(self, notify_up_to_date=False):
         try:
             # request to github api, compare version. If not same tell user to update
             req = get("https://api.github.com/repos/Dadangdut33/Speech-Translate/releases/latest")
@@ -167,6 +167,8 @@ class AboutWindow:
                     self.update_fg = "green"
                     self.update_func = self.check_for_update
                     self.tooltip_check_update.text = "Up to date"
+                    if notify_up_to_date:
+                        native_notify("Up to date", "You are using the latest version")
             else:
                 logger.warning("Failed to check for update")
                 self.update_text = "Fail to check for update!"

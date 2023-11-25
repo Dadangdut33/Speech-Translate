@@ -12,19 +12,19 @@ from faster_whisper import WhisperModel
 from whisper.tokenizer import LANGUAGES
 from whisper.utils import optional_int, optional_float
 from whisper import DecodingOptions
-
 from loguru import logger
+
 from speech_translate.utils.types import SettingDict, StableTsResultDict
 from speech_translate.utils.whisper.download import get_default_download_root
 
 model_select_dict = {
-    "Tiny (~32x speed)": "tiny",
-    "Base (~16x speed)": "base",
-    "Small (~6x speed)": "small",
-    "Medium (~2x speed)": "medium",
-    "Large (v1) (1x speed)": "large-v1",
-    "Large (v2) (1x speed)": "large-v2",
-    "Large (v3) (1x speed)": "large-v3",
+    "⚡ Tiny [1GB VRAM] (Fastest)": "tiny",
+    "🚀 Base [1GB VRAM] (Faster)": "base",
+    "⛵ Small [2GB VRAM] (Moderate)": "small",
+    "🌀 Medium [5GB VRAM] (Accurate)": "medium",
+    "🐌 Large V1 [10GB VRAM] (Most Accurate)": "large-v1",
+    "🐌 Large V2 [10GB VRAM] (Most Accurate)": "large-v2",
+    "🐌 Large V3 [10GB VRAM] (Most Accurate)": "large-v3",
 }
 model_keys = list(model_select_dict.keys())
 model_values = list(model_select_dict.values())

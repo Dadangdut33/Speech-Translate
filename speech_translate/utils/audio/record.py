@@ -33,7 +33,7 @@ from speech_translate._logging import logger
 from speech_translate.linker import bc, sj
 from speech_translate.utils.audio.device import get_db, get_device_details, get_frame_duration, get_speech, resample_sr
 
-from ..helper import cbtn_invoker, generate_temp_filename, get_channel_int, get_proxies, native_notify, separator_to_html, unique_rec_list
+from ..helper import cbtn_invoker, generate_temp_filename, get_channel_int, get_proxies, native_notify, str_separator_to_html, unique_rec_list
 from ..whisper.helper import get_model, get_model_args, get_tc_args, stablets_verbose_log, model_values
 from ..translate.translator import translate
 
@@ -200,8 +200,10 @@ def record_session(
         rec_type = "speaker" if speaker else "mic"
         vad = Vad(sj.cache.get(f"threshold_auto_mode_{rec_type}", 3))
         max_int16 = 2**15  # bit depth of 16 bit audio (32768)
-        separator = separator_to_html(literal_eval(quote(sj.cache["separate_with"])))
+        separator = str_separator_to_html(literal_eval(quote(sj.cache["separate_with"])))
         use_temp = sj.cache["use_temp"]
+        show_audio_visualizer = sj.cache["show_audio_visualizer"]
+        audiometer.set_disabled(not show_audio_visualizer)
 
         # cannot transcribe and translate concurrently. Will need to wait for the previous transcribe to finish
         if transcribe and translate and tl_engine_whisper:
@@ -216,8 +218,6 @@ def record_session(
         whisper_args["verbose"] = None  # set to none so no printing of the progress to stdout
         whisper_args["language"] = TO_LANGUAGE_CODE[get_whisper_key_from_similar(lang_source.lower())] if not auto else None
 
-        if sj.cache["use_faster_whisper"] and lang_source == "english":
-            whisper_args["language"] = None  # to remove warning from stable-ts
         if sj.cache["use_faster_whisper"] and not use_temp:
             whisper_args["input_sr"] = WHISPER_SR  # when using numpy array as input, will need to set input_sr
 
@@ -368,7 +368,7 @@ def record_session(
             nonlocal timerStart, paused, modal_after
             if bc.recording and not paused:
                 timer = strftime("%H:%M:%S", gmtime(time() - timerStart))
-                data_queue_size = (bc.data_queue.qsize() * chunk_size * 2) / 1024  # approx buffer size in kb
+                data_queue_size = (bc.data_queue.qsize() * chunk_size) / 1024  # approx buffer size in kb
 
                 lbl_timer.configure(
                     text=f"REC: {timer} | "
@@ -818,8 +818,6 @@ def tl_whisper_threaded(
         bc.auto_detected_lang = result.language or "~"
 
         if len(text) > 0:
-            prev_tl_res = result
-
             if sj.cache["debug_realtime_record"] == 1:
                 logger.debug("New translated text (Whisper)")
                 if sj.cache["verbose"]:

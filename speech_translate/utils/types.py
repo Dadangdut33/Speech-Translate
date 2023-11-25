@@ -78,6 +78,7 @@ class SettingDict(TypedDict):
     speaker: str
     hostAPI: str
     theme: str
+    show_audio_visualizer: bool
     supress_hidden_to_tray: bool
     supress_device_warning: bool
     bypass_no_internet: bool
@@ -88,7 +89,6 @@ class SettingDict(TypedDict):
     auto_verify_model_on_first_setting_open: bool
     file_slice_start: str
     file_slice_end: str
-    parse_arabic: bool
     # ------------------ #
     # logging
     keep_log: bool
@@ -157,6 +157,10 @@ class SettingDict(TypedDict):
     # txt csv json srt ass vtt tsv
     export_to: List[Union[Literal["txt"], Literal["csv"], Literal["json"], Literal["srt"], Literal["ass"], Literal["vtt"],
                           Literal["tsv"]]]
+    segment_max_words: str
+    segment_max_chars: str
+    segment_split_or_newline: Union[Literal["split"], Literal["newline"]]
+    segment_even_split: bool
     segment_level: bool  # 1 of this must be bool
     word_level: bool  # 1 of this must be bool
     visualize_suppression: bool

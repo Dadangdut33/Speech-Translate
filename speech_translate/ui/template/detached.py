@@ -55,7 +55,7 @@ class SubtitleWindow:
         self.lbl_text.pack(side="top", fill="both", expand=True)
         self.fTooltip = tk_tooltip(
             self.lbl_text,
-            "Right click for interaction menu and help ❓\n\nTo resize this window you will need to show the title bar first",
+            "Right click for interaction menu and help ❓\n\nTo resize this window you will need to show the title bar first\n\nTo hide this tooltip you can check the Hide Tooltip option in the menu or press Alt + X",
             wrapLength=250,
         )
 

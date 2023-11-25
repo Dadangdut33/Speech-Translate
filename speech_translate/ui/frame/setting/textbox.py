@@ -1,9 +1,8 @@
-from tkinter import ttk, font, Toplevel, Frame, LabelFrame, Text
+from tkinter import ttk, font, Toplevel, Frame, LabelFrame
 from typing import Union
 
-from arabic_reshaper import reshape
-from bidi.algorithm import get_display
 from matplotlib import pyplot as plt
+from tkhtmlview import HTMLText
 
 from speech_translate._constants import PREVIEW_WORDS, APP_NAME
 from speech_translate.ui.custom.checkbutton import CustomCheckButton
@@ -16,7 +15,7 @@ from speech_translate.ui.custom.tooltip import tk_tooltip, tk_tooltips
 
 class SettingTextbox:
     """
-    Textboox tab in setting window.
+    Textbox tab in setting window.
     """
     def __init__(self, root: Toplevel, master_frame: Union[ttk.Frame, Frame]):
         self.root = root
@@ -117,16 +116,11 @@ class SettingTextbox:
         self.lf_param_other.pack(side="left", fill="x", expand=True, padx=5, pady=5)
 
         self.lf_confidence = ttk.LabelFrame(self.lf_param_other, text="• Confidence")
-        self.lf_confidence.pack(side="left", fill="x", expand=False, padx=5, pady=5)
+        self.lf_confidence.pack(side="left", fill="x", expand=True, padx=5, pady=5)
 
         self.f_confidence_1 = ttk.Frame(self.lf_confidence)
         self.f_confidence_1.pack(side="top", fill="x", pady=5, padx=5)
 
-        self.lf_parsing = ttk.LabelFrame(self.lf_param_other, text="• Parsing")
-        self.lf_parsing.pack(side="left", fill="x", expand=True, padx=5, pady=5)
-
-        self.f_parsing_1 = ttk.Frame(self.lf_parsing)
-        self.f_parsing_1.pack(side="top", fill="x", pady=5, padx=5)
         # -------------
         # mw tc
         # 1
@@ -588,23 +582,9 @@ class SettingTextbox:
         elif sj.cache["colorize_per_word"]:
             self.cbtn_colorize_per_segment.configure(state="disabled")
 
-        self.cbtn_parse_arabic = CustomCheckButton(
-            self.f_parsing_1,
-            sj.cache["parse_arabic"],
-            lambda x: sj.save_key("parse_arabic", x) or self.preview_changes_tb(),
-            text="Parse Arabic character",
-            style="Switch.TCheckbutton"
-        )
-        self.cbtn_parse_arabic.pack(side="left", padx=5, pady=(2, 3))
-        tk_tooltip(
-            self.cbtn_parse_arabic,
-            "Check this option if you want to transcribe Arabic character. "
-            "This will fix the display issue of Arabic character on tkinter textbox",
-        )
-
         # ------------------ Preview ------------------
         # tb 1
-        self.tb_preview_1 = Text(
+        self.tb_preview_1 = HTMLText(
             self.f_tb_1,
             height=3,
             width=27,
@@ -614,11 +594,12 @@ class SettingTextbox:
                 sj.cache["tb_mw_tc_font_size"],
                 "bold" if sj.cache["tb_mw_tc_font_bold"] else "normal",
             ),
+            background=self.root.cget("bg"),
         )
         self.tb_preview_1.bind("<Key>", "break")
         self.tb_preview_1.pack(side="left", padx=5, pady=5, fill="both", expand=True)
 
-        self.tb_preview_2 = Text(
+        self.tb_preview_2 = HTMLText(
             self.f_tb_1,
             height=3,
             width=27,
@@ -628,13 +609,13 @@ class SettingTextbox:
                 sj.cache["tb_mw_tl_font_size"],
                 "bold" if sj.cache["tb_mw_tl_font_bold"] else "normal",
             ),
+            background=self.root.cget("bg"),
         )
         self.tb_preview_2.bind("<Key>", "break")
-        self.tb_preview_2.insert("end", "TL Main window:\n" + PREVIEW_WORDS)
         self.tb_preview_2.pack(side="left", padx=5, pady=5, fill="both", expand=True)
 
         # tb 2
-        self.tb_preview_3 = Text(
+        self.tb_preview_3 = HTMLText(
             self.f_tb_2,
             height=3,
             width=27,
@@ -648,10 +629,9 @@ class SettingTextbox:
             background=sj.cache["tb_ex_tc_bg_color"],
         )
         self.tb_preview_3.bind("<Key>", "break")
-        self.tb_preview_3.insert("end", "TC Subtitle window:\n" + PREVIEW_WORDS)
         self.tb_preview_3.pack(side="left", padx=5, pady=5, fill="both", expand=True)
 
-        self.tb_preview_4 = Text(
+        self.tb_preview_4 = HTMLText(
             self.f_tb_2,
             height=3,
             width=27,
@@ -665,7 +645,6 @@ class SettingTextbox:
             background=sj.cache["tb_ex_tl_bg_color"],
         )
         self.tb_preview_4.bind("<Key>", "break")
-        self.tb_preview_4.insert("end", "TL Subtitle window:\n" + PREVIEW_WORDS)
         self.tb_preview_4.pack(side="left", padx=5, pady=5, fill="both", expand=True)
 
         # --------------------------
@@ -711,8 +690,6 @@ class SettingTextbox:
 
     def tb_insert_preview(self):
         to_insert = PREVIEW_WORDS
-        if sj.cache["parse_arabic"]:
-            to_insert = str(get_display(reshape(to_insert)))
 
         self.tb_preview_1.insert("end", "TC Main window: " + to_insert)
         self.tb_preview_2.insert("end", "TL Main window: " + to_insert)
