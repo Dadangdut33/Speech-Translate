@@ -81,6 +81,7 @@ class FileOperationDialog:
         self.mode = mode
         self.data_list = []
         self.headers = headers
+        self.interact_disabled = False
 
         self.root = Toplevel(self.master)
         self.root.geometry("+400+250")
@@ -201,10 +202,29 @@ class FileOperationDialog:
         self.root.destroy()
 
     def on_close(self):
+        if self.interact_disabled:
+            return
+
         if not messagebox.askyesno("Cancel", "Are you sure you want to cancel?", parent=self.root):
             return
 
         self.root.destroy()
+
+    def disable_interactions(self):
+        self.interact_disabled = True
+        self.cb_model.configure(state="disabled")
+        self.btn_add.configure(state="disabled")
+        self.btn_delete.configure(state="disabled")
+        self.btn_start.configure(state="disabled")
+        self.btn_cancel.configure(state="disabled")
+
+    def enable_interactions(self):
+        self.interact_disabled = False
+        self.cb_model.configure(state="readonly")
+        self.btn_add.configure(state="normal")
+        self.btn_delete.configure(state="normal")
+        self.btn_start.configure(state="normal")
+        self.btn_cancel.configure(state="normal")
 
 
 class FileImportDialog(FileOperationDialog):
@@ -375,6 +395,22 @@ class FileImportDialog(FileOperationDialog):
         if status:  # if status is True, meaning process thread is successfully started, then close the window
             self.root.destroy()
 
+    def disable_interactions(self):
+        super().disable_interactions()
+        self.cb_engine.configure(state="disabled")
+        self.cb_source_lang.configure(state="disabled")
+        self.cb_target_lang.configure(state="disabled")
+        self.cbtn_transcribe.configure(state="disabled")
+        self.cbtn_translate.configure(state="disabled")
+
+    def enable_interactions(self):
+        super().enable_interactions()
+        self.cb_engine.configure(state="readonly")
+        self.cb_source_lang.configure(state="readonly")
+        self.cb_target_lang.configure(state="readonly")
+        self.cbtn_transcribe.configure(state="normal")
+        self.cbtn_translate.configure(state="normal")
+
 
 class TranslateResultDialog(FileOperationDialog):
     def __init__(self, master, title: str, submit_func, theme: str, **kwargs):
@@ -454,6 +490,16 @@ class TranslateResultDialog(FileOperationDialog):
         # convert self.data_list to 1d
         self.submit_func(self.var_engine.get(), self.var_target_lang.get().lower(), [x[0] for x in self.data_list])
         self.root.destroy()
+
+    def disable_interactions(self):
+        super().disable_interactions()
+        self.cb_engine.configure(state="disabled")
+        self.cb_target_lang.configure(state="disabled")
+
+    def enable_interactions(self):
+        super().enable_interactions()
+        self.cb_engine.configure(state="readonly")
+        self.cb_target_lang.configure(state="readonly")
 
 
 class RefinementDialog(FileOperationDialog):

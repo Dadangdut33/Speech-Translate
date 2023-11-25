@@ -1,6 +1,5 @@
-torch
-torchvision
-torchaudio
+torch==2.1.1
+torchaudio==2.1.1
 deep-translator==1.11.1
 notify-py==0.3.42
 loguru
@@ -15,13 +14,10 @@ requests==2.31.0
 scipy==1.11.3
 sounddevice==0.4.6
 soundfile==0.12.1
-webrtcvad==2.0.10
+webrtcvad @ git+https://github.com/wiseman/py-webrtcvad.git@e283ca41df3a84b0e87fb1f5cb9b21580a286b09
 darkdetect==0.8.0
-arabic-reshaper==3.0.0
-python-bidi==0.4.2
 matplotlib==3.8.0
 onnxruntime==1.16.1
 demucs==4.0.1
-stable-ts @ git+https://github.com/jianfch/stable-ts.git@b336735ff784bb59690eec8f9f706b0151dda74c
-openai-whisper==20231106
-faster-whisper @ git+https://github.com/guillaumekln/faster-whisper.git@1fab6eee59b268f89ff3912a4b19c82751e6bb26
+stable-ts @ git+https://github.com/jianfch/stable-ts.git@71b9f1fcbd1268f8bfe95bba6a394a2bc2e7339b
+faster-whisper @ git+https://github.com/SYSTRAN/faster-whisper.git@e1a218fab1ab02d637b79565995bf1a9c4c83a09

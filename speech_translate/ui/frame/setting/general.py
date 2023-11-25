@@ -187,22 +187,6 @@ class SettingGeneral:
         )
         self.btn_log_config.pack(side="left", padx=5, pady=5)
 
-        # self.lbl_ignore_stdout = ttk.Label(self.f_logging_2, text="Ignore stdout", width=16)
-        # self.lbl_ignore_stdout.pack(side="left", padx=5)
-        # tk_tooltip(self.lbl_ignore_stdout, "Collection to ignore stdout / print from the console.")
-        # self.entry_ignore_stdout = ttk.Entry(self.f_logging_2)
-        # self.entry_ignore_stdout.pack(side="left", padx=5, fill="x", expand=True)
-        # self.entry_ignore_stdout.insert(0, ', '.join(sj.cache["ignore_stdout"]))
-        # self.entry_ignore_stdout.bind("<FocusOut>", lambda e: self.save_ignore_stdout())
-        # self.entry_ignore_stdout.bind("<Return>", lambda e: self.save_ignore_stdout())
-        # tk_tooltip(
-        #     self.entry_ignore_stdout,
-        #     "Collection to ignore stdout / print from the console with its input separated by comma.\n\n"
-        #     "This is useful if you want to ignore some of the stdout / print from the console.\n\n"
-        #     "Example: `Predicting silences(s) with VAD..., Predicted silences(s) with VAD`",
-        #     wrapLength=500,
-        # )
-
         self.menu_config_log = Menu(self.master, tearoff=0)
         self.menu_config_log.add_command(
             label="Open", image=self.open_emoji, compound="left", command=lambda: start_file(dir_log)
@@ -274,7 +258,7 @@ class SettingGeneral:
         tk_tooltip(
             self.cbtn_debug_realtime_record,
             "Show some debugging process of the realtime record.\n\n"
-            "Enabling will probably slow down the app.",
+            "Enabling could slow down the app.",
         )
 
         self.cbtn_debug_recorded_audio = CustomCheckButton(
@@ -550,7 +534,7 @@ class SettingGeneral:
         kwargs = {
             "after_func": after_func,
             "use_faster_whisper": use_faster_whisper,
-            "cancel_func": lambda: self.cancel_model_download(model, btn),
+            "cancel_func": lambda: self.cancel_model_download(model, btn, use_faster_whisper),
             "failed_func": failed_func,
         }
 
@@ -580,7 +564,7 @@ class SettingGeneral:
             )
             mbox("Download error", f"Err details: {e}", 0, self.root)
 
-    def cancel_model_download(self, model: str, btn: ttk.Button) -> None:
+    def cancel_model_download(self, model: str, btn: ttk.Button, use_faster_whisper) -> None:
         """
         Cancel whisper model download.
 
@@ -589,7 +573,7 @@ class SettingGeneral:
         if not mbox("Cancel confirmation", "Are you sure you want to cancel downloading?", 3, self.root):
             return
 
-        btn.configure(text="Download", command=lambda: self.model_download(model, btn, False), state="normal")
+        btn.configure(text="Download", command=lambda: self.model_download(model, btn, use_faster_whisper), state="normal")
         bc.cancel_dl = True  # Raise flag to stop
 
     def model_btn_checker(self, model: str, btn: ttk.Button, faster_whisper: bool = False, on_start=False) -> None:
@@ -901,10 +885,3 @@ class SettingGeneral:
         element.configure(state="readonly")
         if save:
             sj.save_key(key, "auto")
-
-    # def save_ignore_stdout(self):
-    #     _input = self.entry_ignore_stdout.get().split(",")
-    #     _input = [i.strip() for i in _input if i.strip() != ""]  # remove any empty string or space
-
-    #     sj.save_key("ignore_stdout", _input)
-    #     update_stdout_ignore_list(_input)

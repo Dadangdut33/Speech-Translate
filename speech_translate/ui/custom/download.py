@@ -86,7 +86,7 @@ def whisper_download_with_progress_gui(
     # flag
     paused = False
 
-    def pause_download():
+    def toggle_pause():
         nonlocal paused
         paused = not paused
         if paused:
@@ -115,7 +115,7 @@ def whisper_download_with_progress_gui(
     lbl_status_text = ttk.Label(status_frame, text=f"Downloading {model_name} model")
     lbl_status_text.pack(side="left", padx=5, pady=5)
 
-    btn_pause = ttk.Button(btn_frame, text="Pause", command=pause_download)
+    btn_pause = ttk.Button(btn_frame, text="Pause", command=toggle_pause)
     btn_pause.pack(side="left", fill="x", padx=5, pady=5, expand=True)
 
     btn_cancel = ttk.Button(btn_frame, text="Cancel", command=cancel_func, style="Accent.TButton")
@@ -305,7 +305,7 @@ def snapshot_download(
 
     filtered_repo_files = list(
         huggingface_hub.utils.filter_repo_objects(
-            items=[f.rfilename for f in repo_info.siblings],
+            items=[f.rfilename for f in repo_info.siblings],  # type: ignore
             allow_patterns=allow_patterns,
             ignore_patterns=ignore_patterns,
         )
@@ -404,10 +404,6 @@ def faster_whisper_download_with_progress_gui(
     # clear recent_stderr
     recent_stderr.clear()
 
-    # add label that says downloading please wait
-    failed = False
-    msg = ""
-
     f1 = ttk.Frame(root)
     f1.pack(side="top", fill="x", expand=True)
 
@@ -425,6 +421,9 @@ def faster_whisper_download_with_progress_gui(
 
     btn_cancel = ttk.Button(f1, text="Cancel", command=cancel_func, style="Accent.TButton")
     btn_cancel.pack(side="right", padx=(5, 10), pady=(5, 0))
+
+    btn_pause = ttk.Button(f1, text="Pause", command=lambda: toggle_pause())
+    btn_pause.pack(side="right", padx=5, pady=(5, 0))
 
     # add progress bar that just goes back and forth
     progress = ttk.Progressbar(f2, orient="horizontal", length=200, mode="indeterminate")
@@ -450,8 +449,14 @@ def faster_whisper_download_with_progress_gui(
         text_log.insert(1.0, content)
         text_log.see("end")  # scroll to the bottom
 
+    failed = False
+    msg = ""
+    finished = False
+    paused = False
+    killed = False
+
     def run_threaded():
-        nonlocal failed, msg
+        nonlocal failed, msg, finished, paused
 
         root.title("Verifying Model")
         lbl_status_text.configure(text=f"Verifying {model_name} model please wait...")
@@ -479,24 +484,52 @@ def faster_whisper_download_with_progress_gui(
             failed = True
             msg = str(e)
 
+        finally:
+            if not paused:
+                finished = True
+
     threaded = Thread(target=run_threaded, daemon=True)
     threaded.start()
     start_time = time()
 
-    while threaded.is_alive():
+    def toggle_pause():
+        nonlocal paused, killed, threaded
+        paused = not paused
+        if paused:
+            logger.info("Download paused")
+            btn_pause["text"] = "Resume"
+            progress.stop()
+        else:
+            logger.info("Download resumed")
+            btn_pause["text"] = "Pause"
+            progress.start(15)
+            killed = False
+            threaded = Thread(target=run_threaded, daemon=True)
+            threaded.start()
+
+    while not finished:
+        if paused and not killed:
+            kill_thread(threaded)
+            killed = True
+            recent_stderr.append("Download paused")
+            update_log()
+
         if bc.cancel_dl:
             kill_thread(threaded)
+            finished = True  # mark as finished
             root.destroy()
             mbox("Download Cancelled", f"Downloading of {model_name} faster whisper model has been cancelled", 0, master)
             break
 
         # check if 2 second have passed. Means probably downloading from the hub
         if time() - start_time > 2:
-            root.title("Downloading Faster Whisper Model")
+            root.title(f"{'Downloading' if not paused else 'Paused downloading of'} Faster Whisper Model")
             lbl_status_text.configure(
-                text=f"Downloading {model_name} model, {get_file_amount(storage_folder + '/' + 'blobs')} files downloaded..."
+                text=
+                f"{'Downloading' if not paused else 'Paused downloading'} {model_name} model, {get_file_amount(storage_folder + '/' + 'blobs')} files downloaded..."
             )
-            update_log()
+            if not paused:
+                update_log()
         sleep(1)
 
     # if cancel button is pressed, return

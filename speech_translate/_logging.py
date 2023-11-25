@@ -35,10 +35,10 @@ class StreamStderrToLogger(object):
     """
     def __init__(self, level):
         self.level = level
-        # tqdm use stderr to print, so we should consider it as info
+        # tqdm use stderr to print, so we can consider it as info
         self.considered_info = [
-            "Downloading", "Fetching", "run_threaded", "Estimating duration from bitrate, this may be inaccurate",
-            "Transcribe", "Translate", "Refine", "Align", "Running", "done", "Using cache found in"
+            "Downloading", "Fetching", "run_threaded", "Estimating duration from bitrate", "Transcribe", "Translate",
+            "Translating", "Refine", "Align", "Running", "done", "Using cache found in", "%|#", "0%|"
         ]
 
     def write(self, buf):

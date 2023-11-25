@@ -713,31 +713,24 @@ class MainWindow:
         self.root.after(2000, self.check_ffmpeg, bc.has_ffmpeg)
 
     def check_ffmpeg(self, has_ffmpeg: bool):
-        ffmpeg_installed = False
-        user_cancel = False
-        if not has_ffmpeg:
-            # prompt to install ffmpeg
-            if mbox(
-                "FFmpeg is not found in your system path!",
-                "FFmpeg is essential for the app to work properly.\n\nDo you want to install it now?",
-                3,
-            ):
-                success, msg = install_ffmpeg()
-                if not success:
-                    mbox("Error", msg, 2)
+        if has_ffmpeg:
+            return True
 
-                if check_ffmpeg_in_path()[0]:
-                    bc.has_ffmpeg = True
-                    ffmpeg_installed = success
-                else:
-                    ffmpeg_installed = False
-            else:
-                ffmpeg_installed = False
-                user_cancel = True
-        else:
-            ffmpeg_installed = True
+        # prompt to install ffmpeg
+        if mbox(
+            "FFmpeg is not found in your system path!",
+            "FFmpeg is essential for the app to work properly.\n\nDo you want to install it now?",
+            3,
+        ):
+            success, msg = install_ffmpeg()
+            if not success:
+                mbox("Error", msg, 2)
 
-        return ffmpeg_installed, user_cancel
+            elif check_ffmpeg_in_path()[0]:
+                bc.has_ffmpeg = True
+                return True
+
+        return False
 
     # mic
     def cb_input_device_init(self):
@@ -1306,9 +1299,12 @@ class MainWindow:
                     child.destroy()
                     break
 
-    def check_model(self, key, is_english, taskname, task):
+    def check_model(self, key, is_english, taskname, task, **kwargs):
         model_name = append_dot_en(key, is_english)
         try:
+            if kwargs.get("disabler", None):
+                kwargs["disabler"]()
+
             # check model first
             use_faster_whisper = sj.cache["use_faster_whisper"]
 
@@ -1370,6 +1366,9 @@ class MainWindow:
                 self.errorNotif(str(e), use_mbox=True)
 
                 return False, ""
+        finally:
+            if kwargs.get("enabler", None):
+                kwargs["enabler"]()
 
     # ------------------ Rec ------------------
     def rec(self):
@@ -1395,13 +1394,13 @@ class MainWindow:
             return
 
         # Checking args
-        tc, tl, m_key, engine, source, target, mic, speaker = self.get_args()
+        tc, tl, m_key, tl_engine, source, target, mic, speaker = self.get_args()
         if source == target and tl:
             mbox("Invalid options!", "Source and target language cannot be the same", 2)
             return
 
         # check model first
-        tl_whisper = engine in model_keys
+        tl_whisper = tl_engine in model_keys
         model_tc = None
         if tc:  # check tc model if tc
             status, model_tc = self.check_model(m_key, source == "english", "mic record", self.rec)
@@ -1410,18 +1409,18 @@ class MainWindow:
 
         if tl and tl_whisper:
             # if tl and using whisper engine, check model
-            status, engine = self.check_model(engine, source == "english", "recording", self.rec)
+            status, tl_engine = self.check_model(tl_engine, source == "english", "recording", self.rec)
             if not status:
                 return
 
         # if only tl and using whisper, replace model_tc with engine
         if tl and not tc and tl_whisper:
-            model_tc = engine
+            model_tc = tl_engine
 
         assert model_tc is not None, "model_tc is not set, this should not happened. Report this as a bug at https://github.com/Dadangdut33/Speech-Translate/issues"
 
         # check when using libre
-        if engine == "LibreTranslate":
+        if tl and tl_engine == "LibreTranslate":
             # check wether libre_host is set or not
             if sj.cache["libre_host"].strip() == "":
                 mbox(
@@ -1442,24 +1441,13 @@ class MainWindow:
                     return False
 
         # check ffmpeg
-        success, user_cancel = self.check_ffmpeg(check_ffmpeg_in_path()[0])
-        if not success:
-            # ask if user want to continue processing
-            if not mbox(
-                "FFMpeg is not installed!",
-                "The program needs ffmpeg to process files and will probably not work without it. Do you still want to continue regardless of it?",
-                3, self.root
-            ):
-                return
-
-        if user_cancel:
+        if not self.check_ffmpeg(check_ffmpeg_in_path()[0]):
             mbox(
-                "Cancelled",
-                "The program needs ffmpeg to process files and will probably not work without it. Please install it first.",
-                2,
+                "FFmpeg is not installed!",
+                "The program needs ffmpeg to process files and will probably not work without it. Please install and add it to PATH first.",
+                3, self.root
             )
-
-            return
+            return False
 
         # ui changes
         self.tb_clear()
@@ -1474,7 +1462,7 @@ class MainWindow:
             device = mic if not is_speaker else speaker
             recThread = Thread(
                 target=record_session,
-                args=(source, target, engine, model_tc, device, tc, tl, is_speaker),
+                args=(source, target, tl_engine, model_tc, device, tc, tl, is_speaker),
                 daemon=True,
             )
             recThread.start()
@@ -1509,8 +1497,11 @@ class MainWindow:
             )
             return
 
-        def do_process(m_key, engine, source, target, tc, tl, files):
-            tl_whisper = engine in model_keys
+        def do_process(m_key, tl_engine, source, target, tc, tl, files):
+            nonlocal prompt
+            m_check_kwargs = {"disabler": prompt.disable_interactions, "enabler": prompt.enable_interactions}
+
+            tl_whisper = tl_engine in model_keys
             # lang is lowered when send from FileImportDialog
             if source == target and tl:
                 mbox("Invalid options!", "Source and target language cannot be the same", 2)
@@ -1519,23 +1510,26 @@ class MainWindow:
             # check model first
             model_tc = None
             if tc:  # check tc model if tc
-                status, model_tc = self.check_model(m_key, source == "english", "file import", self.import_file)
+                status, model_tc = self.check_model(m_key, source == "english", "file import", do_process, **m_check_kwargs)
                 if not status:
                     return False
 
             if tl and tl_whisper:
                 # if tl and using whisper engine, check model
-                status, engine = self.check_model(engine, source == "english", "file import", self.import_file)
+                status, tl_engine = self.check_model(
+                    tl_engine, source == "english", "file import", do_process, **m_check_kwargs
+                )
                 if not status:
                     return False
 
             # if only tl and using whisper, replace model_tc with engine
             if tl and not tc and tl_whisper:
-                model_tc = engine
+                model_tc = tl_engine
 
             assert model_tc is not None, "model_tc is not set, this should not happened. Report this as a bug at https://github.com/Dadangdut33/Speech-Translate/issues"
 
-            if engine == "LibreTranslate":
+            # check when using libre
+            if tl and tl_engine == "LibreTranslate":
                 # check wether libre_host is set or not
                 if sj.cache["libre_host"].strip() == "":
                     mbox(
@@ -1556,24 +1550,15 @@ class MainWindow:
                         return False
 
             # check ffmpeg
-            success, user_cancel = self.check_ffmpeg(check_ffmpeg_in_path()[0])
-            if not success:
-                # ask if user want to continue processing
-                if not mbox(
-                    "FFMpeg is not installed!",
-                    "The program needs ffmpeg to process files and will probably not work without it. Do you still want to continue regardless of it?",
-                    3, self.root
-                ):
-                    return False
-
-            if user_cancel:
+            prompt.disable_interactions()
+            if not self.check_ffmpeg(check_ffmpeg_in_path()[0]):
                 mbox(
-                    "Cancelled",
-                    "The program needs ffmpeg to process files and will probably not work without it. Please install it first.",
-                    2,
+                    "FFmpeg is not installed!",
+                    "The program needs ffmpeg to process files and will probably not work without it. Please install and add it to PATH first.",
+                    3, self.root
                 )
-
                 return False
+            prompt.enable_interactions()
 
             # ui changes
             self.tb_clear()
@@ -1586,7 +1571,7 @@ class MainWindow:
             # Start thread
             try:
                 recFileThread = Thread(
-                    target=process_file, args=(list(files), model_tc, source, target, tc, tl, engine), daemon=True
+                    target=process_file, args=(list(files), model_tc, source, target, tc, tl, tl_engine), daemon=True
                 )
                 recFileThread.start()
 
@@ -1652,31 +1637,24 @@ class MainWindow:
             return
 
         def do_process(m_key, files):
+            nonlocal prompt
             # file = (source_file, mod_file)
             # check model first
-            status, model_tc = self.check_model(m_key, False, "file refinement", self.refine_file)
+            m_check_kwargs = {"disabler": prompt.disable_interactions, "enabler": prompt.enable_interactions}
+            status, model_tc = self.check_model(m_key, False, "file refinement", do_process, **m_check_kwargs)
             if not status:
                 return False
 
             # check ffmpeg
-            success, user_cancel = self.check_ffmpeg(check_ffmpeg_in_path()[0])
-            if not success:
-                # ask if user want to continue processing
-                if not mbox(
-                    "FFMpeg is not installed!",
-                    "The program needs ffmpeg to process files and will probably not work without it. Do you still want to continue regardless of it?",
-                    3, self.root
-                ):
-                    return False
-
-            if user_cancel:
+            prompt.disable_interactions()
+            if not self.check_ffmpeg(check_ffmpeg_in_path()[0]):
                 mbox(
-                    "Cancelled",
-                    "The program needs ffmpeg to process files and will probably not work without it. Please install it first.",
-                    2,
+                    "FFmpeg is not installed!",
+                    "The program needs ffmpeg to process files and will probably not work without it. Please install and add it to PATH first.",
+                    3, self.root
                 )
-
                 return False
+            prompt.enable_interactions()
 
             # ui changes
             self.tb_clear()
@@ -1739,6 +1717,7 @@ class MainWindow:
             return
 
         def do_process(m_key, files):
+            nonlocal prompt
             # file = (source_file, mod_file, lang)
             # filter lang to check all english or not
             all_english = True
@@ -1748,29 +1727,21 @@ class MainWindow:
                     break
 
             # load .en model if all language is english
-            status, model_tc = self.check_model(m_key, all_english, "file alignment", self.align_file)
+            m_check_kwargs = {"disabler": prompt.disable_interactions, "enabler": prompt.enable_interactions}
+            status, model_tc = self.check_model(m_key, all_english, "file alignment", do_process, **m_check_kwargs)
             if not status:
                 return False
 
             # check ffmpeg
-            success, user_cancel = self.check_ffmpeg(check_ffmpeg_in_path()[0])
-            if not success:
-                # ask if user want to continue processing
-                if not mbox(
-                    "FFMpeg is not installed!",
-                    "The program needs ffmpeg to process files and will probably not work without it. Do you still want to continue regardless of it?",
-                    3, self.root
-                ):
-                    return False
-
-            if user_cancel:
+            prompt.disable_interactions()
+            if not self.check_ffmpeg(check_ffmpeg_in_path()[0]):
                 mbox(
-                    "Cancelled",
-                    "The program needs ffmpeg to process files and will probably not work without it. Please install it first.",
-                    2,
+                    "FFmpeg is not installed!",
+                    "The program needs ffmpeg to process files and will probably not work without it. Please install and add it to PATH first.",
+                    3, self.root
                 )
-
                 return False
+            prompt.enable_interactions()
 
             # ui changes
             self.tb_clear()
@@ -1832,7 +1803,7 @@ class MainWindow:
             )
             return
 
-        def do_process(engine, lang_target, files):
+        def do_process(tl_engine, lang_target, files):
             # lang is lowered when send from TranslateResultDialog
             # no check because not using any model and no need for ffmpeg
             # ui changes
@@ -1842,9 +1813,30 @@ class MainWindow:
 
             bc.enable_file_process()
 
+            # check when using libre
+            if tl_engine == "LibreTranslate":
+                # check wether libre_host is set or not
+                if sj.cache["libre_host"].strip() == "":
+                    mbox(
+                        "LibreTranslate host is not set!",
+                        "LibreTranslate host is not set! Please set it first in the settings!",
+                        2,
+                    )
+                    return False
+
+                # check api key
+                if not sj.cache["supress_libre_api_key_warning"] and sj.cache["libre_api_key"].strip() == "":
+                    if not mbox(
+                        "LibreTranslate API key is not set!",
+                        "WARNING!! LibreTranslate API key is not set! Do you want to continue anyway?",
+                        3,
+                        self.root,
+                    ):
+                        return False
+
             # Start thread
             try:
-                translateThread = Thread(target=translate_result, args=(files, engine, lang_target), daemon=True)
+                translateThread = Thread(target=translate_result, args=(files, tl_engine, lang_target), daemon=True)
                 translateThread.start()
 
                 return True

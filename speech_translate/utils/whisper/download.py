@@ -5,6 +5,7 @@ import whisper
 from faster_whisper.utils import _MODELS as FW_MODELS
 from huggingface_hub import HfApi
 from huggingface_hub.file_download import repo_folder_name
+from loguru import logger
 
 from speech_translate.ui.custom.download import whisper_download_with_progress_gui, faster_whisper_download_with_progress_gui
 
@@ -116,6 +117,7 @@ def verify_model_faster_whisper(model_key: str, cache_dir) -> bool:
     for _root, _dirs, files in os.walk(blob_folder):
         for file in files:
             if file.endswith(".incomplete") or file.endswith(".lock"):
+                logger.warning("Found incomplete file in blob folder, meaning that the download is not finished")
                 return False
 
     # should be safe to assume that model is downloaded

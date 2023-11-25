@@ -59,7 +59,7 @@ class SubtitleWindow:
             wrapLength=250,
         )
 
-        self.menuDropdown = Menu(self.root, tearoff=0, fg="white")
+        self.menuDropdown = Menu(self.root, tearoff=0)
         self.menuDropdown.add_command(label=self.title, command=self.open_menu, image=self.title_emoji, compound="left")
         self.menuDropdown.add_command(label="Help", command=self.show_help, image=self.help_emoji, compound="left")
         self.menuDropdown.add_command(

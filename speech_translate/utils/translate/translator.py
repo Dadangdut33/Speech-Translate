@@ -3,11 +3,34 @@ from speech_translate._logging import logger
 from ..helper import get_similar_keys, no_connection_notify
 from .language import GOOGLE_KEY_VAL, LIBRE_KEY_VAL, MYMEMORY_KEY_VAL
 
+from tqdm.auto import tqdm
 import requests
+
+
+def tl_batch_with_tqdm(self, batch: List[str], **kwargs) -> list:
+    """Translate a batch of texts
+
+    Args:
+        batch (list): List of text to translate
+
+    Returns:
+        list: List of translated text
+    """
+    if not batch:
+        raise Exception("Enter your text list that you want to translate")
+    arr = []
+    for text in tqdm(batch, desc="Translating"):
+        translated = self.translate(text, **kwargs)
+        arr.append(translated)
+
+    return arr
+
 
 # Import the translator
 try:
     from deep_translator import GoogleTranslator, MyMemoryTranslator
+    GoogleTranslator._translate_batch = tl_batch_with_tqdm
+    MyMemoryTranslator._translate_batch = tl_batch_with_tqdm
 except Exception as e:
     GoogleTranslator = None
     MyMemoryTranslator = None
@@ -80,6 +103,7 @@ def google_tl(text: List[str], from_lang: str, to_lang: str, proxies: Dict, debu
                 from deep_translator import GoogleTranslator
 
                 TlCon.GoogleTranslator = GoogleTranslator
+                TlCon.GoogleTranslator._translate_batch = tl_batch_with_tqdm
             except Exception:
                 no_connection_notify()
                 return is_Success, "Error: Not connected to internet"
@@ -142,6 +166,7 @@ def memory_tl(text: List[str], from_lang: str, to_lang: str, proxies: Dict, debu
                 from deep_translator import MyMemoryTranslator
 
                 TlCon.MyMemoryTranslator = MyMemoryTranslator
+                TlCon.MyMemoryTranslator._translate_batch = tl_batch_with_tqdm
             except Exception:
                 no_connection_notify()
                 return is_Success, "Error: Not connected to internet"
@@ -224,7 +249,7 @@ def libre_tl(
             req["api_key"] = libre_api_key
 
         arr = []
-        for q in text:
+        for q in tqdm(text, desc="Translating"):
             req["q"] = q
             response = requests.post(adr, json=req, proxies=proxies).json()
             if "error" in response:

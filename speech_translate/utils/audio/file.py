@@ -1,5 +1,4 @@
 import sys
-import gc
 from os import path
 from datetime import datetime
 from threading import Thread
@@ -748,7 +747,6 @@ def process_file(
             logger.warning("Failed to destroy progress window")
     finally:
         cuda.empty_cache()
-        gc.collect()
         bc.mw.from_file_stop(prompt=False, notify=False)
         # reset processed list
         processed_tc = []
@@ -1039,7 +1037,6 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
             logger.warning("Failed to destroy progress window")
     finally:
         cuda.empty_cache()
-        gc.collect()
         if mode == "refinement":
             bc.mw.refinement_stop(prompt=False, notify=False)
         else:
