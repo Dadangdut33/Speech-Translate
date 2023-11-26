@@ -11,7 +11,7 @@ from stable_whisper import result_to_ass, result_to_srt_vtt, result_to_tsv, load
 from speech_translate.linker import sj, bc
 from speech_translate._path import dir_export, parameters_text
 from speech_translate.utils.helper import filename_only, popup_menu, start_file, up_first_case
-from speech_translate.utils.whisper.helper import get_temperature, parse_args_stable_ts
+from speech_translate.utils.whisper.helper import get_temperature, parse_args_stable_ts, get_task_format
 from speech_translate.ui.custom.tooltip import CreateToolTipOnText, tk_tooltip, tk_tooltips
 from speech_translate.ui.custom.spinbox import SpinboxNumOnly
 
@@ -735,22 +735,41 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
         )
 
         available_params = (
-            "Default value: %Y-%m-%d %H_%M {file}_{task}"
+            "Default value: %Y-%m-%d %f {file}/{task-lang}"
+            "\nTo folderize the result you can use / in the format. Example: {file}/{task-lang-with}"
             "\n\nAvailable parameters:"
-            "{file}"
+            "\n\n-----------------------------------------------------------------------------"
+            "\n----- Parameters that can be used in any situation -----"
+            "\n\n{strftime format such as %Y %m %d %H %M %f ...}"
+            "\nTo see the full list of strftime format, see https://strftime.org/"
+            "\n\n{file}"
             "\nWill be replaced with the file name"
-            "\n\n{task}"
-            "\nWill be replaced with the task name. (transcribe or translate)"
-            "\n\n{task-short}"
-            "\nWill be replaced with the task name but shorten. (tc or tl)"
             "\n\n{lang-source}"
-            "\nWill be replaced with the source language"
+            "\nWill be replaced with the source language if available. Example: english"
             "\n\n{lang-target}"
-            "\nWill be replaced with the target language"
-            "\n\n{model}"
-            "\nWill be replaced with the model name"
-            "\n\n{engine}"
-            "\nWill be replaced with the translation engine name"
+            "\nWill be replaced with the target language if available. Example: french"
+            "\n\n{transcribe-with}"
+            "\nWill be replaced with the transcription model name if available. Example: tiny"
+            "\n\n{translate-with}"
+            "\nWill be replaced with the translation engine name if available. Example: google translate"
+            "\n\n----------------------------------------------------------------------"
+            "\n----------- Parameters only related to task ------------"
+            "\n\n{task}"
+            "\nWill be replaced with the task name. Example: transcribed or translated"
+            "\n\n{task-lang}"
+            "\nWill be replaced with the task name alongside the language. Example: transcribed english or translated english to french"
+            "\n\n{task-with}"
+            "\nWill be replaced with the task name alongside the model or engine name. Example: transcribed with tiny or translated with google translate"
+            "\n\n{task-lang-with}"
+            "\nWill be replaced with the task name alongside the language and model or engine name. Example: transcribed english with tiny or translated english to french with google translate"
+            "\n\n{task-short}"
+            "\nWill be replaced with the task name but shorten. Example: tc or tl"
+            "\n\n{task-short-lang}"
+            "\nWill be replaced with the task name but shorten and alongside the language. Example: tc english or tl english to french"
+            "\n\n{task-short-with}"
+            "\nWill be replaced with the task name but shorten and alongside the model or engine name. Example: tc tiny or tl google translate"
+            "\n\n{task-short-lang-with}"
+            "\nWill be replaced with the task name but shorten and alongside the language and model or engine name. Example: tc english with tiny or tl english to french with google translate"
         )
         self.btn_help_export_format = ttk.Button(
             self.f_export_5,
@@ -789,21 +808,42 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
 
     def update_preview_export_format(self):
         try:
+            assert bc.mw is not None
             filename = filename_only("this is an example video or audio file.mp4")
-            task = "transcribe"
-            short_task = "tc"
             slice_start = int(self.spn_slice_file_start.get()) if self.spn_slice_file_start.get() != "" else None
             slice_end = int(self.spn_slice_file_end.get()) if self.spn_slice_file_end.get() != "" else None
+            task = "translated"
+            short_task = "tl"
+            model = bc.mw.cb_model.get()
+            engine = bc.mw.cb_engine.get()
+            source = bc.mw.cb_source_lang.get()
+            target = bc.mw.cb_target_lang.get()
+            format_dict = get_task_format(
+                task,
+                f"{task} {source} to {target}",
+                f"{task} with {engine}",
+                f"{task} {source} to {target} with {engine}",
+            )
+            logger.debug(f"preview format dict: {format_dict}")
+            format_dict.update(
+                get_task_format(
+                    short_task,
+                    f"{short_task} {source} to {target}",
+                    f"{short_task} with {engine}",
+                    f"{short_task} {source} to {target} with {engine}",
+                    short_only=True,
+                )
+            )
+            logger.debug(f"preview format dict: {format_dict}")
 
-            assert bc.mw is not None
             save_name = datetime.now().strftime(self.entry_export_format.get())
             save_name = save_name.replace("{file}", filename[slice_start:slice_end])
-            save_name = save_name.replace("{lang-source}", bc.mw.cb_source_lang.get())
-            save_name = save_name.replace("{lang-target}", bc.mw.cb_target_lang.get())
-            save_name = save_name.replace("{model}", bc.mw.cb_model.get())
-            save_name = save_name.replace("{engine}", bc.mw.cb_engine.get())
-            save_name = save_name.replace("{task}", task)
-            save_name = save_name.replace("{task-short}", short_task)
+            save_name = save_name.replace("{lang-source}", source)
+            save_name = save_name.replace("{lang-target}", target)
+            save_name = save_name.replace("{transcribe-with}", model)
+            save_name = save_name.replace("{translate-with}", engine)
+            for key, value in format_dict.items():
+                save_name = save_name.replace(key, value)
 
             self.lbl_preview_export_format_result.configure(text=save_name)
         except Exception:

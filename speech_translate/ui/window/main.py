@@ -1278,13 +1278,20 @@ class MainWindow:
                 else:
                     self.export_rec("Translate")
 
-    def model_dl_cancel(self):
+    def model_dl_cancel(self, **kwargs):
         if not mbox("Cancel confirmation", "Are you sure you want to cancel downloading?", 3, self.root):
             return
 
+        logger.info("Cancelling download...")
+        if kwargs.get("enabler", None):
+            logger.debug("Running enabler...")
+            kwargs["enabler"]()
         bc.cancel_dl = True  # Raise flag to stop
 
-    def after_model_dl(self, taskname, task):
+    def after_model_dl(self, taskname, task, **kwargs):
+        if kwargs.get("enabler", None):
+            kwargs["enabler"]()
+
         # ask if user wants to continue using the model
         if mbox("Model is now Ready!", f"Continue task? ({taskname})", 3, self.root):
             task()
@@ -1303,6 +1310,7 @@ class MainWindow:
         model_name = append_dot_en(key, is_english)
         try:
             if kwargs.get("disabler", None):
+                logger.debug("Running disabler...")
                 kwargs["disabler"]()
 
             # check model first
@@ -1324,20 +1332,26 @@ class MainWindow:
                     # if true will download the model, after that, the function will run after_func if successfull
                     logger.info("Downloading model...")
                     try:
-                        kwargs = {
-                            "after_func": lambda: self.after_model_dl(taskname, task),
+
+                        def check_failed():
+                            if kwargs.get("enabler", None):
+                                logger.debug("Running enabler...")
+                                kwargs["enabler"]()
+
+                        dl_kwargs = {
+                            "after_func": lambda: self.after_model_dl(taskname, task, **kwargs),
                             "use_faster_whisper": use_faster_whisper,
-                            "cancel_func": self.model_dl_cancel,
-                            "failed_func": lambda: None
+                            "cancel_func": lambda: self.model_dl_cancel(**kwargs),
+                            "failed_func": lambda: check_failed()
                         }
 
                         if sj.cache["dir_model"] != "auto":
-                            kwargs = {"download_root": sj.cache["dir_model"]}
+                            dl_kwargs = {"download_root": sj.cache["dir_model"]}
 
                         bc.dl_thread = Thread(
                             target=download_model,
                             args=(model_name, self.root),
-                            kwargs=kwargs,
+                            kwargs=dl_kwargs,
                             daemon=True,
                         )
                         bc.dl_thread.start()
@@ -1368,7 +1382,11 @@ class MainWindow:
                 return False, ""
         finally:
             if kwargs.get("enabler", None):
-                kwargs["enabler"]()
+                if bc.dl_thread and bc.dl_thread.is_alive():
+                    logger.debug("Download is still running, enabler skipped...")
+                else:
+                    logger.debug("Running enabler...")
+                    kwargs["enabler"]()
 
     # ------------------ Rec ------------------
     def rec(self):

@@ -31,7 +31,7 @@ default_setting: SettingDict = {
     "supress_hidden_to_tray": False,
     "supress_device_warning": False,
     "bypass_no_internet": False,
-    "mw_size": "1000x600",
+    "mw_size": "1200x600",
     "sw_size": "1100x620",
     "dir_log": "auto",
     "dir_model": "auto",
@@ -101,8 +101,13 @@ default_setting: SettingDict = {
     "auto_open_dir_refinement": True,
     "auto_open_dir_alignment": True,
     "auto_open_dir_translate": True,
-    # {file} {task} {task-short} {lang-source} {lang-target} {model} {engine}
-    "export_format": "%Y-%m-%d %H_%M {file}_{task}",
+    # * Independent
+    # {file}
+    # {lang-source} {lang-target} {transcribe-with} {translate-with}
+    # * In the task only
+    # {task} {task-lang} {task-with} {task-lang-with}
+    # {task-short} {task-short-lang} {task-short-with} {task-short-lang-with}
+    "export_format": "%Y-%m-%d %f {file}/{task-lang}",
     # txt csv json srt ass vtt tsv
     "export_to": ["txt", "srt", "json"],
     "segment_max_words": "",

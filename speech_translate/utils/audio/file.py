@@ -1,5 +1,6 @@
 import sys
-from os import path
+import json
+from os import path, makedirs
 from datetime import datetime
 from threading import Thread
 from time import gmtime, sleep, strftime, time
@@ -18,7 +19,7 @@ from speech_translate.ui.custom.dialog import ModResultInputDialog, FileProcessD
 from speech_translate.ui.custom.message import mbox
 
 from ..helper import cbtn_invoker, get_proxies, native_notify, filename_only, start_file, up_first_case, get_list_of_dict, kill_thread
-from ..whisper.helper import get_model, get_model_args, get_tc_args, save_output_stable_ts, model_values, to_language_name
+from ..whisper.helper import get_model, get_model_args, get_tc_args, save_output_stable_ts, model_values, to_language_name, get_task_format
 from ..translate.translator import translate
 
 # Global variable
@@ -202,6 +203,7 @@ def cancellable_tc(
     audio_name: str,
     lang_source: str,
     lang_target: str,
+    model_name_tc: str,
     stable_tc,
     stable_tl,
     auto: bool,
@@ -209,6 +211,7 @@ def cancellable_tc(
     translate: bool,
     engine: str,
     save_name: str,
+    save_meta: str,
     tracker_index: int,
     **whisper_args,
 ) -> None:
@@ -236,6 +239,10 @@ def cancellable_tc(
         if True, translate the transcription
     engine: str
         engine to use for translation
+    save_name: str
+        name of the file to save the transcription to
+    save_meta: str
+        name of the file to save the metadata to
     tracker_index: int
         index to track the progress
     **whisper_args:
@@ -251,15 +258,34 @@ def cancellable_tc(
 
     try:
         update_q_process(processed_tc, tracker_index, "Transcribing please wait...")
-        f_name = save_name.replace("{task}", "transcribe")
-        f_name = f_name.replace("{task-short}", "tc")
+        export_to = dir_export if sj.cache["dir_export"] == "auto" else sj.cache["dir_export"]
+        format_dict = get_task_format(
+            "transcribed", f"transcribed {lang_source}", f"transcribed with {model_name_tc}",
+            f"transcribed {lang_source} with {model_name_tc}"
+        )
+        format_dict.update(
+            get_task_format(
+                "tc",
+                f"tc {lang_source}",
+                f"tc with {model_name_tc}",
+                f"tc {lang_source} with {model_name_tc}",
+                short_only=True
+            )
+        )
+        f_name = save_name
+        for fmt, value in format_dict.items():
+            f_name = f_name.replace(fmt, value)
+
+        # check if any -short
+        if "-short" in f_name:
+            # replace transcribed with tc
+            f_name = f_name.replace("transcribed", "tc")
 
         logger.info("-" * 50)
         logger.info("Transcribing")
         logger.debug("Source Language: Auto" if auto else f"Source Language: {lang_source}")
 
         fail_status = [False, ""]
-        export_to = dir_export if sj.cache["dir_export"] == "auto" else sj.cache["dir_export"]
 
         thread = Thread(
             target=run_whisper, args=[stable_tc, audio_name, "transcribe", fail_status], kwargs=whisper_args, daemon=True
@@ -290,7 +316,23 @@ def cancellable_tc(
                 update_q_process(processed_tc, tracker_index, "TC Fail! Got empty transcribed text")
 
         update_q_process(processed_tc, tracker_index, "Transcribed")
-        logger.debug(f"Transcribing Audio: {f_name} | Time Taken: {time() - start:.2f}s")
+        taken = time() - start
+        logger.debug(f"Transcribing Audio: {f_name} | Time Taken: {taken:.2f}s")
+
+        try:
+            meta = {}
+            p = path.join(export_to, save_meta + ".json")
+            makedirs(path.dirname(p), exist_ok=True)
+            with open(p, "r", encoding="utf-8") as f:
+                meta = json.load(f)
+                meta["transcribe_time"] = taken
+                meta["transcribe_success"] = True
+
+            with open(p, "w", encoding="utf-8") as f:
+                json.dump(meta, f, indent=4)
+        except Exception as e:
+            logger.exception(e)
+            logger.error("Failed to update metadata")
 
         # start translation thread if translate mode is on
         if translate:
@@ -299,7 +341,7 @@ def cancellable_tc(
             to_tl = result_tc if engine not in model_values else audio_name
             translateThread = Thread(
                 target=cancellable_tl,
-                args=[to_tl, lang_source, lang_target, stable_tl, engine, auto, save_name, tracker_index],
+                args=[to_tl, lang_source, lang_target, stable_tl, engine, auto, save_name, save_meta, tracker_index],
                 kwargs=whisper_args,
                 daemon=True,
             )
@@ -324,6 +366,7 @@ def cancellable_tl(
     engine: str,
     auto: bool,
     save_name: str,
+    save_meta: str,
     tracker_index: int,
     **whisper_args,
 ):
@@ -348,6 +391,8 @@ def cancellable_tl(
         whether to use auto language detection
     save_name: str
         name of the file to save the translation to
+    save_meta: str
+        name of the file to save the metadata to
     tracker_index: int
         index to track the progress
     **whisper_args:
@@ -364,8 +409,24 @@ def cancellable_tl(
     try:
         update_q_process(processed_tl, tracker_index, "Translating please wait...")
         export_to = dir_export if sj.cache["dir_export"] == "auto" else sj.cache["dir_export"]
-        f_name = save_name.replace("{task}", "translate")
-        f_name = f_name.replace("{task-short}", "tl")
+        format_dict = get_task_format(
+            "translated",
+            f"translated {lang_source} to {lang_target}",
+            f"translated with {engine}",
+            f"translated {lang_source} to {lang_target} with {engine}",
+        )
+        format_dict.update(
+            get_task_format(
+                "tl",
+                f"tl {lang_source} to {lang_target}",
+                f"tl with {engine}",
+                f"tl {lang_source} to {lang_target} with {engine}",
+                short_only=True
+            )
+        )
+        f_name = save_name
+        for fmt, value in format_dict.items():
+            f_name = f_name.replace(fmt, value)
 
         logger.info("-" * 50)
         logger.info("Translating")
@@ -441,7 +502,23 @@ def cancellable_tl(
             save_output_stable_ts(query, path.join(export_to, f_name), sj.cache["export_to"], sj)
 
         update_q_process(processed_tl, tracker_index, "Translated")
-        logger.debug(f"Translated: {f_name} | Time Taken: {time() - start:.2f}s")
+        taken = time() - start
+        logger.debug(f"Translated: {f_name} | Time Taken: {taken:.2f}s")
+
+        try:
+            meta = {}
+            p = path.join(export_to, save_meta + ".json")
+            makedirs(path.dirname(p), exist_ok=True)
+            with open(p, "r", encoding="utf-8") as f:
+                meta = json.load(f)
+                meta["translate_time"] = taken
+                meta["translate_success"] = True
+
+            with open(p, "w", encoding="utf-8") as f:
+                json.dump(meta, f, indent=4)
+        except Exception as e:
+            logger.exception(e)
+            logger.error("Failed to update metadata")
     except Exception as e:
         update_q_process(processed_tl, tracker_index, "Failed to translate")
         if str(e) == "Cancelled":
@@ -594,43 +671,53 @@ def process_file(
 
         def update_modal_ui():
             nonlocal t_start, local_file_import_counter
-            if bc.file_processing:
+            prev_q_data = []
+            while bc.file_processing:
+                try:
+                    fp.lbl_files.set_text(text=f"{local_file_import_counter}/{len(data_files)}")
+                    fp.lbl_elapsed.set_text(text=f"{strftime('%H:%M:%S', gmtime(time() - t_start))}")
 
-                fp.lbl_files.set_text(text=f"{local_file_import_counter}/{len(data_files)}")
-                fp.lbl_elapsed.set_text(text=f"{strftime('%H:%M:%S', gmtime(time() - t_start))}")
+                    if local_file_import_counter > 0:
+                        fp.lbl_files.set_text(
+                            text=
+                            f"{local_file_import_counter}/{len(data_files)} ({filename_only(data_files[local_file_import_counter - 1])})"
+                        )
+                    else:
+                        fp.lbl_files.set_text(
+                            text=
+                            f"{local_file_import_counter}/{len(data_files)} ({filename_only(data_files[local_file_import_counter])})"
+                        )
 
-                if local_file_import_counter > 0:
-                    fp.lbl_files.set_text(
-                        text=
-                        f"{local_file_import_counter}/{len(data_files)} ({filename_only(data_files[local_file_import_counter - 1])})"
-                    )
-                else:
-                    fp.lbl_files.set_text(
-                        text=
-                        f"{local_file_import_counter}/{len(data_files)} ({filename_only(data_files[local_file_import_counter])})"
-                    )
-
-                processed = ""
-                if transcribe:
-                    processed += f"{bc.file_tced_counter} Transcribed"
-                if translate:
+                    processed = ""
                     if transcribe:
-                        processed += ", "
-                    processed += f"{bc.file_tled_counter} Translated"
-                fp.lbl_processed.set_text(text=processed)
+                        processed += f"{bc.file_tced_counter} Transcribed"
+                    if translate:
+                        if transcribe:
+                            processed += ", "
+                        processed += f"{bc.file_tled_counter} Translated"
+                    fp.lbl_processed.set_text(text=processed)
 
-                # update progressbar
-                # times 2 if:
-                # - either transcribe and translating
-                # - or, only translating but not using whisper engine (which means it must get transcribed first, making the process twice)
-                if (transcribe and translate) or (not transcribe and translate and not tl_engine_whisper):
-                    prog_file_len = len(data_files) * 2
-                else:
-                    prog_file_len = len(data_files)
+                    # update progressbar
+                    # times 2 if:
+                    # - either transcribe and translating
+                    # - or, only translating but not using whisper engine (which means it must get transcribed first, making the process twice)
+                    if (transcribe and translate) or (not transcribe and translate and not tl_engine_whisper):
+                        prog_file_len = len(data_files) * 2
+                    else:
+                        prog_file_len = len(data_files)
 
-                fp.progress_bar["value"] = (global_file_import_counter / prog_file_len * 100)
-                fp.queue_window.update_sheet(get_queue_data())
-                fp.root.after(1000, update_modal_ui)
+                    fp.progress_bar["value"] = (global_file_import_counter / prog_file_len * 100)
+                    new = get_queue_data()
+                    if new != prev_q_data:
+                        prev_q_data = new
+                        fp.queue_window.update_sheet(get_queue_data())
+
+                    sleep(1)
+                except Exception as e:
+                    if "invalid command name" not in str(e):
+                        logger.exception(e)
+                        logger.warning("Failed to update modal ui")
+                    break
 
         # widgets
         fp.lbl_task_name.configure(text=f"Task: {taskname} {language} with {model_name_tc} model")
@@ -640,7 +727,9 @@ def process_file(
         fp.btn_add.configure(state="normal", command=add_to_files)
         fp.btn_cancel.configure(state="normal", command=cancel)
 
-        update_modal_ui()
+        update_ui_thread = Thread(target=update_modal_ui, daemon=True)
+        update_ui_thread.start()
+
         bc.mw.start_loadBar()
         bc.enable_tc()
         bc.enable_tl()
@@ -656,24 +745,54 @@ def process_file(
             save_name = save_name.replace("{file}", file_name[file_slice_start:file_slice_end])
             save_name = save_name.replace("{lang-source}", lang_source)
             save_name = save_name.replace("{lang-target}", lang_target)
-            save_name = save_name.replace("{model}", model_name_tc)
-            save_name = save_name.replace("{engine}", engine)
+            save_name = save_name.replace("{transcribe-with}", model_name_tc)
+            save_name = save_name.replace("{translate-with}", engine)
             logger.debug("Save_name: " + save_name)
+            export_to = dir_export if sj.cache["dir_export"] == "auto" else sj.cache["dir_export"]
 
             if visualize_suppression:
-                stable_whisper.visualize_suppression(
-                    file,
-                    path.join(
-                        dir_export if sj.cache["dir_export"] == "auto" else sj.cache["dir_export"],
-                        f"{save_name.replace('{task}', 'visualized')}.png"
-                    )
+                save_visual = save_name
+                format_dict = get_task_format(
+                    "visualized",
+                    f"visualized {lang_source}",
+                    f"visualized with {model_name_tc}",
+                    f"visualized {lang_source} with {model_name_tc}",
+                    both=True
                 )
+                for fmt, value in format_dict.items():
+                    save_visual = save_visual.replace(fmt, value)
+
+                stable_whisper.visualize_suppression(file, path.join(export_to, save_name + ".png"))
+
+            save_meta = save_name
+            format_dict = get_task_format("metadata", "metadata", "metadata", "metadata", both=True)
+            for fmt, value in format_dict.items():
+                save_meta = save_meta.replace(fmt, value)
+
+            p = path.join(export_to, save_meta + ".json")
+            makedirs(path.dirname(p), exist_ok=True)
+            with open(p, "w", encoding="utf-8") as f:
+                meta = {
+                    "task": taskname,
+                    "filename": file_name,
+                    "transcribe": transcribe,
+                    "translate": translate,
+                    "model": model_name_tc if transcribe or tl_engine_whisper else "",
+                    "using_faster_whisper": sj.cache["use_faster_whisper"],
+                    "engine": engine if translate else "",
+                    "source_language": lang_source,
+                    "target_language": lang_target if translate else "",
+                }
+                f.write(json.dumps(meta, indent=4))
 
             # if only translating and using the whisper engine
             if translate and not transcribe and tl_engine_whisper:
                 proc_thread = Thread(
                     target=cancellable_tl,
-                    args=[file, lang_source, lang_target, stable_tl, engine, auto, save_name, global_file_import_counter],
+                    args=[
+                        file, lang_source, lang_target, stable_tl, engine, auto, save_name, save_meta,
+                        global_file_import_counter
+                    ],
                     kwargs=whisper_args,
                     daemon=True,
                 )
@@ -683,8 +802,8 @@ def process_file(
                 proc_thread = Thread(
                     target=cancellable_tc,
                     args=[
-                        file, lang_source, lang_target, stable_tc, stable_tl, auto, transcribe, translate, engine, save_name,
-                        global_file_import_counter
+                        file, lang_source, lang_target, model_name_tc, stable_tc, stable_tl, auto, transcribe, translate,
+                        engine, save_name, save_meta, global_file_import_counter
                     ],
                     kwargs=whisper_args,
                     daemon=True,
@@ -794,9 +913,12 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
 
         # load model
         model_args = get_model_args(sj.cache)
-        model = stable_whisper.load_model(model_name_tc, **model_args)
-        mod_dict = {"refinement": model.refine, "alignment": model.align}
-        mod_function = mod_dict[mode]
+        # alignment is possible using faster whisper model with stable whisper
+        if mode == "alignment" and sj.cache["use_faster_whisper"]:
+            model = stable_whisper.load_faster_whisper(model_name_tc, **model_args)
+        else:
+            model = stable_whisper.load_model(model_name_tc, **model_args)
+        mod_function = model.refine if mode == "refinement" else model.align
         mod_args = get_tc_args(mod_function, sj.cache, mode="refine" if mode == "refinement" else "align")
 
         t_start = time()
@@ -850,29 +972,39 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
 
         def update_modal_ui():
             nonlocal t_start
-            if bc.file_processing:
+            prev_q_data = []
+            while bc.file_processing:
+                try:
+                    fp.lbl_files.set_text(text=f"{bc.mod_file_counter}/{len(data_files)}")
+                    fp.lbl_elapsed.set_text(text=f"{strftime('%H:%M:%S', gmtime(time() - t_start))}")
 
-                fp.lbl_files.set_text(text=f"{bc.mod_file_counter}/{len(data_files)}")
-                fp.lbl_elapsed.set_text(text=f"{strftime('%H:%M:%S', gmtime(time() - t_start))}")
+                    if bc.mod_file_counter > 0:
+                        fp.lbl_files.set_text(
+                            text=
+                            f"{bc.mod_file_counter}/{len(data_files)} ({filename_only(data_files[bc.mod_file_counter - 1][0])})"
+                        )
+                    else:
+                        fp.lbl_files.set_text(
+                            text=
+                            f"{bc.mod_file_counter}/{len(data_files)} ({filename_only(data_files[bc.mod_file_counter][0])})"
+                        )
 
-                if bc.mod_file_counter > 0:
-                    fp.lbl_files.set_text(
-                        text=
-                        f"{bc.mod_file_counter}/{len(data_files)} ({filename_only(data_files[bc.mod_file_counter - 1][0])})"
-                    )
-                else:
-                    fp.lbl_files.set_text(
-                        text=f"{bc.mod_file_counter}/{len(data_files)} ({filename_only(data_files[bc.mod_file_counter][0])})"
-                    )
+                    fp.lbl_processed.set_text(text=f"{bc.mod_file_counter}")
 
-                fp.lbl_processed.set_text(text=f"{bc.mod_file_counter}")
+                    # update progressbar
+                    prog_file_len = len(data_files)
+                    fp.progress_bar["value"] = (bc.mod_file_counter / prog_file_len * 100)
+                    new = get_queue_data()
+                    if new != prev_q_data:
+                        prev_q_data = new
+                        fp.queue_window.update_sheet(get_queue_data())
 
-                # update progressbar
-                prog_file_len = len(data_files)
-                fp.progress_bar["value"] = (bc.mod_file_counter / prog_file_len * 100)
-
-                fp.queue_window.update_sheet(get_queue_data())
-                fp.root.after(1000, update_modal_ui)
+                    sleep(1)
+                except Exception as e:
+                    if "invalid command name" not in str(e):
+                        logger.exception(e)
+                        logger.warning("Failed to update modal ui")
+                    break
 
         def read_txt(file):
             with open(file, "r", encoding="utf-8") as f:
@@ -886,13 +1018,14 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
         fp.btn_add.configure(state="normal", command=add_to_files)
         fp.btn_cancel.configure(state="normal", command=cancel)
 
-        update_modal_ui()
+        update_ui_thread = Thread(target=update_modal_ui, daemon=True)
+        update_ui_thread.start()
         bc.mw.start_loadBar()
 
         if mode == "refinement":
-            export_to = dir_refinement if sj.cache["dir_export"] == "auto" else sj.cache["dir_export"] + "/refinement"
+            export_to = dir_refinement if sj.cache["dir_export"] == "auto" else sj.cache["dir_export"] + "/@refined"
         else:
-            export_to = dir_alignment if sj.cache["dir_export"] == "auto" else sj.cache["dir_export"] + "/alignment"
+            export_to = dir_alignment if sj.cache["dir_export"] == "auto" else sj.cache["dir_export"] + "/@aligned"
 
         for file in data_files:
             # file = (source_file, mod_file, lang) -> lang is only present if mode is alignment
@@ -903,16 +1036,36 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
                 return
 
             # name and get data
+            start = time()
             logger.debug(f"PROCESSING: {file}")
             file_name = filename_only(file[0])
             save_name = datetime.now().strftime(export_format)
             save_name = save_name.replace("{file}", file_name[file_slice_start:file_slice_end])
             save_name = save_name.replace("{lang-source}", "")
             save_name = save_name.replace("{lang-target}", "")
-            save_name = save_name.replace("{model}", model_name_tc)
-            save_name = save_name.replace("{engine}", "")
-            save_name = save_name.replace("{task}", mode)
-            save_name = save_name.replace("{task-short}", task_short[mode])
+            save_name = save_name.replace("{transcribe-with}", model_name_tc)
+            save_name = save_name.replace("{translate-with}", "")
+
+            save_meta = save_name
+            format_dict = get_task_format("metadata", "metadata", "metadata", "metadata", both=True)
+            for fmt, value in format_dict.items():
+                save_meta = save_meta.replace(fmt, value)
+
+            format_dict = get_task_format(
+                action_name, action_name, f"{action_name} with {model_name_tc}", f"{action_name} with {model_name_tc}"
+            )
+            format_dict.update(
+                get_task_format(
+                    task_short[mode],
+                    task_short[mode],
+                    f"{task_short[mode]} with {model_name_tc}",
+                    f"{task_short[mode]} with {model_name_tc}",
+                    short_only=True
+                )
+            )
+            for fmt, value in format_dict.items():
+                save_name = save_name.replace(fmt, value)
+
             logger.debug("Save_name: " + save_name)
 
             audio = file[0]
@@ -996,8 +1149,26 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
                 continue
 
             result: stable_whisper.WhisperResult = bc.data_queue.get()
+            if result.language is None:  # it could result to None when using faster whisper on alignment
+                if mod_args["language"] is not None:
+                    result.language = mod_args["language"]
+                else:
+                    result.language = "auto"
+
             save_output_stable_ts(result, path.join(export_to, save_name), sj.cache["export_to"], sj)
             bc.mod_file_counter += 1
+
+            p = path.join(export_to, save_meta + ".json")
+            makedirs(path.dirname(p), exist_ok=True)
+            with open(p, "w", encoding="utf-8") as f:
+                meta = {
+                    "task": "Mod Result (Refinement)" if mode == "refinement" else "Mod Result (Alignment)",
+                    "filename": file_name,
+                    "model": model_name_tc,
+                    "using_faster_whisper": sj.cache["use_faster_whisper"],
+                    "time": time() - start,
+                }
+                f.write(json.dumps(meta, indent=4))
 
             while adding:
                 sleep(0.3)
@@ -1009,7 +1180,7 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
         logger.info(f"End process ({mode}) [Total time: {time() - t_start:.2f}s]")
 
         # turn off loadbar
-        del model, mod_dict, mod_function
+        del model, mod_function
         bc.mw.stop_loadBar()
 
         if bc.mod_file_counter > 0:
@@ -1070,7 +1241,7 @@ def translate_result(data_files: List, engine: str, lang_target: str):
         file_slice_start = (None if sj.cache["file_slice_start"] == "" else int(sj.cache["file_slice_start"]))
         file_slice_end = None if sj.cache["file_slice_end"] == "" else int(sj.cache["file_slice_end"])
         fail_status = [False, ""]
-        export_to = dir_translate if sj.cache["dir_export"] == "auto" else sj.cache["dir_export"] + "/translate"
+        export_to = dir_translate if sj.cache["dir_export"] == "auto" else sj.cache["dir_export"] + "/@translated"
 
         tl_args = {
             "proxies": get_proxies(sj.cache["http_proxy"], sj.cache["https_proxy"]),
@@ -1125,28 +1296,38 @@ def translate_result(data_files: List, engine: str, lang_target: str):
 
         def update_modal_ui():
             nonlocal t_start
-            if bc.file_processing:
+            prev_q_data = []
+            while bc.file_processing:
+                try:
+                    fp.lbl_files.set_text(text=f"{bc.mod_file_counter}/{len(data_files)}")
+                    fp.lbl_elapsed.set_text(text=f"{strftime('%H:%M:%S', gmtime(time() - t_start))}")
 
-                fp.lbl_files.set_text(text=f"{bc.mod_file_counter}/{len(data_files)}")
-                fp.lbl_elapsed.set_text(text=f"{strftime('%H:%M:%S', gmtime(time() - t_start))}")
+                    if bc.mod_file_counter > 0:
+                        fp.lbl_files.set_text(
+                            text=
+                            f"{bc.mod_file_counter}/{len(data_files)} ({filename_only(data_files[bc.mod_file_counter - 1])})"
+                        )
+                    else:
+                        fp.lbl_files.set_text(
+                            text=f"{bc.mod_file_counter}/{len(data_files)} ({filename_only(data_files[bc.mod_file_counter])})"
+                        )
 
-                if bc.mod_file_counter > 0:
-                    fp.lbl_files.set_text(
-                        text=f"{bc.mod_file_counter}/{len(data_files)} ({filename_only(data_files[bc.mod_file_counter - 1])})"
-                    )
-                else:
-                    fp.lbl_files.set_text(
-                        text=f"{bc.mod_file_counter}/{len(data_files)} ({filename_only(data_files[bc.mod_file_counter])})"
-                    )
+                    fp.lbl_processed.set_text(text=f"{bc.mod_file_counter}")
 
-                fp.lbl_processed.set_text(text=f"{bc.mod_file_counter}")
+                    # update progressbar
+                    prog_file_len = len(data_files)
+                    fp.progress_bar["value"] = (bc.mod_file_counter / prog_file_len * 100)
+                    new = get_queue_data()
+                    if new != prev_q_data:
+                        prev_q_data = new
+                        fp.queue_window.update_sheet(get_queue_data())
 
-                # update progressbar
-                prog_file_len = len(data_files)
-                fp.progress_bar["value"] = (bc.mod_file_counter / prog_file_len * 100)
-
-                fp.queue_window.update_sheet(get_queue_data())
-                fp.root.after(1000, update_modal_ui)
+                    sleep(1)
+                except Exception as e:
+                    if "invalid command name" not in str(e):
+                        logger.exception(e)
+                        logger.warning("Failed to update modal ui")
+                    break
 
         # widgets
         fp.lbl_task_name.configure(text=f"Task Translate with {engine} engine")
@@ -1156,7 +1337,8 @@ def translate_result(data_files: List, engine: str, lang_target: str):
         fp.btn_add.configure(state="normal", command=add_to_files)
         fp.btn_cancel.configure(state="normal", command=cancel)
 
-        update_modal_ui()
+        update_ui_thread = Thread(target=update_modal_ui, daemon=True)
+        update_ui_thread.start()
         bc.mw.start_loadBar()
 
         for file in data_files:
@@ -1175,24 +1357,47 @@ def translate_result(data_files: List, engine: str, lang_target: str):
                 update_q_process(processed, bc.mod_file_counter, "Failed to parse or read file (check log)")
                 continue
 
-            lang_source = to_language_name(result.language)  # type: ignore
+            lang_source = to_language_name(result.language) or "auto"
             tl_args["lang_source"] = lang_source  # convert from lang code to language name
             if not verify_language_in_key(lang_source, engine):
                 logger.warning(
                     f"Language {lang_source} is not supported by {engine} engine. Will try to use auto and it might not work out the way its supposed to"
                 )
 
+            start = time()
             logger.debug(f"PROCESSING: {file}")
-            logger.debug(f"Lang source: {lang_source}")
+            logger.debug(f"Lang source: {lang_source} | Lang target: {lang_target}")
             file_name = filename_only(file)
             save_name = datetime.now().strftime(export_format)
             save_name = save_name.replace("{file}", file_name[file_slice_start:file_slice_end])
-            save_name = save_name.replace("{lang-source}", lang_source)
+            save_name = save_name.replace("{lang-source}", lang_source or "")
             save_name = save_name.replace("{lang-target}", lang_target)
-            save_name = save_name.replace("{model}", "")
-            save_name = save_name.replace("{engine}", engine)
-            save_name = save_name.replace("{task}", "translate")
-            save_name = save_name.replace("{task-short}", "tl")
+            save_name = save_name.replace("{transcribe-with}", "")
+            save_name = save_name.replace("{translate-with}", engine)
+
+            save_meta = save_name
+            format_dict = get_task_format("metadata", "metadata", "metadata", "metadata", both=True)
+            for fmt, value in format_dict.items():
+                save_meta = save_meta.replace(fmt, value)
+
+            format_dict = get_task_format(
+                "translated result",
+                f"translated result from {lang_source} to {lang_target}",
+                f"translated result with {engine}",
+                f"translated result from {lang_source} to {lang_target} with {engine}",
+            )
+            format_dict.update(
+                get_task_format(
+                    "tl res",
+                    f"tl res from {lang_source} to {lang_target}",
+                    f"tl res with {engine}",
+                    f"tl res from {lang_source} to {lang_target} with {engine}",
+                    short_only=True
+                )
+            )
+            for fmt, value in format_dict.items():
+                save_name = save_name.replace(fmt, value)
+
             logger.debug("Save_name: " + save_name)
 
             thread = Thread(target=run_translate_api, args=[result], kwargs=tl_args, daemon=True)
@@ -1210,8 +1415,21 @@ def translate_result(data_files: List, engine: str, lang_target: str):
                 native_notify("Error: Translate failed", str(fail_status[1]) + " Check log for details")
                 continue  # continue to next file
 
-            bc.mod_file_counter += 1
             save_output_stable_ts(result, path.join(export_to, save_name), sj.cache["export_to"], sj)
+            bc.mod_file_counter += 1
+
+            p = path.join(export_to, save_meta + ".json")
+            makedirs(path.dirname(p), exist_ok=True)
+            with open(p, "w", encoding="utf-8") as f:
+                meta = {
+                    "task": "Translate Whisper Result",
+                    "filename": file_name,
+                    "engine": engine,
+                    "source_language": lang_source,
+                    "target_language": lang_target,
+                    "time": time() - start,
+                }
+                f.write(json.dumps(meta, indent=4))
 
             while adding:
                 sleep(0.3)

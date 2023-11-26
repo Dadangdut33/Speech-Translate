@@ -198,8 +198,9 @@ class FileOperationDialog:
             messagebox.showerror("Error", "Add at least one file", parent=self.root)
             return
 
-        self.submit_func(self.var_model.get(), self.data_list)
-        self.root.destroy()
+        status = self.submit_func(self.var_model.get(), self.data_list)
+        if status:
+            self.root.destroy()
 
     def on_close(self):
         if self.interact_disabled:
@@ -469,10 +470,12 @@ class TranslateResultDialog(FileOperationDialog):
             pass
 
     def add_data(self):
+        self.disable_interactions()
         files = filedialog.askopenfilenames(
             title="Select a file",
             filetypes=(("JSON (Whisper Result)", "*.json"), ),
         )
+        self.enable_interactions()
 
         if len(files) == 0:
             return
@@ -488,8 +491,9 @@ class TranslateResultDialog(FileOperationDialog):
             return
 
         # convert self.data_list to 1d
-        self.submit_func(self.var_engine.get(), self.var_target_lang.get().lower(), [x[0] for x in self.data_list])
-        self.root.destroy()
+        status = self.submit_func(self.var_engine.get(), self.var_target_lang.get().lower(), [x[0] for x in self.data_list])
+        if status:
+            self.root.destroy()
 
     def disable_interactions(self):
         super().disable_interactions()
@@ -517,7 +521,9 @@ class RefinementDialog(FileOperationDialog):
         )
 
     def add_data(self):
+        self.disable_interactions()
         source_f, mode_f, lang = ModResultInputDialog(self.root, "Add File Pair", self.mode, with_lang=False).get_input()
+        self.enable_interactions()
 
         if source_f and mode_f:
             self.data_list.append([source_f, mode_f])
@@ -540,7 +546,9 @@ class AlignmentDialog(FileOperationDialog):
         )
 
     def add_data(self):
+        self.disable_interactions()
         source_f, mode_f, lang = ModResultInputDialog(self.root, "Add File Pair", self.mode, with_lang=True).get_input()
+        self.enable_interactions()
 
         if source_f and mode_f:
             self.data_list.append([source_f, mode_f, str(lang).lower()])

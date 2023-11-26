@@ -454,6 +454,7 @@ def save_output_stable_ts(
         "vtt": "to_srt_vtt",
         "tsv": "to_tsv"
     }
+
     # make sure the output dir is exist
     os.makedirs(os.path.dirname(outname), exist_ok=True)
 
@@ -766,17 +767,76 @@ def get_model(
 def to_language_name(lang: str):
     """If using faster whisper, the language get is the language name. If using original whisper the language get is the language code.
 
-            Parameters
-            ----------
-            lang : str
-                Possible language name or language code
+    Parameters
+    ----------
+    lang : str
+        Possible language name or language code
 
-            Returns
-            -------
-            str
-                Language name
-            """
+    Returns
+    -------
+    str
+        Language name
+    """
     try:
         return LANGUAGES[lang]
     except KeyError:
         return lang
+
+
+def get_task_format(
+    task,
+    task_lang,
+    task_with,
+    task_lang_with,
+    normal_only=True,
+    short_only=False,
+    both=False,
+):
+    """Get task format
+
+    Parameters
+    ----------
+    task : str
+        Str for task
+    task_lang : str
+        Str for task lang
+    task_with : str
+        Str for task with
+    task_lang_with : str
+        Str for task lang with
+
+    Returns
+    -------
+    dict
+        Dict for task format
+
+    Raises
+    ------
+    ValueError
+        If normal_only, short_only, and both is all False
+    """
+    normal = {
+        "{task}": task,
+        "{task-lang}": task_lang,
+        "{task-with}": task_with,
+        "{task-lang-with}": task_lang_with,
+    }
+    short = {
+        "{task-short}": task,
+        "{task-short-lang}": task_lang,
+        "{task-short-with}": task_with,
+        "{task-short-lang-with}": task_lang_with,
+    }
+    both = normal.update(short)
+
+    if short_only or both:
+        normal_only = False  # toggle off the default value
+
+    if normal_only:
+        return normal
+    elif short_only:
+        return short
+    elif both:
+        return both
+    else:
+        raise ValueError("normal_only, short_only, and both can't be all False")
