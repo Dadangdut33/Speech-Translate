@@ -39,7 +39,7 @@ from speech_translate.utils.helper import (
     up_first_case, windows_os_only, check_ffmpeg_in_path, install_ffmpeg
 )
 from speech_translate.utils.translate.language import (ENGINE_SOURCE_DICT, ENGINE_TARGET_DICT, WHISPER_LANG_LIST)
-from speech_translate.utils.whisper.helper import append_dot_en, model_keys, model_select_dict, save_output_stable_ts
+from speech_translate.utils.whisper.helper import append_dot_en, model_keys, save_output_stable_ts
 from speech_translate.utils.whisper.download import download_model, get_default_download_root, verify_model_faster_whisper, verify_model_whisper
 from speech_translate.utils.audio.record import record_session
 from speech_translate.utils.audio.file import process_file, mod_result, translate_result
@@ -187,9 +187,9 @@ class MainWindow:
         self.lbl_model.pack(side="left", fill="x", padx=5, pady=5, expand=False)
 
         self.cb_model = ComboboxWithKeyNav(self.f1_toolbar, values=model_keys, state="readonly")
-        self.cb_model.set({v: k for k, v in model_select_dict.items()}[sj.cache["model"]])
+        self.cb_model.set(sj.cache["model_mw"])
         self.cb_model.pack(side="left", fill="x", padx=5, pady=5, expand=True)
-        self.cb_model.bind("<<ComboboxSelected>>", lambda _: sj.save_key("model", model_select_dict[self.cb_model.get()]))
+        self.cb_model.bind("<<ComboboxSelected>>", lambda _: sj.save_key("model_mw", self.cb_model.get()))
         tk_tooltips(
             [self.lbl_model, self.cb_model],
             "Each Whisper model have different requirements. The larger the model, the more accurate it will be but it will need more resources and time to do its task.\n\n"
@@ -211,13 +211,13 @@ class MainWindow:
                 "LibreTranslate": [],
             }, self.cb_engine_change
         )
-        self.cb_engine.set(sj.cache["tl_engine"])
+        self.cb_engine.set(sj.cache["tl_engine_mw"])
         self.cb_engine.pack(side="left", fill="x", padx=5, pady=5, expand=True)
         tk_tooltips(
             [self.lbl_engine, self.cb_engine],
             "Same as transcribe, larger models are more accurate but are slower and require more power.\n"
             "\nIt is recommended to use google translate for the best result.\n\nIf you want full offline capability, "
-            "you can use libretranslate by hosting it yourself locally",
+            "you can use libretranslate and then host it locally in your PC",
             wrapLength=400,
         )
 
@@ -228,9 +228,9 @@ class MainWindow:
         self.cb_source_lang = ComboboxWithKeyNav(
             self.f1_toolbar, values=ENGINE_SOURCE_DICT["Google Translate"], state="readonly"
         )  # initial value
-        self.cb_source_lang.set(sj.cache["sourceLang"])
+        self.cb_source_lang.set(sj.cache["source_lang_mw"])
         self.cb_source_lang.pack(side="left", padx=5, pady=5, fill="x", expand=True)
-        self.cb_source_lang.bind("<<ComboboxSelected>>", lambda _: sj.save_key("sourceLang", self.cb_source_lang.get()))
+        self.cb_source_lang.bind("<<ComboboxSelected>>", lambda _: sj.save_key("source_lang_mw", self.cb_source_lang.get()))
 
         # to
         self.lbl_to = ttk.Label(self.f1_toolbar, text="To:")
@@ -239,9 +239,9 @@ class MainWindow:
         self.cb_target_lang = ComboboxWithKeyNav(
             self.f1_toolbar, values=[up_first_case(x) for x in WHISPER_LANG_LIST], state="readonly"
         )  # initial value
-        self.cb_target_lang.set(sj.cache["targetLang"])
+        self.cb_target_lang.set(sj.cache["target_lang_mw"])
         self.cb_target_lang.pack(side="left", padx=5, pady=5, fill="x", expand=True)
-        self.cb_target_lang.bind("<<ComboboxSelected>>", lambda _: sj.save_key("targetLang", self.cb_target_lang.get()))
+        self.cb_target_lang.bind("<<ComboboxSelected>>", lambda _: sj.save_key("target_lang_mw", self.cb_target_lang.get()))
 
         # swap
         self.btn_swap = ttk.Button(self.f1_toolbar, text="Swap", command=self.cb_swap_lang)
@@ -383,16 +383,16 @@ class MainWindow:
 
         self.cbtn_task_transcribe = CustomCheckButton(
             self.f3_2_row2,
-            sj.cache["transcribe"],
-            lambda x: sj.save_key("transcribe", x) or self.mode_change(),
+            sj.cache["transcribe_mw"],
+            lambda x: sj.save_key("transcribe_mw", x) or self.mode_change(),
             text="Transcribe"
         )
         self.cbtn_task_transcribe.pack(side="left", padx=5, pady=2.5, ipady=0)
 
         self.cbtn_task_translate = CustomCheckButton(
             self.f3_2_row3,
-            sj.cache["translate"],
-            lambda x: sj.save_key("translate", x) or self.mode_change(),
+            sj.cache["translate_mw"],
+            lambda x: sj.save_key("translate_mw", x) or self.mode_change(),
             text="Translate"
         )
         self.cbtn_task_translate.pack(side="left", padx=5, pady=2.5, ipady=0)
@@ -704,7 +704,7 @@ class MainWindow:
 
         # update on start
         self.cb_input_device_init()
-        self.cb_engine_change(sj.cache["tl_engine"])
+        self.cb_engine_change(sj.cache["tl_engine_mw"])
         self.mode_change()
 
         windows_os_only([self.radio_speaker, self.cb_speaker, self.lbl_speaker, self.btn_config_speaker])
@@ -1006,11 +1006,11 @@ class MainWindow:
             self.cb_source_lang.current(0)
 
         # save
-        sj.save_key("sourceLang", self.cb_source_lang.get())
-        sj.save_key("targetLang", self.cb_target_lang.get())
+        sj.save_key("source_lang_mw", self.cb_source_lang.get())
+        sj.save_key("target_lang_mw", self.cb_target_lang.get())
 
         if _event:
-            sj.save_key("tl_engine", _event)
+            sj.save_key("tl_engine_mw", _event)
 
     # clear textboxes
     def tb_clear(self):
@@ -1032,8 +1032,8 @@ class MainWindow:
             self.cb_target_lang.current(0)
 
         # save
-        sj.save_key("sourceLang", self.cb_source_lang.get())
-        sj.save_key("targetLang", self.cb_target_lang.get())
+        sj.save_key("source_lang_mw", self.cb_source_lang.get())
+        sj.save_key("target_lang_mw", self.cb_target_lang.get())
 
         # swap text only if mode is transcribe and translate
         # if "selected" in self.cbtn_task_transcribe.state() and "selected" in self.cbtn_task_translate.state():
@@ -1229,16 +1229,22 @@ class MainWindow:
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(text)
         else:
-            index = 1
-            for res in results:
-                assert isinstance(res, WhisperResult), "Error result should be a WhisperResult, this should not happened"
+            if len(results) == 0:
+                res = results[0]
+                assert isinstance(
+                    res, WhisperResult
+                ), "Error result should be a WhisperResult, this should not happened. Please report this as bug at https://github.com/Dadangdut33/Speech-Translate/issues"
+                save_output_stable_ts(res, f_name, [f_ext.replace(".", "")], sj)
+            else:
+                for i, res in enumerate(results):
+                    assert isinstance(
+                        res, WhisperResult
+                    ), "Error result should be a WhisperResult, this should not happened. Please report this as bug at https://github.com/Dadangdut33/Speech-Translate/issues"
 
-                # if index > 1 then add _2 etc..
-                save_name = f"{f_name}_{index}" if index > 1 else f_name
-                logger.debug(f"Exporting {mode}d text to {save_name}")
+                    save_name = f"{f_name}/exported_{i}"  # folderize it
+                    logger.debug(f"Exporting {mode}d text to {save_name}")
 
-                save_output_stable_ts(res, save_name, [f_ext.replace(".", "")], sj)
-                index += 1
+                    save_output_stable_ts(res, save_name, [f_ext.replace(".", "")], sj)
 
         # open folder
         open_folder(file_path)
@@ -1614,18 +1620,8 @@ class MainWindow:
 
                 return False
 
-        tc, tl, m_key, engine, source, target, _mic, _speaker = self.get_args()
-        kwargs = {
-            "set_cb_model": m_key,
-            "set_cb_engine": engine,
-            "set_cb_source_lang": up_first_case(source),
-            "set_cb_target_lang": up_first_case(target),
-            "set_task_transcribe": tc,
-            "set_task_translate": tl,
-        }
-
         self.disable_interactions()
-        prompt = FileImportDialog(self.root, "Import Files", do_process, sj.cache["theme"], **kwargs)
+        prompt = FileImportDialog(self.root, "Import Files", do_process, sj.cache["theme"])
         self.root.wait_window(prompt.root)  # wait for the prompt to close
         self.enable_interactions()
 
@@ -1707,10 +1703,8 @@ class MainWindow:
 
                 return False
 
-        tc, tl, m_key, engine, source, target, _mic, _speaker = self.get_args()
-        kwargs = {"set_cb_model": m_key}
         self.disable_interactions()
-        prompt = RefinementDialog(self.root, "Refine Result", do_process, sj.cache["theme"], **kwargs)
+        prompt = RefinementDialog(self.root, "Refine Result", do_process, sj.cache["theme"])
         self.root.wait_window(prompt.root)  # wait for the prompt to close
         self.enable_interactions()
 
@@ -1758,6 +1752,7 @@ class MainWindow:
                     break
 
             # load .en model if all language is english
+            logger.debug(f"all_english: {all_english} {'(load .en model because all in english)' if all_english else ''}")
             m_check_kwargs = {"disabler": prompt.disable_interactions, "enabler": prompt.enable_interactions}
             status, model_tc = self.check_model(m_key, all_english, "file alignment", do_process, **m_check_kwargs)
             if not status:
@@ -1794,10 +1789,8 @@ class MainWindow:
 
                 return False
 
-        tc, tl, m_key, engine, source, target, _mic, _speaker = self.get_args()
-        kwargs = {"set_cb_model": m_key}
         self.disable_interactions()
-        prompt = AlignmentDialog(self.root, "Align Result", do_process, sj.cache["theme"], **kwargs)
+        prompt = AlignmentDialog(self.root, "Align Result", do_process, sj.cache["theme"])
         self.root.wait_window(prompt.root)  # wait for the prompt to close
         self.enable_interactions()
 
@@ -1878,15 +1871,8 @@ class MainWindow:
 
                 return False
 
-        tc, tl, m_key, engine, source, target, _mic, _speaker = self.get_args()
-        kwargs = {
-            "set_cb_model": m_key,
-            "set_cb_engine": engine if engine not in model_keys else "Google Translate",
-            "set_cb_target_lang": up_first_case(target),
-        }
-
         self.disable_interactions()
-        prompt = TranslateResultDialog(self.root, "Translate Whisper Result", do_process, sj.cache["theme"], **kwargs)
+        prompt = TranslateResultDialog(self.root, "Translate Whisper Result", do_process, sj.cache["theme"])
         self.root.wait_window(prompt.root)  # wait for the prompt to close
         self.enable_interactions()
 

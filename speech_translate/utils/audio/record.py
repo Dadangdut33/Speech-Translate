@@ -214,7 +214,7 @@ def record_session(
             transcribe, translate, tl_engine_whisper, model_name_tc, engine, sj.cache, **model_args
         )
         whisper_args = get_tc_args(to_args, sj.cache)
-        whisper_args["verbose"] = None  # set to none so no printing of the progress to stdout
+        whisper_args["verbose_record"] = None  # set to none so no printing of the progress to stdout
         whisper_args["language"] = TO_LANGUAGE_CODE[get_whisper_key_from_similar(lang_source.lower())] if not auto else None
 
         if sj.cache["use_faster_whisper"] and not use_temp:
@@ -600,7 +600,7 @@ def record_session(
 
                     if sj.cache["debug_realtime_record"] == 1:
                         logger.debug("New translated text (Whisper)")
-                        if sj.cache["verbose"]:
+                        if sj.cache["verbose_record"]:
                             stablets_verbose_log(result)
                         else:
                             logger.debug(f"{text}")
@@ -638,7 +638,7 @@ def record_session(
                     prev_tc_res = result
 
                     if sj.cache["debug_realtime_record"] == 1:
-                        if sj.cache["verbose"]:
+                        if sj.cache["verbose_record"]:
                             stablets_verbose_log(result)
                         else:
                             logger.debug(f"New text: {text}")
@@ -820,7 +820,7 @@ def tl_whisper_threaded(
         if len(text) > 0:
             if sj.cache["debug_realtime_record"] == 1:
                 logger.debug("New translated text (Whisper)")
-                if sj.cache["verbose"]:
+                if sj.cache["verbose_record"]:
                     stablets_verbose_log(result)
                 else:
                     logger.debug(f"{text}")

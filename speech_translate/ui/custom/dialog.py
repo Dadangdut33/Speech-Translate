@@ -6,6 +6,7 @@ from threading import Thread
 from tksheet import Sheet
 from loguru import logger
 
+from speech_translate.linker import sj
 from speech_translate._path import app_icon
 from speech_translate._logging import recent_stderr
 from speech_translate.ui.custom.tooltip import tk_tooltip, tk_tooltips
@@ -73,7 +74,6 @@ class FileOperationDialog:
         headers: List,
         submit_func,
         theme,
-        **kwargs,
     ):
         self.prev_width = None
         self.master = master
@@ -99,7 +99,6 @@ class FileOperationDialog:
         self.var_model = StringVar(self.root)
         self.cb_model = ComboboxWithKeyNav(self.frame_top, textvariable=self.var_model, values=model_keys, state="readonly")
         self.cb_model.pack(padx=5, side="left", fill="x", expand=True)
-        self.var_model.set(kwargs["set_cb_model"])
 
         tk_tooltips(
             [self.lbl_model, self.cb_model],
@@ -263,6 +262,9 @@ class FileImportDialog(FileOperationDialog):
         self.lbl_source_lang.pack(padx=5, side="left")
         self.var_source_lang = StringVar(self.root)
         self.cb_source_lang = ComboboxWithKeyNav(self.frame_top, textvariable=self.var_source_lang, state="readonly")
+        self.cb_source_lang.bind(
+            "<<ComboboxSelected>>", lambda e: sj.save_key("source_lang_f_import", self.var_source_lang.get())
+        )
         self.cb_source_lang.pack(padx=5, side="left", fill="x", expand=True)
 
         # Lang to
@@ -270,6 +272,9 @@ class FileImportDialog(FileOperationDialog):
         self.lbl_target_lang.pack(padx=5, side="left")
         self.var_target_lang = StringVar(self.root)
         self.cb_target_lang = ComboboxWithKeyNav(self.frame_top, textvariable=self.var_target_lang, state="readonly")
+        self.cb_target_lang.bind(
+            "<<ComboboxSelected>>", lambda e: sj.save_key("target_lang_f_import", self.var_target_lang.get())
+        )
         self.cb_target_lang.pack(padx=5, side="left", fill="x", expand=True)
 
         # Task
@@ -277,24 +282,39 @@ class FileImportDialog(FileOperationDialog):
         self.lbl_task.pack(padx=5, side="left")
 
         self.cbtn_transcribe = ttk.Checkbutton(
-            self.frame_top, text="Transcribe", variable=self.var_task_transcribe, command=self.cbtn_task_change
+            self.frame_top,
+            text="Transcribe",
+            variable=self.var_task_transcribe,
+            command=lambda: sj.save_key("transcribe_f_import", self.var_task_transcribe.get()) or self.cbtn_task_change()
         )
         self.cbtn_transcribe.pack(padx=5, side="left")
         self.cbtn_translate = ttk.Checkbutton(
-            self.frame_top, text="Translate", variable=self.var_task_translate, command=self.cbtn_task_change
+            self.frame_top,
+            text="Translate",
+            variable=self.var_task_translate,
+            command=lambda: sj.save_key("translate_f_import", self.var_task_translate.get()) or self.cbtn_task_change()
         )
         self.cbtn_translate.pack(padx=5, side="left")
 
-        self.var_engine.set(kwargs["set_cb_engine"])
-        self.var_source_lang.set(kwargs["set_cb_source_lang"])
-        self.var_target_lang.set(kwargs["set_cb_target_lang"])
-        self.var_task_transcribe.set(kwargs["set_task_transcribe"])
-        self.var_task_translate.set(kwargs["set_task_translate"])
+        self.var_model.set(sj.cache["model_f_import"])
+        self.cb_model.bind("<<ComboboxSelected>>", lambda e: sj.save_key("model_f_import", self.var_model.get()))
+        self.var_engine.set(sj.cache["tl_engine_f_import"])
+        self.var_source_lang.set(sj.cache["source_lang_f_import"])
+        self.var_target_lang.set(sj.cache["target_lang_f_import"])
+        self.var_task_transcribe.set(sj.cache["transcribe_f_import"])
+        self.var_task_translate.set(sj.cache["translate_f_import"])
         self.cb_source_lang["values"] = ENGINE_SOURCE_DICT[self.var_model.get()]
         self.cb_target_lang["values"] = ENGINE_TARGET_DICT[self.var_engine.get()]
 
         self.cb_engine_change(self.var_model.get())
         self.cbtn_task_change()
+
+        def longer_w():
+            cur_width = self.root.winfo_width()
+            cur_height = self.root.winfo_height()
+            self.root.geometry(f"{cur_width + 200}x{cur_height}")
+
+        self.root.after(200, longer_w)
 
     def cb_engine_change(self, _event=None):
         # check if engine is whisper and currently in translate only mode
@@ -315,6 +335,8 @@ class FileImportDialog(FileOperationDialog):
         # check if the source lang is not in the new list
         if self.cb_source_lang.get() not in self.cb_source_lang["values"]:
             self.cb_source_lang.current(0)
+
+        sj.save_key("tl_engine_f_import", self.var_engine.get())
 
     def cbtn_task_change(self):
         try:
@@ -436,6 +458,7 @@ class TranslateResultDialog(FileOperationDialog):
             self.cb_engine_change,
             textvariable=self.var_engine
         )
+        self.var_engine.set(sj.cache["tl_engine_f_result"])
         self.cb_engine.pack(padx=5, side="left")
         tk_tooltips(
             [self.lbl_engine, self.cb_engine],
@@ -448,10 +471,11 @@ class TranslateResultDialog(FileOperationDialog):
         self.lbl_target_lang = ttk.Label(self.frame_top, text="To:")
         self.lbl_target_lang.pack(padx=5, side="left")
         self.cb_target_lang = ComboboxWithKeyNav(self.frame_top, textvariable=self.var_target_lang, state="readonly")
+        self.var_target_lang.set(sj.cache["target_lang_f_result"])
+        self.cb_target_lang.bind(
+            "<<ComboboxSelected>>", lambda e: sj.save_key("target_lang_f_result", self.var_target_lang.get())
+        )
         self.cb_target_lang.pack(padx=5, side="left")
-
-        self.var_engine.set(kwargs["set_cb_engine"])
-        self.var_target_lang.set(kwargs["set_cb_target_lang"])
 
         # add ? tooltip to frame_top
         self.hint = ttk.Label(self.frame_top, text="?", cursor="question_arrow", font="TkDefaultFont 9 bold")
@@ -468,6 +492,8 @@ class TranslateResultDialog(FileOperationDialog):
             self.cb_target_lang["values"] = ENGINE_TARGET_DICT[self.var_engine.get()]
             if self.cb_target_lang.get() not in self.cb_target_lang["values"]:
                 self.cb_target_lang.current(0)
+
+            sj.save_key("tl_engine_f_result", self.var_engine.get())
         except AttributeError:
             pass
 
@@ -506,55 +532,6 @@ class TranslateResultDialog(FileOperationDialog):
         super().enable_interactions()
         self.cb_engine.configure(state="readonly")
         self.cb_target_lang.configure(state="readonly")
-
-
-class RefinementDialog(FileOperationDialog):
-    def __init__(self, master, title: str, submit_func, theme: str, **kwargs):
-        super().__init__(master, title, "Refinement", ["Source File", "Refinement File"], submit_func, theme, **kwargs)
-
-        # add ? tooltip to frame_top
-        self.hint = ttk.Label(self.frame_top, text="?", cursor="question_arrow", font="TkDefaultFont 9 bold")
-        self.hint.pack(side="right", padx=5)
-        tk_tooltip(
-            self.hint,
-            "Refine result of a transcription file. For this to work, you need to have a result of transcription file in .json form first.\n\n"
-            "The program will try to re-transcribe the audio file with original whisper model if they found null token in the result file (which usually happen when transcribing using faster-whisper).",
-            wrapLength=300
-        )
-
-    def add_data(self):
-        self.disable_interactions()
-        source_f, mode_f, lang = ModResultInputDialog(self.root, "Add File Pair", self.mode, with_lang=False).get_input()
-        self.enable_interactions()
-
-        if source_f and mode_f:
-            self.data_list.append([source_f, mode_f])
-            self.update_sheet()
-
-
-class AlignmentDialog(FileOperationDialog):
-    def __init__(self, master, title: str, submit_func, theme: str, **kwargs):
-        super().__init__(
-            master, title, "Alignment", ["Source File", "Alignment File", "Language"], submit_func, theme, **kwargs
-        )
-
-        # add ? tooltip to frame_top
-        self.hint = ttk.Label(self.frame_top, text="?", cursor="question_arrow", font="TkDefaultFont 9 bold")
-        self.hint.pack(side="right", padx=5)
-        tk_tooltip(
-            self.hint,
-            "Align result of a transcription file. For this to work, you need to have a result of transcription file in .json form first.",
-            wrapLength=300
-        )
-
-    def add_data(self):
-        self.disable_interactions()
-        source_f, mode_f, lang = ModResultInputDialog(self.root, "Add File Pair", self.mode, with_lang=True).get_input()
-        self.enable_interactions()
-
-        if source_f and mode_f:
-            self.data_list.append([source_f, mode_f, str(lang).lower()])
-            self.update_sheet()
 
 
 class ModResultInputDialog:
@@ -729,6 +706,61 @@ class ModResultInputDialog:
         self.root.wait_window()
 
         return self.audio_file, self.result_file, self.lang_value
+
+
+class RefinementDialog(FileOperationDialog):
+    def __init__(self, master, title: str, submit_func, theme: str, **kwargs):
+        super().__init__(master, title, "Refinement", ["Source File", "Refinement File"], submit_func, theme, **kwargs)
+
+        # add ? tooltip to frame_top
+        self.hint = ttk.Label(self.frame_top, text="?", cursor="question_arrow", font="TkDefaultFont 9 bold")
+        self.hint.pack(side="right", padx=5)
+        tk_tooltip(
+            self.hint,
+            "Refine result of a transcription file. For this to work, you need to have a result of transcription file in .json form first.\n\n"
+            "The program will try to re-transcribe the audio file with original whisper model if they found null token in the result file (which usually happen when transcribing using faster-whisper).",
+            wrapLength=300
+        )
+
+        self.cb_model.bind("<<ComboboxSelected>>", lambda e: sj.save_key("model_f_refinement", self.var_model.get()))
+        self.var_model.set(sj.cache["model_f_refinement"])
+
+    def add_data(self):
+        self.disable_interactions()
+        source_f, mode_f, lang = ModResultInputDialog(self.root, "Add File Pair", self.mode, with_lang=False).get_input()
+        self.enable_interactions()
+
+        if source_f and mode_f:
+            self.data_list.append([source_f, mode_f])
+            self.update_sheet()
+
+
+class AlignmentDialog(FileOperationDialog):
+    def __init__(self, master, title: str, submit_func, theme: str, **kwargs):
+        super().__init__(
+            master, title, "Alignment", ["Source File", "Alignment File", "Language"], submit_func, theme, **kwargs
+        )
+
+        # add ? tooltip to frame_top
+        self.hint = ttk.Label(self.frame_top, text="?", cursor="question_arrow", font="TkDefaultFont 9 bold")
+        self.hint.pack(side="right", padx=5)
+        tk_tooltip(
+            self.hint,
+            "Align result of a transcription file. For this to work, you need to have a result of transcription file in .json form first.",
+            wrapLength=300
+        )
+
+        self.cb_model.bind("<<ComboboxSelected>>", lambda e: sj.save_key("model_f_alignment", self.var_model.get()))
+        self.var_model.set(sj.cache["model_f_alignment"])
+
+    def add_data(self):
+        self.disable_interactions()
+        source_f, mode_f, lang = ModResultInputDialog(self.root, "Add File Pair", self.mode, with_lang=True).get_input()
+        self.enable_interactions()
+
+        if source_f and mode_f:
+            self.data_list.append([source_f, mode_f, str(lang).lower()])
+            self.update_sheet()
 
 
 class QueueDialog:

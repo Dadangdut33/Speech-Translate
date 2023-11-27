@@ -19,7 +19,7 @@ from speech_translate.ui.custom.dialog import ModResultInputDialog, FileProcessD
 from speech_translate.ui.custom.message import mbox
 
 from ..helper import cbtn_invoker, get_proxies, native_notify, filename_only, start_file, up_first_case, get_list_of_dict, kill_thread
-from ..whisper.helper import get_model, get_model_args, get_tc_args, save_output_stable_ts, model_values, to_language_name, get_task_format, split_res, result_to_dict
+from ..whisper.helper import get_model, get_model_args, get_tc_args, save_output_stable_ts, model_values, to_language_name, get_task_format, split_res
 from ..translate.translator import translate
 
 # Global variable
@@ -303,7 +303,7 @@ def cancellable_tc(
 
         # export if transcribe mode is on
         if transcribe:
-            result_tc_save = stable_whisper.WhisperResult(result_to_dict(result_tc))
+            result_tc_save = stable_whisper.WhisperResult(result_tc.to_dict())
             result_tc_save = split_res(result_tc_save, sj.cache)
             result_text = result_tc.text.strip()
 
@@ -934,7 +934,7 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
             model = stable_whisper.load_faster_whisper(model_name_tc, **model_args)
         else:
             model = stable_whisper.load_model(model_name_tc, **model_args)
-        mod_function = model.refine if mode == "refinement" else model.align
+        mod_function = model.refine if mode == "refinement" else model.align  # type: ignore
         mod_args = get_tc_args(mod_function, sj.cache, mode="refine" if mode == "refinement" else "align")
 
         t_start = time()

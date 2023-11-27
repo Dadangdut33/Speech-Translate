@@ -68,15 +68,28 @@ class SettingDict(TypedDict):
     first_open: bool
     # ------------------ #
     # App settings
-    transcribe: bool
-    translate: bool
     input: Literal["mic", "speaker"]
-    model: str
-    verbose: bool
-    separate_with: str
+    transcribe_mw: bool
+    translate_mw: bool
+    transcribe_f_import: bool
+    translate_f_import: bool
+    model_mw: str
+    model_f_import: str
+    model_f_alignment: str
+    model_f_refinement: str
+    source_lang_mw: str
+    target_lang_mw: str
+    source_lang_f_import: str
+    target_lang_f_import: str
+    target_lang_f_result: str
+    tl_engine_mw: str
+    tl_engine_f_import: str
+    tl_engine_f_result: str
+    verbose_record: bool
     mic: str
     speaker: str
     hostAPI: str
+    separate_with: str
     theme: str
     show_audio_visualizer_in_record: bool
     show_audio_visualizer_in_setting: bool
@@ -101,9 +114,6 @@ class SettingDict(TypedDict):
     debug_translate: bool
     # ------------------ #
     # Tl Settings
-    sourceLang: str
-    targetLang: str
-    tl_engine: str
     https_proxy: str
     https_proxy_enable: bool
     http_proxy: str

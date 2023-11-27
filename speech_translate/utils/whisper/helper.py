@@ -879,8 +879,8 @@ def split_res(result: stable_whisper.WhisperResult, sj_cache: SettingDict):
         return result  # no splitting done
 
     return result.split_by_length(
-        max_chars=int(sj_cache["segment_max_chars"]) if sj_cache["segment_max_chars"] != "" else None,
-        max_words=int(sj_cache["segment_max_words"]) if sj_cache["segment_max_words"] != "" else None,
+        max_chars=int(sj_cache["segment_max_chars"]) if sj_cache["segment_max_chars"] != "" else None,  # type: ignore
+        max_words=int(sj_cache["segment_max_words"]) if sj_cache["segment_max_words"] != "" else None,  # type: ignore
         newline=str(sj_cache["segment_split_or_newline"]).lower() == "newline",
         even_split=sj_cache["segment_even_split"]
     )

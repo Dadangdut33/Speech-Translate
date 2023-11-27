@@ -224,8 +224,8 @@ class SettingGeneral:
 
         self.cbtn_verbose = CustomCheckButton(
             self.f_logging_3,
-            sj.cache["verbose"],
-            lambda x: sj.save_key("verbose", x),
+            sj.cache["verbose_record"],
+            lambda x: sj.save_key("verbose_record", x),
             text="Verbose logging for whisper in record",
             style="Switch.TCheckbutton"
         )
