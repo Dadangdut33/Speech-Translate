@@ -114,7 +114,7 @@ def run_translate_api(
         success, result = translate(engine, segment_texts, lang_source, lang_target, proxies, debug_log, **kwargs)
 
         # replace
-        for index, segment in enumerate(query.segments):
+        for s_index, segment in enumerate(query.segments):
             if len(result) == 0:
                 logger.warning("Some part of the text might not be translated")
                 return
@@ -156,11 +156,11 @@ def run_translate_api(
                 # if hit limit, just add the rest of the words to the last word in the segment
                 if translated_word_length > len(segment.words):
                     logger.debug("TL word > Original word")
-                    for index, word in enumerate(temp_words):
-                        nearest = nearest_array_index(segment.words, index)
+                    for w_index, word in enumerate(temp_words):
+                        nearest = nearest_array_index(segment.words, w_index)
 
                         # adding until hit the limit
-                        if index < len(segment.words):
+                        if w_index < len(segment.words):
                             segment.words[nearest].word = " " + word
                         else:
                             # hit limit, just add the rest of the words
@@ -172,8 +172,8 @@ def run_translate_api(
                     # get last word segment
                     last_word = segment.words[-1]
 
-                    for index, word in enumerate(temp_words):
-                        segment.words[index].word = " " + word
+                    for w_index, word in enumerate(temp_words):
+                        segment.words[w_index].word = " " + word
 
                     # delete the over boundary word that is probably not needed
                     segment.words = delete_elements_after_index(segment.words, translated_word_length - 1)

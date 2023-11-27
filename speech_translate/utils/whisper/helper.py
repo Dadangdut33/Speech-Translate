@@ -452,7 +452,8 @@ def save_output_stable_ts(
         "ass": "to_ass",
         "json": "save_as_json",
         "vtt": "to_srt_vtt",
-        "tsv": "to_tsv"
+        "tsv": "to_tsv",
+        "txt": "to_txt",
     }
 
     # make sure the output dir is exist
@@ -462,12 +463,7 @@ def save_output_stable_ts(
         outname = fname_dupe_check(outname, format)
         logger.debug(f"Saving to {format}")
 
-        if format == "txt":
-            # save txt
-            with open(outname + ".txt", "w", encoding="utf-8") as f:
-                res = result.text if isinstance(result, stable_whisper.WhisperResult) else result["text"]
-                f.write(res)
-        elif format == "csv":
+        if format == "csv":
             # Save CSV
             with open(outname + ".csv", "w", encoding="utf-8") as csv:
                 write_csv(result, file=csv)

@@ -2,6 +2,7 @@ import sys
 import os
 import shutil
 from cx_Freeze import setup, Executable
+from importlib.metadata import version as get_version
 
 sys.setrecursionlimit(5000)
 
@@ -10,14 +11,14 @@ def get_env_name():
     return os.path.basename(sys.prefix)
 
 
-def version():
+def app_version():
     with open(os.path.join(os.path.dirname(__file__), "speech_translate/_version.py")) as f:
         return f.readline().split("=")[1].strip().strip('"').strip("'")
 
 
 # If you get cuda error try to remove your cuda from your system path because cx_freeze will try to include it from there
 # instead of the one in the python folder
-print(">> Building SpeechTranslate version", version())
+print(">> Building SpeechTranslate version", app_version())
 print(">> Environment:", get_env_name())
 # run build_patch.py
 print(">> Running build_patch.py")
@@ -35,11 +36,11 @@ def clear_dir(dir):
         print(f">> Failed to clear {dir} reason: {e}")
 
 
-def get_whisper_version_from_requirements_txt():
-    with open("requirements.txt", "r", encoding="utf-8") as f:
-        for line in f.readlines():
-            if line.startswith("openai-whisper"):
-                return line.split("==")[1].strip()
+def get_whisper_version():
+    ver = get_version("openai-whisper")
+    print(">> Getting whisper version")
+    print(">> Whisper version:", ver)
+    return ver
 
 
 print(">> Clearing code folder")
@@ -49,12 +50,12 @@ clear_dir("./speech_translate/debug")
 clear_dir("./speech_translate/log")
 clear_dir("./speech_translate/temp")
 print(">> Done")
-print("Whisper version:", get_whisper_version_from_requirements_txt())
+print("Whisper version:", get_whisper_version())
 
-folder_name = f"build/SpeechTranslate {version()} {get_env_name()}"
+folder_name = f"build/SpeechTranslate {app_version()} {get_env_name()}"
 
 build_exe_options = {
-    "excludes": ["yapf", "ruff"],
+    "excludes": ["yapf", "ruff", "cx_Freeze"],
     "packages": ["torch", "soundfile", "sounddevice", "av", "stable_whisper", "faster_whisper", "whisper"],
     "build_exe": folder_name,
     "include_msvcr": True
@@ -64,7 +65,7 @@ base = "Win32GUI" if sys.platform == "win32" else None
 
 setup(
     name="SpeechTranslate",
-    version=version(),
+    version=app_version(),
     description="Speech Translate",
     options={
         "build_exe": build_exe_options,
@@ -92,11 +93,11 @@ shutil.copytree(f"{get_env_name()}/Lib/site-packages/av.libs", f"{folder_name}/l
 # we also need to copy openai_whisper-{version}.dist-info to foldername/lib because cx_freeze doesn't copy it
 print(">> Copying whisper metadata to lib folder")
 shutil.copytree(
-    f"{get_env_name()}/Lib/site-packages/openai_whisper-{get_whisper_version_from_requirements_txt()}.dist-info",
-    f"{folder_name}/lib/openai_whisper-{get_whisper_version_from_requirements_txt()}.dist-info"
+    f"{get_env_name()}/Lib/site-packages/openai_whisper-{get_whisper_version()}.dist-info",
+    f"{folder_name}/lib/openai_whisper-{get_whisper_version()}.dist-info"
 )
 
-# copy Lincese as license.txt to build folder
+# copy LICENSE as license.txt to build folder
 print(">> Creating license.txt to build folder")
 with open("LICENSE", "r", encoding="utf-8") as f:
     with open(f"{folder_name}/license.txt", "w", encoding="utf-8") as f2:
@@ -111,7 +112,7 @@ with open("build/pre_install_note.txt", "r", encoding="utf-8") as f:
 # create version.txt
 print(">> Creating version.txt")
 with open(f"{folder_name}/version.txt", "w", encoding="utf-8") as f:
-    f.write(version())
+    f.write(app_version())
 
 # copy install_ffmpeg.ps1 to build folder
 print(">> Copying install_ffmpeg.ps1 to build folder")

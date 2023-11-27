@@ -91,40 +91,43 @@ class AppTray:
             item(
                 "View",
                 menu(
-                    item("About", lambda *args: bc.mw.open_about()),
-                    item("Settings", lambda *args: bc.mw.open_setting()),
-                    item("Log", lambda *args: bc.mw.open_log()),
-                )
-            ),
-            item(
-                "Open",
-                menu(
-                    item("Export Directory", lambda *args: bc.mw.open_export_dir()),
-                    item("Log Directory", lambda *args: bc.mw.open_log_dir()),
-                    item("Model Directory", lambda *args: bc.mw.open_model_dir()),
+                    item("About", lambda *args: bc.mw.open_about()),  # type: ignore
+                    item("Settings", lambda *args: bc.mw.open_setting()),  # type: ignore
+                    item("Log", lambda *args: bc.mw.open_log()),  # type: ignore
+                    menu.SEPARATOR,
+                    item("Export Directory", lambda *args: bc.mw.open_export_dir()),  # type: ignore
+                    item("Log Directory", lambda *args: bc.mw.open_log_dir()),  # type: ignore
+                    item("Model Directory", lambda *args: bc.mw.open_model_dir()),  # type: ignore
                 )
             ),
             item(
                 "Show",
                 menu(
-                    item("Transcribed Speech Subtitle Window", lambda *args: bc.mw.open_detached_tcw()),
-                    item("Translated Speech Subtitle Window", lambda *args: bc.mw.open_detached_tlw()),
+                    item("Transcribed Speech Subtitle Window", lambda *args: bc.mw.open_detached_tcw()),  # type: ignore
+                    item("Translated Speech Subtitle Window", lambda *args: bc.mw.open_detached_tlw()),  # type: ignore
                 )
             ),
             item(
                 "Action",
                 menu(
-                    item("Record", lambda *args: self.open_app() or bc.mw.root.after(0, lambda: bc.mw.rec())),
-                    item("Import File", lambda *args: self.open_app() or bc.mw.root.after(0, lambda: bc.mw.import_file())),
-                    item("Align Result", lambda *args: self.open_app() or bc.mw.root.after(0, lambda: bc.mw.align_file())),
-                    item("Refine Result", lambda *args: self.open_app() or bc.mw.root.after(0, lambda: bc.mw.refine_file())),
-                    item("Translate Result", lambda *args: self.open_app() or bc.mw.root.after(0, lambda: bc.mw.translate_file())),
+                    item("Record",
+                         lambda *args: self.open_app() or bc.mw.root.after(0, lambda: bc.mw.rec())),  # type: ignore
+                    item("Import File",
+                         lambda *args: self.open_app() or bc.mw.root.after(0, lambda: bc.mw.import_file())),  # type: ignore
+                    item("Align Result",
+                         lambda *args: self.open_app() or bc.mw.root.after(0, lambda: bc.mw.align_file())),  # type: ignore
+                    item("Refine Result",
+                         lambda *args: self.open_app() or bc.mw.root.after(0, lambda: bc.mw.refine_file())),  # type: ignore
+                    item(
+                        "Translate Result",
+                        lambda *args: self.open_app() or bc.mw.root.after(0, lambda: bc.mw.translate_file())  # type: ignore
+                    ),
                 )
             ),
             menu.SEPARATOR,
             item("Visit Repository", lambda *args: open_url("https://github.com/Dadangdut33/Speech-Translate")),
             item("Read Wiki", lambda *args: open_url("https://github.com/Dadangdut33/Speech-Translate/wiki")),
-            item("Check for Update", lambda *args: bc.mw.check_update()),
+            item("Check for Update", lambda *args: bc.mw.check_update()),  # type: ignore
             menu.SEPARATOR,
             item("Exit", self.exit_app),
             item("Hidden onclick", self.open_app, default=True, visible=False),  # onclick the icon will open_app

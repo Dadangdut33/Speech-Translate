@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from typing import Literal, Optional, TypedDict, List, Union
 
 
@@ -53,7 +52,6 @@ class OriSegmentResult(TypedDict):
     words: List[OriWordResult]
 
 
-@dataclass
 class StableTsResultDict(TypedDict):
     text: str
     segments: List[StableTsSegmentResult]

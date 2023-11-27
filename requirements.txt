@@ -19,5 +19,5 @@ darkdetect==0.8.0
 matplotlib==3.8.0
 onnxruntime==1.16.1
 demucs==4.0.1
-stable-ts @ git+https://github.com/jianfch/stable-ts.git@71b9f1fcbd1268f8bfe95bba6a394a2bc2e7339b
+stable-ts @ git+https://github.com/jianfch/stable-ts.git@900797a90a35b09fef9fe13574e963dc6a58aa56
 faster-whisper @ git+https://github.com/SYSTRAN/faster-whisper.git@e1a218fab1ab02d637b79565995bf1a9c4c83a09
