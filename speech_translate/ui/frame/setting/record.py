@@ -374,7 +374,7 @@ class SettingRecord:
         self.f_mic_recording_2.pack(side="top", fill="x", pady=5, padx=5)
 
         self.f_mic_recording_3 = ttk.Frame(self.lf_mic_recording)
-        self.f_mic_recording_3.pack(side="top", fill="x", pady=(5, 0), padx=5)
+        self.f_mic_recording_3.pack(side="top", fill="x", pady=(5, 3), padx=5)
 
         self.f_mic_recording_4 = ttk.Frame(self.lf_mic_recording)
         self.f_mic_recording_4.pack(side="top", fill="x", pady=(10, 5), padx=5)
@@ -432,6 +432,11 @@ class SettingRecord:
             style="Switch.TCheckbutton"
         )
         self.cbtn_threshold_enable_mic.pack(side="left", padx=5)
+        tk_tooltip(
+            self.cbtn_threshold_enable_mic,
+            "If checked, input will need to reach the threshold before it is considered as an input."
+            "\n\nDefault is checked",
+        )
 
         self.cbtn_threshold_auto_mic = CustomCheckButton(
             self.f_mic_recording_3,
@@ -441,7 +446,10 @@ class SettingRecord:
             style="Switch.TCheckbutton"
         )
         self.cbtn_threshold_auto_mic.pack(side="left", padx=5)
-        tk_tooltip(self.cbtn_threshold_auto_mic, "Default is checked")
+        tk_tooltip(
+            self.cbtn_threshold_auto_mic,
+            "Wether to use VAD or manual threshold for the speaker input.\n\nDefault is checked"
+        )
 
         self.cbtn_auto_break_buffer_mic = CustomCheckButton(
             self.f_mic_recording_3,
@@ -453,7 +461,7 @@ class SettingRecord:
         self.cbtn_auto_break_buffer_mic.pack(side="left", padx=5)
         tk_tooltip(
             self.cbtn_auto_break_buffer_mic,
-            "If checked, the buffer will be stopped and considered as 1 full sentence when there is silence detected. "
+            "If checked, the buffer will be stopped and considered as 1 full sentence when there is silence detected for more than 1 second. "
             "This could help in reducing the background noise."
             "\n\nDefault is checked",
         )
@@ -530,7 +538,7 @@ class SettingRecord:
         self.f_speaker_recording_2.pack(side="top", fill="x", pady=5, padx=5)
 
         self.f_speaker_recording_3 = ttk.Frame(self.lf_speaker_recording)
-        self.f_speaker_recording_3.pack(side="top", fill="x", pady=(5, 0), padx=5)
+        self.f_speaker_recording_3.pack(side="top", fill="x", pady=(5, 3), padx=5)
 
         self.f_speaker_recording_4 = ttk.Frame(self.lf_speaker_recording)
         self.f_speaker_recording_4.pack(side="top", fill="x", pady=(10, 5), padx=5)
@@ -595,6 +603,11 @@ class SettingRecord:
             style="Switch.TCheckbutton"
         )
         self.cbtn_threshold_enable_speaker.pack(side="left", padx=5)
+        tk_tooltip(
+            self.cbtn_threshold_enable_speaker,
+            "If checked, input will need to reach the threshold before it is considered as an input."
+            "\n\nDefault is checked",
+        )
 
         self.cbtn_threshold_auto_speaker = CustomCheckButton(
             self.f_speaker_recording_3,
@@ -606,7 +619,7 @@ class SettingRecord:
         self.cbtn_threshold_auto_speaker.pack(side="left", padx=5)
         tk_tooltip(
             self.cbtn_threshold_auto_speaker,
-            "Default is checked",
+            "Wether to use VAD or manual threshold for the speaker input.\n\nDefault is checked"
         )
 
         self.cbtn_auto_break_buffer_speaker = CustomCheckButton(
@@ -617,6 +630,12 @@ class SettingRecord:
             style="Switch.TCheckbutton"
         )
         self.cbtn_auto_break_buffer_speaker.pack(side="left", padx=5)
+        tk_tooltip(
+            self.cbtn_auto_break_buffer_speaker,
+            "If checked, the buffer will be stopped and considered as 1 full sentence when there is silence detected for more than 1 second. "
+            "This could help in reducing the background noise."
+            "\n\nDefault is checked",
+        )
 
         self.lbl_hint_threshold_speaker = ttk.Label(self.f_speaker_recording_3, image=bc.help_emoji, compound="left")
         self.lbl_hint_threshold_speaker.pack(side="left", padx=5)
@@ -783,22 +802,25 @@ class SettingRecord:
         if self.on_start:
             return
 
-        if not sj.cache["show_audio_visualizer"]:
-            return
-
-        mic = Thread(target=self.call_set_meter_mic, daemon=True, args=[open])
-        mic.start()
-        mic.join()
+        if not sj.cache["show_audio_visualizer_in_setting"]:
+            self.close_meter_mic()
+        else:
+            mic = Thread(target=self.call_set_meter_mic, daemon=True, args=[open])
+            mic.start()
+            mic.join()
 
         if system() == "Windows":
-            # wait for 1 second to prevent error
-            sleep(1)
-
             # for some reason, if the speaker is called right after the mic, it will not work properly
             # it will fail to catch any loopback and will crash the program completely
-            speaker = Thread(target=self.call_set_meter_speaker, daemon=True, args=[open])
-            speaker.start()
-            speaker.join()
+            # so we wait for 1 second to prevent error
+            sleep(1)
+
+            if not sj.cache["show_audio_visualizer_in_setting"]:
+                self.close_meter_speaker()
+            else:
+                speaker = Thread(target=self.call_set_meter_speaker, daemon=True, args=[open])
+                speaker.start()
+                speaker.join()
 
     # ---- Mic & Speaker ----
     def slider_mic_move(self, event):
@@ -866,7 +888,7 @@ class SettingRecord:
         if self.on_start:
             return
 
-        if not sj.cache["show_audio_visualizer"]:
+        if not sj.cache["show_audio_visualizer_in_setting"]:
             self.close_meter_mic()
             return
 
@@ -943,7 +965,7 @@ class SettingRecord:
 
     def call_set_meter_speaker(self, open=True):
         if system() == "Windows" and not self.on_start:
-            if not sj.cache["show_audio_visualizer"]:
+            if not sj.cache["show_audio_visualizer_in_setting"]:
                 self.close_meter_speaker()
                 return
 

@@ -27,12 +27,13 @@ default_setting: SettingDict = {
     "speaker": "",
     "hostAPI": "",
     "theme": "sun-valley-dark" if isDark() else "sun-valley-light",
-    "show_audio_visualizer": True,
+    "show_audio_visualizer_in_record": True,
+    "show_audio_visualizer_in_setting": False,
     "supress_hidden_to_tray": False,
     "supress_device_warning": False,
     "bypass_no_internet": False,
     "mw_size": "1200x600",
-    "sw_size": "1100x620",
+    "sw_size": "1100x630",
     "dir_log": "auto",
     "dir_model": "auto",
     "auto_verify_model_on_first_setting_open": False,
@@ -112,7 +113,7 @@ default_setting: SettingDict = {
     "export_to": ["txt", "srt", "json"],
     "segment_max_words": "",
     "segment_max_chars": "",
-    "segment_split_or_newline": "split",
+    "segment_split_or_newline": "Split",
     "segment_even_split": True,
     "segment_level": True,  # 1 of this must be true
     "word_level": True,  # 1 of this must be true
@@ -227,7 +228,7 @@ class SettingJson:
                 notification = Notify()
                 notification.application_name = "Speech Translate"
                 notification.title = "Setting file is outdated"
-                notification.message = "Setting file is outdated. Setting has been reverted to default setting."
+                notification.message = "Setting file is outdated. Setting has been reverted to default setting. You can find your old setting in the user folder."
                 notification.send()
                 logger.warning(
                     "Setting file is outdated. Setting has been reverted to default setting. "

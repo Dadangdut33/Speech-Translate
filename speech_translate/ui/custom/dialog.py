@@ -358,6 +358,7 @@ class FileImportDialog(FileOperationDialog):
             pass
 
     def add_data(self):
+        self.disable_interactions()
         files = filedialog.askopenfilenames(
             title="Select a file",
             filetypes=(
@@ -366,6 +367,7 @@ class FileImportDialog(FileOperationDialog):
                 ("All files", "*.*"),
             ),
         )
+        self.enable_interactions()
 
         if len(files) == 0:
             return

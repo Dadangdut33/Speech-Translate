@@ -70,17 +70,30 @@ class SettingGeneral:
         self.cbtn_update_on_start.pack(side="left", padx=5, pady=5)
         tk_tooltip(self.cbtn_update_on_start, "Check for app update on start.")
 
-        self.cbtn_show_audio_visualizer = CustomCheckButton(
+        self.cbtn_show_audio_visualizer_in_record = CustomCheckButton(
             self.f_application_1,
-            sj.cache["show_audio_visualizer"],
-            lambda x: sj.save_key("show_audio_visualizer", x),
-            text="Show audio visualizer",
+            sj.cache["show_audio_visualizer_in_record"],
+            lambda x: sj.save_key("show_audio_visualizer_in_record", x),
+            text="Show audio visualizer (record)",
             style="Switch.TCheckbutton"
         )
-        self.cbtn_show_audio_visualizer.pack(side="left", padx=5, pady=5)
+        self.cbtn_show_audio_visualizer_in_record.pack(side="left", padx=5, pady=5)
         tk_tooltip(
-            self.cbtn_show_audio_visualizer,
-            "Show audio visualizer when recording and in the record setting window.\n\nDisabling could improve performance."
+            self.cbtn_show_audio_visualizer_in_record,
+            "Show audio visualizer when recording in the recording modal window.\n\nDisabling could improve performance."
+        )
+
+        self.cbtn_show_audio_visualizer_in_setting = CustomCheckButton(
+            self.f_application_1,
+            sj.cache["show_audio_visualizer_in_setting"],
+            lambda x: sj.save_key("show_audio_visualizer_in_setting", x),
+            text="Show audio visualizer (setting)",
+            style="Switch.TCheckbutton"
+        )
+        self.cbtn_show_audio_visualizer_in_setting.pack(side="left", padx=5, pady=5)
+        tk_tooltip(
+            self.cbtn_show_audio_visualizer_in_setting,
+            "Show audio visualizer in the setting -> record page.\n\nDisabling could improve performance."
         )
 
         self.cbtn_supress_hidden_to_tray = CustomCheckButton(

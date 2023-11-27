@@ -202,8 +202,7 @@ def record_session(
         max_int16 = 2**15  # bit depth of 16 bit audio (32768)
         separator = str_separator_to_html(literal_eval(quote(sj.cache["separate_with"])))
         use_temp = sj.cache["use_temp"]
-        show_audio_visualizer = sj.cache["show_audio_visualizer"]
-        audiometer.set_disabled(not show_audio_visualizer)
+        audiometer.set_disabled(not sj.cache["show_audio_visualizer_in_record"])
 
         # cannot transcribe and translate concurrently. Will need to wait for the previous transcribe to finish
         if transcribe and translate and tl_engine_whisper:
@@ -223,6 +222,7 @@ def record_session(
 
         # if both demucs and vad is enabled, use file instead of numpy array to avoid error
         if whisper_args["demucs"] and whisper_args["vad"]:
+            logger.info("Both demucs and vad is enabled. Force using file instead of numpy array")
             use_temp = True
 
         cuda_device = model_args["device"]

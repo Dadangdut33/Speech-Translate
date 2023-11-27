@@ -7,6 +7,7 @@ from speech_translate.ui.frame.setting.general import SettingGeneral
 from speech_translate.ui.frame.setting.record import SettingRecord
 from speech_translate.ui.frame.setting.textbox import SettingTextbox
 from speech_translate.ui.frame.setting.transcribe import SettingTranscribe
+from speech_translate.ui.frame.setting.export import SettingExport
 from speech_translate.ui.frame.setting.translate import SettingTranslate
 from speech_translate.linker import bc, sj
 from speech_translate.utils.helper import bind_focus_recursively
@@ -52,7 +53,10 @@ class SettingWindow:
         self.tab_control.add(self.ft_record, text="Device - Record")
 
         self.ft_transcribe = ttk.Frame(self.tab_control)
-        self.tab_control.add(self.ft_transcribe, text="Whisper - File Export")
+        self.tab_control.add(self.ft_transcribe, text="Whisper")
+
+        self.ft_export = ttk.Frame(self.tab_control)
+        self.tab_control.add(self.ft_export, text="File Export")
 
         self.ft_translate = ttk.Frame(self.tab_control)
         self.tab_control.add(self.ft_translate, text="Translate")
@@ -64,6 +68,7 @@ class SettingWindow:
         self.f_general = SettingGeneral(self.root, self.ft_general)
         self.f_record = SettingRecord(self.root, self.ft_record)
         self.f_transcribe = SettingTranscribe(self.root, self.ft_transcribe)
+        self.f_export = SettingExport(self.root, self.ft_export)
         self.f_translate = SettingTranslate(self.root, self.ft_translate)
         self.f_textbox = SettingTextbox(self.root, self.ft_textbox)
 

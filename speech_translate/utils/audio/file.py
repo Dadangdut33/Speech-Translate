@@ -19,7 +19,7 @@ from speech_translate.ui.custom.dialog import ModResultInputDialog, FileProcessD
 from speech_translate.ui.custom.message import mbox
 
 from ..helper import cbtn_invoker, get_proxies, native_notify, filename_only, start_file, up_first_case, get_list_of_dict, kill_thread
-from ..whisper.helper import get_model, get_model_args, get_tc_args, save_output_stable_ts, model_values, to_language_name, get_task_format
+from ..whisper.helper import get_model, get_model_args, get_tc_args, save_output_stable_ts, model_values, to_language_name, get_task_format, split_res, result_to_dict
 from ..translate.translator import translate
 
 # Global variable
@@ -123,15 +123,15 @@ def run_translate_api(
                 raise Exception(result)
 
             # dont forget to also add space back because its removed automatically in the api call
-            segment.text = result.pop(0) + " "
+            segment.text = " " + result.pop(0)
 
             # because each word is taken from the text, we can replace the word with the translated text
             # but we first need to check the  of splitted translated text because sometimes its not the same length as the original
-            temp = segment.text.split()
-            translated_word_length = len(temp)
+            temp_words = segment.text.split()
+            translated_word_length = len(temp_words)
             if translated_word_length == len(segment.words):
                 for word in segment.words:
-                    word.word = temp.pop(0) + " "
+                    word.word = " " + temp_words.pop(0)
             else:
                 # This is somewhat brute force but it should work just fine. Keep in mind that the timing might be a bit off
                 # considering that we are replacing the words in the segment without knowing the previous value
@@ -156,15 +156,15 @@ def run_translate_api(
                 # if hit limit, just add the rest of the words to the last word in the segment
                 if translated_word_length > len(segment.words):
                     logger.debug("TL word > Original word")
-                    for index, word in enumerate(temp):
+                    for index, word in enumerate(temp_words):
                         nearest = nearest_array_index(segment.words, index)
 
                         # adding until hit the limit
                         if index < len(segment.words):
-                            segment.words[nearest].word = word + " "
+                            segment.words[nearest].word = " " + word
                         else:
                             # hit limit, just add the rest of the words
-                            segment.words[nearest].word += f"{word} "
+                            segment.words[nearest].word += f" {word}"
                 # if tl word length < original word length, add until hit the limit (tl word length)
                 # delete the rest of the words and then update the last word segment timing
                 else:
@@ -172,17 +172,14 @@ def run_translate_api(
                     # get last word segment
                     last_word = segment.words[-1]
 
-                    for index, word in enumerate(temp):
-                        segment.words[index].word = word + " "
+                    for index, word in enumerate(temp_words):
+                        segment.words[index].word = " " + word
 
                     # delete the over boundary word that is probably not needed
                     segment.words = delete_elements_after_index(segment.words, translated_word_length - 1)
 
-                    # now update the new one with last word segment timing while removing the trailing space
+                    # now update the new one with last word segment timing
                     segment.words[-1].end = last_word.end
-
-            # remove trailing space in last word
-            segment.words[-1].word = segment.words[-1].word.rstrip()
 
         sys.stderr.write(f"Translation with {engine} done\n")
     except Exception as e:
@@ -306,11 +303,13 @@ def cancellable_tc(
 
         # export if transcribe mode is on
         if transcribe:
+            result_tc_save = stable_whisper.WhisperResult(result_to_dict(result_tc))
+            result_tc_save = split_res(result_tc_save, sj.cache)
             result_text = result_tc.text.strip()
 
             if len(result_text) > 0:
                 bc.file_tced_counter += 1
-                save_output_stable_ts(result_tc, path.join(export_to, f_name), sj.cache["export_to"], sj)
+                save_output_stable_ts(result_tc_save, path.join(export_to, f_name), sj.cache["export_to"], sj)
             else:
                 logger.warning("Transcribed Text is empty")
                 update_q_process(processed_tc, tracker_index, "TC Fail! Got empty transcribed text")
@@ -329,7 +328,8 @@ def cancellable_tc(
                 meta["transcribe_success"] = True
 
             with open(p, "w", encoding="utf-8") as f:
-                json.dump(meta, f, indent=4)
+                json.dump(meta, f, ensure_ascii=False, indent=4)
+            logger.debug("Updated tc metadata")
         except Exception as e:
             logger.exception(e)
             logger.error("Failed to update metadata")
@@ -338,10 +338,10 @@ def cancellable_tc(
         if translate:
             # send result as srt if not using whisper because it will be send to translation API.
             # If using whisper translation will be done using whisper model
-            to_tl = result_tc if engine not in model_values else audio_name
+            res_to_tl = result_tc if engine not in model_values else audio_name
             translateThread = Thread(
                 target=cancellable_tl,
-                args=[to_tl, lang_source, lang_target, stable_tl, engine, auto, save_name, save_meta, tracker_index],
+                args=[res_to_tl, lang_source, lang_target, stable_tl, engine, auto, save_name, save_meta, tracker_index],
                 kwargs=whisper_args,
                 daemon=True,
             )
@@ -377,8 +377,8 @@ def cancellable_tl(
 
     Args
     ----
-    query: str
-        audio file path if engine is whisper, text in .srt format if engine is translation API
+    query: str or stable_whisper.WhisperResult
+        audio file path if engine is whisper, result of whisper process if engine is not whisper
     lang_source: str
         source language
     lang_target: str
@@ -461,9 +461,11 @@ def cancellable_tl(
                 update_q_process(processed_tl, tracker_index, "TL Fail! Got empty translated text")
                 return
 
+            result_tl = split_res(result_tl, sj.cache)
             bc.file_tled_counter += 1
             save_output_stable_ts(result_tl, path.join(export_to, f_name), sj.cache["export_to"], sj)
         else:
+            # when using TL API, query is the result of whisper process
             assert isinstance(query, stable_whisper.WhisperResult)
             if len(query.text.strip()) == 0:
                 logger.warning("Translated Text is empty")
@@ -499,6 +501,7 @@ def cancellable_tl(
                 raise Exception(fail_status[1])
 
             bc.file_tled_counter += 1
+            query = split_res(query, sj.cache)
             save_output_stable_ts(query, path.join(export_to, f_name), sj.cache["export_to"], sj)
 
         update_q_process(processed_tl, tracker_index, "Translated")
@@ -515,7 +518,9 @@ def cancellable_tl(
                 meta["translate_success"] = True
 
             with open(p, "w", encoding="utf-8") as f:
-                json.dump(meta, f, indent=4)
+                json.dump(meta, f, ensure_ascii=False, indent=4)
+
+            logger.debug("Updated tl metadata")
         except Exception as e:
             logger.exception(e)
             logger.error("Failed to update metadata")
@@ -678,15 +683,10 @@ def process_file(
                     fp.lbl_elapsed.set_text(text=f"{strftime('%H:%M:%S', gmtime(time() - t_start))}")
 
                     if local_file_import_counter > 0:
-                        fp.lbl_files.set_text(
-                            text=
-                            f"{local_file_import_counter}/{len(data_files)} ({filename_only(data_files[local_file_import_counter - 1])})"
-                        )
+                        cur_file = f"{local_file_import_counter}/{len(data_files)} ({filename_only(data_files[local_file_import_counter - 1])})"
                     else:
-                        fp.lbl_files.set_text(
-                            text=
-                            f"{local_file_import_counter}/{len(data_files)} ({filename_only(data_files[local_file_import_counter])})"
-                        )
+                        cur_file = f"{local_file_import_counter}/{len(data_files)} ({filename_only(data_files[local_file_import_counter])})"
+                    fp.lbl_files.set_text(text=cur_file)
 
                     processed = ""
                     if transcribe:
@@ -710,7 +710,7 @@ def process_file(
                     new = get_queue_data()
                     if new != prev_q_data:
                         prev_q_data = new
-                        fp.queue_window.update_sheet(get_queue_data())
+                        fp.queue_window.update_sheet(new)
 
                     sleep(1)
                 except Exception as e:
@@ -750,20 +750,6 @@ def process_file(
             logger.debug("Save_name: " + save_name)
             export_to = dir_export if sj.cache["dir_export"] == "auto" else sj.cache["dir_export"]
 
-            if visualize_suppression:
-                save_visual = save_name
-                format_dict = get_task_format(
-                    "visualized",
-                    f"visualized {lang_source}",
-                    f"visualized with {model_name_tc}",
-                    f"visualized {lang_source} with {model_name_tc}",
-                    both=True
-                )
-                for fmt, value in format_dict.items():
-                    save_visual = save_visual.replace(fmt, value)
-
-                stable_whisper.visualize_suppression(file, path.join(export_to, save_name + ".png"))
-
             save_meta = save_name
             format_dict = get_task_format("metadata", "metadata", "metadata", "metadata", both=True)
             for fmt, value in format_dict.items():
@@ -771,8 +757,26 @@ def process_file(
 
             p = path.join(export_to, save_meta + ".json")
             makedirs(path.dirname(p), exist_ok=True)
+            if visualize_suppression:
+                save_visual = save_name
+                format_dict = get_task_format(
+                    "visualized supression",
+                    "visualized supression",
+                    f"visualized supression with vad {whisper_args['vad']}",
+                    f"visualized supression with vad {whisper_args['vad']}",
+                    both=True
+                )
+                for fmt, value in format_dict.items():
+                    save_visual = save_visual.replace(fmt, value)
+
+                stable_whisper.visualize_suppression(
+                    file, path.join(export_to, save_visual + ".png"), vad=whisper_args["vad"]
+                )
+                logger.debug("saved visualized suppression")
+
             with open(p, "w", encoding="utf-8") as f:
                 meta = {
+                    "meta_written_at": str(datetime.now()),
                     "task": taskname,
                     "filename": file_name,
                     "transcribe": transcribe,
@@ -782,8 +786,20 @@ def process_file(
                     "engine": engine if translate else "",
                     "source_language": lang_source,
                     "target_language": lang_target if translate else "",
+                    "visualize_supression": visualize_suppression,
+                    "segment_level": sj.cache["segment_level"],
+                    "word_level": sj.cache["word_level"],
+                    "segment_limit": {
+                        "segment_max_words": sj.cache["segment_max_words"],
+                        "segment_max_chars": sj.cache["segment_max_chars"],
+                        "segment_split_or_newline": sj.cache["segment_split_or_newline"],
+                        "segment_even_split": sj.cache["segment_even_split"],
+                    },
+                    "model_args": model_args,
+                    "whisper_args": whisper_args,
                 }
-                f.write(json.dumps(meta, indent=4))
+                f.write(json.dumps(meta, ensure_ascii=False, indent=4))
+                logger.debug("saved metadata")
 
             # if only translating and using the whisper engine
             if translate and not transcribe and tl_engine_whisper:
@@ -979,25 +995,19 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
                     fp.lbl_elapsed.set_text(text=f"{strftime('%H:%M:%S', gmtime(time() - t_start))}")
 
                     if bc.mod_file_counter > 0:
-                        fp.lbl_files.set_text(
-                            text=
-                            f"{bc.mod_file_counter}/{len(data_files)} ({filename_only(data_files[bc.mod_file_counter - 1][0])})"
-                        )
+                        cur_file = f"{bc.mod_file_counter}/{len(data_files)} ({filename_only(data_files[bc.mod_file_counter - 1][0])})"
                     else:
-                        fp.lbl_files.set_text(
-                            text=
-                            f"{bc.mod_file_counter}/{len(data_files)} ({filename_only(data_files[bc.mod_file_counter][0])})"
-                        )
+                        cur_file = f"{bc.mod_file_counter}/{len(data_files)} ({filename_only(data_files[bc.mod_file_counter][0])})"
+                    fp.lbl_files.set_text(text=cur_file)
 
                     fp.lbl_processed.set_text(text=f"{bc.mod_file_counter}")
-
                     # update progressbar
                     prog_file_len = len(data_files)
                     fp.progress_bar["value"] = (bc.mod_file_counter / prog_file_len * 100)
                     new = get_queue_data()
                     if new != prev_q_data:
                         prev_q_data = new
-                        fp.queue_window.update_sheet(get_queue_data())
+                        fp.queue_window.update_sheet(new)
 
                     sleep(1)
                 except Exception as e:
@@ -1149,6 +1159,7 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
                 continue
 
             result: stable_whisper.WhisperResult = bc.data_queue.get()
+            result = split_res(result, sj.cache)
             if result.language is None:  # it could result to None when using faster whisper on alignment
                 if mod_args["language"] is not None:
                     result.language = mod_args["language"]
@@ -1162,13 +1173,15 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
             makedirs(path.dirname(p), exist_ok=True)
             with open(p, "w", encoding="utf-8") as f:
                 meta = {
+                    "meta_written_at": str(datetime.now()),
                     "task": "Mod Result (Refinement)" if mode == "refinement" else "Mod Result (Alignment)",
                     "filename": file_name,
                     "model": model_name_tc,
                     "using_faster_whisper": sj.cache["use_faster_whisper"],
                     "time": time() - start,
                 }
-                f.write(json.dumps(meta, indent=4))
+                f.write(json.dumps(meta, ensure_ascii=False, indent=4))
+                logger.debug("saved metadata")
 
             while adding:
                 sleep(0.3)
@@ -1303,24 +1316,19 @@ def translate_result(data_files: List, engine: str, lang_target: str):
                     fp.lbl_elapsed.set_text(text=f"{strftime('%H:%M:%S', gmtime(time() - t_start))}")
 
                     if bc.mod_file_counter > 0:
-                        fp.lbl_files.set_text(
-                            text=
-                            f"{bc.mod_file_counter}/{len(data_files)} ({filename_only(data_files[bc.mod_file_counter - 1])})"
-                        )
+                        cur_file = f"{bc.mod_file_counter}/{len(data_files)} ({filename_only(data_files[bc.mod_file_counter - 1][0])})"
                     else:
-                        fp.lbl_files.set_text(
-                            text=f"{bc.mod_file_counter}/{len(data_files)} ({filename_only(data_files[bc.mod_file_counter])})"
-                        )
+                        cur_file = f"{bc.mod_file_counter}/{len(data_files)} ({filename_only(data_files[bc.mod_file_counter][0])})"
+                    fp.lbl_files.set_text(text=cur_file)
 
                     fp.lbl_processed.set_text(text=f"{bc.mod_file_counter}")
-
                     # update progressbar
                     prog_file_len = len(data_files)
                     fp.progress_bar["value"] = (bc.mod_file_counter / prog_file_len * 100)
                     new = get_queue_data()
                     if new != prev_q_data:
                         prev_q_data = new
-                        fp.queue_window.update_sheet(get_queue_data())
+                        fp.queue_window.update_sheet(new)
 
                     sleep(1)
                 except Exception as e:
@@ -1357,7 +1365,7 @@ def translate_result(data_files: List, engine: str, lang_target: str):
                 update_q_process(processed, bc.mod_file_counter, "Failed to parse or read file (check log)")
                 continue
 
-            lang_source = to_language_name(result.language) or "auto"
+            lang_source = to_language_name(result.language) or "auto"  # type: ignore
             tl_args["lang_source"] = lang_source  # convert from lang code to language name
             if not verify_language_in_key(lang_source, engine):
                 logger.warning(
@@ -1422,6 +1430,7 @@ def translate_result(data_files: List, engine: str, lang_target: str):
             makedirs(path.dirname(p), exist_ok=True)
             with open(p, "w", encoding="utf-8") as f:
                 meta = {
+                    "meta_written_at": str(datetime.now()),
                     "task": "Translate Whisper Result",
                     "filename": file_name,
                     "engine": engine,
@@ -1429,7 +1438,8 @@ def translate_result(data_files: List, engine: str, lang_target: str):
                     "target_language": lang_target,
                     "time": time() - start,
                 }
-                f.write(json.dumps(meta, indent=4))
+                f.write(json.dumps(meta, ensure_ascii=False, indent=4))
+                logger.debug("saved metadata")
 
             while adding:
                 sleep(0.3)

@@ -16,7 +16,7 @@ from stable_whisper import WhisperResult
 from tkhtmlview import HTMLText
 
 from speech_translate._constants import APP_NAME
-from speech_translate._path import app_icon
+from speech_translate._path import app_icon, dir_export, dir_log
 from speech_translate._version import __version__
 from speech_translate.ui.custom.checkbutton import CustomCheckButton
 from speech_translate.ui.custom.combobox import CategorizedComboBox, ComboboxWithKeyNav
@@ -164,7 +164,7 @@ class MainWindow:
         bc.open_emoji = emoji_img(13, "     ↗️")
         bc.trash_emoji = emoji_img(13, "     🗑️")
         bc.reset_emoji = emoji_img(13, " 🔄")
-        bc.question_emoji = emoji_img(16, "❓")
+        bc.question_emoji = emoji_img(16, "❔")
         bc.cuda = check_cuda_and_gpu()
 
         # ------------------ Frames ------------------
@@ -495,6 +495,10 @@ class MainWindow:
         self.fm_view = Menu(self.menubar, tearoff=0)
         self.fm_view.add_command(label="Settings", command=self.open_setting, accelerator="F2")
         self.fm_view.add_command(label="Log", command=self.open_log, accelerator="Ctrl+F1")
+        self.fm_view.add_separator()
+        self.fm_view.add_command(label="Export Directory", command=self.open_export_dir)
+        self.fm_view.add_command(label="Log Directory", command=self.open_log_dir)
+        self.fm_view.add_command(label="Model Directory", command=self.open_model_dir)
         self.menubar.add_cascade(label="View", menu=self.fm_view)
 
         self.fm_show = Menu(self.menubar, tearoff=0)
@@ -638,6 +642,15 @@ class MainWindow:
     def toggle_always_on_top(self):
         self.always_on_top = not self.always_on_top
         self.root.wm_attributes("-topmost", self.always_on_top)
+
+    def open_export_dir(self):
+        open_folder(sj.cache["dir_export"] if sj.cache["dir_export"] != "auto" else dir_export)
+
+    def open_log_dir(self):
+        open_folder(sj.cache["dir_log"] if sj.cache["dir_log"] != "auto" else dir_log)
+
+    def open_model_dir(self):
+        open_folder(sj.cache["dir_model"] if sj.cache["dir_log"] != "auto" else get_default_download_root())
 
     # ------------------ Open External Window ------------------
     def open_about(self, _event=None):

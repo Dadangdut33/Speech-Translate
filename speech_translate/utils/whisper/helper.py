@@ -460,6 +460,7 @@ def save_output_stable_ts(
 
     for format in output_formats:
         outname = fname_dupe_check(outname, format)
+        logger.debug(f"Saving to {format}")
 
         if format == "txt":
             # save txt
@@ -485,6 +486,21 @@ def save_output_stable_ts(
             }
             if format == "vtt":
                 kwargs_to_pass["vtt"] = True
+
+            if format == "tsv":
+                # must keep only segment or word level
+                # prioritize word level
+                logger.debug("Format is TSV so we only keep 1 type of export level")
+                if kwargs_to_pass["word_level"]:
+                    logger.debug("Prioritizing word level format")
+                    kwargs_to_pass["segment_level"] = False
+                if kwargs_to_pass["segment_level"]:
+                    logger.debug("Using segment level format")
+                    kwargs_to_pass["word_level"] = False
+
+                if not kwargs_to_pass["word_level"] and not kwargs_to_pass["segment_level"]:
+                    logger.warning("Somehow both word level and segment level is False ??, setting segment level to True")
+                    kwargs_to_pass["word_level"] = True
 
             args = parse_args_stable_ts(sj.cache["whisper_args"], "save", save_method, **kwargs_to_pass)
             args.pop('success')  # no need to check, because it probably have been checked before since this is the last step
@@ -840,3 +856,31 @@ def get_task_format(
         return both
     else:
         raise ValueError("normal_only, short_only, and both can't be all False")
+
+
+def split_res(result: stable_whisper.WhisperResult, sj_cache: SettingDict):
+    """Split the segment results if max char or max word is set
+    
+    Parameters
+    ----------
+    result : WhisperResult
+        The result from whisper
+    sj : SettingDict
+        The setting value
+
+    Returns
+    -------
+    WhisperResult
+        The result after splitting
+
+    """
+
+    if sj_cache["segment_max_chars"] == "" and sj_cache["segment_max_words"] == "":
+        return result  # no splitting done
+
+    return result.split_by_length(
+        max_chars=int(sj_cache["segment_max_chars"]) if sj_cache["segment_max_chars"] != "" else None,
+        max_words=int(sj_cache["segment_max_words"]) if sj_cache["segment_max_words"] != "" else None,
+        newline=str(sj_cache["segment_split_or_newline"]).lower() == "newline",
+        even_split=sj_cache["segment_even_split"]
+    )
