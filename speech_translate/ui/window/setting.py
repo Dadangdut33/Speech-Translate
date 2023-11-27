@@ -103,7 +103,7 @@ class SettingWindow:
         self.root.withdraw()
 
     def show(self):
-        self.root.after(0, self.root.deiconify)
+        self.root.deiconify()
 
         if not self.f_general.model_checked and sj.cache["auto_verify_model_on_first_setting_open"]:
             Thread(target=self.f_general.check_model_on_first_open, daemon=True).start()

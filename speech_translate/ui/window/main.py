@@ -60,7 +60,7 @@ class AppTray:
     Tray app
     """
     def __init__(self):
-        self.icon: icon = None  # type: ignore
+        self.tray: icon = None  # type: ignore
         self.menu: menu = None  # type: ignore
         self.menu_items = None  # type: ignore
         bc.tray = self
@@ -80,38 +80,62 @@ class AppTray:
     # -- Create tray
     def create_tray(self):
         try:
-            trayIco = Image.open(app_icon)
+            ico = Image.open(app_icon)
         except Exception:
-            trayIco = self.create_image(64, 64, "black", "white")
+            ico = self.create_image(64, 64, "black", "white")
 
         self.menu_items = (
             item(f"{APP_NAME} {__version__}", lambda *args: None, enabled=False),  # do nothing
-            menu.SEPARATOR,
-            item("About", self.open_about),
-            item("Settings", self.open_setting),
             item("Show Main Window", self.open_app),
+            menu.SEPARATOR,
+            item(
+                "View",
+                menu(
+                    item("About", lambda *args: bc.mw.open_about()),
+                    item("Settings", lambda *args: bc.mw.open_setting()),
+                    item("Log", lambda *args: bc.mw.open_log()),
+                )
+            ),
+            item(
+                "Open",
+                menu(
+                    item("Export Directory", lambda *args: bc.mw.open_export_dir()),
+                    item("Log Directory", lambda *args: bc.mw.open_log_dir()),
+                    item("Model Directory", lambda *args: bc.mw.open_model_dir()),
+                )
+            ),
+            item(
+                "Show",
+                menu(
+                    item("Transcribed Speech Subtitle Window", lambda *args: bc.mw.open_detached_tcw()),
+                    item("Translated Speech Subtitle Window", lambda *args: bc.mw.open_detached_tlw()),
+                )
+            ),
+            item(
+                "Action",
+                menu(
+                    item("Record", lambda *args: self.open_app() or bc.mw.root.after(0, lambda: bc.mw.rec())),
+                    item("Import File", lambda *args: self.open_app() or bc.mw.root.after(0, lambda: bc.mw.import_file())),
+                    item("Align Result", lambda *args: self.open_app() or bc.mw.root.after(0, lambda: bc.mw.align_file())),
+                    item("Refine Result", lambda *args: self.open_app() or bc.mw.root.after(0, lambda: bc.mw.refine_file())),
+                    item("Translate Result", lambda *args: self.open_app() or bc.mw.root.after(0, lambda: bc.mw.translate_file())),
+                )
+            ),
+            menu.SEPARATOR,
+            item("Visit Repository", lambda *args: open_url("https://github.com/Dadangdut33/Speech-Translate")),
+            item("Read Wiki", lambda *args: open_url("https://github.com/Dadangdut33/Speech-Translate/wiki")),
+            item("Check for Update", lambda *args: bc.mw.check_update()),
             menu.SEPARATOR,
             item("Exit", self.exit_app),
             item("Hidden onclick", self.open_app, default=True, visible=False),  # onclick the icon will open_app
         )
         self.menu = menu(*self.menu_items)
-        self.icon = icon("Speech Translate", trayIco, f"Speech Translate V{__version__}", self.menu)
-        self.icon.run_detached()
+        self.tray = icon("Speech Translate", ico, f"Speech Translate V{__version__}", self.menu)
+        self.tray.run_detached()
 
-    # -- Open app
     def open_app(self):
-        assert bc.mw is not None  # Show main window
-        bc.mw.show_window()
-
-    # -- Open setting window
-    def open_setting(self):
-        assert bc.sw is not None
-        bc.sw.show()
-
-    # -- Open about window
-    def open_about(self):
-        assert bc.about is not None
-        bc.about.show()
+        assert bc.mw is not None
+        bc.mw.show()
 
     # -- Exit app by flagging runing false to stop main loop
     def exit_app(self):
@@ -564,7 +588,7 @@ class MainWindow:
 
         logger.info("Stopping tray...")
         if bc.tray:
-            bc.tray.icon.stop()
+            bc.tray.tray.stop()
 
         # destroy windows
         logger.info("Destroying windows...")
@@ -617,7 +641,7 @@ class MainWindow:
         main(with_log_init=False)
 
     # Show window
-    def show_window(self):
+    def show(self):
         self.root.after(0, self.root.deiconify)
 
     # Close window
@@ -652,30 +676,31 @@ class MainWindow:
     def open_model_dir(self):
         open_folder(sj.cache["dir_model"] if sj.cache["dir_log"] != "auto" else get_default_download_root())
 
-    # ------------------ Open External Window ------------------
+    # ------------------ With After ------------------
+    # So that we can call it from outside the mainloop
     def open_about(self, _event=None):
         assert bc.about is not None
-        bc.about.show()
+        self.root.after(0, lambda: bc.about.show())  # type: ignore
 
     def check_update(self, _event=None):
         assert bc.about is not None
-        bc.about.check_for_update(notify_up_to_date=True)
+        self.root.after(0, lambda: bc.about.check_for_update(notify_up_to_date=True))  # type: ignore
 
     def open_setting(self, _event=None):
         assert bc.sw is not None
-        bc.sw.show()
+        self.root.after(0, lambda: bc.sw.show())  # type: ignore
 
     def open_log(self, _event=None):
         assert bc.lw is not None
-        bc.lw.show()
+        self.root.after(0, lambda: bc.lw.show())  # type: ignore
 
     def open_detached_tcw(self, _event=None):
         assert bc.ex_tcw is not None
-        bc.ex_tcw.show()
+        self.root.after(0, lambda: bc.ex_tcw.show())  # type: ignore
 
     def open_detached_tlw(self, _event=None):
         assert bc.ex_tlw is not None
-        bc.ex_tlw.show()
+        self.root.after(0, lambda: bc.ex_tlw.show())  # type: ignore
 
     # ------------------ Functions ------------------
     # error

@@ -123,7 +123,7 @@ class AboutWindow:
 
     # Show/Hide
     def show(self):
-        self.root.after(0, self.root.deiconify)
+        self.root.deiconify()
 
     def on_closing(self):
         self.root.wm_withdraw()
