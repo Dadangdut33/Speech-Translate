@@ -1177,6 +1177,8 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
                     "model": model_name_tc,
                     "using_faster_whisper": sj.cache["use_faster_whisper"],
                     "time": time() - start,
+                    "model_args": model_args,
+                    "whisper_args": mod_args,
                 }
                 f.write(json.dumps(meta, ensure_ascii=False, indent=4))
                 logger.debug("saved metadata")
