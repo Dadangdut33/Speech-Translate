@@ -679,7 +679,6 @@ def process_file(
             prev_q_data = []
             while bc.file_processing:
                 try:
-                    fp.lbl_files.set_text(text=f"{local_file_import_counter}/{len(data_files)}")
                     fp.lbl_elapsed.set_text(text=f"{strftime('%H:%M:%S', gmtime(time() - t_start))}")
 
                     if local_file_import_counter > 0:
@@ -991,7 +990,6 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
             prev_q_data = []
             while bc.file_processing:
                 try:
-                    fp.lbl_files.set_text(text=f"{bc.mod_file_counter}/{len(data_files)}")
                     fp.lbl_elapsed.set_text(text=f"{strftime('%H:%M:%S', gmtime(time() - t_start))}")
 
                     if bc.mod_file_counter > 0:
@@ -1312,7 +1310,6 @@ def translate_result(data_files: List, engine: str, lang_target: str):
             prev_q_data = []
             while bc.file_processing:
                 try:
-                    fp.lbl_files.set_text(text=f"{bc.mod_file_counter}/{len(data_files)}")
                     fp.lbl_elapsed.set_text(text=f"{strftime('%H:%M:%S', gmtime(time() - t_start))}")
 
                     if bc.mod_file_counter > 0:

@@ -1467,14 +1467,15 @@ class MainWindow:
         # check model first
         tl_whisper = tl_engine in model_keys
         model_tc = None
+        m_check_kwargs = {"disabler": self.disable_interactions, "enabler": self.enable_interactions}
         if tc:  # check tc model if tc
-            status, model_tc = self.check_model(m_key, source == "english", "mic record", self.rec)
+            status, model_tc = self.check_model(m_key, source == "english", "mic record", self.rec, **m_check_kwargs)
             if not status:
                 return
 
         if tl and tl_whisper:
             # if tl and using whisper engine, check model
-            status, tl_engine = self.check_model(tl_engine, source == "english", "recording", self.rec)
+            status, tl_engine = self.check_model(tl_engine, source == "english", "recording", self.rec, **m_check_kwargs)
             if not status:
                 return
 
