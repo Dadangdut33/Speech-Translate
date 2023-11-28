@@ -1437,6 +1437,18 @@ class MainWindow:
 
     # ------------------ Rec ------------------
     def rec(self):
+        if bc.dl_thread and bc.dl_thread.is_alive():
+            mbox(
+                "Please wait! A model is being downloaded",
+                "A Model is still being downloaded! Please wait until it finishes first!",
+                1,
+            )
+            return
+
+        # if rec widget is disabled, return
+        if "disabled" in self.btn_record.state():
+            return
+
         is_speaker = "selected" in self.radio_speaker.state()
         if is_speaker and system() != "Windows":  # double checking. Speaker input is only available on Windows
             mbox(
@@ -1447,14 +1459,6 @@ class MainWindow:
                 "\n\nAfter that you can change your default input device to the virtual audio loopback.",
                 0,
                 self.root,
-            )
-            return
-
-        if bc.dl_thread and bc.dl_thread.is_alive():
-            mbox(
-                "Please wait! A model is being downloaded",
-                "A Model is still being downloaded! Please wait until it finishes first!",
-                1,
             )
             return
 
@@ -1561,6 +1565,10 @@ class MainWindow:
                 "A Model is still being downloaded! Please wait until it finishes first!",
                 1,
             )
+            return
+
+        # if import widget is disabled, return
+        if "disabled" in self.btn_import_file.state():
             return
 
         def do_process(m_key, tl_engine, source, target, tc, tl, files):
@@ -1692,6 +1700,10 @@ class MainWindow:
             )
             return
 
+        # if tool widget is disabled, return
+        if "disabled" in self.btn_tool.state():
+            return
+
         def do_process(m_key, files):
             nonlocal prompt
             # file = (source_file, mod_file)
@@ -1768,6 +1780,10 @@ class MainWindow:
                 "A Model is still being downloaded! Please wait until it finishes first!",
                 1,
             )
+            return
+
+        # if tool widget is disabled, return
+        if "disabled" in self.btn_tool.state():
             return
 
         def do_process(m_key, files):
@@ -1854,6 +1870,10 @@ class MainWindow:
                 "A Model is still being downloaded! Please wait until it finishes first!",
                 1,
             )
+            return
+
+        # if tool widget is disabled, return
+        if "disabled" in self.btn_tool.state():
             return
 
         def do_process(tl_engine, lang_target, files):
