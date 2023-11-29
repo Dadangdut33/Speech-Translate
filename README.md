@@ -44,7 +44,8 @@ Speech Translate aims to expand whisper ability by combining it with some transl
   <p align="center">
     <img src="preview/2.png" width="700" alt="Setting - General">
     <img src="preview/3.png" width="700" alt="Setting - Record">
-    <img src="preview/4.png" width="700" alt="Setting - Transcribe">
+    <img src="preview/4.png" width="700" alt="Setting - Whisper">
+    <img src="preview/4-5.png" width="700" alt="Setting - File Export">
     <img src="preview/5.png" width="700" alt="Setting - Translate">
     <img src="preview/6.png" width="700" alt="Setting - Textbox">
   </p>
