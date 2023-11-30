@@ -35,6 +35,7 @@ setup(
         "speech_translate.utils.audio",
         "speech_translate.utils.translate",
         "speech_translate.utils.tk",
+        "speech_translate.utils.custom",
         "speech_translate.utils.whisper",
         "speech_translate.ui",
         "speech_translate.ui.template",
