@@ -600,7 +600,7 @@ def record_session(
 
                     if sj.cache["debug_realtime_record"] == 1:
                         logger.debug("New translated text (Whisper)")
-                        if sj.cache["verbose"]:
+                        if sj.cache["verbose_record"]:
                             stablets_verbose_log(result)
                         else:
                             logger.debug(f"{text}")
@@ -638,7 +638,7 @@ def record_session(
                     prev_tc_res = result
 
                     if sj.cache["debug_realtime_record"] == 1:
-                        if sj.cache["verbose"]:
+                        if sj.cache["verbose_record"]:
                             stablets_verbose_log(result)
                         else:
                             logger.debug(f"New text: {text}")
@@ -818,9 +818,11 @@ def tl_whisper_threaded(
         bc.auto_detected_lang = result.language or "~"
 
         if len(text) > 0:
+            prev_tl_res = result
+
             if sj.cache["debug_realtime_record"] == 1:
                 logger.debug("New translated text (Whisper)")
-                if sj.cache["verbose"]:
+                if sj.cache["verbose_record"]:
                     stablets_verbose_log(result)
                 else:
                     logger.debug(f"{text}")
@@ -839,7 +841,7 @@ def tl_api(text: str, lang_source: str, lang_target: str, engine: str, separator
     bc.enable_tl()
 
     try:
-        global prev_tl_res, sentences_tl
+        global prev_tl_res
         debug_log = sj.cache["debug_translate"]
         proxies = get_proxies(sj.cache["http_proxy"], sj.cache["https_proxy"])
         kwargs = {}
