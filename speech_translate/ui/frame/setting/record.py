@@ -518,8 +518,8 @@ class SettingRecord:
         self.lbl_threshold_db_mic.pack(side="left", padx=5)
 
         # 5
-        self.hidden_padder_mic = ttk.Label(self.f_mic_recording_5, text="", width=10)  # hidden padder
-        self.hidden_padder_mic.pack(side="left", padx=5)
+        self.lbl_mic_emoji = ttk.Label(self.f_mic_recording_5, image=bc.mic_emoji)
+        self.lbl_mic_emoji.pack(side="left", padx=(5, 0))
 
         self.audiometer_mic = AudioMeter(
             self.f_mic_recording_5, self.master, True, MIN_THRESHOLD, MAX_THRESHOLD, height=30, width=300
@@ -710,8 +710,8 @@ class SettingRecord:
         self.lbl_threshold_db_speaker.pack(side="left", padx=5)
 
         # 5
-        self.hidden_padder_speaker = ttk.Label(self.f_speaker_recording_5, text="", width=10)  # hidden padder
-        self.hidden_padder_speaker.pack(side="left", padx=5)
+        self.lbl_speaker_emoji = ttk.Label(self.f_speaker_recording_5, image=bc.speaker_emoji, width=10)
+        self.lbl_speaker_emoji.pack(side="left", padx=(5, 0))
 
         self.audiometer_speaker = AudioMeter(
             self.f_speaker_recording_5, self.master, True, MIN_THRESHOLD, MAX_THRESHOLD, height=30, width=300
@@ -910,7 +910,6 @@ class SettingRecord:
 
     def set_meter_mic(self, open=True):
         try:
-            self.hidden_padder_mic.configure(text="", width=10, foreground="black")
             # must be enable and not in auto mode
             if open and sj.cache["threshold_enable_mic"]:
                 self.f_mic_recording_4.pack(side="top", fill="x", pady=(10, 5), padx=5)
@@ -959,7 +958,7 @@ class SettingRecord:
             # ddont show the meter, show failed message
             try:
                 self.audiometer_mic.pack_forget()
-                self.hidden_padder_mic.configure(text="Fail to load device. Check log", width=30, foreground="red")
+                self.lbl_mic_emoji.configure(text="Fail to load device. Check log", image="", width=30, foreground="red")
             except Exception as e:
                 pass
 
@@ -992,7 +991,6 @@ class SettingRecord:
             return
 
         try:
-            self.hidden_padder_speaker.configure(text="", width=10, foreground="black")
             # must be enable and not in auto mode
             if open and sj.cache["threshold_enable_speaker"]:
                 self.f_speaker_recording_4.pack(side="top", fill="x", pady=(10, 5), padx=5)
@@ -1039,7 +1037,7 @@ class SettingRecord:
             # dont show the meter, show failed message
             try:
                 self.audiometer_speaker.pack_forget()
-                self.hidden_padder_speaker.configure(text="Fail to load device. Check log", width=30, foreground="red")
+                self.lbl_speaker_emoji.configure(text="Fail to load device. Check log", image="", width=30, foreground="red")
             except Exception as e:
                 pass
 

@@ -123,7 +123,7 @@ def run_translate_api(
                 raise Exception(result)
 
             # dont forget to also add space back because its removed automatically in the api call
-            segment.text = " " + result.pop(0)
+            segment.text = " " + str(result.pop(0))
 
             # because each word is taken from the text, we can replace the word with the translated text
             # but we first need to check the  of splitted translated text because sometimes its not the same length as the original
@@ -715,7 +715,7 @@ def process_file(
                 except Exception as e:
                     if "invalid command name" not in str(e):
                         logger.exception(e)
-                        logger.warning("Failed to update modal ui")
+                        logger.warning("Failed to update modal ui | Ignore if already closed")
                     break
 
         # widgets
@@ -1011,7 +1011,7 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
                 except Exception as e:
                     if "invalid command name" not in str(e):
                         logger.exception(e)
-                        logger.warning("Failed to update modal ui")
+                        logger.warning("Failed to update modal ui | Ignore if already closed")
                     break
 
         def read_txt(file):
@@ -1333,7 +1333,7 @@ def translate_result(data_files: List, engine: str, lang_target: str):
                 except Exception as e:
                     if "invalid command name" not in str(e):
                         logger.exception(e)
-                        logger.warning("Failed to update modal ui")
+                        logger.warning("Failed to update modal ui | Ignore if already closed")
                     break
 
         # widgets

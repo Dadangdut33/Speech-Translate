@@ -107,7 +107,6 @@ class SettingDict(TypedDict):
     log_level: str
     auto_scroll_log: bool
     auto_refresh_log: bool
-    ignore_stdout: List[str]
     debug_realtime_record: bool
     debug_translate: bool
     # ------------------ #
@@ -177,14 +176,19 @@ class SettingDict(TypedDict):
     transcribe_rate: int
     decoding_preset: str  # greedy beam search custom
     temperature: str  # 0.0 - 1.0
-    best_of: int
-    beam_size: int
+    best_of: Optional[int]
+    beam_size: Optional[int]
+    patience: Optional[float]
     compression_ratio_threshold: float
     logprob_threshold: float
     no_speech_threshold: float
     suppress_tokens: str
-    initial_prompt: str
+    initial_prompt: Optional[str]
+    prefix: Optional[str]
+    suppress_blank: bool
     condition_on_previous_text: bool
+    max_initial_timestamp: float
+    fp16: bool
     whisper_args: str
     # ------------------ #
     # Textboxes

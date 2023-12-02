@@ -4,8 +4,7 @@ from typing import Literal, Union
 from speech_translate.ui.custom.checkbutton import CustomCheckButton
 from speech_translate.ui.custom.message import mbox
 
-from loguru import logger
-from stable_whisper import result_to_ass, result_to_srt_vtt, result_to_tsv, load_model, load_faster_whisper
+from stable_whisper import result_to_ass, result_to_srt_vtt, result_to_tsv, load_model, load_faster_whisper, alignment, whisper_word_level
 
 from speech_translate.linker import sj, bc
 from speech_translate._path import parameters_text
@@ -31,7 +30,7 @@ class SettingTranscribe:
         self.f_whisper_args_0 = ttk.Frame(self.lf_whisper_args)
         self.f_whisper_args_0.pack(side="top", fill="x", pady=(10, 5), padx=5)
 
-        self.lf_decoding_options = ttk.LabelFrame(self.lf_whisper_args, text="Decoding")
+        self.lf_decoding_options = ttk.LabelFrame(self.lf_whisper_args, text="Sampling Related")
         self.lf_decoding_options.pack(side="top", fill="x", pady=5, padx=5)
 
         self.f_decoding_1 = ttk.Frame(self.lf_decoding_options)
@@ -53,7 +52,10 @@ class SettingTranscribe:
         self.f_whisper_args_1.pack(side="top", fill="x", pady=(10, 5), padx=5)
 
         self.f_whisper_args_2 = ttk.Frame(self.lf_whisper_args)
-        self.f_whisper_args_2.pack(side="top", fill="x", pady=(5, 10), padx=5)
+        self.f_whisper_args_2.pack(side="top", fill="x", pady=5, padx=5)
+
+        self.f_whisper_args_3 = ttk.Frame(self.lf_whisper_args)
+        self.f_whisper_args_3.pack(side="top", fill="x", pady=(5, 10), padx=5)
 
         self.cbtn_use_faster_whisper = CustomCheckButton(
             self.f_whisper_args_0,
@@ -71,11 +73,11 @@ class SettingTranscribe:
         # decoding options
         self.radio_decoding_var = StringVar()
         # 1
-        self.lbl_decoding_preset = ttk.Label(self.f_decoding_1, text="Decoding Preset", width=17)
+        self.lbl_decoding_preset = ttk.Label(self.f_decoding_1, text="Decoding Preset", width=19)
         self.lbl_decoding_preset.pack(side="left", padx=5)
         self.radio_decoding_1 = ttk.Radiobutton(
             self.f_decoding_1,
-            text="Greedy (Efficient)",
+            text="Greedy",
             variable=self.radio_decoding_var,
             value="greedy",
             command=lambda: self.change_decoding_preset(self.radio_decoding_var.get()),
@@ -83,7 +85,7 @@ class SettingTranscribe:
         self.radio_decoding_1.pack(side="left", padx=5)
         self.radio_decoding_2 = ttk.Radiobutton(
             self.f_decoding_1,
-            text="Beam Search (Accurate)",
+            text="Beam Search",
             variable=self.radio_decoding_var,
             value="beam search",
             command=lambda: self.change_decoding_preset(self.radio_decoding_var.get()),
@@ -99,7 +101,7 @@ class SettingTranscribe:
         self.radio_decoding_3.pack(side="left", padx=5)
 
         # 2
-        self.lbl_temperature = ttk.Label(self.f_decoding_2, text="Temperature", width=17)
+        self.lbl_temperature = ttk.Label(self.f_decoding_2, text="Temperature", width=19)
         self.lbl_temperature.pack(side="left", padx=5)
         self.entry_temperature = ttk.Entry(self.f_decoding_2)
         self.entry_temperature.insert(0, sj.cache["temperature"])
@@ -113,7 +115,7 @@ class SettingTranscribe:
         )
 
         # 3
-        self.lbl_best_of = ttk.Label(self.f_decoding_3, text="Best of", width=17)
+        self.lbl_best_of = ttk.Label(self.f_decoding_3, text="Best of", width=19)
         self.lbl_best_of.pack(side="left", padx=5)
         self.spn_best_of = SpinboxNumOnly(
             self.root,
@@ -124,13 +126,13 @@ class SettingTranscribe:
                                   int(x) if x != "" else None),
             initial_value=sj.cache["best_of"],
             allow_empty=True,
-            num_float=True,
+            num_float=False,
             width=25,
         )
         self.spn_best_of.pack(side="left", padx=5)
         tk_tooltips([self.lbl_best_of, self.spn_best_of], "Number of candidates when sampling with non-zero temperature")
 
-        self.lbl_beam_size = ttk.Label(self.f_decoding_3, text="Beam size", width=17)
+        self.lbl_beam_size = ttk.Label(self.f_decoding_3, text="Beam size", width=15)
         self.lbl_beam_size.pack(side="left", padx=5)
         self.spn_beam_size = SpinboxNumOnly(
             self.root,
@@ -141,7 +143,7 @@ class SettingTranscribe:
                                   int(x) if x != "" else None),
             initial_value=sj.cache["beam_size"],
             allow_empty=True,
-            num_float=True,
+            num_float=False,
             width=25,
         )
         self.spn_beam_size.pack(side="left", padx=5)
@@ -150,8 +152,28 @@ class SettingTranscribe:
             "Number of beams in beam search, only applicable when temperature is zero"
         )
 
+        self.lbl_patience = ttk.Label(self.f_decoding_3, text="Patience", width=19)
+        self.lbl_patience.pack(side="left", padx=5)
+        self.spn_patience = SpinboxNumOnly(
+            self.root,
+            self.f_decoding_3,
+            -100,
+            100,
+            lambda x: sj.save_key("patience",
+                                  float(x) if x != "" else None),
+            initial_value=sj.cache["patience"],
+            allow_empty=True,
+            num_float=True,
+            width=25,
+        )
+        self.spn_patience.pack(side="left", padx=5)
+        tk_tooltips(
+            [self.lbl_patience, self.spn_patience],
+            "Optional patience value to use in beam decoding, as in https://arxiv.org/abs/2204.05424, value of 1.0 is equivalent to conventional beam search"
+        )
+
         # threshold
-        self.lbl_compression_ratio_threshold = ttk.Label(self.f_threshold_1, text="Compression Ratio", width=17)
+        self.lbl_compression_ratio_threshold = ttk.Label(self.f_threshold_1, text="Compression Ratio", width=19)
         self.lbl_compression_ratio_threshold.pack(side="left", padx=5)
         self.spn_compression_ratio_threshold = SpinboxNumOnly(
             self.root,
@@ -164,8 +186,12 @@ class SettingTranscribe:
             width=25,
         )
         self.spn_compression_ratio_threshold.pack(side="left", padx=5)
+        tk_tooltips(
+            [self.lbl_compression_ratio_threshold, self.spn_compression_ratio_threshold],
+            "if the gzip compression ratio is higher than this value, treat the decoding as failed"
+        )
 
-        self.lbl_logprob_threshold = ttk.Label(self.f_threshold_1, text="Logprob", width=17)
+        self.lbl_logprob_threshold = ttk.Label(self.f_threshold_1, text="Logprob", width=15)
         self.lbl_logprob_threshold.pack(side="left", padx=5)
         self.spn_logprob_threshold = SpinboxNumOnly(
             self.root,
@@ -178,9 +204,13 @@ class SettingTranscribe:
             width=25,
         )
         self.spn_logprob_threshold.pack(side="left", padx=5)
+        tk_tooltips(
+            [self.lbl_logprob_threshold, self.spn_logprob_threshold],
+            "if the average log probability is lower than this value, treat the decoding as failed"
+        )
 
-        self.no_speech_threshold = ttk.Label(self.f_threshold_1, text="No Speech", width=17)
-        self.no_speech_threshold.pack(side="left", padx=5)
+        self.lbl_no_speech_threshold = ttk.Label(self.f_threshold_1, text="No Speech", width=15)
+        self.lbl_no_speech_threshold.pack(side="left", padx=5)
         self.spn_no_speech_threshold = SpinboxNumOnly(
             self.root,
             self.f_threshold_1,
@@ -192,22 +222,44 @@ class SettingTranscribe:
             width=25,
         )
         self.spn_no_speech_threshold.pack(side="left", padx=5)
+        tk_tooltips(
+            [self.lbl_no_speech_threshold, self.spn_no_speech_threshold],
+            "if the probability of the <|nospeech|> token is higher than this value AND the decoding has failed due to `logprob_threshold`, consider the segment as silence"
+        )
 
         # other whisper args
-        self.lbl_initial_prompt = ttk.Label(self.f_whisper_args_1, text="Initial Prompt", width=17)
+        self.lbl_initial_prompt = ttk.Label(self.f_whisper_args_1, text="Initial Prompt", width=19)
         self.lbl_initial_prompt.pack(side="left", padx=5)
         self.entry_initial_prompt = ttk.Entry(self.f_whisper_args_1, width=30)
-        self.entry_initial_prompt.insert(0, sj.cache["initial_prompt"])
+        self.entry_initial_prompt.insert(0, sj.cache["initial_prompt"] or "")
         self.entry_initial_prompt.pack(side="left", padx=5, fill="x")
         self.entry_initial_prompt.bind(
-            "<KeyRelease>", lambda e: sj.save_key("initial_prompt", self.entry_initial_prompt.get())
+            "<KeyRelease>", lambda e: sj.save_key(
+                "initial_prompt",
+                self.entry_initial_prompt.get() if len(self.entry_initial_prompt.get()) > 0 else None
+            )
         )
         tk_tooltips(
             [self.lbl_initial_prompt, self.entry_initial_prompt],
             "optional text to provide as a prompt for the first window.\n\nDefault is empty",
         )
 
-        self.lbl_suppress_tokens = ttk.Label(self.f_whisper_args_1, text="Supress Token", width=17)
+        self.lbl_prefix = ttk.Label(self.f_whisper_args_1, text="Prefix", width=15)
+        self.lbl_prefix.pack(side="left", padx=5)
+        self.entry_prefix = ttk.Entry(self.f_whisper_args_1, width=30)
+        self.entry_prefix.insert(0, sj.cache["prefix"] or "")
+        self.entry_prefix.pack(side="left", padx=5, fill="x")
+        self.entry_prefix.bind(
+            "<KeyRelease>",
+            lambda e: sj.save_key("prefix",
+                                  self.entry_prefix.get() if len(self.entry_prefix.get()) > 0 else None)
+        )
+        tk_tooltips(
+            [self.lbl_prefix, self.entry_prefix],
+            "Optional text to prefix the current context.\n\nDefault is empty",
+        )
+
+        self.lbl_suppress_tokens = ttk.Label(self.f_whisper_args_1, text="Supress Token", width=15)
         self.lbl_suppress_tokens.pack(side="left", padx=5)
         self.entry_supress_tokens = ttk.Entry(self.f_whisper_args_1, width=30)
         self.entry_supress_tokens.pack(side="left", padx=5, fill="x")
@@ -217,12 +269,45 @@ class SettingTranscribe:
         )
         tk_tooltips(
             [self.lbl_suppress_tokens, self.entry_supress_tokens],
-            "comma-separated list of token ids to suppress during sampling;"
-            " '-1' will suppress most special characters except common punctuations.\n\nDefault is -1",
+            "Comma-separated list of token ids to suppress during sampling;"
+            " '-1' will suppress most special characters except common punctuations.\n\nDefault is empty",
+        )
+
+        self.lbl_max_initial_timestamp = ttk.Label(self.f_whisper_args_2, text="Max Initial Timestamp", width=19)
+        self.lbl_max_initial_timestamp.pack(side="left", padx=5)
+        self.spn_max_initial_timestamp = SpinboxNumOnly(
+            self.root,
+            self.f_whisper_args_2,
+            0,
+            100,
+            lambda x: sj.save_key("max_initial_timestamp",
+                                  float(x) if x != "" else None),
+            initial_value=sj.cache["max_initial_timestamp"],
+            allow_empty=True,
+            num_float=True,
+            width=25,
+        )
+        self.spn_max_initial_timestamp.pack(side="left", padx=5)
+        tk_tooltips(
+            [self.lbl_max_initial_timestamp, self.spn_max_initial_timestamp],
+            "Maximum initial timestamp to use for the first window\n\nDefault is empty",
+        )
+
+        self.cbtn_suppress_blank = CustomCheckButton(
+            self.f_whisper_args_2,
+            sj.cache["suppress_blank"],
+            lambda x: sj.save_key("suppress_blank", x),
+            text="Suppress Blank",
+            style="Switch.TCheckbutton",
+        )
+        self.cbtn_suppress_blank.pack(side="left", padx=5)
+        tk_tooltip(
+            self.cbtn_suppress_blank,
+            "if True, will suppress blank outputs. Default is true/checked",
         )
 
         self.cbtn_condition_on_previous_text = CustomCheckButton(
-            self.f_whisper_args_1,
+            self.f_whisper_args_2,
             sj.cache["condition_on_previous_text"],
             lambda x: sj.save_key("condition_on_previous_text", x),
             text="Condition on previous text",
@@ -237,10 +322,23 @@ class SettingTranscribe:
             "\n\nDefault value is true/checked",
         )
 
+        self.cbtn_fp16 = CustomCheckButton(
+            self.f_whisper_args_2,
+            sj.cache["fp16"],
+            lambda x: sj.save_key("fp16", x),
+            text="FP16",
+            style="Switch.TCheckbutton",
+        )
+        self.cbtn_fp16.pack(side="left", padx=5)
+        tk_tooltip(
+            self.cbtn_fp16,
+            "if True, will use fp16 for inference. Default is true/checked",
+        )
+
         # 3
-        self.lbl_whisper_args = ttk.Label(self.f_whisper_args_2, text="Raw Arguments", width=17)
+        self.lbl_whisper_args = ttk.Label(self.f_whisper_args_3, text="Raw Arguments", width=19)
         self.lbl_whisper_args.pack(side="left", padx=5)
-        self.entry_whisper_args = ttk.Entry(self.f_whisper_args_2)
+        self.entry_whisper_args = ttk.Entry(self.f_whisper_args_3)
         self.entry_whisper_args.insert(0, sj.cache["whisper_args"])
         self.entry_whisper_args.pack(side="left", fill="x", expand=True, padx=5)
         self.entry_whisper_args.bind("<Return>", lambda e: self.verify_raw_args(self.entry_whisper_args.get()))
@@ -354,20 +452,15 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
 * type: float, default 0.1
 * usage: --min_word_dur 0.1
 
-# [max_chars]
-* description: maximum number of characters allowed in each segment
-* type: int
-* usage: --max_chars <value>
-
-# [max_words]
-* description: maximum number of words allowed in each segment
-* type: int
-* usage: --max_words <value>
-
 # [demucs]
 * description: whether to reprocess the audio track with Demucs to isolate vocals/remove noise; Demucs official repo: https://github.com/facebookresearch/demucs
 * type: bool, default False
 * usage: --demucs True
+
+# [demucs_output]
+* path(s) to save the vocals isolated by Demucs as WAV file(s); ignored if [demucs]=False
+* type: str
+* usage: --demucs_output "<path>"
 
 # [only_voice_freq]
 * description: whether to only use sound between 200 - 5000 Hz, where the majority of human speech is.
@@ -403,51 +496,6 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
 * description: whether to use progressive filling highlights for karaoke effect (only for ASS outputs)
 * type: bool, default False
 * usage: --karaoke True
-
-# [temperature]
-* description: temperature to use for sampling
-* type: float, default 0
-* usage: --temperature <value>
-
-# [best_of]
-* description: number of candidates when sampling with non-zero temperature
-* type: int
-* usage: --best_of <value>
-
-# [beam_size]
-* description: number of beams in beam search, only applicable when temperature is zero
-* type: int
-* usage: --beam_size <value>
-
-# [patience]
-* description: optional patience value to use in beam decoding, as in https://arxiv.org/abs/2204.05424, the default (1.0) is equivalent to conventional beam search
-* type: float
-* usage: --patience <value>
-
-# [length_penalty]
-* description: optional token length penalty coefficient (alpha) as in https://arxiv.org/abs/1609.08144, uses simple length normalization by default
-* type: float
-* usage: --length_penalty <value>
-
-# [fp16]
-* description: whether to perform inference in fp16; True by default
-* type: bool, default True
-* usage: --fp16
-
-# [compression_ratio_threshold]
-* description: if the gzip compression ratio is higher than this value, treat the decoding as failed
-* type: float
-* usage: --compression_ratio_threshold <value>
-
-# [logprob_threshold]
-* description: if the average log probability is lower than this value, treat the decoding as failed
-* type: float
-* usage: --logprob_threshold <value>
-
-# [no_speech_threshold]
-* description: if the probability of the token is higher than this value AND the decoding has failed due to `logprob_threshold`, consider the segment as silence
-* type: float, default 0.6
-* usage: --no_speech_threshold 0.6
 
 # [threads]
 * description: number of threads used by torch for CPU inference; supercedes MKL_NUM_THREADS/OMP_NUM_THREADS
@@ -493,7 +541,7 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
         )
 
         self.btn_help = ttk.Button(
-            self.f_whisper_args_2,
+            self.f_whisper_args_3,
             image=bc.question_emoji,
             command=lambda: self.make_open_text(hint),
             width=5,
@@ -515,10 +563,12 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
             self.entry_temperature.configure(state="normal")
             self.spn_best_of.configure(state="normal")
             self.spn_beam_size.configure(state="normal")
+            self.spn_patience.configure(state="normal")
         else:
             self.entry_temperature.configure(state="disabled")
             self.spn_best_of.configure(state="disabled")
             self.spn_beam_size.configure(state="disabled")
+            self.spn_patience.configure(state="disabled")
 
             if value == "greedy":
                 self.entry_temperature.configure(state="normal")
@@ -532,6 +582,10 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
 
                 self.spn_beam_size.set("")
                 sj.save_key("beam_size", None)
+
+                self.spn_patience.set("")
+                sj.save_key("patience", None)
+
             elif value == "beam search":
                 self.entry_temperature.configure(state="normal")
                 self.entry_temperature.delete(0, "end")
@@ -539,11 +593,14 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
                 self.entry_temperature.configure(state="disabled")
                 sj.save_key("temperature", "0.0, 0.2, 0.4, 0.6, 0.8, 1.0")
 
-                self.spn_best_of.set(5)
-                sj.save_key("best_of", 5)
+                self.spn_best_of.set(3)
+                sj.save_key("best_of", 3)
 
-                self.spn_beam_size.set(5)
-                sj.save_key("beam_size", 5)
+                self.spn_beam_size.set(3)
+                sj.save_key("beam_size", 3)
+
+                self.spn_patience.set(1.0)
+                sj.save_key("patience", 1.0)
 
     def callback_export_to(
         self, value: Union[Literal["txt"], Literal["csv"], Literal["json"], Literal["srt"], Literal["ass"], Literal["vtt"],
@@ -579,9 +636,14 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
         sj.save_key("temperature", value)
 
     def verify_raw_args(self, value: str):
-        logger.debug("verifying whisper args")
         loop_for = ["load", "transcribe", "align", "refine", "save"]
-        custom_func = {"load": [load_model, load_faster_whisper], "save": [result_to_ass, result_to_srt_vtt, result_to_tsv]}
+        custom_func = {
+            "load": [load_model, load_faster_whisper],
+            "transcribe": [whisper_word_level.transcribe_stable],
+            "save": [result_to_ass, result_to_srt_vtt, result_to_tsv],
+            "align": [alignment.align],
+            "refine": [alignment.refine]
+        }
         kwargs = {"show_parsed": False}
         # transcribe is also different between whisper and faster whisper but this check should be enough
 

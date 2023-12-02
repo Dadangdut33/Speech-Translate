@@ -59,7 +59,6 @@ default_setting: SettingDict = {
     "log_level": "DEBUG",  # INFO DEBUG WARNING ERROR
     "auto_scroll_log": True,
     "auto_refresh_log": True,
-    "ignore_stdout": ["Predicting silences(s) with VAD...", "Predicted silences(s) with VAD"],
     "debug_realtime_record": False,
     "debug_translate": False,
     # ------------------ #
@@ -131,16 +130,22 @@ default_setting: SettingDict = {
     "visualize_suppression": False,
     "use_faster_whisper": True,
     "transcribe_rate": 300,
+    # option for some DecodingOptions that is not available in the command line parameter is moved to the gui
     "decoding_preset": "beam search",  # greedy, beam search, custom
     "temperature": "0.0, 0.2, 0.4, 0.6, 0.8, 1.0",  # 0.0 - 1.0
-    "best_of": 5,
-    "beam_size": 5,
+    "best_of": 3,
+    "beam_size": 3,
+    "patience": 1.0,
     "compression_ratio_threshold": 2.4,
     "logprob_threshold": -1.0,
     "no_speech_threshold": 0.6,
-    "suppress_tokens": "-1",
-    "initial_prompt": "",
+    "suppress_tokens": "",  # 
+    "initial_prompt": None,
+    "prefix": None,
+    "suppress_blank": True,
     "condition_on_previous_text": True,
+    "max_initial_timestamp": 1.0,
+    "fp16": True,
     "whisper_args": "",
     # ------------------ #
     # Textboxes

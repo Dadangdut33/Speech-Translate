@@ -179,6 +179,9 @@ def record_session(
 
     # 8
     global audiometer
+    lbl_mic = ttk.Label(frame_lbl_8, image=bc.mic_emoji if not speaker else bc.speaker_emoji)
+    lbl_mic.pack(side="left", fill="x", padx=(5, 0), pady=0)
+
     audiometer = AudioMeter(frame_lbl_8, root, True, MIN_THRESHOLD, MAX_THRESHOLD, height=10)
     audiometer.pack(side="left", fill="x", padx=5, pady=0, expand=True)
 
@@ -607,22 +610,28 @@ def record_session(
 
                 def run_tc():
                     nonlocal result
-                    if bc.tc_lock is not None:
-                        with bc.tc_lock:
+                    try:
+                        if bc.tc_lock is not None:
+                            with bc.tc_lock:
+                                result = stable_tc(  # type: ignore
+                                    audio_target, task="transcribe", **whisper_args
+                                )
+                        else:
                             result = stable_tc(  # type: ignore
                                 audio_target, task="transcribe", **whisper_args
                             )
-                    else:
-                        result = stable_tc(  # type: ignore
-                            audio_target, task="transcribe", **whisper_args
-                        )
+                    except Exception as e:
+                        logger.exception(e)
 
                 # def run_tc
                 bc.rec_tc_thread = Thread(target=run_tc, args=[], daemon=True)
                 bc.rec_tc_thread.start()
                 bc.rec_tc_thread.join()
 
-                assert result is not None
+                if result is None:
+                    logger.warning("Transcribing failed, check log for details!")
+                    continue
+
                 text = result.text.strip()
                 bc.auto_detected_lang = result.language or "~"
 

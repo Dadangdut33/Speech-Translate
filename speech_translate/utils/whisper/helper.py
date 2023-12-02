@@ -6,7 +6,7 @@ from typing import List, Literal, Optional, Union
 
 import torch
 import stable_whisper
-from stable_whisper.alignment import align, refine
+import faster_whisper.transcribe as fw_transcribe
 from stable_whisper.utils import str_to_valid_type, isolate_useful_options
 from faster_whisper import WhisperModel
 from whisper.tokenizer import LANGUAGES
@@ -174,17 +174,17 @@ def parse_args_stable_ts(
         parser.add_argument('--min_word_dur', type=float, default=0.1,
                             help="only allow suppressing timestamps that result in word durations greater than this value")
 
-        parser.add_argument('--max_chars', type=int,
-                            help="maximum number of character allowed in each segment")
-        parser.add_argument('--max_words', type=int,
-                            help="maximum number of words allowed in each segment")
+        # parser.add_argument('--max_chars', type=int,
+        #                     help="maximum number of character allowed in each segment")
+        # parser.add_argument('--max_words', type=int,
+        #                     help="maximum number of words allowed in each segment")
 
         parser.add_argument('--demucs', type=str2bool, default=False,
                             help='whether to reprocess the audio track with Demucs to isolate vocals/remove noise; '
                                 'Demucs official repo: https://github.com/facebookresearch/demucs')
-        # parser.add_argument('--demucs_output', action="extend", nargs="+", type=str,
-        #                 help='path(s) to save the vocals isolated by Demucs as WAV file(s); '
-        #                      'ignored if [demucs]=False')
+        parser.add_argument('--demucs_output', action="extend", nargs="+", type=str,
+                        help='path(s) to save the vocals isolated by Demucs as WAV file(s); '
+                             'ignored if [demucs]=False')
         parser.add_argument('--only_voice_freq', '-ovf', action='store_true',
                             help='whether to only use sound between 200 - 5000 Hz, where majority of human speech are.')
 
@@ -212,22 +212,23 @@ def parse_args_stable_ts(
         parser.add_argument('--karaoke', type=str2bool, default=False,
                             help="whether to use progressive filling highlights for karaoke effect (only for ASS outputs)")
 
-        parser.add_argument("--temperature", type=float, default=0,
-                            help="temperature to use for sampling")
-        parser.add_argument("--best_of", type=optional_int,
-                            help="number of candidates when sampling with non-zero temperature")
-        parser.add_argument("--beam_size", type=optional_int,
-                            help="number of beams in beam search, only applicable when temperature is zero")
-        parser.add_argument("--patience", type=float, default=None,
-                            help="optional patience value to use in beam decoding, "
-                                "as in https://arxiv.org/abs/2204.05424, "
-                                "the default (1.0) is equivalent to conventional beam search")
+        # parser.add_argument("--temperature", type=float, default=0,
+        #                     help="temperature to use for sampling")
+        # parser.add_argument("--best_of", type=optional_int,
+        #                     help="number of candidates when sampling with non-zero temperature")
+        # parser.add_argument("--beam_size", type=optional_int,
+        #                     help="number of beams in beam search, only applicable when temperature is zero")
+        # parser.add_argument("--patience", type=float, default=None,
+        #                     help="optional patience value to use in beam decoding, "
+        #                         "as in https://arxiv.org/abs/2204.05424, "
+        #                         "the default (1.0) is equivalent to conventional beam search")
+
         parser.add_argument("--length_penalty", type=float, default=None,
                             help="optional token length penalty coefficient (alpha) "
                                 "as in https://arxiv.org/abs/1609.08144, uses simple length normalization by default")
 
-        parser.add_argument("--fp16", type=str2bool, default=True,
-                            help="whether to perform inference in fp16; True by default")
+        # parser.add_argument("--fp16", type=str2bool, default=True,
+        #                     help="whether to perform inference in fp16; True by default")
 
         parser.add_argument("--compression_ratio_threshold", type=optional_float, default=2.4,
                             help="if the gzip compression ratio is higher than this value, treat the decoding as failed")
@@ -288,7 +289,6 @@ def parse_args_stable_ts(
 
         # need to hard code it a bit, to get the same result as stable ts from cli
         if mode == "load":
-            method = stable_whisper.load_model if method is None else method
             temp = args["model_option"]
 
             args = isolate_useful_options(args, method)
@@ -298,25 +298,37 @@ def parse_args_stable_ts(
             args.pop('model_option')
         elif mode == "transcribe":
             # should be ok when using faster whisper too
-            method = stable_whisper.whisper_word_level.transcribe_stable if method is None else method
-            temp = args["transcribe_option"]
-            args.update(kwargs)  # pass in kwargs
+            temp = args["transcribe_option"]  # store temp transcribe_option
 
-            # logger.debug(f"transcribe args: {args}")
+            # isolate with the transcribe function
             args = isolate_useful_options(args, method)
+            # logger.debug(f"Isolated args with method: {args}")
+
+            # update args with transcribe_option after isolate
             args["transcribe_option"] = temp
-
-            # logger.debug(f"transcribe args after isolate: {args}")
-
             update_options_with_args('transcribe_option', args)
-            args.pop('transcribe_option')
-            args.update(isolate_useful_options(args, DecodingOptions))
+            args.pop('transcribe_option')  # pop transcribe_option
+            # logger.debug(f"Updated args with transcribe_option: {args}")
 
-            # logger.debug(f"transcribe args after update: {args}")
+            # add in the extra kwargs
+            # args.update(isolate_useful_options(kwargs, method))  # add with method
+            # add with the other
+            if "faster_whisper" in str(method):
+                # force some option because it is needed in order to work for faster whisper
+                if kwargs["best_of"] is None:
+                    kwargs["best_of"] = 1
+                if kwargs["beam_size"] is None:
+                    kwargs["beam_size"] = 1
+                if kwargs["patience"] is None:
+                    kwargs["patience"] = 1
+                args.update(isolate_useful_options(kwargs, fw_transcribe.TranscriptionOptions))
+            else:
+                args.update(isolate_useful_options(kwargs, DecodingOptions))
+            # logger.debug(f"Updated args with kwargs: {args}")
+
             args["threads"] = threads
 
         elif mode == "align":
-            method = align if method is None else method
             temp = args["transcribe_option"]
 
             args = isolate_useful_options(args, method)
@@ -328,7 +340,6 @@ def parse_args_stable_ts(
             args["threads"] = threads
 
         elif mode == "refine":
-            method = refine if method is None else method
             temp = args["refine_option"]
 
             args = isolate_useful_options(args, method)
@@ -663,18 +674,33 @@ def get_tc_args(process_func, setting_cache: SettingDict, mode="transcribe"):
     else:
         temperature = data
 
+    try:
+        suppress_tokens = [int(x) for x in setting_cache["suppress_tokens"].split(",")]
+    except Exception:
+        if "faster_whisper" in str(process_func):
+            suppress_tokens = None
+        else:
+            suppress_tokens = setting_cache["suppress_tokens"]
+
     # parse whisper_args
     pass_kwarg = {
         "temperature": temperature,
         "best_of": setting_cache["best_of"],
         "beam_size": setting_cache["beam_size"],
+        "patience": setting_cache["patience"],
         "compression_ratio_threshold": setting_cache["compression_ratio_threshold"],
         "logprob_threshold": setting_cache["logprob_threshold"],
         "no_speech_threshold": setting_cache["no_speech_threshold"],
-        "suppress_tokens": setting_cache["suppress_tokens"],
+        "suppress_tokens": suppress_tokens,
+        "suppress_blank": setting_cache["suppress_blank"],
         "initial_prompt": setting_cache["initial_prompt"],
+        "prefix": setting_cache["prefix"],
         "condition_on_previous_text": setting_cache["condition_on_previous_text"],
+        "max_initial_timestamp": setting_cache["max_initial_timestamp"],
+        "fp16": setting_cache["fp16"],
     }
+    logger.debug("Pass kwarg:")
+    logger.debug(pass_kwarg)
     data = parse_args_stable_ts(setting_cache["whisper_args"], mode, process_func, **pass_kwarg)
     if not data.pop("success"):
         raise Exception(data["msg"])

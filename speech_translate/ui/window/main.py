@@ -192,6 +192,8 @@ class MainWindow:
         bc.trash_emoji = emoji_img(13, "     🗑️")
         bc.reset_emoji = emoji_img(13, " 🔄")
         bc.question_emoji = emoji_img(16, "❔")
+        bc.mic_emoji = emoji_img(20, "     🎙️")
+        bc.speaker_emoji = emoji_img(20, "🔊")
         bc.cuda = check_cuda_and_gpu()
 
         # ------------------ Frames ------------------

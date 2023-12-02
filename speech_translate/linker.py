@@ -110,6 +110,8 @@ class BridgeClass:
         self.trash_emoji: Union[ImageTk.PhotoImage, str] = ""
         self.reset_emoji: Union[ImageTk.PhotoImage, str] = ""
         self.question_emoji: Union[ImageTk.PhotoImage, str] = ""
+        self.mic_emoji: Union[ImageTk.PhotoImage, str] = ""
+        self.speaker_emoji: Union[ImageTk.PhotoImage, str] = ""
 
     def enable_rec(self):
         self.recording = True
