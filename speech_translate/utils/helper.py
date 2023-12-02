@@ -9,7 +9,7 @@ from os import path, startfile
 from platform import system
 from random import choice
 from tkinter import colorchooser, ttk
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Optional
 from webbrowser import open_new
 from difflib import SequenceMatcher
 from threading import Thread
@@ -32,7 +32,7 @@ def launchWithoutConsole(command):
     return subprocess.Popen(command, startupinfo=startupinfo).wait()
 
 
-def kill_thread(thread: Thread) -> bool:
+def kill_thread(thread: Optional[Thread]) -> bool:
     ''' Attempt to kill thread, credits: https://github.com/JingheLee/KillThread
     
     Parameters
@@ -737,3 +737,24 @@ def windows_os_only(
                 )
                 widget.configure(state="disabled")
                 tk_tooltip(widget, "This feature is only available on Windows OS.")
+
+
+def get_opposite_hex_color(hex_color: str):
+    """
+    Get opposite color of a given color in hexadecimal
+
+    Parameters
+    ----------
+    hex_color : str
+        Color in hexadecimal
+
+    Returns
+    -------
+    str
+        Opposite color in hexadecimal
+    """
+    hex_color = hex_color.lstrip("#")
+    rgb_color = tuple(int(hex_color[i:i + 2], 16) for i in (0, 2, 4))
+    opposite_rgb_color = tuple(255 - i for i in rgb_color)
+    opposite_hex_color = "#%02x%02x%02x" % opposite_rgb_color
+    return opposite_hex_color

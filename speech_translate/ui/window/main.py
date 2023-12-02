@@ -36,7 +36,7 @@ from speech_translate.utils.audio.device import (
 )
 from speech_translate.utils.helper import (
     open_url, bind_focus_recursively, emoji_img, native_notify, open_folder, popup_menu, similar, tb_copy_only,
-    up_first_case, windows_os_only, check_ffmpeg_in_path, install_ffmpeg
+    up_first_case, windows_os_only, check_ffmpeg_in_path, install_ffmpeg, kill_thread
 )
 from speech_translate.utils.translate.language import (ENGINE_SOURCE_DICT, ENGINE_TARGET_DICT, WHISPER_LANG_LIST)
 from speech_translate.utils.whisper.helper import append_dot_en, model_keys, save_output_stable_ts
@@ -285,7 +285,7 @@ class MainWindow:
         self.sb_transcribed = ttk.Scrollbar(self.tb_transcribed_bg)
         self.sb_transcribed.pack(side="right", fill="y")
 
-        self.tb_transcribed = HTMLText(self.tb_transcribed_bg, height=5, width=25, background=self.root.cget('bg'))
+        self.tb_transcribed = HTMLText(self.tb_transcribed_bg, height=5, width=25, background=bc.bg_color)
         self.tb_transcribed.bind("<Key>", tb_copy_only)
         self.tb_transcribed.pack(side="left", fill="both", expand=True, padx=1, pady=1)
         self.tb_transcribed.configure(yscrollcommand=self.sb_transcribed.set)
@@ -297,7 +297,7 @@ class MainWindow:
         self.sb_translated = ttk.Scrollbar(self.tb_translated_bg)
         self.sb_translated.pack(side="right", fill="y")
 
-        self.tb_translated = HTMLText(self.tb_translated_bg, height=5, width=25, background=self.root.cget('bg'))
+        self.tb_translated = HTMLText(self.tb_translated_bg, height=5, width=25, background=bc.bg_color)
         self.tb_translated.bind("<Key>", tb_copy_only)
         self.tb_translated.pack(fill="both", expand=True, padx=1, pady=1)
         self.tb_translated.configure(yscrollcommand=self.sb_translated.set)
@@ -586,8 +586,8 @@ class MainWindow:
         self.root.after_cancel(bc.running_after_id)
 
         bc.disable_rec()
-        bc.disable_tc()
-        bc.disable_tl()
+        bc.disable_file_tc()
+        bc.disable_file_tl()
 
         logger.info("Stopping tray...")
         if bc.tray:
@@ -620,9 +620,9 @@ class MainWindow:
 
     def restart_app(self):
         logger.debug("Restarting app...")
-        logger.debug(f"Flag tc: {bc.transcribing} | Flag tl: {bc.translating} | Flag rec: {bc.recording}")
+        logger.debug(f"Flag tc: {bc.transcribing_file} | Flag tl: {bc.translating_file} | Flag rec: {bc.recording}")
         logger.debug(f"Flag file_processing: {bc.file_processing} | Flag dl: {bc.dl_thread and bc.dl_thread.is_alive()}")
-        if bc.transcribing or bc.translating or bc.recording or bc.file_processing or (
+        if bc.transcribing_file or bc.translating_file or bc.recording or bc.file_processing or (
             bc.dl_thread and bc.dl_thread.is_alive()
         ):
             # prompt
@@ -1121,7 +1121,6 @@ class MainWindow:
             self.enable_rec()
 
         else:  # both not selected
-            logger.debug('here')
             self.cb_source_lang.configure(state="disabled")
             self.cb_target_lang.configure(state="disabled")
             self.cb_engine.configure(state="disabled")
@@ -1168,12 +1167,7 @@ class MainWindow:
         self.radio_mic.configure(state="normal")
         self.radio_speaker.configure(state="normal")
 
-        if self.cb_engine.get() in model_keys and "selected" in self.cbtn_task_translate.state(
-        ) and "selected" not in self.cbtn_task_transcribe.state():
-            self.cb_model.configure(state="disabled")
-        else:
-            self.cb_model.configure(state="readonly")
-
+        # if task is translate
         if "selected" not in self.cbtn_task_translate.state():
             self.cb_engine.configure(state="disabled")
             self.cb_target_lang.configure(state="disabled")
@@ -1181,7 +1175,15 @@ class MainWindow:
             self.cb_engine.configure(state="readonly")
             self.cb_target_lang.configure(state="readonly")
 
+        # if task is transcribe
         if "selected" not in self.cbtn_task_transcribe.state():
+            self.cb_model.configure(state="disabled")
+        else:
+            self.cb_model.configure(state="readonly")
+
+        # if engine is whisper and currently in translate only mode
+        if self.cb_engine.get() in model_keys and "selected" in self.cbtn_task_translate.state(
+        ) and "selected" not in self.cbtn_task_transcribe.state():
             self.cb_model.configure(state="disabled")
             self.cb_source_lang.configure(state="disabled")
         else:
@@ -1472,13 +1474,13 @@ class MainWindow:
         tl_whisper = tl_engine in model_keys
         model_tc = None
         m_check_kwargs = {"disabler": self.disable_interactions, "enabler": self.enable_interactions}
-        if tc:  # check tc model if tc
+
+        if (tl and not tl_whisper) or tc:  # check tc model if tc or tl only but not whisper
             status, model_tc = self.check_model(m_key, source == "english", "mic record", self.rec, **m_check_kwargs)
             if not status:
                 return
 
-        if tl and tl_whisper:
-            # if tl and using whisper engine, check model
+        if tl and tl_whisper:  # if tl and using whisper engine, check model
             status, tl_engine = self.check_model(tl_engine, source == "english", "recording", self.rec, **m_check_kwargs)
             if not status:
                 return
@@ -1530,12 +1532,12 @@ class MainWindow:
         # Start thread
         try:
             device = mic if not is_speaker else speaker
-            recThread = Thread(
+            rec_thread = Thread(
                 target=record_session,
                 args=(source, target, tl_engine, model_tc, device, tc, tl, is_speaker),
                 daemon=True,
             )
-            recThread.start()
+            rec_thread.start()
         except Exception as e:
             logger.exception(e)
             self.errorNotif(str(e))
@@ -1545,6 +1547,8 @@ class MainWindow:
     def rec_stop(self):
         logger.info("Recording Stopped")
         bc.disable_rec()
+        kill_thread(bc.rec_tc_thread)
+        kill_thread(bc.rec_tl_thread)
 
         self.btn_record.configure(text="Stopping...", state="disabled")
 
@@ -1573,23 +1577,22 @@ class MainWindow:
 
         def do_process(m_key, tl_engine, source, target, tc, tl, files):
             nonlocal prompt
-            m_check_kwargs = {"disabler": prompt.disable_interactions, "enabler": prompt.enable_interactions}
-
-            tl_whisper = tl_engine in model_keys
             # lang is lowered when send from FileImportDialog
             if source == target and tl:
                 mbox("Invalid options!", "Source and target language cannot be the same", 2)
                 return False
 
             # check model first
+            tl_whisper = tl_engine in model_keys
             model_tc = None
-            if tc:  # check tc model if tc
+            m_check_kwargs = {"disabler": prompt.disable_interactions, "enabler": prompt.enable_interactions}
+
+            if (tl and not tl_whisper) or tc:  # check tc model if tc or tl only but not whisper
                 status, model_tc = self.check_model(m_key, source == "english", "file import", do_process, **m_check_kwargs)
                 if not status:
                     return False
 
-            if tl and tl_whisper:
-                # if tl and using whisper engine, check model
+            if tl and tl_whisper:  # if tl and using whisper engine, check model
                 status, tl_engine = self.check_model(
                     tl_engine, source == "english", "file import", do_process, **m_check_kwargs
                 )
@@ -1672,8 +1675,8 @@ class MainWindow:
 
         logger.info("Stopping file import processing...")
         bc.disable_file_process()
-        bc.disable_tc()
-        bc.disable_tl()
+        bc.disable_file_tc()
+        bc.disable_file_tl()
         self.destroy_transient_toplevel("File Import Progress")
 
         if notify:

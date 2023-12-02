@@ -340,35 +340,31 @@ class FileImportDialog(FileOperationDialog):
 
     def cbtn_task_change(self):
         try:
+            if len(self.data_list) > 0:
+                self.btn_start.configure(state="normal")
+            else:
+                self.btn_start.configure(state="disabled")
+
             if self.var_task_transcribe.get() and self.var_task_translate.get():
-                self.cb_model.configure(state="readonly")
-                self.cb_engine.configure(state="readonly")
                 self.cb_source_lang.configure(state="readonly")
                 self.cb_target_lang.configure(state="readonly")
-                if len(self.data_list) > 0:
-                    self.btn_start.configure(state="normal")
-                else:
-                    self.btn_start.configure(state="disabled")
+                self.cb_model.configure(state="readonly")
+                self.cb_engine.configure(state="readonly")
 
             elif self.var_task_transcribe.get() and not self.var_task_translate.get():
                 self.cb_source_lang.configure(state="readonly")
                 self.cb_target_lang.configure(state="disabled")
                 self.cb_engine.configure(state="disabled")
                 self.cb_model.configure(state="readonly")
-                if len(self.data_list) > 0:
-                    self.btn_start.configure(state="normal")
-                else:
-                    self.btn_start.configure(state="disabled")
 
             elif not self.var_task_transcribe.get() and self.var_task_translate.get():
                 self.cb_source_lang.configure(state="readonly")
                 self.cb_target_lang.configure(state="readonly")
                 self.cb_engine.configure(state="readonly")
-                self.cb_model.configure(state="readonly")
-                if len(self.data_list) > 0:
-                    self.btn_start.configure(state="normal")
+                if self.var_engine.get() in model_keys:
+                    self.cb_model.configure(state="disabled")
                 else:
-                    self.btn_start.configure(state="disabled")
+                    self.cb_model.configure(state="readonly")
 
             else:
                 self.cb_source_lang.configure(state="disabled")
@@ -422,17 +418,13 @@ class FileImportDialog(FileOperationDialog):
 
     def disable_interactions(self):
         super().disable_interactions()
-        self.cb_engine.configure(state="disabled")
-        self.cb_source_lang.configure(state="disabled")
-        self.cb_target_lang.configure(state="disabled")
+        self.cbtn_task_change()
         self.cbtn_transcribe.configure(state="disabled")
         self.cbtn_translate.configure(state="disabled")
 
     def enable_interactions(self):
         super().enable_interactions()
-        self.cb_engine.configure(state="readonly")
-        self.cb_source_lang.configure(state="readonly")
-        self.cb_target_lang.configure(state="readonly")
+        self.cbtn_task_change()
         self.cbtn_transcribe.configure(state="normal")
         self.cbtn_translate.configure(state="normal")
 

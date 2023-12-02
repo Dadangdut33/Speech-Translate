@@ -7,6 +7,7 @@ from shlex import quote
 from threading import Lock, Thread
 from time import gmtime, strftime, time, sleep
 from tkinter import IntVar, Toplevel, ttk
+from typing import Optional
 from wave import Wave_read, Wave_write
 from wave import open as w_open
 
@@ -207,6 +208,8 @@ def record_session(
         # cannot transcribe and translate concurrently. Will need to wait for the previous transcribe to finish
         if transcribe and translate and tl_engine_whisper:
             bc.tc_lock = Lock()
+        else:
+            bc.tc_lock = None
 
         # load model first
         model_args = get_model_args(sj.cache)
@@ -429,7 +432,7 @@ def record_session(
         # recording session init
         bc.tc_sentences = []
         bc.tl_sentences = []
-        global prev_tl_res, max_db, min_db, is_silence, was_recording, t_silence
+        global prev_tc_res, prev_tl_res, max_db, min_db, is_silence, was_recording, t_silence
         temp_list = []
         prev_tc_res = ""
         prev_tl_res = ""
@@ -461,8 +464,8 @@ def record_session(
             Break the buffer (last_sample). Resetting the buffer means that the buffer will be cleared and
             it will be stored in the currently transcribed or translated text.
             """
-            global prev_tl_res
-            nonlocal prev_tc_res, last_sample, duration_seconds
+            global prev_tl_res, prev_tc_res
+            nonlocal last_sample, duration_seconds
             last_sample = bytes()
             duration_seconds = 0
 
@@ -585,82 +588,71 @@ def record_session(
             if translate and tl_engine_whisper and not transcribe:
                 if sj.cache["debug_realtime_record"] == 1:
                     logger.info("Translating")
-                bc.current_rec_status = "▶️ Recording ⟳ Translating"
-
-                # translate
-                result: stable_whisper.WhisperResult = stable_tl( # type: ignore
-                    audio_target, task="translate", **whisper_args
+                bc.current_rec_status = "▶️ Recording ⟳ Translating Audio"
+                bc.rec_tl_thread = Thread(
+                    target=run_whisper_tl,
+                    args=[audio_target, stable_tl, separator, False],
+                    kwargs=whisper_args,
+                    daemon=True
                 )
-
-                text = result.text.strip()
-                bc.auto_detected_lang = result.language or "~"
-
-                if len(text) > 0:
-                    prev_tl_res = result
-
-                    if sj.cache["debug_realtime_record"] == 1:
-                        logger.debug("New translated text (Whisper)")
-                        if sj.cache["verbose_record"]:
-                            stablets_verbose_log(result)
-                        else:
-                            logger.debug(f"{text}")
-
-                    bc.update_tl(result, separator)
+                bc.rec_tl_thread.start()
             else:
                 # will automatically check translate on or not depend on input
                 # translate is called from here because other engine need to get transcribed text first if translating
                 if sj.cache["debug_realtime_record"] == 1:
                     logger.info("Transcribing")
 
-                bc.current_rec_status = "▶️ Recording ⟳ Transcribing"
-                # ----------------------------------
-                # checking for lock
-                if transcribe and translate and tl_engine_whisper:
-                    assert bc.tc_lock is not None
-                    bc.tc_lock.acquire()
+                bc.current_rec_status = "▶️ Recording ⟳ Transcribing Audio"
+                result: Optional[stable_whisper.WhisperResult] = None
 
-                # transcribe first
-                assert stable_tc is not None, "Stable_tc model is None"
-                result: stable_whisper.WhisperResult = stable_tc(  # type: ignore
-                    audio_target, task="transcribe", **whisper_args
-                )
+                def run_tc():
+                    nonlocal result
+                    if bc.tc_lock is not None:
+                        with bc.tc_lock:
+                            result = stable_tc(  # type: ignore
+                                audio_target, task="transcribe", **whisper_args
+                            )
+                    else:
+                        result = stable_tc(  # type: ignore
+                            audio_target, task="transcribe", **whisper_args
+                        )
 
-                # ----------------------------------
-                # checking for lock
-                if transcribe and translate and tl_engine_whisper:
-                    assert bc.tc_lock is not None
-                    bc.tc_lock.release()
+                # def run_tc
+                bc.rec_tc_thread = Thread(target=run_tc, args=[], daemon=True)
+                bc.rec_tc_thread.start()
+                bc.rec_tc_thread.join()
 
+                assert result is not None
                 text = result.text.strip()
                 bc.auto_detected_lang = result.language or "~"
 
                 if len(text) > 0:
-                    prev_tc_res = result
-
                     if sj.cache["debug_realtime_record"] == 1:
+                        logger.debug("New text (Whisper)")
                         if sj.cache["verbose_record"]:
                             stablets_verbose_log(result)
                         else:
-                            logger.debug(f"New text: {text}")
+                            logger.debug(f"{text}")
 
+                    prev_tc_res = result
                     bc.update_tc(result, separator)
 
-                    # check translating or not
                     if translate:
+                        bc.current_rec_status = "▶️ Recording ⟳ Translating text"
                         if tl_engine_whisper:
-                            tl_thread = Thread(
-                                target=tl_whisper_threaded,
-                                args=[audio_target, stable_tl, separator],
+                            bc.rec_tl_thread = Thread(
+                                target=run_whisper_tl,
+                                args=[audio_target, stable_tl, separator, True],
                                 kwargs=whisper_args,
                                 daemon=True
                             )
                         else:
-                            tl_thread = Thread(
+                            bc.rec_tl_thread = Thread(
                                 target=tl_api, args=[text, lang_source, lang_target, engine, separator], daemon=True
                             )
 
-                        tl_thread.start()
-                        tl_thread.join()
+                        bc.rec_tl_thread.start()
+                        bc.rec_tl_thread.join()
 
             if use_temp and not sj.cache["keep_temp"]:
                 remove(audio_target)  # type: ignore
@@ -681,6 +673,8 @@ def record_session(
             bc.stream.stop_stream()
             bc.stream.close()
             bc.stream = None
+            bc.rec_tc_thread = None
+            bc.rec_tl_thread = None
 
             bc.current_rec_status = "⚠️ Terminating pyaudio"
             update_status_lbl()
@@ -798,28 +792,22 @@ def record_cb(in_data, frame_count, time_info, status):
     return (in_data, pyaudio.paContinue)
 
 
-def tl_whisper_threaded(
-    audio,
-    stable_tl,
-    separator: str,
-    **whisper_args,
-):
-    """Translate using whisper but run in thread"""
+def run_whisper_tl(audio, stable_tl, separator: str, with_lock, **whisper_args):
+    """Run Translate"""
     assert bc.mw is not None
-    bc.enable_tl()
-
     global prev_tl_res
     try:
-        assert bc.tc_lock is not None
-        with bc.tc_lock:
+        # assert bc.tc_lock is not None
+        if with_lock:
+            with bc.tc_lock:  # type: ignore
+                result: stable_whisper.WhisperResult = stable_tl(audio, task="translate", **whisper_args)
+        else:
             result: stable_whisper.WhisperResult = stable_tl(audio, task="translate", **whisper_args)
 
         text = result.text.strip()
         bc.auto_detected_lang = result.language or "~"
 
         if len(text) > 0:
-            prev_tl_res = result
-
             if sj.cache["debug_realtime_record"] == 1:
                 logger.debug("New translated text (Whisper)")
                 if sj.cache["verbose_record"]:
@@ -827,18 +815,17 @@ def tl_whisper_threaded(
                 else:
                     logger.debug(f"{text}")
 
+            prev_tl_res = result
             bc.update_tl(result, separator)
     except Exception as e:
         logger.exception(e)
         native_notify("Error: translating failed", str(e))
-    finally:
-        bc.disable_tl()  # flag processing as done
 
 
 def tl_api(text: str, lang_source: str, lang_target: str, engine: str, separator: str):
     """Translate the result of realtime_recording_thread using translation API"""
     assert bc.mw is not None
-    bc.enable_tl()
+    bc.enable_file_tl()
 
     try:
         global prev_tl_res
@@ -864,4 +851,4 @@ def tl_api(text: str, lang_source: str, lang_target: str, engine: str, separator
         logger.exception(e)
         native_notify("Error: translating failed", str(e))
     finally:
-        bc.disable_tl()  # flag processing as done
+        bc.disable_file_tl()  # flag processing as done

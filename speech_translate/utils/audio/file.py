@@ -290,7 +290,7 @@ def cancellable_tc(
         thread.start()
 
         while thread.is_alive():
-            if not bc.transcribing:
+            if not bc.transcribing_file:
                 logger.debug("Cancelling transcription")
                 kill_thread(thread)
                 raise Exception("Cancelled")
@@ -442,7 +442,7 @@ def cancellable_tl(
             thread.start()
 
             while thread.is_alive():
-                if not bc.translating:
+                if not bc.translating_file:
                     logger.debug("Cancelling translation")
                     kill_thread(thread)
                     raise Exception("Cancelled")
@@ -491,7 +491,7 @@ def cancellable_tl(
             thread.start()
 
             while thread.is_alive():
-                if not bc.translating:
+                if not bc.translating_file:
                     logger.debug("Cancelling translation")
                     kill_thread(thread)
                     raise Exception("Cancelled")
@@ -730,8 +730,8 @@ def process_file(
         update_ui_thread.start()
 
         bc.mw.start_loadBar()
-        bc.enable_tc()
-        bc.enable_tl()
+        bc.enable_file_tc()
+        bc.enable_file_tl()
 
         for file in data_files:
             if not bc.file_processing:  # if cancel button is pressed
@@ -837,8 +837,8 @@ def process_file(
         while not all_done:
             sleep(0.5)
 
-        bc.disable_tc()
-        bc.disable_tl()
+        bc.disable_file_tc()
+        bc.disable_file_tl()
 
         # destroy progress window
         if fp.root.winfo_exists():
@@ -849,7 +849,7 @@ def process_file(
         del _model_tc, _model_tl, stable_tc, stable_tl, to_args, whisper_args
         # turn off loadbar
         bc.mw.stop_loadBar("file")
-        bc.disable_rec()  # update flag
+        bc.disable_file_process()  # update flag
 
         if bc.file_tced_counter > 0 or bc.file_tled_counter > 0:
             # open folder
@@ -867,8 +867,8 @@ def process_file(
             mbox(f"File {taskname} Done", resultMsg, 0, master)
     except Exception as e:
         bc.disable_file_process()
-        bc.disable_tc()
-        bc.disable_tl()
+        bc.disable_file_tc()
+        bc.disable_file_tl()
         logger.error("Error occured while processing file(s)")
         logger.exception(e)
         mbox("Error occured while processing file(s)", f"{str(e)}", 2, bc.mw.root)

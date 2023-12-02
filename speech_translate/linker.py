@@ -45,14 +45,22 @@ class BridgeClass:
     def __init__(self):
         self.cuda: str = ""
         self.running_after_id: str = ""
+        self.bg_color: str = ""
+        self.fg_color: str = ""
         self.has_ffmpeg: bool = False
 
         # Flags
         self.running: bool = True
-        self.recording: bool = False
+
+        # file
         self.file_processing: bool = False
-        self.transcribing: bool = False
-        self.translating: bool = False
+        self.transcribing_file: bool = False
+        self.translating_file: bool = False
+
+        # rec
+        self.rec_tc_thread: Optional[Thread] = None
+        self.rec_tl_thread: Optional[Thread] = None
+        self.recording: bool = False
 
         # Style
         self.native_theme: str = ""
@@ -115,17 +123,17 @@ class BridgeClass:
     def disable_file_process(self):
         self.file_processing = False
 
-    def enable_tc(self):
-        self.transcribing = True
+    def enable_file_tc(self):
+        self.transcribing_file = True
 
-    def disable_tc(self):
-        self.transcribing = False
+    def disable_file_tc(self):
+        self.transcribing_file = False
 
-    def enable_tl(self):
-        self.translating = True
+    def enable_file_tl(self):
+        self.translating_file = True
 
-    def disable_tl(self):
-        self.translating = False
+    def disable_file_tl(self):
+        self.translating_file = False
 
     def insert_to_mw(self, text: str, mode: Literal["tc", "tl"], separator: str):
         assert self.mw is not None
@@ -184,11 +192,16 @@ class BridgeClass:
         to_insert = ""
         for res in copied_res:
             temp = res["text"] + "<br />" if res["is_last"] is False else res["text"]
-            color = res["color"] if {sj.cache.get(f"tb_{mode}_use_conf_color")} else sj.cache.get(f"tb_{mode}_font_color")
-            if res["color"] is not None:
-                to_insert += f'''<span style="color: {color}">{temp}</span>'''
+
+            if sj.cache.get(f"tb_{mode}_use_conf_color", False):
+                color = res["color"]
             else:
-                to_insert += f'''<span style="color: {sj.cache.get(f"tb_{mode}_font_color")}">{temp}</span>'''
+                color = sj.cache.get(f"tb_{mode}_font_color", None)
+
+            if color is None:
+                color = self.fg_color
+
+            to_insert += f'''<span style="color: {color}">{temp}</span>'''
 
         insert = f'''<div style='font-family: {sj.cache.get(f"tb_{mode}_font")}; text-align: left;
                     font-size: {sj.cache.get(f"tb_{mode}_font_size")}px; replace-background-color:;

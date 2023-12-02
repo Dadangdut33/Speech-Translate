@@ -42,7 +42,7 @@ def whisper_download_with_progress_gui(
     download_root : str
         The download directory
     cancel_func: function
-        function to run to cancel download
+        function to run to cancel download. The function should raise flag to cancel download
     after_func : function
         Function to run after download is finished when download is successful
     failed_func: function
@@ -199,7 +199,7 @@ def whisper_download_with_progress_gui(
         except Exception:
             pass
 
-        failed_func()
+        Thread(target=failed_func, daemon=True).start()
         # download failed, stop running this function
         return False
 
@@ -214,15 +214,16 @@ def whisper_download_with_progress_gui(
     # all check passed, this means the model has been downloaded successfully
     # run after_func if it is not None
     logger.info("Download finished")
-    if after_func:
-        logger.info("Running after_func")
-        Thread(target=after_func, daemon=True).start()
 
     # tell setting window to check model again when it open
     assert bc.sw is not None
     bc.sw.f_general.model_checked = False
 
     mbox("Model Downloaded Success", f"{model_name} whisper model has been downloaded successfully", 0, master)
+
+    if after_func:
+        logger.info("Running after_func")
+        Thread(target=after_func, daemon=True).start()
     return True
 
 
@@ -370,7 +371,7 @@ def faster_whisper_download_with_progress_gui(
     cache_dir : str
         The download directory
     cancel_func: function
-        function to run to cancel download
+        function to run to cancel download. The function should raise flag to cancel download
     after_func : function
         Function to run after download is finished when download is successful
     failed_func: function
@@ -546,15 +547,14 @@ def faster_whisper_download_with_progress_gui(
 
     if success := not failed:
         logger.info("Download finished")
+        mbox("Model Downloaded Success", f"{model_name} faster whisper model has been downloaded successfully", 0, master)
         # run after_func
         if after_func:
             logger.info("Running after_func")
             Thread(target=after_func, daemon=True).start()
-
-        mbox("Model Downloaded Success", f"{model_name} faster whisper model has been downloaded successfully", 0, master)
     else:
-        failed_func()
         logger.info("Download failed")
         mbox("Model Download Failed", msg, 0, master)
+        Thread(target=failed_func, daemon=True).start()
 
     return success

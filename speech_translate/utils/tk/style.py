@@ -20,6 +20,7 @@ from loguru import logger
 from speech_translate.linker import bc, sj
 from speech_translate._path import dir_theme
 from speech_translate.ui.custom.message import mbox
+from ..helper import get_opposite_hex_color
 
 theme_list = ["sun-valley-light", "sun-valley-dark"]
 
@@ -39,6 +40,19 @@ def set_ui_style(theme: str, root=None):
         sj.save_key("theme", theme)
 
     # -----------------------
+    bc.bg_color = get_root().cget('bg')
+    if bc.bg_color == "SystemButtonFace":
+        bc.fg_color = "black"
+    else:
+        bc.fg_color = get_opposite_hex_color(bc.bg_color)
+
+    try:
+        assert bc.mw is not None
+        bc.mw.tb_transcribed.configure(background=bc.bg_color)
+        bc.mw.tb_translated.configure(background=bc.bg_color)
+    except Exception:
+        pass  # skip if not yet initialized
+
     assert bc.style is not None
     # Global style
     if "light" in theme.lower() or theme == bc.native_theme:

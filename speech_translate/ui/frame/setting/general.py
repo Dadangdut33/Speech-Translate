@@ -119,16 +119,6 @@ class SettingGeneral:
             "Supress warning notification that usually shows up when no input device is detected.",
         )
 
-        self.lbl_notice_theme = ttk.Label(
-            self.f_application_1,
-            text="— Might need to reload the app for theme changes to fully take effect.",
-            cursor="hand2",
-            foreground="blue",
-        )
-        self.lbl_notice_theme.bind("<Button-1>", lambda e: self.prompt_restart_app_after_changing_theme())
-        self.lbl_notice_theme.pack(side="left", padx=5, pady=5)
-        tk_tooltip(self.lbl_notice_theme, "Click here to reload the app.")
-
         # theme
         self.lbl_theme = ttk.Label(self.f_application_2, text="Theme")
         self.lbl_theme.pack(side="left", padx=5, pady=5)
@@ -163,6 +153,16 @@ class SettingGeneral:
             "\n\nMight need to reload the app for the changes to take effect.",
             wrapLength=500,
         )
+
+        self.lbl_notice_theme = ttk.Label(
+            self.f_application_3,
+            text="Might need to reload the app for theme changes to fully take effect.",
+            cursor="hand2",
+            foreground="blue",
+        )
+        self.lbl_notice_theme.bind("<Button-1>", lambda e: self.prompt_restart_app_after_changing_theme())
+        self.lbl_notice_theme.pack(side="left", padx=5, pady=(0, 10))
+        tk_tooltip(self.lbl_notice_theme, "Click here to reload the app.")
 
         # --------------------
         # log
@@ -828,9 +828,11 @@ class SettingGeneral:
             self.btn_theme_add.pack_forget()
 
             if self.initial_theme != self.cb_theme.get():
-                self.lbl_notice_theme.pack(side="left", padx=5, pady=5)
+                self.f_application_3.pack(side="top", fill="x", padx=5)
+                self.lbl_notice_theme.pack(side="left", padx=5, pady=(0, 10))
             else:
                 self.lbl_notice_theme.pack_forget()
+                self.f_application_3.pack_forget()
 
             # save
             sj.save_key("theme", self.cb_theme.get())
