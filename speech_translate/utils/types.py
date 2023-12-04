@@ -160,6 +160,24 @@ class SettingDict(TypedDict):
     auto_open_dir_refinement: bool
     auto_open_dir_alignment: bool
     auto_open_dir_translate: bool
+    # counter hallucination
+    # rec
+    path_filter_rec: str
+    filter_rec: bool
+    filter_rec_case_sensitive: bool
+    filter_rec_strip: bool
+    filter_rec_ignore_punctuations: str
+    # file
+    path_filter_file_import: str
+    filter_file_import: bool
+    filter_file_import_case_sensitive: bool
+    filter_file_import_strip: bool
+    filter_file_import_ignore_punctuations: str
+    remove_repetition_file_import: bool
+    remove_repetition_result_refinement: bool
+    remove_repetition_result_alignment: bool
+    remove_repetition_amount: int
+    # export
     # {file} {task} {task-short} {lang-source} {lang-target} {model} {engine}
     export_format: str
     # txt csv json srt ass vtt tsv

@@ -13,6 +13,9 @@ from loguru import logger
 WHISPER_LANG_LIST = list(TO_LANGUAGE_CODE.keys())
 WHISPER_LANG_LIST.sort()
 
+# code: name
+WHISPER_CODE_TO_NAME = {v: k for k, v in TO_LANGUAGE_CODE.items()}
+
 # List of supported languages by Google TL
 GOOGLE_KEY_VAL = copy.deepcopy(GoogleTranslator().get_supported_languages(as_dict=True))
 assert isinstance(GOOGLE_KEY_VAL, Dict)
@@ -115,8 +118,9 @@ def verify_language_in_key(lang: str, engine: str) -> bool:
         raise ValueError("Engine not found")
 
 
-def get_whisper_key_from_similar(similar: str) -> str:
-    """Get whisper key from similar. This is used because we want to keep the original language name for the translation engine
+def get_whisper_lang_similar(similar: str, debug: bool = True) -> str:
+    """Get whisper language from similar. 
+    This is used because we want to keep the original language name for the translation engine
     So everytime we want to set the whisper language, we must call this function first to get the correct whisper key
 
     Parameters
@@ -136,17 +140,39 @@ def get_whisper_key_from_similar(similar: str) -> str:
 
     """
 
-    logger.debug("GETTING WHISPER KEY FROM SIMILAR LANGUAGE NAME")
+    if debug:
+        logger.debug("GETTING WHISPER LANGUAGE FROM SIMILAR LANGUAGE NAME")
     should_be_there = get_similar_in_list(WHISPER_LANG_LIST, similar.lower())
 
     if len(should_be_there) != 0:
-        logger.debug(f"Found key {should_be_there[0]} while searching for {similar}")
-        logger.debug(f"FULL KEY GET {should_be_there}")
+        if debug:
+            logger.debug(f"Found key {should_be_there[0]} while searching for {similar}")
+            logger.debug(f"FULL KEY GET {should_be_there}")
         return should_be_there[0]
     else:
         raise ValueError(
-            f"Fail to get whisper key from similar while searching for {similar}. Please report this as a bug to https://github.com/Dadangdut33/Speech-Translate/issues"
+            f"Fail to get whisper language from similar while searching for {similar}. Please report this as a bug to https://github.com/Dadangdut33/Speech-Translate/issues"
         )
+
+
+def get_whisper_lang_name(search: str) -> str:
+    """Get whisper language name from search. 
+    If by any chance the search is already a language name, then it will return the search itself
+
+    Parameters
+    ----------
+    search : str
+        language name or language code
+
+    Returns
+    -------
+    str
+        Whisper language name
+    """
+    if len(search) > 3:
+        return search  # > 3 meaning already language name
+    else:
+        return WHISPER_CODE_TO_NAME[search]
 
 
 # * For Target Remove any auto detect from the list

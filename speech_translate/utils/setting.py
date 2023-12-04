@@ -112,6 +112,23 @@ default_setting: SettingDict = {
     "auto_open_dir_refinement": True,
     "auto_open_dir_alignment": True,
     "auto_open_dir_translate": True,
+    # counter hallucination
+    # rec
+    "path_filter_rec": "auto",
+    "filter_rec": True,
+    "filter_rec_case_sensitive": False,
+    "filter_rec_strip": True,
+    "filter_rec_ignore_punctuations": "\"',.?!",
+    # file
+    "path_filter_file_import": "auto",
+    "filter_file_import": True,
+    "filter_file_import_case_sensitive": False,
+    "filter_file_import_strip": True,
+    "filter_file_import_ignore_punctuations": "\"',.?!",
+    "remove_repetition_file_import": False,
+    "remove_repetition_result_refinement": False,
+    "remove_repetition_result_alignment": False,
+    "remove_repetition_amount": 1,
     # * Independent
     # {file}
     # {lang-source} {lang-target} {transcribe-with} {translate-with}
@@ -120,7 +137,7 @@ default_setting: SettingDict = {
     # {task-short} {task-short-lang} {task-short-with} {task-short-lang-with}
     "export_format": "%Y-%m-%d %f {file}/{task-lang}",
     # txt csv json srt ass vtt tsv
-    "export_to": ["txt", "srt", "json"],
+    "export_to": ["txt", "srt", "vtt", "json", "ass"],
     "segment_max_words": "",
     "segment_max_chars": "",
     "segment_split_or_newline": "Split",

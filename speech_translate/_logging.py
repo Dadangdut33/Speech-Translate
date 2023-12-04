@@ -19,8 +19,8 @@ if not os.path.exists(dir_log):
     try:
         os.makedirs(dir_log)
     except Exception as e:
-        print("Error: Cannot create log folder")
-        print(e)
+        logger.exception(e)
+        logger.error("Error: Cannot create log folder")
 
 
 def shorten_progress_bar(match):
@@ -42,26 +42,29 @@ class StreamStderrToLogger(object):
         ]
 
     def write(self, buf):
-        for line in buf.rstrip().splitlines():
-            line = line.strip().replace("[A", "")
+        try:
+            for line in buf.rstrip().splitlines():
+                line = line.strip().replace("[A", "")
 
-            # checking if line is empty. exception use ^ ~ to point out the error
-            # but we don't need it in logger because logger is per line
-            check_empty = line.replace("^", "").replace("~", "").strip()
-            if len(check_empty) == 0:
-                continue
+                # checking if line is empty. exception use ^ ~ to point out the error
+                # but we don't need it in logger because logger is per line
+                check_empty = line.replace("^", "").replace("~", "").strip()
+                if len(check_empty) == 0:
+                    continue
 
-            # check where is it from. if keywords from considered_info is in the line then log as info
-            if any(x in line for x in self.considered_info):
-                shorten = re.sub(r'(\d+%)(\s*)\|(.+?)\|', shorten_progress_bar, line)
-                logger.log("INFO", shorten)
-                recent_stderr.append(shorten)
+                # check where is it from. if keywords from considered_info is in the line then log as info
+                if any(x in line for x in self.considered_info):
+                    shorten = re.sub(r'(\d+%)(\s*)\|(.+?)\|', shorten_progress_bar, line)
+                    logger.log("INFO", shorten)
+                    recent_stderr.append(shorten)
 
-                # limit to max 10
-                if len(recent_stderr) > 10:
-                    recent_stderr.pop(0)
-            else:
-                logger.log(self.level, line)
+                    # limit to max 10
+                    if len(recent_stderr) > 10:
+                        recent_stderr.pop(0)
+                else:
+                    logger.log(self.level, line)
+        except Exception as e:
+            logger.exception(e)
 
     def flush(self):
         pass

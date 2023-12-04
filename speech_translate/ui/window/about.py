@@ -6,7 +6,7 @@ from requests import get
 from loguru import logger
 
 from speech_translate._constants import APP_NAME
-from speech_translate._path import app_icon
+from speech_translate._path import p_app_icon
 from speech_translate._version import __version__
 from speech_translate.ui.custom.tooltip import tk_tooltip
 from speech_translate.linker import bc, sj
@@ -44,7 +44,7 @@ class AboutWindow:
         try:  # Try catch the logo so if logo not found it can still run
             self.canvas_img = Canvas(self.f_top, width=100, height=100)
             self.canvas_img.pack(side="top", padx=5, pady=5)
-            self.imgObj = Image.open(app_icon.replace(".ico", ".png"))
+            self.imgObj = Image.open(p_app_icon.replace(".ico", ".png"))
             self.imgObj = self.imgObj.resize((100, 100))
 
             self.img = ImageTk.PhotoImage(self.imgObj)
@@ -106,7 +106,7 @@ class AboutWindow:
 
         # ------------------ Set Icon ------------------
         try:
-            self.root.iconbitmap(app_icon)
+            self.root.iconbitmap(p_app_icon)
         except Exception:
             pass
 

@@ -14,12 +14,12 @@ from torch import cuda
 from speech_translate._path import dir_export, dir_alignment, dir_refinement, dir_translate
 from speech_translate._logging import logger
 from speech_translate.linker import bc, sj
-from speech_translate.utils.translate.language import verify_language_in_key, get_whisper_key_from_similar
+from speech_translate.utils.translate.language import get_whisper_lang_name, verify_language_in_key, get_whisper_lang_similar
 from speech_translate.ui.custom.dialog import ModResultInputDialog, FileProcessDialog
 from speech_translate.ui.custom.message import mbox
 
 from ..helper import cbtn_invoker, get_proxies, native_notify, filename_only, start_file, up_first_case, get_list_of_dict, kill_thread
-from ..whisper.helper import get_model, get_model_args, get_tc_args, save_output_stable_ts, model_values, to_language_name, get_task_format, split_res
+from ..whisper.helper import get_hallucination_filter, get_model, get_model_args, get_tc_args, save_output_stable_ts, model_values, to_language_name, get_task_format, split_res, remove_segments_by_str
 from ..translate.translator import translate
 
 # Global variable
@@ -210,6 +210,7 @@ def cancellable_tc(
     save_name: str,
     save_meta: str,
     tracker_index: int,
+    hallucination_filters: Dict,
     **whisper_args,
 ) -> None:
     """
@@ -273,11 +274,6 @@ def cancellable_tc(
         for fmt, value in format_dict.items():
             f_name = f_name.replace(fmt, value)
 
-        # check if any -short
-        if "-short" in f_name:
-            # replace transcribed with tc
-            f_name = f_name.replace("transcribed", "tc")
-
         logger.info("-" * 50)
         logger.info("Transcribing")
         logger.debug("Source Language: Auto" if auto else f"Source Language: {lang_source}")
@@ -300,6 +296,20 @@ def cancellable_tc(
             raise Exception(fail_status[1])
 
         result_tc: stable_whisper.WhisperResult = bc.data_queue.get()
+        if sj.cache["filter_file_import"]:
+            try:
+                assert result_tc.language is not None, "Language is None"
+                result_tc = remove_segments_by_str(
+                    result_tc, hallucination_filters[get_whisper_lang_name(result_tc.language) if auto else lang_source],
+                    sj.cache["filter_file_import_case_sensitive"], sj.cache["filter_file_import_strip"],
+                    sj.cache["filter_file_import_ignore_punctuations"]
+                )
+            except Exception as e:
+                logger.exception(e)
+                logger.error("Error in filtering hallucination")
+
+        if sj.cache["remove_repetition_file_import"]:
+            result_tc = result_tc.remove_repetition(sj.cache["remove_repetition_amount"])
 
         # export if transcribe mode is on
         if transcribe:
@@ -341,7 +351,10 @@ def cancellable_tc(
             res_to_tl = result_tc if engine not in model_values else audio_name
             translateThread = Thread(
                 target=cancellable_tl,
-                args=[res_to_tl, lang_source, lang_target, stable_tl, engine, auto, save_name, save_meta, tracker_index],
+                args=[
+                    res_to_tl, lang_source, lang_target, stable_tl, engine, auto, save_name, save_meta, tracker_index,
+                    hallucination_filters
+                ],
                 kwargs=whisper_args,
                 daemon=True,
             )
@@ -368,6 +381,7 @@ def cancellable_tl(
     save_name: str,
     save_meta: str,
     tracker_index: int,
+    hallucination_filters: Dict,
     **whisper_args,
 ):
     """
@@ -452,6 +466,20 @@ def cancellable_tl(
                 raise Exception(fail_status[1])
 
             result_tl: stable_whisper.WhisperResult = bc.data_queue.get()
+            if sj.cache["filter_file_import"]:
+                try:
+                    assert result_tl.language is not None, "Language is None"
+                    result_tl = remove_segments_by_str(
+                        result_tl, hallucination_filters[get_whisper_lang_name(result_tl.language) if auto else lang_source],
+                        sj.cache["filter_file_import_case_sensitive"], sj.cache["filter_file_import_strip"],
+                        sj.cache["filter_file_import_ignore_punctuations"]
+                    )
+                except Exception as e:
+                    logger.exception(e)
+                    logger.error("Error in filtering hallucination")
+
+            if sj.cache["remove_repetition_file_import"]:
+                result_tl = result_tl.remove_repetition(sj.cache["remove_repetition_amount"])
 
             # if whisper, sended text (toTranslate) is the audio file path
             resultTxt = result_tl.text.strip()
@@ -574,6 +602,7 @@ def process_file(
 
         auto = lang_source == "auto detect"
         tl_engine_whisper = engine in model_values
+        lang_source = get_whisper_lang_similar(lang_source)
 
         export_format: str = sj.cache["export_format"]
         file_slice_start = (None if sj.cache["file_slice_start"] == "" else int(sj.cache["file_slice_start"]))
@@ -586,7 +615,11 @@ def process_file(
             transcribe, translate, tl_engine_whisper, model_name_tc, engine, sj.cache, **model_args
         )
         whisper_args = get_tc_args(to_args, sj.cache)
-        whisper_args["language"] = TO_LANGUAGE_CODE[get_whisper_key_from_similar(lang_source.lower())] if not auto else None
+        whisper_args["language"] = TO_LANGUAGE_CODE[lang_source] if not auto else None
+        if sj.cache["filter_file_import"]:
+            hallucination_filters = get_hallucination_filter('file', sj.cache["path_filter_file_import"])
+        else:
+            hallucination_filters = {}
 
         # update button text
         bc.mw.btn_import_file.configure(text="Cancel")
@@ -716,7 +749,7 @@ def process_file(
                     if "invalid command name" not in str(e):
                         logger.exception(e)
                         logger.warning("Failed to update modal ui | Ignore if already closed")
-                    break
+                        break
 
         # widgets
         fp.lbl_task_name.configure(text=f"Task: {taskname} {language} with {model_name_tc} model")
@@ -806,7 +839,7 @@ def process_file(
                     target=cancellable_tl,
                     args=[
                         file, lang_source, lang_target, stable_tl, engine, auto, save_name, save_meta,
-                        global_file_import_counter
+                        global_file_import_counter, hallucination_filters
                     ],
                     kwargs=whisper_args,
                     daemon=True,
@@ -818,7 +851,7 @@ def process_file(
                     target=cancellable_tc,
                     args=[
                         file, lang_source, lang_target, model_name_tc, stable_tc, stable_tl, auto, transcribe, translate,
-                        engine, save_name, save_meta, global_file_import_counter
+                        engine, save_name, save_meta, global_file_import_counter, hallucination_filters
                     ],
                     kwargs=whisper_args,
                     daemon=True,
@@ -1012,7 +1045,7 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
                     if "invalid command name" not in str(e):
                         logger.exception(e)
                         logger.warning("Failed to update modal ui | Ignore if already closed")
-                    break
+                        break
 
         def read_txt(file):
             with open(file, "r", encoding="utf-8") as f:
@@ -1088,8 +1121,12 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
                 continue  # continue to next file
 
             if mode == "alignment":
-                mod_args["language"] = TO_LANGUAGE_CODE[get_whisper_key_from_similar(file[2].lower())
-                                                        ] if file[2] is not None else None
+                l_code = file[2].lower()
+                # if > 3, means that it is a language name, not a language code
+                if l_code is not None and len(l_code) > 3:
+                    l_code = TO_LANGUAGE_CODE[get_whisper_lang_similar(l_code)]
+
+                mod_args["language"] = l_code
 
             def run_mod():
                 nonlocal mod_source, processed, model, mod_function
@@ -1157,6 +1194,8 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
                 continue
 
             result: stable_whisper.WhisperResult = bc.data_queue.get()
+            if sj.cache.get(f"remove_repetition_result_{mode}", False):
+                result = result.remove_repetition(sj.cache["remove_repetition_amount"])
             result = split_res(result, sj.cache)
             if result.language is None:  # it could result to None when using faster whisper on alignment
                 if mod_args["language"] is not None:
@@ -1192,8 +1231,8 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
 
         logger.info(f"End process ({mode}) [Total time: {time() - t_start:.2f}s]")
 
-        # turn off loadbar
         del model, mod_function
+        # turn off loadbar
         bc.mw.stop_loadBar()
 
         if bc.mod_file_counter > 0:
@@ -1245,7 +1284,7 @@ def translate_result(data_files: List, engine: str, lang_target: str):
     try:
         bc.mw.disable_interactions()
         master = bc.mw.root
-        fp = FileProcessDialog(master, "File Translate Progress", "translate", ["Source File", "Status"], sj)
+        fp = FileProcessDialog(master, "Result File Translation Progress", "translate", ["Source File", "Status"], sj)
 
         logger.info("Start Process (MOD FILE)")
         bc.mod_file_counter = 0
@@ -1334,7 +1373,7 @@ def translate_result(data_files: List, engine: str, lang_target: str):
                     if "invalid command name" not in str(e):
                         logger.exception(e)
                         logger.warning("Failed to update modal ui | Ignore if already closed")
-                    break
+                        break
 
         # widgets
         fp.lbl_task_name.configure(text=f"Task Translate with {engine} engine")

@@ -4,7 +4,7 @@ from signal import SIGINT, signal  # Import the signal module to handle Ctrl+C
 from threading import Thread
 from time import strftime
 from tkinter import Frame, Menu, StringVar, Tk, Toplevel, filedialog, ttk
-from typing import Dict, Literal
+from typing import Dict, Literal, Optional, Callable
 
 from loguru import logger
 from PIL import Image, ImageDraw
@@ -16,7 +16,7 @@ from stable_whisper import WhisperResult
 from tkhtmlview import HTMLText
 
 from speech_translate._constants import APP_NAME
-from speech_translate._path import app_icon, dir_export, dir_log
+from speech_translate._path import p_app_icon, dir_export, dir_log
 from speech_translate._version import __version__
 from speech_translate.ui.custom.checkbutton import CustomCheckButton
 from speech_translate.ui.custom.combobox import CategorizedComboBox, ComboboxWithKeyNav
@@ -39,7 +39,7 @@ from speech_translate.utils.helper import (
     up_first_case, windows_os_only, check_ffmpeg_in_path, install_ffmpeg, kill_thread
 )
 from speech_translate.utils.translate.language import (ENGINE_SOURCE_DICT, ENGINE_TARGET_DICT, WHISPER_LANG_LIST)
-from speech_translate.utils.whisper.helper import append_dot_en, model_keys, save_output_stable_ts
+from speech_translate.utils.whisper.helper import append_dot_en, model_keys, save_output_stable_ts, create_hallucination_filter
 from speech_translate.utils.whisper.download import download_model, get_default_download_root, verify_model_faster_whisper, verify_model_whisper
 from speech_translate.utils.audio.record import record_session
 from speech_translate.utils.audio.file import process_file, mod_result, translate_result
@@ -80,7 +80,7 @@ class AppTray:
     # -- Create tray
     def create_tray(self):
         try:
-            ico = Image.open(app_icon)
+            ico = Image.open(p_app_icon)
         except Exception:
             ico = self.create_image(64, 64, "black", "white")
 
@@ -569,7 +569,7 @@ class MainWindow:
         bc.running_after_id = self.root.after(1000, self.is_running_poll)
         # ------------------ Set Icon ------------------
         try:
-            self.root.iconbitmap(app_icon)
+            self.root.iconbitmap(p_app_icon)
         except Exception:
             pass
 
@@ -738,6 +738,9 @@ class MainWindow:
         self.mode_change()
 
         windows_os_only([self.radio_speaker, self.cb_speaker, self.lbl_speaker, self.btn_config_speaker])
+
+        create_hallucination_filter("rec", return_if_exist=True)
+        create_hallucination_filter("file", return_if_exist=True)
 
         def first_open():
             if mbox(
@@ -1329,24 +1332,6 @@ class MainWindow:
                 else:
                     self.export_rec("Translate")
 
-    def model_dl_cancel(self, **kwargs):
-        if not mbox("Cancel confirmation", "Are you sure you want to cancel downloading?", 3, self.root):
-            return
-
-        logger.info("Cancelling download...")
-        if kwargs.get("enabler", None):
-            logger.debug("Running enabler...")
-            kwargs["enabler"]()
-        bc.cancel_dl = True  # Raise flag to stop
-
-    def after_model_dl(self, taskname, task, **kwargs):
-        if kwargs.get("enabler", None):
-            kwargs["enabler"]()
-
-        # ask if user wants to continue using the model
-        if mbox("Model is now Ready!", f"Continue task? ({taskname})", 3, self.root):
-            task()
-
     def destroy_transient_toplevel(self, name, similar=False):
         for child in self.root.winfo_children():
             if isinstance(child, Toplevel):
@@ -1357,7 +1342,25 @@ class MainWindow:
                     child.destroy()
                     break
 
-    def check_model(self, key, is_english, taskname, task, **kwargs):
+    def model_dl_cancel(self, **kwargs):
+        if not mbox("Cancel confirmation", "Are you sure you want to cancel downloading?", 3, self.root):
+            return
+
+        logger.info("Cancelling download...")
+        if kwargs.get("enabler", None):
+            logger.debug("Running enabler...")
+            kwargs["enabler"]()
+        bc.cancel_dl = True  # Raise flag to stop
+
+    def after_model_dl(self, taskname: str, task: Optional[Callable] = None, **kwargs):
+        if kwargs.get("enabler", None):
+            kwargs["enabler"]()
+
+        # ask if user wants to continue using the model
+        if task and mbox("Model is now Ready!", f"Continue task? ({taskname})", 3, self.root):
+            task()
+
+    def check_model(self, key: str, is_english: bool, taskname: str, task: Optional[Callable] = None, **kwargs):
         model_name = append_dot_en(key, is_english)
         try:
             if kwargs.get("disabler", None):
@@ -1590,14 +1593,12 @@ class MainWindow:
             m_check_kwargs = {"disabler": prompt.disable_interactions, "enabler": prompt.enable_interactions}
 
             if (tl and not tl_whisper) or tc:  # check tc model if tc or tl only but not whisper
-                status, model_tc = self.check_model(m_key, source == "english", "file import", do_process, **m_check_kwargs)
+                status, model_tc = self.check_model(m_key, source == "english", "file import", **m_check_kwargs)
                 if not status:
                     return False
 
             if tl and tl_whisper:  # if tl and using whisper engine, check model
-                status, tl_engine = self.check_model(
-                    tl_engine, source == "english", "file import", do_process, **m_check_kwargs
-                )
+                status, tl_engine = self.check_model(tl_engine, source == "english", "file import", **m_check_kwargs)
                 if not status:
                     return False
 
@@ -1714,7 +1715,7 @@ class MainWindow:
             # file = (source_file, mod_file)
             # check model first
             m_check_kwargs = {"disabler": prompt.disable_interactions, "enabler": prompt.enable_interactions}
-            status, model_tc = self.check_model(m_key, False, "file refinement", do_process, **m_check_kwargs)
+            status, model_tc = self.check_model(m_key, False, "file refinement", **m_check_kwargs)
             if not status:
                 return False
 
@@ -1764,6 +1765,7 @@ class MainWindow:
 
         logger.info("Stopping refinement...")
         bc.disable_file_process()
+        self.destroy_transient_toplevel("File Refinement Progress")
 
         if notify:
             mbox(
@@ -1804,7 +1806,7 @@ class MainWindow:
             # load .en model if all language is english
             logger.debug(f"all_english: {all_english} {'(load .en model because all in english)' if all_english else ''}")
             m_check_kwargs = {"disabler": prompt.disable_interactions, "enabler": prompt.enable_interactions}
-            status, model_tc = self.check_model(m_key, all_english, "file alignment", do_process, **m_check_kwargs)
+            status, model_tc = self.check_model(m_key, all_english, "file alignment", **m_check_kwargs)
             if not status:
                 return False
 
@@ -1854,6 +1856,7 @@ class MainWindow:
 
         logger.info("Stopping alignment...")
         bc.disable_file_process()
+        self.destroy_transient_toplevel("File Alignment Progress")
 
         if notify:
             mbox(
@@ -1940,6 +1943,7 @@ class MainWindow:
 
         logger.info("Stopping translation...")
         bc.disable_file_process()
+        self.destroy_transient_toplevel("Result File Translation Progress")
 
         if notify:
             mbox(

@@ -1,7 +1,7 @@
 from tkinter import messagebox, ttk, TclError, Text, Tk, Toplevel
 from typing import List, Literal, Optional, Union
 
-from speech_translate._path import app_icon
+from speech_translate._path import p_app_icon
 from speech_translate.utils.helper import tb_copy_only
 
 opened: List = []
@@ -41,7 +41,7 @@ class MBoxText:
 
         # ------------------ Set Icon ------------------
         try:
-            self.root.iconbitmap(app_icon)
+            self.root.iconbitmap(p_app_icon)
         except Exception:
             pass
 

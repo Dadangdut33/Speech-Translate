@@ -1,5 +1,5 @@
 from os import path
-from tkinter import ttk, Frame, LabelFrame, Toplevel, StringVar
+from tkinter import Menu, ttk, Frame, LabelFrame, Toplevel, StringVar
 from typing import Literal, Union
 from speech_translate.ui.custom.checkbutton import CustomCheckButton
 from speech_translate.ui.custom.message import mbox
@@ -7,8 +7,8 @@ from speech_translate.ui.custom.message import mbox
 from stable_whisper import result_to_ass, result_to_srt_vtt, result_to_tsv, load_model, load_faster_whisper, alignment, whisper_word_level
 
 from speech_translate.linker import sj, bc
-from speech_translate._path import parameters_text
-from speech_translate.utils.helper import start_file
+from speech_translate._path import p_parameters_text, p_filter_rec, p_filter_file_import
+from speech_translate.utils.helper import change_file_w_f_call, insert_entry_readonly, popup_menu, start_file
 from speech_translate.utils.whisper.helper import get_temperature, parse_args_stable_ts
 from speech_translate.ui.custom.tooltip import CreateToolTipOnText, tk_tooltip, tk_tooltips
 from speech_translate.ui.custom.spinbox import SpinboxNumOnly
@@ -549,6 +549,257 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
         self.btn_help.pack(side="left", padx=5)
         tk_tooltip(self.btn_help, "Click to see the available arguments.")
 
+        # ----------------------------------
+        self.lf_fltr_hallucination = LabelFrame(self.master, text="• Filter Hallucination")
+        self.lf_fltr_hallucination.pack(side="top", fill="x", pady=5, padx=5)
+
+        self.f_fltr_hallucination_1 = ttk.Frame(self.lf_fltr_hallucination)
+        self.f_fltr_hallucination_1.pack(side="top", fill="x", padx=5)
+
+        self.f_fltr_hallucination_1_l = ttk.Frame(self.lf_fltr_hallucination)
+        self.f_fltr_hallucination_1_l.pack(side="left", fill="both", expand=True)
+
+        self.f_fltr_hallucination_1_r = ttk.Frame(self.lf_fltr_hallucination)
+        self.f_fltr_hallucination_1_r.pack(side="left", fill="both", expand=True)
+
+        # rec
+        self.lf_fltr_rec = ttk.LabelFrame(self.f_fltr_hallucination_1_l, text="• Filter Record")
+        self.lf_fltr_rec.pack(side="top", fill="both", expand=True, padx=5, pady=5)
+
+        self.f_fltr_rec_1 = ttk.Frame(self.lf_fltr_rec)
+        self.f_fltr_rec_1.pack(side="top", fill="x", pady=5, padx=5)
+
+        self.f_fltr_rec_2 = ttk.Frame(self.lf_fltr_rec)
+        self.f_fltr_rec_2.pack(side="top", fill="x", pady=5, padx=5)
+
+        self.f_fltr_rec_3 = ttk.Frame(self.lf_fltr_rec)
+        self.f_fltr_rec_3.pack(side="top", fill="x", pady=5, padx=5)
+
+        self.cbtn_fltr_rec = CustomCheckButton(
+            self.f_fltr_rec_1,
+            sj.cache["filter_rec"],
+            lambda x: sj.save_key("filter_rec", x),
+            text="Filter Record",
+            style="Switch.TCheckbutton",
+        )
+        self.cbtn_fltr_rec.pack(side="left", padx=5)
+        tk_tooltip(
+            self.cbtn_fltr_rec,
+            "Filter hallucination in record using provided filter file."
+            "\n\nThe filter works by checking if there is any segment that match any of the string provided "
+            "in the filter list based on each language.\n\nDefault is checked",
+        )
+
+        self.lbl_fltr_rec = ttk.Label(self.f_fltr_rec_2, text="Filter Path", width=19)
+        self.lbl_fltr_rec.pack(side="left", padx=5)
+        self.entry_fltr_rec = ttk.Entry(self.f_fltr_rec_2)
+        insert_entry_readonly(
+            self.entry_fltr_rec, sj.cache["path_filter_rec"] if sj.cache["path_filter_rec"] != "auto" else p_filter_rec
+        )
+        self.entry_fltr_rec.pack(side="left", fill="x", expand=True, padx=5)
+        tk_tooltips(
+            [self.lbl_fltr_rec, self.entry_fltr_rec],
+            "Path to filter file for filtering hallucination in record.",
+            wrapLength=300,
+        )
+
+        self.btn_fltr_rec_config = ttk.Button(
+            self.f_fltr_rec_2,
+            image=bc.wrench_emoji,
+            compound="center",
+            width=3,
+            command=lambda: popup_menu(self.root, self.menu_fltr_rec),
+        )
+        self.btn_fltr_rec_config.pack(side="left", padx=5)
+
+        def confirm_reset(title, element, key, value):
+            if mbox(title, "Are you sure you want to reset the filter to its default path?", 3, self.root):
+                insert_entry_readonly(element, value)
+                sj.save_key(key, "auto")
+
+        self.menu_fltr_rec = Menu(self.master, tearoff=0)
+        self.menu_fltr_rec.add_command(
+            label="Open Filter File",
+            image=bc.open_emoji,
+            compound="left",
+            command=lambda: start_file(self.entry_fltr_rec.get())
+        )
+        self.menu_fltr_rec.add_separator()
+        self.menu_fltr_rec.add_command(
+            label="Change Filter File",
+            compound="left",
+            image=bc.folder_emoji,
+            command=lambda: change_file_w_f_call(
+                self.entry_fltr_rec, lambda v: sj.save_key("path_filter_rec", v), "Change Filter File",
+                (("JSON (Filter file)", "*.json"), ), self.root
+            )
+        )
+        self.menu_fltr_rec.add_command(
+            label="Set back to Default Filter File",
+            compound="left",
+            image=bc.reset_emoji,
+            command=lambda: confirm_reset("Reset Filter File", self.entry_fltr_rec, "path_filter_rec", p_filter_rec),
+        )
+
+        self.lbl_ignore_punctuations = ttk.Label(self.f_fltr_rec_3, text="Ignore Punctuations", width=19)
+        self.lbl_ignore_punctuations.pack(side="left", padx=5)
+
+        self.entry_ignore_punctuations = ttk.Entry(self.f_fltr_rec_3)
+        self.entry_ignore_punctuations.insert(0, sj.cache["filter_rec_ignore_punctuations"])
+        self.entry_ignore_punctuations.pack(side="left", fill="x", expand=False, padx=5)
+        self.entry_ignore_punctuations.bind(
+            "<KeyRelease>",
+            lambda e: sj.save_key("filter_rec_ignore_punctuations",
+                                  self.entry_ignore_punctuations.get().strip())
+        )
+        tk_tooltips(
+            [self.lbl_ignore_punctuations, self.entry_ignore_punctuations],
+            "Punctuations to ignore when filtering hallucination in record.\n\nDefault is \"',.?!",
+        )
+
+        self.cbtn_filter_rec_strip = CustomCheckButton(
+            self.f_fltr_rec_3,
+            sj.cache["filter_rec_strip"],
+            lambda x: sj.save_key("filter_rec_strip", x),
+            text="Strip",
+            style="Switch.TCheckbutton",
+        )
+        self.cbtn_filter_rec_strip.pack(side="left", padx=5)
+        tk_tooltip(
+            self.cbtn_filter_rec_strip,
+            "Whether to ignore spaces before and after each string.\n\nDefault is checked",
+        )
+
+        self.cbtn_fltr_rec_case_sensitive = CustomCheckButton(
+            self.f_fltr_rec_3,
+            sj.cache["filter_rec_case_sensitive"],
+            lambda x: sj.save_key("filter_rec_case_sensitive", x),
+            text="Case Sensitive",
+            style="Switch.TCheckbutton",
+        )
+        self.cbtn_fltr_rec_case_sensitive.pack(side="left", padx=5)
+        tk_tooltip(
+            self.cbtn_fltr_rec_case_sensitive,
+            "Whether the case of the string need to match to be removed\n\nDefault is unchecked",
+        )
+
+        # File import
+        self.lf_fltr_file_import = ttk.LabelFrame(self.f_fltr_hallucination_1_r, text="• Filter File Import")
+        self.lf_fltr_file_import.pack(side="top", fill="both", expand=True, padx=5, pady=5)
+
+        self.f_fltr_file_import_1 = ttk.Frame(self.lf_fltr_file_import)
+        self.f_fltr_file_import_1.pack(side="top", fill="x", pady=5, padx=5)
+
+        self.f_fltr_file_import_2 = ttk.Frame(self.lf_fltr_file_import)
+        self.f_fltr_file_import_2.pack(side="top", fill="x", pady=5, padx=5)
+
+        self.f_fltr_file_import_3 = ttk.Frame(self.lf_fltr_file_import)
+        self.f_fltr_file_import_3.pack(side="top", fill="x", pady=5, padx=5)
+
+        self.cbtn_filter_file_import = CustomCheckButton(
+            self.f_fltr_file_import_1,
+            sj.cache["filter_file_import"],
+            lambda x: sj.save_key("filter_file_import", x),
+            text="Filter File Import",
+            style="Switch.TCheckbutton",
+        )
+        self.cbtn_filter_file_import.pack(side="left", padx=5)
+        tk_tooltip(
+            self.cbtn_filter_file_import,
+            "Filter hallucination in file import using provided filter file."
+            "\n\nThe filter works by checking if there is any segment that match any of the string provided "
+            "in the filter list based on each language."
+            "\n\nEnabling filter on file import will not make it filter the result in align and refine result mode"
+            "\n\nDefault is checked",
+            wrapLength=300,
+        )
+
+        self.lbl_fltr_file_import = ttk.Label(self.f_fltr_file_import_2, text="Filter Path", width=19)
+        self.lbl_fltr_file_import.pack(side="left", padx=5)
+
+        self.entry_fltr_file_import = ttk.Entry(self.f_fltr_file_import_2)
+        insert_entry_readonly(
+            self.entry_fltr_file_import,
+            sj.cache["path_filter_file_import"] if sj.cache["path_filter_file_import"] != "auto" else p_filter_file_import
+        )
+        self.entry_fltr_file_import.pack(side="left", fill="x", expand=True, padx=5)
+        tk_tooltips(
+            [self.lbl_fltr_file_import, self.entry_fltr_file_import],
+            "Path to filter file for filtering hallucination in file import.",
+            wrapLength=300,
+        )
+
+        self.btn_fltr_file_import_config = ttk.Button(
+            self.f_fltr_file_import_2,
+            image=bc.wrench_emoji,
+            compound="center",
+            width=3,
+            command=lambda: popup_menu(self.root, self.menu_fltr_file_import),
+        )
+        self.btn_fltr_file_import_config.pack(side="left", padx=5)
+
+        self.menu_fltr_file_import = Menu(self.master, tearoff=0)
+        self.menu_fltr_file_import.add_command(
+            label="Open Filter File",
+            image=bc.open_emoji,
+            compound="left",
+            command=lambda: start_file(self.entry_fltr_file_import.get())
+        )
+        self.menu_fltr_file_import.add_separator()
+        self.menu_fltr_file_import.add_command(
+            label="Change Filter File",
+            image=bc.folder_emoji,
+            compound="left",
+            command=lambda: change_file_w_f_call(
+                self.entry_fltr_file_import, lambda v: sj.save_key("path_filter_file_import", v), "Change Filter File",
+                (("JSON (Filter file)", "*.json"), ), self.root
+            ),
+        )
+        self.menu_fltr_file_import.add_command(
+            label="Set back to Default Filter File",
+            image=bc.reset_emoji,
+            compound="left",
+            command=lambda:
+            confirm_reset("Reset Filter File", self.entry_fltr_file_import, "path_filter_file_import", p_filter_file_import),
+        )
+
+        self.lbl_ignore_punctuations_file_import = ttk.Label(self.f_fltr_file_import_3, text="Ignore Punctuations", width=19)
+        self.lbl_ignore_punctuations_file_import.pack(side="left", padx=5)
+        self.entry_ignore_punctuations_file_import = ttk.Entry(self.f_fltr_file_import_3)
+        self.entry_ignore_punctuations_file_import.insert(0, sj.cache["filter_file_import_ignore_punctuations"])
+        self.entry_ignore_punctuations_file_import.pack(side="left", fill="x", expand=False, padx=5)
+        self.entry_ignore_punctuations_file_import.bind(
+            "<KeyRelease>", lambda e: sj.
+            save_key("filter_file_import_ignore_punctuations",
+                     self.entry_ignore_punctuations_file_import.get().strip())
+        )
+        tk_tooltips(
+            [self.lbl_ignore_punctuations_file_import, self.entry_ignore_punctuations_file_import],
+            "Punctuations to ignore when filtering hallucination in file import.\n\nDefault is \"',.?!",
+        )
+
+        self.cbtn_filter_file_import_strip = CustomCheckButton(
+            self.f_fltr_file_import_3,
+            sj.cache["filter_file_import_strip"],
+            lambda x: sj.save_key("filter_file_import_strip", x),
+            text="Strip",
+            style="Switch.TCheckbutton",
+        )
+        self.cbtn_filter_file_import_strip.pack(side="left", padx=5)
+
+        self.cbtn_fltr_file_import_case_sensitive = CustomCheckButton(
+            self.f_fltr_file_import_3,
+            sj.cache["filter_file_import_case_sensitive"],
+            lambda x: sj.save_key("filter_file_import_case_sensitive", x),
+            text="Case Sensitive",
+            style="Switch.TCheckbutton",
+        )
+        self.cbtn_fltr_file_import_case_sensitive.pack(side="left", padx=5)
+        tk_tooltip(
+            self.cbtn_fltr_file_import_case_sensitive,
+            "Whether the case of the string need to match to be removed\n\nDefault is unchecked",
+        )
+
         # --------------------------
         self.init_setting_once()
 
@@ -618,11 +869,11 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
             pass
 
     def make_open_text(self, texts: str):
-        if not path.exists(parameters_text):
-            with open(parameters_text, "w", encoding="utf-8") as f:
+        if not path.exists(p_parameters_text):
+            with open(p_parameters_text, "w", encoding="utf-8") as f:
                 f.write(texts)
 
-        start_file(parameters_text)
+        start_file(p_parameters_text)
 
     def verify_temperature(self, value: str):
         status, msg = get_temperature(value)

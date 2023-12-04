@@ -1,6 +1,6 @@
 from os import listdir, remove, path
 from threading import Thread
-from tkinter import ttk, filedialog, Menu, Toplevel, Frame, LabelFrame
+from tkinter import ttk, Menu, Toplevel, Frame, LabelFrame
 from typing import Union
 from speech_translate.ui.custom.checkbutton import CustomCheckButton
 from speech_translate.ui.custom.combobox import ComboboxWithKeyNav
@@ -10,7 +10,7 @@ from loguru import logger
 from speech_translate.linker import sj, bc
 from speech_translate._path import dir_log, dir_temp, dir_debug
 from speech_translate._logging import current_log, change_log_level
-from speech_translate.utils.helper import popup_menu, emoji_img, up_first_case
+from speech_translate.utils.helper import insert_entry_readonly, popup_menu, up_first_case, change_folder_w_f_call
 from speech_translate.utils.whisper.download import verify_model_faster_whisper, verify_model_whisper, download_model, get_default_download_root
 from speech_translate.utils.helper import start_file
 from speech_translate.utils.tk.style import set_ui_style
@@ -40,11 +40,6 @@ class SettingGeneral:
         self.initial_theme = ""
         self.checking_model = False
         self.model_checked = False
-        self.folder_emoji = emoji_img(13, " 📂")
-        self.open_emoji = emoji_img(13, "     ↗️")
-        self.trash_emoji = emoji_img(13, "     🗑️")
-        self.reset_emoji = emoji_img(13, " 🔄")
-        self.wrench_emoji = emoji_img(16, "     🛠️")
 
         # ------------------ General ------------------
         # app
@@ -188,38 +183,41 @@ class SettingGeneral:
         self.lbl_log.pack(side="left", padx=5)
 
         self.entry_log = ttk.Entry(self.f_logging_1)
+        insert_entry_readonly(self.entry_log, dir_log if sj.cache["dir_log"] == "auto" else sj.cache["dir_log"])
         self.entry_log.pack(side="left", padx=5, fill="x", expand=True)
-        tk_tooltip(self.entry_log, "Directory of the app's log file.")
+        tk_tooltips([self.lbl_log, self.entry_log], "Directory of the app's log file.")
 
         self.btn_log_config = ttk.Button(
             self.f_logging_1,
-            image=self.wrench_emoji,
+            image=bc.wrench_emoji,
             compound="center",
             width=3,
             command=lambda: popup_menu(self.root, self.menu_config_log),
         )
-        self.btn_log_config.pack(side="left", padx=5, pady=5)
+        self.btn_log_config.pack(side="left", padx=5)
 
         self.menu_config_log = Menu(self.master, tearoff=0)
         self.menu_config_log.add_command(
-            label="Open", image=self.open_emoji, compound="left", command=lambda: start_file(dir_log)
+            label="Open", image=bc.open_emoji, compound="left", command=lambda: start_file(self.entry_log.get())
         )
         self.menu_config_log.add_separator()
         self.menu_config_log.add_command(
             label="Change Folder",
-            image=self.folder_emoji,
+            image=bc.folder_emoji,
             compound="left",
-            command=lambda: self.change_path("dir_log", self.entry_log),
+            command=lambda: change_folder_w_f_call(
+                self.entry_log, lambda value: sj.save_key("dir_log", value), "Change Log Folder", self.root
+            ),
         )
         self.menu_config_log.add_command(
             label="Set Back to Default",
-            image=self.reset_emoji,
+            image=bc.reset_emoji,
             compound="left",
             command=lambda: self.path_default("dir_log", self.entry_log, dir_log),
         )
         self.menu_config_log.add_separator()
         self.menu_config_log.add_command(
-            label="Empty Log Folder", image=self.trash_emoji, compound="left", command=lambda: self.promptDeleteLog()
+            label="Empty Log Folder", image=bc.trash_emoji, compound="left", command=lambda: self.promptDeleteLog()
         )
 
         self.cbtn_verbose = CustomCheckButton(
@@ -331,6 +329,10 @@ class SettingGeneral:
         self.lbl_model.pack(side="left", padx=5)
 
         self.entry_model = ttk.Entry(self.f_model_1, cursor="hand2", width=100)
+        insert_entry_readonly(
+            self.entry_model,
+            get_default_download_root() if sj.cache["dir_model"] == "auto" else sj.cache["dir_model"]
+        )
         self.entry_model.pack(side="left", padx=5, fill="x", expand=True)
         tk_tooltip(self.entry_model, "Location of the model file.")
 
@@ -350,7 +352,7 @@ class SettingGeneral:
 
         self.btn_model_config = ttk.Button(
             self.f_model_1,
-            image=self.wrench_emoji,
+            image=bc.wrench_emoji,
             compound="center",
             width=3,
             command=lambda: popup_menu(self.root, self.menu_config_model),
@@ -360,7 +362,7 @@ class SettingGeneral:
         self.menu_config_model = Menu(self.master, tearoff=0)
         self.menu_config_model.add_command(
             label="Open",
-            image=self.open_emoji,
+            image=bc.open_emoji,
             compound="left",
             command=lambda:
             start_file(sj.cache["dir_model"] if sj.cache["dir_model"] != "auto" else get_default_download_root())
@@ -368,13 +370,15 @@ class SettingGeneral:
         self.menu_config_model.add_separator()
         self.menu_config_model.add_command(
             label="Change Folder",
-            image=self.folder_emoji,
+            image=bc.folder_emoji,
             compound="left",
-            command=lambda: self.change_path("dir_model", self.entry_model),
+            command=lambda: change_folder_w_f_call(
+                self.entry_model, lambda value: sj.save_key("dir_model", value), "Change Model Folder", self.root
+            ),
         )
         self.menu_config_model.add_command(
             label="Set Back to Default",
-            image=self.reset_emoji,
+            image=bc.reset_emoji,
             compound="left",
             command=lambda: self.path_default("dir_model", self.entry_model, get_default_download_root()),
         )
@@ -463,20 +467,6 @@ class SettingGeneral:
 
     # ------------------ Functions ------------------
     def init_setting_once(self):
-        if sj.cache["dir_log"] == "auto":
-            self.path_default("dir_log", self.entry_log, dir_log, save=False, prompt=False)
-        else:
-            self.entry_log.configure(state="normal")
-            self.entry_log.insert(0, sj.cache["dir_log"])
-            self.entry_log.configure(state="readonly")
-
-        if sj.cache["dir_model"] == "auto":
-            self.path_default("dir_model", self.entry_model, get_default_download_root(), save=False, prompt=False)
-        else:
-            self.entry_model.configure(state="normal")
-            self.entry_model.insert(0, sj.cache["dir_model"])
-            self.entry_model.configure(state="readonly")
-
         self.fill_theme()
 
     def delete_log(self):
@@ -875,18 +865,9 @@ class SettingGeneral:
         sj.save_key("log_level", self.cb_log_level.get())
         change_log_level(self.cb_log_level.get())
 
-    def change_path(self, key: str, element: ttk.Entry):
-        path = filedialog.askdirectory()
-        if path != "":
-            sj.save_key(key, path)
-            element.configure(state="normal")
-            element.delete(0, "end")
-            element.insert(0, path)
-            element.configure(state="readonly")
-
     def path_default(self, key: str, element: ttk.Entry, default_path: str, save=True, prompt=True):
         # prompt are you sure
-        if prompt and not mbox(
+        if not mbox(
             f"Set {up_first_case(key.split('_')[1])} Folder to Default",
             f"Are you sure you want to set {key.split('_')[1]} folder back to default?",
             3,
@@ -894,9 +875,5 @@ class SettingGeneral:
         ):
             return
 
-        element.configure(state="normal")
-        element.delete(0, "end")
-        element.insert(0, default_path)
-        element.configure(state="readonly")
-        if save:
-            sj.save_key(key, "auto")
+        insert_entry_readonly(element, default_path)
+        sj.save_key(key, "auto")

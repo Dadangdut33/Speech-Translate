@@ -8,11 +8,8 @@ sys.path.append(toAdd)
 
 from speech_translate.utils.translate.language import ( # noqa: E402
     GOOGLE_SOURCE, LIBRE_SOURCE, MYMEMORY_SOURCE, GOOGLE_TARGET, LIBRE_TARGET,
-    MY_MEMORY_TARGET, get_whisper_key_from_similar, GOOGLE_KEY_VAL, LIBRE_KEY_VAL, MYMEMORY_KEY_VAL
+    MY_MEMORY_TARGET, get_whisper_lang_similar, GOOGLE_KEY_VAL, LIBRE_KEY_VAL, MYMEMORY_KEY_VAL
 )
-
-# print(MYMEMORY_KEY_VAL)
-# exit()
 
 # making sure that every key in google source pass the get_whisper_key_from_similar
 # skipping auto detect because this is not a language and when on auto mode we already have a method set for it
@@ -26,7 +23,7 @@ for key in GOOGLE_SOURCE:
     if key == "auto detect":
         continue
 
-    get = get_whisper_key_from_similar(key)
+    get = get_whisper_lang_similar(key)
 
     logger.debug("matching key with google key val")
     assert isinstance(GOOGLE_KEY_VAL, Dict)
@@ -52,7 +49,7 @@ for key in LIBRE_SOURCE:
     if key == "auto detect":
         continue
 
-    get = get_whisper_key_from_similar(key)
+    get = get_whisper_lang_similar(key)
 
     logger.debug("matching key with libre key val")
     assert isinstance(LIBRE_KEY_VAL, Dict)
@@ -76,7 +73,7 @@ logger.debug("testing mymemory source")
 for key in MYMEMORY_SOURCE:
     key = key.lower()
     # no auto detect in mymemory
-    get = get_whisper_key_from_similar(key)
+    get = get_whisper_lang_similar(key)
 
     logger.debug("matching key with mymemory key val")
     assert isinstance(MYMEMORY_KEY_VAL, Dict)

@@ -3,10 +3,13 @@ import sys
 import threading
 from loguru import logger
 
-toAdd = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+toAdd = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(toAdd)
 
+from speech_translate._constants import LOG_FORMAT  # noqa: E402
 from speech_translate._logging import init_logging  # noqa: E402
+
+os.environ["LOGURU_FORMAT"] = LOG_FORMAT
 
 init_logging("DEBUG")
 

@@ -2,7 +2,9 @@ import argparse
 import csv
 import json
 import os
-from typing import List, Literal, Optional, Union
+import re
+import requests
+from typing import List, Literal, Optional, Union, Dict
 
 import torch
 import stable_whisper
@@ -14,6 +16,7 @@ from whisper.utils import optional_int, optional_float
 from whisper import DecodingOptions
 from loguru import logger
 
+from speech_translate._path import p_filter_rec, p_filter_file_import, p_base_filter
 from speech_translate.utils.types import SettingDict, StableTsResultDict
 from speech_translate.utils.whisper.download import get_default_download_root
 
@@ -482,7 +485,7 @@ def save_output_stable_ts(
             # Save JSON
             with open(fname_dupe_check(outname, format) + ".json", "w", encoding="utf-8") as js:
                 res = result.to_dict() if isinstance(result, stable_whisper.WhisperResult) else result
-                json.dump(res, js, indent=2, allow_nan=True)
+                json.dump(res, js, indent=2, allow_nan=True, ensure_ascii=False)
         else:
             # Save other formats (SRT, ASS, VTT, TSV)
             save_method = getattr(result, OUTPUT_FORMATS_METHODS[format])
@@ -906,3 +909,98 @@ def split_res(result: stable_whisper.WhisperResult, sj_cache: SettingDict):
         newline=str(sj_cache["segment_split_or_newline"]).lower() == "newline",
         even_split=sj_cache["segment_even_split"]
     )
+
+
+def remove_segments_by_str(
+    result: stable_whisper.WhisperResult,
+    str_to_find: Union[str, List[str]],
+    case_sensitive: bool = False,
+    strip: bool = True,
+    ignore_punctuations: str = "\"',.?!",
+    debug: bool = False,
+):
+    """
+    Remove segments that contains the string specified in ``str_to_find``.
+    Some of the code on this function is taken from ``stable_whisper.WhisperResult.remove_words_by_str``
+
+    Parameters
+    ----------
+    result : WhisperResult
+        The result from whisper
+    str_to_find : Union[str, List[str], None]
+        The string to find
+    case_sensitive : bool, optional
+        Whether the case of the string need to match to be removed, by default False
+    strip : bool, optional
+        Whether to ignore spaces before and after each word.
+    ignore_punctuations : str, optional
+        Punctuations to ignore
+    """
+    if isinstance(str_to_find, str):
+        str_to_find = [str_to_find]
+
+    all_segments = result.segments
+    all_segments_text = [segment.text for segment in all_segments]
+    if strip:
+        all_segments_text = [segment.strip() for segment in all_segments_text]
+        str_to_find = [segment.strip() for segment in str_to_find]
+    if ignore_punctuations:
+        ptn = f'[{ignore_punctuations}]+$'
+        all_segments_text = [re.sub(ptn, '', text) for text in all_segments_text]
+        str_to_find = [re.sub(ptn, '', text) for text in str_to_find]
+    if not case_sensitive:
+        all_segments_text = [text.lower() for text in all_segments_text]
+        str_to_find = [text.lower() for text in str_to_find]
+
+    for i, full_segment in reversed(list(enumerate(all_segments_text))):
+        #  check if any of the exact str_to_find is the segment
+        if any(to_find == full_segment for to_find in str_to_find):
+            result.remove_segment(i, verbose=debug)
+
+    return result
+
+
+def get_base_filter() -> Dict:
+    try:
+        with open(p_base_filter, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        logger.warning("Base filter file not found, attempting to download it")
+        filter_https = "https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/base_hallucination_filter.json"
+        # download
+        r = requests.get(filter_https)
+        if r.status_code != 200:
+            logger.error("Failed to download base filter file!, returning empty!")
+            return {}
+
+        with open(p_base_filter, "w", encoding="utf-8") as f:
+            f.write(r.text)
+
+        return json.loads(r.text)
+
+
+def create_hallucination_filter(_type: Union[Literal["rec"], Literal["file"]], return_if_exist=False):
+    f_name = p_filter_rec if _type == "rec" else p_filter_file_import
+    # if already exist, change the name of the old file
+    if os.path.exists(f_name):
+        if return_if_exist:
+            logger.debug(f"Hallucination filter file already exist at {f_name}, returning")
+            return
+        os.rename(f_name, f_name + ".old")
+
+    hallucination_filter = get_base_filter()
+
+    logger.debug(f"Creating new hallucination filter file at {f_name}")
+    with open(f_name, "w", encoding="utf-8") as f:
+        json.dump(hallucination_filter, f, indent=4, ensure_ascii=False)
+
+
+def get_hallucination_filter(_type: Union[Literal["rec"], Literal["file"]], location: str = "auto") -> Dict:
+    if location == "auto":
+        location = p_filter_rec if _type == "rec" else p_filter_file_import
+        if not os.path.exists(location):
+            logger.warning(f"Hallucination filter file not found, creating new one at {location}")
+            create_hallucination_filter(_type)
+
+    with open(location, "r", encoding="utf-8") as f:
+        return json.load(f)

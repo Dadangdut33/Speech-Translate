@@ -9,7 +9,8 @@ from os import path, startfile
 from platform import system
 from random import choice
 from tkinter import colorchooser, ttk
-from typing import Dict, List, Union, Optional
+from tkinter import filedialog
+from typing import Dict, List, Union, Optional, Callable
 from webbrowser import open_new
 from difflib import SequenceMatcher
 from threading import Thread
@@ -20,7 +21,7 @@ from notifypy import Notify, exceptions
 from PIL import Image, ImageDraw, ImageFont, ImageTk
 
 from speech_translate._constants import APP_NAME, HACKY_SPACE
-from speech_translate._path import app_icon, app_icon_missing, ffmpeg_ps_script
+from speech_translate._path import p_app_icon, app_icon_missing, p_ffmpeg_ps_script
 from speech_translate.ui.custom.tooltip import tk_tooltip
 from speech_translate.utils.types import ToInsert
 
@@ -375,10 +376,10 @@ def install_ffmpeg_windows():
     success = True
     msg = ""
     # first check if the script is in the path
-    if not path.exists(ffmpeg_ps_script):
+    if not path.exists(p_ffmpeg_ps_script):
         logger.debug("ffmpeg_ps_script not found. Creating it...")
         # create it directly
-        with open(ffmpeg_ps_script, "w", encoding="utf-8") as f:
+        with open(p_ffmpeg_ps_script, "w", encoding="utf-8") as f:
             f.write(
                 r"""
 param (
@@ -439,9 +440,9 @@ $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
 Write-Host "check it by running ffmpeg -version"    
             """
             )
-    logger.debug(f"Running ps script... {ffmpeg_ps_script}")
+    logger.debug(f"Running ps script... {p_ffmpeg_ps_script}")
     # run the script
-    powershell_command = f"Start-Process powershell -ArgumentList '-NoProfile -ExecutionPolicy Bypass -File \"{ffmpeg_ps_script}\"' -Verb RunAs"
+    powershell_command = f"Start-Process powershell -ArgumentList '-NoProfile -ExecutionPolicy Bypass -File \"{p_ffmpeg_ps_script}\"' -Verb RunAs"
     p = subprocess.run(
         ['powershell', '-Command', powershell_command],
         shell=True,
@@ -551,7 +552,7 @@ def native_notify(title: str, message: str):
     notification.message = message
     if not app_icon_missing:
         try:
-            notification.icon = app_icon
+            notification.icon = p_app_icon
         except exceptions:
             pass
 
@@ -758,3 +759,28 @@ def get_opposite_hex_color(hex_color: str):
     opposite_rgb_color = tuple(255 - i for i in rgb_color)
     opposite_hex_color = "#%02x%02x%02x" % opposite_rgb_color
     return opposite_hex_color
+
+
+def insert_entry_readonly(element: ttk.Entry, value: str):
+    element.configure(state="normal")
+    element.delete(0, "end")
+    element.insert(0, value)
+    element.configure(state="readonly")
+
+
+def change_folder_w_f_call(element: ttk.Entry, f_call: Callable, title, parent=None):
+    path = filedialog.askdirectory(parent=parent, title=title)
+    if path != "":
+        insert_entry_readonly(element, path)
+        f_call(path)
+
+
+def change_file_w_f_call(element: ttk.Entry, f_call: Callable, title, filetypes, parent=None):
+    path = filedialog.askopenfilename(
+        parent=parent,
+        title=title,
+        filetypes=filetypes,
+    )
+    if path != "":
+        insert_entry_readonly(element, path)
+        f_call(path)

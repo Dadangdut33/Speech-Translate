@@ -17,7 +17,7 @@ import torch
 import stable_whisper
 from whisper.tokenizer import TO_LANGUAGE_CODE
 
-from speech_translate.utils.translate.language import get_whisper_key_from_similar
+from speech_translate.utils.translate.language import get_whisper_lang_similar, get_whisper_lang_name
 
 if system() == "Windows":
     import pyaudiowpatch as pyaudio
@@ -26,7 +26,7 @@ else:
 from webrtcvad import Vad
 
 from speech_translate._constants import MAX_THRESHOLD, MIN_THRESHOLD, WHISPER_SR
-from speech_translate._path import app_icon, dir_debug, dir_temp
+from speech_translate._path import p_app_icon, dir_debug, dir_temp
 from speech_translate.ui.custom.label import LabelTitleText
 from speech_translate.ui.custom.message import mbox
 from speech_translate.ui.custom.audio import AudioMeter
@@ -35,7 +35,7 @@ from speech_translate.linker import bc, sj
 from speech_translate.utils.audio.device import get_db, get_device_details, get_frame_duration, get_speech, resample_sr
 
 from ..helper import cbtn_invoker, generate_temp_filename, get_channel_int, get_proxies, native_notify, str_separator_to_html, unique_rec_list
-from ..whisper.helper import get_model, get_model_args, get_tc_args, stablets_verbose_log, model_values
+from ..whisper.helper import get_model, get_model_args, get_tc_args, stablets_verbose_log, model_values, get_hallucination_filter, remove_segments_by_str
 from ..translate.translator import translate
 
 
@@ -192,7 +192,7 @@ def record_session(
     btn_stop = ttk.Button(frame_btn, text="Stop", style="Accent.TButton")
     btn_stop.pack(side="right", fill="x", padx=5, expand=True)
     try:
-        root.iconbitmap(app_icon)
+        root.iconbitmap(p_app_icon)
     except Exception:
         pass
 
@@ -215,13 +215,14 @@ def record_session(
             bc.tc_lock = None
 
         # load model first
+        lang_source = get_whisper_lang_similar(lang_source)
         model_args = get_model_args(sj.cache)
         _model_tc, _model_tl, stable_tc, stable_tl, to_args = get_model(
             transcribe, translate, tl_engine_whisper, model_name_tc, engine, sj.cache, **model_args
         )
         whisper_args = get_tc_args(to_args, sj.cache)
         whisper_args["verbose"] = None  # set to none so no printing of the progress to stdout
-        whisper_args["language"] = TO_LANGUAGE_CODE[get_whisper_key_from_similar(lang_source.lower())] if not auto else None
+        whisper_args["language"] = TO_LANGUAGE_CODE[lang_source] if not auto else None
 
         if sj.cache["use_faster_whisper"] and not use_temp:
             whisper_args["input_sr"] = WHISPER_SR  # when using numpy array as input, will need to set input_sr
@@ -265,6 +266,10 @@ def record_session(
         threshold_db = sj.cache.get(f"threshold_db_{rec_type}", -20)
         threshold_auto_mode = sj.cache.get(f"threshold_auto_mode_{rec_type}")
         auto_break_buffer = sj.cache.get(f"auto_break_buffer_{rec_type}")
+        if sj.cache["filter_rec"]:
+            hallucination_filters = get_hallucination_filter('rec', sj.cache["path_filter_rec"])
+        else:
+            hallucination_filters = {}
 
         # ----------------- Start modal -----------------
         # window to show progress
@@ -472,20 +477,25 @@ def record_session(
             last_sample = bytes()
             duration_seconds = 0
 
-            # append and remove text that is exactly the same same
-            # Some dupe might accidentally happened so we need to remove it
+            # append if there is any text
+            # remove text that is exactly the same because some dupe might accidentally happened
+            # update only if there is any text
             if transcribe:
-                bc.tc_sentences.append(prev_tc_res)
+                if prev_tc_res:
+                    bc.tc_sentences.append(prev_tc_res)
                 bc.tc_sentences = unique_rec_list(bc.tc_sentences)
                 if len(bc.tc_sentences) > max_sentences:
                     bc.tc_sentences.pop(0)
-                bc.update_tc(None, separator)
+                if len(bc.tc_sentences) > 0:
+                    bc.update_tc(None, separator)
             if translate:
-                bc.tl_sentences.append(prev_tl_res)
+                if prev_tl_res:
+                    bc.tl_sentences.append(prev_tl_res)
                 bc.tl_sentences = unique_rec_list(bc.tl_sentences)
                 if len(bc.tl_sentences) > max_sentences:
                     bc.tl_sentences.pop(0)
-                bc.update_tl(None, separator)
+                if len(bc.tl_sentences) > 0:
+                    bc.update_tl(None, separator)
 
         # transcribing loop
         while bc.recording:
@@ -594,7 +604,7 @@ def record_session(
                 bc.current_rec_status = "▶️ Recording ⟳ Translating Audio"
                 bc.rec_tl_thread = Thread(
                     target=run_whisper_tl,
-                    args=[audio_target, stable_tl, separator, False],
+                    args=[audio_target, stable_tl, separator, False, hallucination_filters],
                     kwargs=whisper_args,
                     daemon=True
                 )
@@ -632,6 +642,17 @@ def record_session(
                     logger.warning("Transcribing failed, check log for details!")
                     continue
 
+                if sj.cache["filter_rec"]:
+                    try:
+                        result = remove_segments_by_str(
+                            result, hallucination_filters[get_whisper_lang_name(result.language) if auto else lang_source],
+                            sj.cache["filter_rec_case_sensitive"], sj.cache["filter_rec_strip"],
+                            sj.cache["filter_rec_ignore_punctuations"], sj.cache["debug_realtime_record"]
+                        )
+                    except Exception as e:
+                        logger.exception(e)
+                        logger.error("Error in filtering hallucination")
+
                 text = result.text.strip()
                 bc.auto_detected_lang = result.language or "~"
 
@@ -651,7 +672,7 @@ def record_session(
                         if tl_engine_whisper:
                             bc.rec_tl_thread = Thread(
                                 target=run_whisper_tl,
-                                args=[audio_target, stable_tl, separator, True],
+                                args=[audio_target, stable_tl, separator, True, hallucination_filters],
                                 kwargs=whisper_args,
                                 daemon=True
                             )
@@ -801,7 +822,7 @@ def record_cb(in_data, frame_count, time_info, status):
     return (in_data, pyaudio.paContinue)
 
 
-def run_whisper_tl(audio, stable_tl, separator: str, with_lock, **whisper_args):
+def run_whisper_tl(audio, stable_tl, separator: str, with_lock, hallucination_filters, **whisper_args):
     """Run Translate"""
     assert bc.mw is not None
     global prev_tl_res
@@ -812,6 +833,17 @@ def run_whisper_tl(audio, stable_tl, separator: str, with_lock, **whisper_args):
                 result: stable_whisper.WhisperResult = stable_tl(audio, task="translate", **whisper_args)
         else:
             result: stable_whisper.WhisperResult = stable_tl(audio, task="translate", **whisper_args)
+
+        if sj.cache["filter_rec"]:
+            try:
+                result = remove_segments_by_str(
+                    result, hallucination_filters["english"], sj.cache["filter_rec_case_sensitive"],
+                    sj.cache["filter_rec_strip"], sj.cache["filter_rec_ignore_punctuations"],
+                    sj.cache["debug_realtime_record"]
+                )
+            except Exception as e:
+                logger.exception(e)
+                logger.error("Error in filtering hallucination")
 
         text = result.text.strip()
         bc.auto_detected_lang = result.language or "~"

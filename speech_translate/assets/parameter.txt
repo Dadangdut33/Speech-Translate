@@ -28,7 +28,7 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
 
 # [append_punctuations]
 * description: Punctuations to append to the previous word
-* type: str, default ""'.。,，!！?？:：”)]}、"
+* type: str, default "\"'.。,，!！?？:：”)]}、"
 * usage: --append_punctuations "<punctuation>"
 
 # [gap_padding]
@@ -106,20 +106,15 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
 * type: float, default 0.1
 * usage: --min_word_dur 0.1
 
-# [max_chars]
-* description: maximum number of characters allowed in each segment
-* type: int
-* usage: --max_chars <value>
-
-# [max_words]
-* description: maximum number of words allowed in each segment
-* type: int
-* usage: --max_words <value>
-
 # [demucs]
 * description: whether to reprocess the audio track with Demucs to isolate vocals/remove noise; Demucs official repo: https://github.com/facebookresearch/demucs
 * type: bool, default False
 * usage: --demucs True
+
+# [demucs_output]
+* path(s) to save the vocals isolated by Demucs as WAV file(s); ignored if [demucs]=False
+* type: str
+* usage: --demucs_output "<path>"
 
 # [only_voice_freq]
 * description: whether to only use sound between 200 - 5000 Hz, where the majority of human speech is.
@@ -132,7 +127,7 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
 * usage: --strip True
 
 # [tag]
-* description: a pair of tags used to change the properties of a word at its predicted time; SRT Default: '<font color="#00ff00">', '</font>'; VTT Default: '<u>', '</u>'; ASS Default: '{\1c&HFF00&}', '{\r}'
+* description: a pair of tags used to change the properties of a word at its predicted time; SRT Default: '<font color=\"#00ff00\">', '</font>'; VTT Default: '<u>', '</u>'; ASS Default: '{\\1c&HFF00&}', '{\\r}'
 * type: str
 * usage: --tag "<start_tag> <end_tag>"
 
@@ -155,51 +150,6 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
 * description: whether to use progressive filling highlights for karaoke effect (only for ASS outputs)
 * type: bool, default False
 * usage: --karaoke True
-
-# [temperature]
-* description: temperature to use for sampling
-* type: float, default 0
-* usage: --temperature <value>
-
-# [best_of]
-* description: number of candidates when sampling with non-zero temperature
-* type: int
-* usage: --best_of <value>
-
-# [beam_size]
-* description: number of beams in beam search, only applicable when temperature is zero
-* type: int
-* usage: --beam_size <value>
-
-# [patience]
-* description: optional patience value to use in beam decoding, as in https://arxiv.org/abs/2204.05424, the default (1.0) is equivalent to conventional beam search
-* type: float
-* usage: --patience <value>
-
-# [length_penalty]
-* description: optional token length penalty coefficient (alpha) as in https://arxiv.org/abs/1609.08144, uses simple length normalization by default
-* type: float
-* usage: --length_penalty <value>
-
-# [fp16]
-* description: whether to perform inference in fp16; True by default
-* type: bool, default True
-* usage: --fp16
-
-# [compression_ratio_threshold]
-* description: if the gzip compression ratio is higher than this value, treat the decoding as failed
-* type: float
-* usage: --compression_ratio_threshold <value>
-
-# [logprob_threshold]
-* description: if the average log probability is lower than this value, treat the decoding as failed
-* type: float
-* usage: --logprob_threshold <value>
-
-# [no_speech_threshold]
-* description: if the probability of the token is higher than this value AND the decoding has failed due to `logprob_threshold`, consider the segment as silence
-* type: float, default 0.6
-* usage: --no_speech_threshold 0.6
 
 # [threads]
 * description: number of threads used by torch for CPU inference; supercedes MKL_NUM_THREADS/OMP_NUM_THREADS
@@ -235,4 +185,3 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
 * description: Extra option(s) to use for text outputs; Replace True/False with 1/0; E.g. --save_option "highlight_color=ffffff"
 * type: str
 * usage: --save_option "<option>"
-        

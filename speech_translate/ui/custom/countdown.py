@@ -3,7 +3,7 @@ from time import sleep
 from tkinter import Tk, Toplevel, ttk
 from typing import Union
 
-from speech_translate._path import app_icon
+from speech_translate._path import p_app_icon
 from speech_translate.ui.custom.message import mbox
 
 
@@ -32,7 +32,7 @@ class CountdownWindow:
         self.root.protocol("WM_DELETE_WINDOW", self.do_nothing_on_close)
         self.root.geometry(geometry if geometry else "+{}+{}".format(master.winfo_rootx() + 50, master.winfo_rooty() + 50))
         try:
-            self.root.iconbitmap(app_icon)
+            self.root.iconbitmap(p_app_icon)
         except Exception:
             pass
 

@@ -7,7 +7,7 @@ from speech_translate.ui.custom.message import MBoxText, mbox
 from datetime import datetime
 
 from speech_translate.linker import sj, bc
-from speech_translate._path import dir_export, parameters_text
+from speech_translate._path import dir_export, p_parameters_text
 from speech_translate.utils.helper import filename_only, popup_menu, start_file, up_first_case
 from speech_translate.utils.whisper.helper import get_task_format
 from speech_translate.ui.custom.tooltip import tk_tooltip, tk_tooltips
@@ -35,6 +35,15 @@ class SettingExport:
 
         self.f_export_mode_3 = ttk.Frame(self.lf_export_mode)
         self.f_export_mode_3.pack(side="top", fill="x", padx=5, pady=5)
+
+        self.lf_result_modify = LabelFrame(self.master, text="• Result Modification")
+        self.lf_result_modify.pack(side="top", fill="x", padx=5, pady=5)
+
+        self.f_result_modify_1 = ttk.Frame(self.lf_result_modify)
+        self.f_result_modify_1.pack(side="top", fill="x", padx=5, pady=5)
+
+        self.f_result_modify_2 = ttk.Frame(self.lf_result_modify)
+        self.f_result_modify_2.pack(side="top", fill="x", padx=5, pady=5)
 
         self.lf_export_limit = LabelFrame(self.master, text="• Limit Per Segment")
         self.lf_export_limit.pack(side="top", fill="x", padx=5, pady=5)
@@ -228,6 +237,61 @@ class SettingExport:
                 if v != "\x08" and v != "":  # other than backspace and empty is not allowed
                     return "break"
 
+        self.cbtn_remove_repetition_file_import = CustomCheckButton(
+            self.f_result_modify_1,
+            sj.cache["remove_repetition_file_import"],
+            lambda x: sj.save_key("remove_repetition_file_import", x),
+            text="Remove Repetition (File Import)",
+            style="Switch.TCheckbutton",
+        )
+        self.cbtn_remove_repetition_file_import.pack(side="left", padx=5)
+
+        self.cbtn_remove_repetition_result_refinement = CustomCheckButton(
+            self.f_result_modify_1,
+            sj.cache["remove_repetition_result_refinement"],
+            lambda x: sj.save_key("remove_repetition_result_refinement", x),
+            text="Remove Repetition (Result Refinement)",
+            style="Switch.TCheckbutton",
+        )
+        self.cbtn_remove_repetition_result_refinement.pack(side="left", padx=5)
+
+        self.cbtn_remove_repetition_result_alignment = CustomCheckButton(
+            self.f_result_modify_1,
+            sj.cache["remove_repetition_result_alignment"],
+            lambda x: sj.save_key("remove_repetition_result_alignment", x),
+            text="Remove Repetition (Result Alignment)",
+            style="Switch.TCheckbutton",
+        )
+        self.cbtn_remove_repetition_result_alignment.pack(side="left", padx=5)
+
+        tk_tooltips(
+            [
+                self.cbtn_remove_repetition_file_import, self.cbtn_remove_repetition_result_refinement,
+                self.cbtn_remove_repetition_result_alignment
+            ],
+            "If enabled will Remove words that repeat consecutively."
+            '\n\nExample 1: "This is is is a test." -> "This is a test."'
+            '\nIf you set max words to 1, it will remove the last two "is"'
+            '\n\nExample 2: "This is is is a test this is a test." -> "This is a test."'
+            '\nIf you set max words to 4, it will remove the second " is" and third " is", then remove the last "this is a test". '
+            '"this is a test" will get remove because it consists of 4 words and the max words is 4.',
+            wrapLength=450,
+        )
+        self.lbl_remove_repetition_amount = ttk.Label(self.f_result_modify_2, text="Max Words Lookup", width=17)
+        self.lbl_remove_repetition_amount.pack(side="left", padx=5)
+        self.entry_remove_repetition_amount = ttk.Entry(self.f_result_modify_2)
+        self.entry_remove_repetition_amount.insert(0, str(sj.cache["remove_repetition_amount"]))
+        self.entry_remove_repetition_amount.pack(side="left", padx=5)
+        self.entry_remove_repetition_amount.bind(
+            "<KeyRelease>",
+            lambda e: sj.save_key("remove_repetition_amount", int(self.entry_remove_repetition_amount.get()))
+        )
+        tk_tooltips(
+            [self.lbl_remove_repetition_amount, self.entry_remove_repetition_amount],
+            "Set the maximum number of words to look for consecutively.\n\nDefault is 4",
+            wrapLength=300,
+        )
+
         self.lbl_segment_max_words = ttk.Label(self.f_export_limit_1, text="Max Words", width=17)
         self.lbl_segment_max_words.pack(side="left", padx=5)
         self.spn_segment_max_words = SpinboxNumOnly(
@@ -246,7 +310,7 @@ class SettingExport:
             "Maximum number of words allowed in each segment.\n\nDefault is empty",
         )
 
-        self.lbl_segment_max_chars = ttk.Label(self.f_export_limit_1, text="Max Chars", width=17)
+        self.lbl_segment_max_chars = ttk.Label(self.f_export_limit_1, text="Max Chars", width=13)
         self.lbl_segment_max_chars.pack(side="left", padx=5)
         self.spn_segment_max_chars = SpinboxNumOnly(
             self.root,
@@ -317,7 +381,7 @@ class SettingExport:
         )
         self.spn_slice_file_start.pack(side="left", padx=5)
 
-        self.lbl_slice_file_end = ttk.Label(self.f_export_format_1, text="Slice File End")
+        self.lbl_slice_file_end = ttk.Label(self.f_export_format_1, text="Slice File End", width=13)
         self.lbl_slice_file_end.pack(side="left", padx=5)
         self.spn_slice_file_end = SpinboxNumOnly(
             self.root,
@@ -478,11 +542,11 @@ class SettingExport:
             element.configure(state="readonly")
 
     def make_open_text(self, texts: str):
-        if not path.exists(parameters_text):
-            with open(parameters_text, "w", encoding="utf-8") as f:
+        if not path.exists(p_parameters_text):
+            with open(p_parameters_text, "w", encoding="utf-8") as f:
                 f.write(texts)
 
-        start_file(parameters_text)
+        start_file(p_parameters_text)
 
     def path_default(self, key: str, element: ttk.Entry, default_path: str, save=True, prompt=True):
         # prompt are you sure

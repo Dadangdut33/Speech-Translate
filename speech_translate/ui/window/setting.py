@@ -2,7 +2,7 @@ from threading import Thread
 from tkinter import Frame, Tk, Toplevel, font, ttk
 
 from speech_translate._constants import APP_NAME
-from speech_translate._path import app_icon
+from speech_translate._path import p_app_icon
 from speech_translate.ui.frame.setting.general import SettingGeneral
 from speech_translate.ui.frame.setting.record import SettingRecord
 from speech_translate.ui.frame.setting.textbox import SettingTextbox
@@ -56,7 +56,7 @@ class SettingWindow:
         self.tab_control.add(self.ft_transcribe, text="Whisper")
 
         self.ft_export = ttk.Frame(self.tab_control)
-        self.tab_control.add(self.ft_export, text="File Export")
+        self.tab_control.add(self.ft_export, text="File Export Result")
 
         self.ft_translate = ttk.Frame(self.tab_control)
         self.tab_control.add(self.ft_translate, text="Translate")
@@ -76,7 +76,7 @@ class SettingWindow:
         self.init_threaded()
         bind_focus_recursively(self.root, self.root)
         try:
-            self.root.iconbitmap(app_icon)
+            self.root.iconbitmap(p_app_icon)
         except Exception:
             pass
 

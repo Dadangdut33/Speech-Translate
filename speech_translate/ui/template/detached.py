@@ -2,7 +2,7 @@ from platform import system
 from tkinter import IntVar, Menu, Tk, Toplevel
 from typing import Literal
 
-from speech_translate._path import app_icon
+from speech_translate._path import p_app_icon
 from speech_translate.ui.custom.label import DraggableHtmlLabel
 from speech_translate.ui.custom.message import mbox
 from speech_translate.ui.custom.tooltip import tk_tooltip
@@ -144,7 +144,7 @@ class SubtitleWindow:
 
         # ------------------ Set Icon ------------------
         try:
-            self.root.iconbitmap(app_icon)
+            self.root.iconbitmap(p_app_icon)
         except Exception:
             pass
 

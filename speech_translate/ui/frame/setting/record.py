@@ -68,9 +68,6 @@ class SettingRecord:
         self.f_recording_1 = ttk.Frame(self.lf_recording)
         self.f_recording_1.pack(side="top", fill="x", pady=5, padx=5)
 
-        self.f_recording_1_l = ttk.Frame(self.f_recording_1)
-        self.f_recording_1_l.pack(side="left", fill="x")
-
         self.f_recording_2 = ttk.Frame(self.lf_recording)
         self.f_recording_2.pack(side="top", fill="x", pady=5, padx=5)
 

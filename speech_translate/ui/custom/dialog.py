@@ -7,7 +7,7 @@ from tksheet import Sheet
 from loguru import logger
 
 from speech_translate.linker import sj
-from speech_translate._path import app_icon
+from speech_translate._path import p_app_icon
 from speech_translate._logging import recent_stderr
 from speech_translate.ui.custom.tooltip import tk_tooltip, tk_tooltips
 from speech_translate.ui.custom.label import LabelTitleText
@@ -41,7 +41,7 @@ class MultipleChoiceQuestion:
         ttk.Button(self.root, text="Submit", command=self.submit).pack(padx=5, pady=5)
         # ------------------ Set Icon ------------------
         try:
-            self.root.iconbitmap(app_icon)
+            self.root.iconbitmap(p_app_icon)
         except Exception:
             pass
 
@@ -143,7 +143,7 @@ class FileOperationDialog:
         self.btn_cancel.pack(side="left", padx=5)
         # ------------------ Set Icon ------------------
         try:
-            self.root.iconbitmap(app_icon)
+            self.root.iconbitmap(p_app_icon)
         except Exception:
             pass
 
@@ -418,7 +418,11 @@ class FileImportDialog(FileOperationDialog):
 
     def disable_interactions(self):
         super().disable_interactions()
-        self.cbtn_task_change()
+        self.cb_source_lang.configure(state="disabled")
+        self.cb_target_lang.configure(state="disabled")
+        self.cb_engine.configure(state="disabled")
+        self.cb_model.configure(state="disabled")
+        self.btn_start.configure(state="disabled")
         self.cbtn_transcribe.configure(state="disabled")
         self.cbtn_translate.configure(state="disabled")
 
@@ -627,7 +631,7 @@ class ModResultInputDialog:
 
         # ------------------ Set Icon ------------------
         try:
-            self.root.iconbitmap(app_icon)
+            self.root.iconbitmap(p_app_icon)
         except Exception:
             pass
 
@@ -813,7 +817,7 @@ class QueueDialog:
 
         # ------------------ Set Icon ------------------
         try:
-            self.root.iconbitmap(app_icon)
+            self.root.iconbitmap(p_app_icon)
         except Exception:
             pass
 
@@ -895,7 +899,7 @@ class FileProcessDialog:
         self.root.protocol("WM_DELETE_WINDOW", lambda: master.state("iconic"))  # minimize window when click close button
         self.root.geometry("+{}+{}".format(master.winfo_rootx() + 50, master.winfo_rooty() + 50))
         try:
-            self.root.iconbitmap(app_icon)
+            self.root.iconbitmap(p_app_icon)
         except Exception:
             pass
 

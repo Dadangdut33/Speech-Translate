@@ -14,7 +14,7 @@ from loguru import logger
 from huggingface_hub.file_download import repo_folder_name
 
 from speech_translate.utils.helper import kill_thread
-from speech_translate._path import app_icon
+from speech_translate._path import p_app_icon
 from speech_translate.ui.custom.message import mbox
 from speech_translate._logging import recent_stderr
 from speech_translate.linker import bc
@@ -79,7 +79,7 @@ def whisper_download_with_progress_gui(
     root.minsize(200, 115)
     root.maxsize(600, 180)
     try:
-        root.iconbitmap(app_icon)
+        root.iconbitmap(p_app_icon)
     except Exception:
         pass
 
@@ -398,7 +398,7 @@ def faster_whisper_download_with_progress_gui(
     root.minsize(200, 100)
     root.maxsize(1600, 200)
     try:
-        root.iconbitmap(app_icon)
+        root.iconbitmap(p_app_icon)
     except Exception:
         pass
 

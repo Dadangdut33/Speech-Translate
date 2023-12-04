@@ -6,7 +6,7 @@ from tkinter import Text, Tk, Toplevel, ttk
 from loguru import logger
 
 from speech_translate._constants import APP_NAME
-from speech_translate._path import app_icon, dir_log
+from speech_translate._path import p_app_icon, dir_log
 from speech_translate.ui.custom.checkbutton import CustomCheckButton
 from speech_translate.ui.custom.message import mbox
 from speech_translate._logging import current_log, clear_current_log_file
@@ -91,7 +91,7 @@ class LogWindow:
 
         # ------------------ Set Icon ------------------
         try:
-            self.root.iconbitmap(app_icon)
+            self.root.iconbitmap(p_app_icon)
         except Exception:
             pass
 
