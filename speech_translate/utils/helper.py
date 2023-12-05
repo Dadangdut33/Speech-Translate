@@ -21,17 +21,9 @@ from notifypy import Notify, exceptions
 from PIL import Image, ImageDraw, ImageFont, ImageTk
 
 from speech_translate._constants import APP_NAME, HACKY_SPACE
-from speech_translate._path import p_app_icon, app_icon_missing, p_ffmpeg_ps_script
+from speech_translate._path import p_app_icon, app_icon_missing
 from speech_translate.ui.custom.tooltip import tk_tooltip
 from speech_translate.utils.types import ToInsert
-
-
-def launchWithoutConsole(command):
-    """Launches 'command' windowless and waits until finished"""
-    startupinfo = subprocess.STARTUPINFO()
-    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-    return subprocess.Popen(command, startupinfo=startupinfo).wait()
-
 
 def kill_thread(thread: Optional[Thread]) -> bool:
     ''' Attempt to kill thread, credits: https://github.com/JingheLee/KillThread
@@ -350,176 +342,6 @@ def start_file(filename: str):
         native_notify("Error", f"Uncaught error {str(e)}")
 
 
-def check_ffmpeg_in_path():
-    """
-    Check if ffmpeg is in the path
-    """
-    success = True
-    msg = ""
-    try:
-        launchWithoutConsole(["ffmpeg", "-version"])
-        msg = "ffmpeg is in the path."
-    except FileNotFoundError:
-        success = False
-        msg = "ffmpeg is not in the path."
-    except Exception as e:
-        success = False
-        msg = str(e)
-    finally:
-        return success, msg
-
-
-def install_ffmpeg_windows():
-    """
-    Install ffmpeg on windows
-    """
-    success = True
-    msg = ""
-    # first check if the script is in the path
-    if not path.exists(p_ffmpeg_ps_script):
-        logger.debug("ffmpeg_ps_script not found. Creating it...")
-        # create it directly
-        with open(p_ffmpeg_ps_script, "w", encoding="utf-8") as f:
-            f.write(
-                r"""
-param (
-    [switch]$webdl
-)
-
-$isAdministrator = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-$arguments = [System.Environment]::GetCommandLineArgs()
-
-# MUST BE RUN AS ADMINISTRATOR, but when run from a webdl, it will not be forced
-if (-NOT $isAdministrator -AND -NOT $webdl)
-{  
-  $arguments = "& '" +$myinvocation.mycommand.definition + "'"
-  Start-Process powershell -Verb runAs -ArgumentList $arguments
-  Break
-}
-
-if (-NOT $isAdministrator)
-{
-  Write-Host "WARNING: This script must be run as administrator to correctly add ffmpeg to the system path."
-}
-
-# modified a little from https://adamtheautomator.com/install-ffmpeg/
-New-Item -Type Directory -Path C:\ffmpeg 
-Set-Location C:\ffmpeg
-curl.exe -L 'https://github.com/GyanD/codexffmpeg/releases/download/6.0/ffmpeg-6.0-essentials_build.zip' -o 'ffmpeg.zip'
-
-# Expand the Zip
-Expand-Archive .\ffmpeg.zip -Force -Verbose
-
-# Move the executable (*.exe) files to the top folder
-Get-ChildItem -Recurse -Path .\ffmpeg -Filter *.exe |
-ForEach-Object {
-    $source = $_.FullName
-    $destination = Join-Path -Path . -ChildPath $_.Name
-    Move-Item -Path $source -Destination $destination -Force -Verbose
-}
-
-# # Clean up
-Write-Host "Cleaning up..."
-Remove-Item .\ffmpeg\ -Recurse
-Remove-Item .\ffmpeg.zip
-
-# List the directory contents
-Get-ChildItem
-
-# Prepend the FFmpeg folder path to the system path variable
-Write-Host "Adding ffmpeg to the system path..."
-[System.Environment]::SetEnvironmentVariable(
-    "PATH",
-    "C:\ffmpeg\;$([System.Environment]::GetEnvironmentVariable('PATH','MACHINE'))",
-    "Machine"
-)
-Write-Host "ffmpeg has been added to the system path."
-
-$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
-
-Write-Host "check it by running ffmpeg -version"    
-            """
-            )
-    logger.debug(f"Running ps script... {p_ffmpeg_ps_script}")
-    # run the script
-    powershell_command = f"Start-Process powershell -ArgumentList '-NoProfile -ExecutionPolicy Bypass -File \"{p_ffmpeg_ps_script}\"' -Verb RunAs"
-    p = subprocess.run(
-        ['powershell', '-Command', powershell_command],
-        shell=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        encoding="utf-8"
-    )
-
-    status = p.returncode
-    logger.debug("ffmpeg_ps_script return code: " + str(status))
-
-    if status != 0:
-        success = False
-        msg = f"Error installing ffmpeg. {p.stderr}"
-        logger.debug(f"Error installing ffmpeg. {p.stderr}")
-    else:
-        success = True
-        msg = "ffmpeg installed successfully."
-    return success, msg
-
-
-def install_ffmpeg_linux():
-    """
-    Install ffmpeg on linux
-    """
-    p = subprocess.run(
-        ["sudo", "apt", "install", "ffmpeg"],
-        shell=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
-    status = p.returncode
-    if status != 0:
-        success = False
-        msg = f"Error installing ffmpeg. {p.stderr}"
-    else:
-        success = True
-        msg = "ffmpeg installed successfully."
-
-    return success, msg
-
-
-def install_ffmpeg_macos():
-    """
-    Install ffmpeg on macos
-    """
-    p = subprocess.run(
-        ["brew", "install", "ffmpeg"],
-        shell=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
-    status = p.returncode
-    if status != 0:
-        success = False
-        msg = f"Error installing ffmpeg. {p.stderr}"
-    else:
-        success = True
-        msg = "ffmpeg installed successfully."
-
-    return success, msg
-
-
-def install_ffmpeg():
-    """
-    Install ffmpeg on all platforms
-    """
-    if system() == "Windows":
-        return install_ffmpeg_windows()
-    elif system() == "Linux" or system() == "Linux2":
-        return install_ffmpeg_linux()
-    elif system() == "Darwin":
-        return install_ffmpeg_macos()
-    else:
-        return False, "Unknown OS."
-
-
 def open_url(url: str):
     """
     To open a url in the default browser
@@ -542,11 +364,11 @@ def get_channel_int(channel_string: str):
         raise ValueError("Invalid channel string")
 
 
-def native_notify(title: str, message: str):
+def native_notify(title: str, message: str, **kwargs):
     """
     Native notification
     """
-    notification = Notify()
+    notification = Notify(**kwargs)
     notification.application_name = APP_NAME
     notification.title = title
     notification.message = message
@@ -557,6 +379,7 @@ def native_notify(title: str, message: str):
             pass
 
     notification.send()
+    return notification
 
 
 def no_connection_notify(

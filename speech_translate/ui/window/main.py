@@ -2,10 +2,11 @@ import os
 from platform import processor, release, system, version
 from signal import SIGINT, signal  # Import the signal module to handle Ctrl+C
 from threading import Thread
-from time import strftime
+from time import strftime, time, sleep
 from tkinter import Frame, Menu, StringVar, Tk, Toplevel, filedialog, ttk
 from typing import Dict, Literal, Optional, Callable
 
+import static_ffmpeg
 from loguru import logger
 from PIL import Image, ImageDraw
 from pystray import Icon as icon
@@ -36,9 +37,9 @@ from speech_translate.utils.audio.device import (
 )
 from speech_translate.utils.helper import (
     open_url, bind_focus_recursively, emoji_img, native_notify, open_folder, popup_menu, similar, tb_copy_only,
-    up_first_case, windows_os_only, check_ffmpeg_in_path, install_ffmpeg, kill_thread
+    up_first_case, windows_os_only, kill_thread
 )
-from speech_translate.utils.translate.language import (ENGINE_SOURCE_DICT, ENGINE_TARGET_DICT, WHISPER_LANG_LIST)
+from speech_translate.utils.translate.language import TL_ENGINE_SOURCE_DICT, TL_ENGINE_TARGET_DICT, WHISPER_LANG_LIST, get_whisper_lang_source
 from speech_translate.utils.whisper.helper import append_dot_en, model_keys, save_output_stable_ts, create_hallucination_filter
 from speech_translate.utils.whisper.download import download_model, get_default_download_root, verify_model_faster_whisper, verify_model_whisper
 from speech_translate.utils.audio.record import record_session
@@ -49,7 +50,8 @@ from speech_translate.utils.tk.style import get_current_theme, get_theme_list, i
 # Function to handle Ctrl+C and exit just like clicking the exit button
 def signal_handler(sig, frame):
     logger.info("Received Ctrl+C, exiting...")
-    bc.running = False
+    assert bc.mw is not None
+    bc.mw.root.after(0, bc.mw.quit_app)
 
 
 signal(SIGINT, signal_handler)  # Register the signal handler for Ctrl+C
@@ -142,7 +144,8 @@ class AppTray:
 
     # -- Exit app by flagging runing false to stop main loop
     def exit_app(self):
-        bc.running = False
+        assert bc.mw is not None
+        bc.mw.root.after(0, bc.mw.quit_app)
 
 
 class MainWindow:
@@ -218,7 +221,7 @@ class MainWindow:
         self.cb_model = ComboboxWithKeyNav(self.f1_toolbar, values=model_keys, state="readonly")
         self.cb_model.set(sj.cache["model_mw"])
         self.cb_model.pack(side="left", fill="x", padx=5, pady=5, expand=True)
-        self.cb_model.bind("<<ComboboxSelected>>", lambda _: sj.save_key("model_mw", self.cb_model.get()))
+        self.cb_model.bind("<<ComboboxSelected>>", self.cb_model_change)
         tk_tooltips(
             [self.lbl_model, self.cb_model],
             "Each Whisper model have different requirements. The larger the model, the more accurate it will be but it will need more resources and time to do its task.\n\n"
@@ -254,9 +257,7 @@ class MainWindow:
         self.lbl_source = ttk.Label(self.f1_toolbar, text="From:")
         self.lbl_source.pack(side="left", padx=5, pady=5)
 
-        self.cb_source_lang = ComboboxWithKeyNav(
-            self.f1_toolbar, values=ENGINE_SOURCE_DICT["Google Translate"], state="readonly"
-        )  # initial value
+        self.cb_source_lang = ComboboxWithKeyNav(self.f1_toolbar, state="readonly")
         self.cb_source_lang.set(sj.cache["source_lang_mw"])
         self.cb_source_lang.pack(side="left", padx=5, pady=5, fill="x", expand=True)
         self.cb_source_lang.bind("<<ComboboxSelected>>", lambda _: sj.save_key("source_lang_mw", self.cb_source_lang.get()))
@@ -267,7 +268,7 @@ class MainWindow:
 
         self.cb_target_lang = ComboboxWithKeyNav(
             self.f1_toolbar, values=[up_first_case(x) for x in WHISPER_LANG_LIST], state="readonly"
-        )  # initial value
+        )
         self.cb_target_lang.set(sj.cache["target_lang_mw"])
         self.cb_target_lang.pack(side="left", padx=5, pady=5, fill="x", expand=True)
         self.cb_target_lang.bind("<<ComboboxSelected>>", lambda _: sj.save_key("target_lang_mw", self.cb_target_lang.get()))
@@ -413,7 +414,7 @@ class MainWindow:
         self.cbtn_task_transcribe = CustomCheckButton(
             self.f3_2_row2,
             sj.cache["transcribe_mw"],
-            lambda x: sj.save_key("transcribe_mw", x) or self.mode_change(),
+            lambda x: sj.save_key("transcribe_mw", x) or self.cbtn_task_change(),
             text="Transcribe"
         )
         self.cbtn_task_transcribe.pack(side="left", padx=5, pady=2.5, ipady=0)
@@ -421,7 +422,7 @@ class MainWindow:
         self.cbtn_task_translate = CustomCheckButton(
             self.f3_2_row3,
             sj.cache["translate_mw"],
-            lambda x: sj.save_key("translate_mw", x) or self.mode_change(),
+            lambda x: sj.save_key("translate_mw", x) or self.cbtn_task_change(),
             text="Translate"
         )
         self.cbtn_task_translate.pack(side="left", padx=5, pady=2.5, ipady=0)
@@ -566,12 +567,79 @@ class MainWindow:
         self.root.attributes('-topmost', True)
         self.root.after_idle(self.root.attributes, '-topmost', False)
         self.on_init()
-        bc.running_after_id = self.root.after(1000, self.is_running_poll)
         # ------------------ Set Icon ------------------
         try:
             self.root.iconbitmap(p_app_icon)
         except Exception:
             pass
+
+    # on start
+    def on_init(self):
+        if system() != "Windows":
+            self.radio_speaker.configure(state="disabled")
+
+        # update on start
+        self.cb_input_device_init()
+        self.cb_engine_change(sj.cache["tl_engine_mw"])
+        self.cbtn_task_change()
+
+        windows_os_only([self.radio_speaker, self.cb_speaker, self.lbl_speaker, self.btn_config_speaker])
+
+        create_hallucination_filter("rec", return_if_exist=True)
+        create_hallucination_filter("file", return_if_exist=True)
+
+        Thread(target=self.check_ffmpeg_start, daemon=True).start()
+
+        def first_open():
+            if mbox(
+                "Hello! :)", "Welcome to Speech Translate!\n\nIt seems like this is your first time using the app."
+                " Would you like to open the documentation to learn more about the app?"
+                "\n\n*You can also open it later from the help menu.", 3, self.root
+            ):
+                open_url("https://github.com/Dadangdut33/Speech-Translate/wiki")
+            sj.save_key("first_open", False)
+
+        if sj.cache["first_open"]:
+            self.root.after(100, first_open)
+
+    def check_ffmpeg_start(self):
+        """
+        Check ffmpeg on start
+        
+        FFmpeg should already be included when you are using the prebuilt version of the app.
+        But if you install from pip or build it yourself, this is probably going to download ffmpeg in the background.
+        """
+        def check_ffmpeg():
+            try:
+                logger.debug("Checking ffmpeg...")
+                static_ffmpeg.add_paths()
+                logger.debug("Checking ffmpeg done")
+                bc.has_ffmpeg = True
+            except Exception as e:
+                logger.exception(e)
+                logger.error("Failed to check ffmpeg")
+                native_notify("Failed to check ffmpeg", "Please check the log for more info.")
+
+        check_ffmpeg_thread = Thread(target=check_ffmpeg, daemon=True)
+        check_ffmpeg_thread.start()
+        t_start = time()
+        notified = False
+        probably_downloading = False
+
+        # wait 5 seconds, if not done yet, tell user to wait for a bit
+        while check_ffmpeg_thread.is_alive():
+            if time() - t_start > 5 and not notified:
+                logger.debug("Checking is long... notifying user that it is probably downloading ffmpeg")
+                native_notify(
+                    "Downloading ffmpeg in background", "Please wait until its done before using the app to avoid any error."
+                )
+                notified = True
+                probably_downloading = True
+            sleep(1)
+        else:
+            if probably_downloading:
+                logger.debug("Downloading ffmpeg done")
+                native_notify("Finished downloading ffmpeg", "You can now use the app without any worry :)")
 
     # ------------------ Handle window ------------------
     def save_win_size(self):
@@ -584,9 +652,6 @@ class MainWindow:
             sj.save_key("mw_size", f"{w}x{h}")
 
     def cleanup(self):
-        # cancel the is_running_poll
-        self.root.after_cancel(bc.running_after_id)
-
         bc.disable_rec()
         bc.disable_file_tc()
         bc.disable_file_tl()
@@ -660,13 +725,6 @@ class MainWindow:
 
         self.root.withdraw()
 
-    # check if the app is running or not, to close the app from tray
-    def is_running_poll(self):
-        if not bc.running:
-            self.quit_app()
-
-        bc.running_after_id = self.root.after(1000, self.is_running_poll)
-
     # Toggle Stay on top
     def toggle_always_on_top(self):
         self.always_on_top = not self.always_on_top
@@ -726,57 +784,6 @@ class MainWindow:
 
         # reset after .7 second
         self.root.after(700, lambda: self.btn_copy.configure(text="Copy"))
-
-    # on start
-    def on_init(self):
-        if system() != "Windows":
-            self.radio_speaker.configure(state="disabled")
-
-        # update on start
-        self.cb_input_device_init()
-        self.cb_engine_change(sj.cache["tl_engine_mw"])
-        self.mode_change()
-
-        windows_os_only([self.radio_speaker, self.cb_speaker, self.lbl_speaker, self.btn_config_speaker])
-
-        create_hallucination_filter("rec", return_if_exist=True)
-        create_hallucination_filter("file", return_if_exist=True)
-
-        def first_open():
-            if mbox(
-                "Hello! :)", "Welcome to Speech Translate!\n\nIt seems like this is your first time using the app."
-                " Would you like to open the documentation to learn more about the app?"
-                "\n\n*You can also open it later from the help menu.", 3, self.root
-            ):
-                open_url("https://github.com/Dadangdut33/Speech-Translate/wiki")
-            sj.save_key("first_open", False)
-
-        if sj.cache["first_open"]:
-            self.root.after(100, first_open)
-
-        # check ffmpeg
-        bc.has_ffmpeg = check_ffmpeg_in_path()[0]
-        self.root.after(2000, self.check_ffmpeg, bc.has_ffmpeg)
-
-    def check_ffmpeg(self, has_ffmpeg: bool):
-        if has_ffmpeg:
-            return True
-
-        # prompt to install ffmpeg
-        if mbox(
-            "FFmpeg is not found in your system path!",
-            "FFmpeg is essential for the app to work properly.\n\nDo you want to install it now?",
-            3,
-        ):
-            success, msg = install_ffmpeg()
-            if not success:
-                mbox("Error", msg, 2)
-
-            elif check_ffmpeg_in_path()[0]:
-                bc.has_ffmpeg = True
-                return True
-
-        return False
 
     # mic
     def cb_input_device_init(self):
@@ -1017,34 +1024,6 @@ class MainWindow:
                 self.cb_speaker.set(self.cb_speaker["values"][index])
             sj.save_key("speaker", self.cb_speaker.get())
 
-    def cb_engine_change(self, _event=None):
-        # check if engine is whisper and currently in translate only mode
-        # if yes, will make the transcribe model combobox disabled
-        if _event in model_keys and "selected" in self.cbtn_task_translate.state(
-        ) and "selected" not in self.cbtn_task_transcribe.state():
-            self.cb_model.configure(state="disabled")
-        else:
-            self.cb_model.configure(state="readonly")
-
-        # Then update the target cb list with checks
-        self.cb_source_lang["values"] = ENGINE_SOURCE_DICT[self.cb_engine.get()]
-        self.cb_target_lang["values"] = ENGINE_TARGET_DICT[self.cb_engine.get()]
-
-        # check if the target lang is not in the new list
-        if self.cb_target_lang.get() not in self.cb_target_lang["values"]:
-            self.cb_target_lang.current(0)
-
-        # check if the source lang is not in the new list
-        if self.cb_source_lang.get() not in self.cb_source_lang["values"]:
-            self.cb_source_lang.current(0)
-
-        # save
-        sj.save_key("source_lang_mw", self.cb_source_lang.get())
-        sj.save_key("target_lang_mw", self.cb_target_lang.get())
-
-        if _event:
-            sj.save_key("tl_engine_mw", _event)
-
     # clear textboxes
     def tb_clear(self):
         bc.clear_all()
@@ -1064,16 +1043,38 @@ class MainWindow:
         if self.cb_target_lang.get() == "Auto detect":
             self.cb_target_lang.current(0)
 
-        # save
         sj.save_key("source_lang_mw", self.cb_source_lang.get())
         sj.save_key("target_lang_mw", self.cb_target_lang.get())
-
-        # swap text only if mode is transcribe and translate
-        # if "selected" in self.cbtn_task_transcribe.state() and "selected" in self.cbtn_task_translate.state():
         bc.swap_textbox()
 
+    def cb_model_change(self, _event=None):
+        self.cbtn_task_change()  # check because the model changed
+        sj.save_key("model_mw", self.cb_model.get())
+
+    def cb_engine_change(self, _event=None):
+        # check if engine is whisper and currently in translate only mode
+        # if yes, will make the transcribe model combobox disabled
+        if _event in model_keys and "selected" in self.cbtn_task_translate.state(
+        ) and "selected" not in self.cbtn_task_transcribe.state():
+            self.cb_model.configure(state="disabled")
+        else:
+            self.cb_model.configure(state="readonly")
+
+        # Then update the target cb list with checks
+        self.cbtn_task_change()  # updating source_lang with check of task
+        self.cb_target_lang["values"] = TL_ENGINE_TARGET_DICT[self.cb_engine.get()]
+
+        # check if the target lang is not in the new list
+        if self.cb_target_lang.get() not in self.cb_target_lang["values"]:
+            self.cb_target_lang.current(0)
+            sj.save_key("target_lang_mw", self.cb_target_lang.get())
+
+        if _event:
+            sj.save_key("tl_engine_mw", _event)
+
     # change mode
-    def mode_change(self, _event=None):
+    def cbtn_task_change(self, _event=None):
+        # tc & tl
         if "selected" in self.cbtn_task_transcribe.state() and "selected" in self.cbtn_task_translate.state():
             self.tb_translated_bg.pack_forget()
             self.tb_translated.pack_forget()
@@ -1093,8 +1094,21 @@ class MainWindow:
             self.cb_model.configure(state="readonly")
             self.enable_rec()
 
+            # check if engine is whisper
+            if self.cb_engine.get() in model_keys:
+                cur_cb_engine = self.cb_engine.get()
+                if "V3" in cur_cb_engine and "V3" not in self.cb_model.get():
+                    # making sure that Cantonese only present when both model and engine is V3
+                    cur_cb_engine = cur_cb_engine.replace("V3", "V2")
+
+                get_whisper_lang = get_whisper_lang_source(cur_cb_engine)
+                self.cb_source_lang["values"] = get_whisper_lang
+            else:
+                # if not whisper, just take directly from the dict
+                self.cb_source_lang["values"] = TL_ENGINE_SOURCE_DICT[self.cb_engine.get()]
+
+        # tc only
         elif "selected" in self.cbtn_task_transcribe.state() and "selected" not in self.cbtn_task_translate.state():
-            # transcribe only
             self.tb_transcribed_bg.pack(side="left", fill="both", expand=True, padx=5, pady=5)
             self.tb_transcribed.pack(fill="both", expand=True, padx=1, pady=1)
 
@@ -1107,8 +1121,11 @@ class MainWindow:
             self.cb_model.configure(state="readonly")
             self.enable_rec()
 
+            # if tc only, use whisper as language selection
+            self.cb_source_lang["values"] = get_whisper_lang_source(self.cb_model.get())
+
+        # tl only
         elif "selected" not in self.cbtn_task_transcribe.state() and "selected" in self.cbtn_task_translate.state():
-            # translate only
             self.tb_transcribed_bg.pack_forget()
             self.tb_transcribed.pack_forget()
 
@@ -1124,6 +1141,13 @@ class MainWindow:
                 self.cb_model.configure(state="readonly")
 
             self.enable_rec()
+            # check if engine is whisper
+            if self.cb_engine.get() in model_keys:
+                # if engine is whisper then make sure to use engine to get the source lang
+                self.cb_source_lang["values"] = get_whisper_lang_source(self.cb_engine.get())
+            else:
+                # if not whisper, just take directly from the dict
+                self.cb_source_lang["values"] = TL_ENGINE_SOURCE_DICT[self.cb_engine.get()]
 
         else:  # both not selected
             self.cb_source_lang.configure(state="disabled")
@@ -1131,6 +1155,11 @@ class MainWindow:
             self.cb_engine.configure(state="disabled")
             self.cb_model.configure(state="disabled")
             self.disable_rec()
+
+        # check if the source lang is not in the new list
+        if self.cb_source_lang.get() not in self.cb_source_lang["values"]:
+            self.cb_source_lang.current(0)
+            sj.save_key("source_lang_f_import", self.cb_source_lang.get())
 
     def disable_rec(self):
         self.btn_record.configure(state="disabled")
@@ -1517,15 +1546,6 @@ class MainWindow:
                 ):
                     return False
 
-        # check ffmpeg
-        if not self.check_ffmpeg(check_ffmpeg_in_path()[0]):
-            mbox(
-                "FFmpeg is not installed!",
-                "The program needs ffmpeg to process files and will probably not work without it. Please install and add it to PATH first.",
-                3, self.root
-            )
-            return False
-
         # ui changes
         self.tb_clear()
         self.start_loadBar()
@@ -1629,17 +1649,6 @@ class MainWindow:
                     ):
                         return False
 
-            # check ffmpeg
-            prompt.disable_interactions()
-            if not self.check_ffmpeg(check_ffmpeg_in_path()[0]):
-                mbox(
-                    "FFmpeg is not installed!",
-                    "The program needs ffmpeg to process files and will probably not work without it. Please install and add it to PATH first.",
-                    3, self.root
-                )
-                return False
-            prompt.enable_interactions()
-
             # ui changes
             self.tb_clear()
             self.start_loadBar()
@@ -1718,17 +1727,6 @@ class MainWindow:
             status, model_tc = self.check_model(m_key, False, "file refinement", **m_check_kwargs)
             if not status:
                 return False
-
-            # check ffmpeg
-            prompt.disable_interactions()
-            if not self.check_ffmpeg(check_ffmpeg_in_path()[0]):
-                mbox(
-                    "FFmpeg is not installed!",
-                    "The program needs ffmpeg to process files and will probably not work without it. Please install and add it to PATH first.",
-                    3, self.root
-                )
-                return False
-            prompt.enable_interactions()
 
             # ui changes
             self.tb_clear()
@@ -1809,17 +1807,6 @@ class MainWindow:
             status, model_tc = self.check_model(m_key, all_english, "file alignment", **m_check_kwargs)
             if not status:
                 return False
-
-            # check ffmpeg
-            prompt.disable_interactions()
-            if not self.check_ffmpeg(check_ffmpeg_in_path()[0]):
-                mbox(
-                    "FFmpeg is not installed!",
-                    "The program needs ffmpeg to process files and will probably not work without it. Please install and add it to PATH first.",
-                    3, self.root
-                )
-                return False
-            prompt.enable_interactions()
 
             # ui changes
             self.tb_clear()

@@ -47,10 +47,7 @@ class BridgeClass:
         self.running_after_id: str = ""
         self.bg_color: str = ""
         self.fg_color: str = ""
-        self.has_ffmpeg: bool = False
-
-        # Flags
-        self.running: bool = True
+        self.has_ffmpeg = False
 
         # file
         self.file_processing: bool = False

@@ -13,7 +13,7 @@ from speech_translate.ui.custom.tooltip import tk_tooltip, tk_tooltips
 from speech_translate.ui.custom.label import LabelTitleText
 from speech_translate.ui.custom.combobox import CategorizedComboBox, ComboboxWithKeyNav
 from speech_translate.utils.whisper.helper import model_keys
-from speech_translate.utils.translate.language import (ENGINE_SOURCE_DICT, ENGINE_TARGET_DICT, WHISPER_LIST_UPPED)
+from speech_translate.utils.translate.language import TL_ENGINE_SOURCE_DICT, TL_ENGINE_TARGET_DICT, WHISPER_LIST_UPPED, get_whisper_lang_source
 
 
 class MultipleChoiceQuestion:
@@ -297,14 +297,14 @@ class FileImportDialog(FileOperationDialog):
         self.cbtn_translate.pack(padx=5, side="left")
 
         self.var_model.set(sj.cache["model_f_import"])
-        self.cb_model.bind("<<ComboboxSelected>>", lambda e: sj.save_key("model_f_import", self.var_model.get()))
+        self.cb_model.bind("<<ComboboxSelected>>", self.cb_model_change)
         self.var_engine.set(sj.cache["tl_engine_f_import"])
         self.var_source_lang.set(sj.cache["source_lang_f_import"])
         self.var_target_lang.set(sj.cache["target_lang_f_import"])
         self.var_task_transcribe.set(sj.cache["transcribe_f_import"])
         self.var_task_translate.set(sj.cache["translate_f_import"])
-        self.cb_source_lang["values"] = ENGINE_SOURCE_DICT[self.var_model.get()]
-        self.cb_target_lang["values"] = ENGINE_TARGET_DICT[self.var_engine.get()]
+        self.cb_source_lang["values"] = TL_ENGINE_SOURCE_DICT[self.var_engine.get()]
+        self.cb_target_lang["values"] = TL_ENGINE_TARGET_DICT[self.var_engine.get()]
 
         self.cb_engine_change(self.var_model.get())
         self.cbtn_task_change()
@@ -316,6 +316,10 @@ class FileImportDialog(FileOperationDialog):
 
         self.root.after(200, longer_w)
 
+    def cb_model_change(self, _event=None):
+        self.cbtn_task_change()  # check because the model changed
+        sj.save_key("model_f_import", self.var_model.get())
+
     def cb_engine_change(self, _event=None):
         # check if engine is whisper and currently in translate only mode
         # if yes, will make the source lang use based on the engine
@@ -325,16 +329,13 @@ class FileImportDialog(FileOperationDialog):
             self.cb_model.configure(state="readonly")
 
         # Then update the target cb list with checks
-        self.cb_source_lang["values"] = ENGINE_SOURCE_DICT[self.var_engine.get()]
-        self.cb_target_lang["values"] = ENGINE_TARGET_DICT[self.var_engine.get()]
+        self.cbtn_task_change()  # updating source_lang with check of task
+        self.cb_target_lang["values"] = TL_ENGINE_TARGET_DICT[self.var_engine.get()]
 
         # check if the target lang is not in the new list
         if self.cb_target_lang.get() not in self.cb_target_lang["values"]:
             self.cb_target_lang.current(0)
-
-        # check if the source lang is not in the new list
-        if self.cb_source_lang.get() not in self.cb_source_lang["values"]:
-            self.cb_source_lang.current(0)
+            sj.save_key("target_lang_f_import", self.cb_target_lang.get())
 
         sj.save_key("tl_engine_f_import", self.var_engine.get())
 
@@ -345,18 +346,37 @@ class FileImportDialog(FileOperationDialog):
             else:
                 self.btn_start.configure(state="disabled")
 
+            # tc & tl
             if self.var_task_transcribe.get() and self.var_task_translate.get():
                 self.cb_source_lang.configure(state="readonly")
                 self.cb_target_lang.configure(state="readonly")
                 self.cb_model.configure(state="readonly")
                 self.cb_engine.configure(state="readonly")
 
+                # check if engine is whisper
+                if self.cb_engine.get() in model_keys:
+                    cur_cb_engine = self.cb_engine.get()
+                    if "V3" in cur_cb_engine and "V3" not in self.cb_model.get():
+                        # making sure that Cantonese only present when both model and engine is V3
+                        cur_cb_engine = cur_cb_engine.replace("V3", "V2")
+
+                    get_whisper_lang = get_whisper_lang_source(cur_cb_engine)
+                    self.cb_source_lang["values"] = get_whisper_lang
+                else:
+                    # if not whisper, just take directly from the dict
+                    self.cb_source_lang["values"] = TL_ENGINE_SOURCE_DICT[self.cb_engine.get()]
+
+            # tc only
             elif self.var_task_transcribe.get() and not self.var_task_translate.get():
                 self.cb_source_lang.configure(state="readonly")
                 self.cb_target_lang.configure(state="disabled")
                 self.cb_engine.configure(state="disabled")
                 self.cb_model.configure(state="readonly")
 
+                # if tc only, use whisper as language selection
+                self.cb_source_lang["values"] = get_whisper_lang_source(self.cb_model.get())
+
+            # tl only
             elif not self.var_task_transcribe.get() and self.var_task_translate.get():
                 self.cb_source_lang.configure(state="readonly")
                 self.cb_target_lang.configure(state="readonly")
@@ -366,12 +386,26 @@ class FileImportDialog(FileOperationDialog):
                 else:
                     self.cb_model.configure(state="readonly")
 
-            else:
+                # check if engine is whisper
+                if self.cb_engine.get() in model_keys:
+                    # if engine is whisper then make sure to use engine to get the source lang
+                    self.cb_source_lang["values"] = get_whisper_lang_source(self.cb_engine.get())
+                else:
+                    # if not whisper, just take directly from the dict
+                    self.cb_source_lang["values"] = TL_ENGINE_SOURCE_DICT[self.cb_engine.get()]
+
+            else:  # both not selected
                 self.cb_source_lang.configure(state="disabled")
                 self.cb_target_lang.configure(state="disabled")
                 self.cb_engine.configure(state="disabled")
                 self.cb_model.configure(state="disabled")
                 self.btn_start.configure(state="disabled")
+
+            # check if the source lang is not in the new list
+            if self.cb_source_lang.get() not in self.cb_source_lang["values"]:
+                self.cb_source_lang.current(0)
+                sj.save_key("source_lang_f_import", self.cb_source_lang.get())
+
         except AttributeError:
             pass
 
@@ -485,7 +519,7 @@ class TranslateResultDialog(FileOperationDialog):
 
     def cb_engine_change(self, _event=None):
         try:
-            self.cb_target_lang["values"] = ENGINE_TARGET_DICT[self.var_engine.get()]
+            self.cb_target_lang["values"] = TL_ENGINE_TARGET_DICT[self.var_engine.get()]
             if self.cb_target_lang.get() not in self.cb_target_lang["values"]:
                 self.cb_target_lang.current(0)
 

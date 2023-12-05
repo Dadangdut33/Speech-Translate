@@ -16,7 +16,6 @@ p_app_icon: str = os.path.abspath(os.path.join(dir_assets, "icon.ico"))
 p_splash_image: str = os.path.abspath(os.path.join(dir_assets, "splash.png"))
 p_parameters_text: str = os.path.abspath(os.path.join(dir_assets, "parameter.txt"))
 p_base_filter: str = os.path.abspath(os.path.join(dir_assets, "base_hallucination_filter.json"))
-p_ffmpeg_ps_script: str = os.path.abspath(os.path.join(dir_project, "..", "install_ffmpeg.ps1"))
 p_filter_rec: str = os.path.abspath(os.path.join(dir_user, "hallucination_filter_record.json"))
 p_filter_file_import: str = os.path.abspath(os.path.join(dir_user, "hallucination_filter_file_import.json"))
 

@@ -984,7 +984,6 @@ def create_hallucination_filter(_type: Union[Literal["rec"], Literal["file"]], r
     # if already exist, change the name of the old file
     if os.path.exists(f_name):
         if return_if_exist:
-            logger.debug(f"Hallucination filter file already exist at {f_name}, returning")
             return
         os.rename(f_name, f_name + ".old")
 

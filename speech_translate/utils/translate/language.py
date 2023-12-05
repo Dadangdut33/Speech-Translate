@@ -1,7 +1,7 @@
 import copy
 from ..helper import up_first_case, get_similar_in_list
 from whisper.tokenizer import TO_LANGUAGE_CODE
-from typing import Dict
+from typing import Dict, List
 
 from deep_translator import MyMemoryTranslator, GoogleTranslator
 from loguru import logger
@@ -197,7 +197,7 @@ MY_MEMORY_TARGET.sort()
 # for target language, it does not matter wether the target is compatible with whisper or not
 # because in this part whisper is used for transcribing the audio only
 # for whisper though, it can only translate into english
-ENGINE_TARGET_DICT = {
+TL_ENGINE_TARGET_DICT = {
     # selecting whisper as the tl engine
     "⚡ Tiny [1GB VRAM] (Fastest)": WHISPER_TARGET,
     "🚀 Base [1GB VRAM] (Faster)": WHISPER_TARGET,
@@ -250,6 +250,8 @@ MYMEMORY_WHISPER_COMPATIBLE = [x for x in MYMEMORY_WHISPER_COMPATIBLE if x not i
 WHISPER_LIST_UPPED = [up_first_case(x) for x in WHISPER_LANG_LIST]
 WHISPER_LIST_UPPED.sort()
 WHISPER_SOURCE = ["Auto detect"] + WHISPER_LIST_UPPED
+WHISPER_SOURCE_V3 = WHISPER_SOURCE.copy()
+WHISPER_SOURCE.remove("Cantonese")
 
 GOOGLE_LIST_UPPED = [up_first_case(x) for x in GOOGLE_WHISPER_COMPATIBLE]
 GOOGLE_LIST_UPPED.sort()
@@ -267,7 +269,7 @@ MYMEMORY_SOURCE.sort()
 # for whisper, we use the whisper source because every language from whisper can be used as source when translating using whisper
 # other than that, we filter the language that is not compatible with whisper to make sure that the language is compatible
 # between whisper and the engine
-ENGINE_SOURCE_DICT = {
+TL_ENGINE_SOURCE_DICT = {
     # selecting whisper as the tl engine
     "⚡ Tiny [1GB VRAM] (Fastest)": WHISPER_SOURCE,
     "🚀 Base [1GB VRAM] (Faster)": WHISPER_SOURCE,
@@ -275,9 +277,32 @@ ENGINE_SOURCE_DICT = {
     "🌀 Medium [5GB VRAM] (Accurate)": WHISPER_SOURCE,
     "🐌 Large V1 [10GB VRAM] (Most Accurate)": WHISPER_SOURCE,
     "🐌 Large V2 [10GB VRAM] (Most Accurate)": WHISPER_SOURCE,
-    "🐌 Large V3 [10GB VRAM] (Most Accurate)": WHISPER_SOURCE,
+    "🐌 Large V3 [10GB VRAM] (Most Accurate)": WHISPER_SOURCE_V3,  # only v3 has cantonese
     # selecting TL API as the tl engine
     "Google Translate": GOOGLE_SOURCE,
     "LibreTranslate": LIBRE_SOURCE,
     "MyMemoryTranslator": MYMEMORY_SOURCE,
 }
+
+
+# whisper supports 99 languages, With exception of large-v3, large-v3 added 1 more language (Cantonese)
+def get_whisper_lang_source(cur_model: str) -> List[str]:
+    """Get language source with auto checking model is v3 or not to pass either cantonese or not
+
+    Parameters
+    ----------
+    tl_engine : str
+        translation engine
+    cur_model : str
+        current model
+
+    Returns
+    -------
+    List
+        Language source
+
+    """
+    if "V3" in cur_model:
+        return WHISPER_SOURCE_V3
+    else:
+        return WHISPER_SOURCE
