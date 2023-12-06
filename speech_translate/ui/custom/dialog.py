@@ -155,6 +155,7 @@ class FileOperationDialog:
         cur_height = self.root.winfo_height()
         self.root.geometry(f"600x{cur_height}")
         self.resize_sheet_width_to_window(with_check=False)
+        self.root.minsize(600 - 100, cur_height)
 
     def add_data(self):
         """
@@ -313,6 +314,7 @@ class FileImportDialog(FileOperationDialog):
             cur_width = self.root.winfo_width()
             cur_height = self.root.winfo_height()
             self.root.geometry(f"{cur_width + 200}x{cur_height}")
+            self.root.minsize(cur_width - 200, cur_height)
 
         self.root.after(200, longer_w)
 
@@ -674,6 +676,7 @@ class ModResultInputDialog:
     def adjust_window_size(self):
         cur_height = self.root.winfo_height()
         self.root.geometry(f"500x{cur_height}")
+        self.root.minsize(500 - 100, cur_height)
 
     def browse_source_file(self):
         temp = filedialog.askopenfilename(
@@ -747,7 +750,7 @@ class RefinementDialog(FileOperationDialog):
         self.hint.pack(side="right", padx=5)
         tk_tooltip(
             self.hint,
-            "Refine result of a transcription file. For this to work, you need to have a result of transcription file in .json form first.\n\n"
+            "This can be used to be further improved timestamps. For this to work, you need to have a result of transcription file in .json form first.\n\n"
             "The program will try to re-transcribe the audio file with original whisper model if they found null token in the result file (which usually happen when transcribing using faster-whisper).",
             wrapLength=300
         )
@@ -776,7 +779,7 @@ class AlignmentDialog(FileOperationDialog):
         self.hint.pack(side="right", padx=5)
         tk_tooltip(
             self.hint,
-            "Align result of a transcription file. For this to work, you need to have a result of transcription file in .json form first.",
+            "This can be used to aligned/synced Audio with plain text or json result on word-level",
             wrapLength=300
         )
 
@@ -930,6 +933,7 @@ class FileProcessDialog:
         self.root.title(title)
         self.root.transient(master)
         self.root.geometry("450x225")
+        self.root.minsize(450 - 100, 225 - 100)
         self.root.protocol("WM_DELETE_WINDOW", lambda: master.state("iconic"))  # minimize window when click close button
         self.root.geometry("+{}+{}".format(master.winfo_rootx() + 50, master.winfo_rooty() + 50))
         try:

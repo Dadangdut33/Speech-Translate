@@ -8,9 +8,7 @@ from typing import List, Literal, Optional, Union, Dict
 
 import torch
 import stable_whisper
-import faster_whisper.transcribe as fw_transcribe
 from stable_whisper.utils import str_to_valid_type, isolate_useful_options
-from faster_whisper import WhisperModel
 from whisper.tokenizer import LANGUAGES
 from whisper.utils import optional_int, optional_float
 from whisper import DecodingOptions
@@ -317,6 +315,7 @@ def parse_args_stable_ts(
             # args.update(isolate_useful_options(kwargs, method))  # add with method
             # add with the other
             if "faster_whisper" in str(method):
+                from faster_whisper.transcribe import TranscriptionOptions
                 # force some option because it is needed in order to work for faster whisper
                 if kwargs["best_of"] is None:
                     kwargs["best_of"] = 1
@@ -324,7 +323,7 @@ def parse_args_stable_ts(
                     kwargs["beam_size"] = 1
                 if kwargs["patience"] is None:
                     kwargs["patience"] = 1
-                args.update(isolate_useful_options(kwargs, fw_transcribe.TranscriptionOptions))
+                args.update(isolate_useful_options(kwargs, TranscriptionOptions))
             else:
                 args.update(isolate_useful_options(kwargs, DecodingOptions))
             # logger.debug(f"Updated args with kwargs: {args}")
@@ -628,6 +627,7 @@ def get_model_args(setting_cache: SettingDict):
     Exception
         If the model args is not valid will throw exception containing the failure message
     """
+    from faster_whisper import WhisperModel
     # load model
     model_args = parse_args_stable_ts(
         setting_cache["whisper_args"], "load",
@@ -740,7 +740,7 @@ def get_model(
     Returns
     -------
     tuple
-        model_tc, model_tl, stable_tc, stable_tl
+        model_tc, model_tl, stable_tc, stable_tl, load_to_tc_args
     """
     model_tc, model_tl, stable_tc, stable_tl = None, None, None, None
     if setting_cache["use_faster_whisper"] and model_name_tc:
@@ -796,7 +796,7 @@ def get_model(
 
     load_to_tc_args = stable_tc if stable_tc is not None else stable_tl  # making sure that the load_to_tc_args is not None
 
-    logger.debug("Model loaded. Status:")
+    logger.debug(f"Model loaded | Is Faster Whisper: {setting_cache['use_faster_whisper']} | Load Status:")
     logger.debug(f"TC: {'Set' if model_tc else 'Not Set'}")
     logger.debug(f"TL: {'Set' if model_tl else 'Not Set'}")
     logger.debug(f"func_tc: {'Set' if stable_tc else 'Not Set'}")

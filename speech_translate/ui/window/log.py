@@ -22,6 +22,7 @@ class LogWindow:
         self.root = Toplevel(master)
         self.root.title(APP_NAME + " | Log")
         self.root.geometry("1200x350")
+        self.root.minsize(600, 150)
         self.root.wm_withdraw()
         self.currentFontSize = 10
         self.is_open = False

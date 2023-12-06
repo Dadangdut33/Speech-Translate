@@ -86,6 +86,7 @@ def record_session(
     root.protocol("WM_DELETE_WINDOW", lambda: master.state("iconic"))  # minimize window when click close button
     root.geometry("+{}+{}".format(master.winfo_rootx() + 50, master.winfo_rooty() + 50))
     root.maxsize(600, 325)
+    root.minsize(400, 225)
 
     frame_lbl = ttk.Frame(root)
     frame_lbl.pack(side="top", fill="both", padx=5, pady=5, expand=True)
@@ -199,7 +200,7 @@ def record_session(
     modal_after = None
     try:
         global vad, use_temp
-        auto = lang_source == "auto detect"
+        auto = lang_source.lower() == "auto detect"
         tl_engine_whisper = engine in model_values
         rec_type = "speaker" if speaker else "mic"
         vad = Vad(sj.cache.get(f"threshold_auto_mode_{rec_type}", 3))
@@ -215,14 +216,13 @@ def record_session(
             bc.tc_lock = None
 
         # load model first
-        lang_source = get_whisper_lang_similar(lang_source)
         model_args = get_model_args(sj.cache)
         _model_tc, _model_tl, stable_tc, stable_tl, to_args = get_model(
             transcribe, translate, tl_engine_whisper, model_name_tc, engine, sj.cache, **model_args
         )
         whisper_args = get_tc_args(to_args, sj.cache)
         whisper_args["verbose"] = None  # set to none so no printing of the progress to stdout
-        whisper_args["language"] = TO_LANGUAGE_CODE[lang_source] if not auto else None
+        whisper_args["language"] = TO_LANGUAGE_CODE[get_whisper_lang_similar(lang_source)] if not auto else None
 
         if sj.cache["use_faster_whisper"] and not use_temp:
             whisper_args["input_sr"] = WHISPER_SR  # when using numpy array as input, will need to set input_sr
@@ -732,7 +732,7 @@ def record_session(
 
             bc.current_rec_status = "⏹️ Stopped"
 
-            del _model_tc, _model_tl, stable_tc, stable_tl, to_args
+            del _model_tc, _model_tl
 
             update_status_lbl()
             audiometer.stop()
@@ -772,54 +772,59 @@ def record_cb(in_data, frame_count, time_info, status):
     global max_db, min_db, vad, sr_ori, audiometer, frame_duration_ms
     global use_temp, is_silence, t_silence, was_recording, threshold_enable, threshold_db, threshold_auto_mode
 
-    # Run resample and use resampled audio if not using temp file
-    resampled = resample_sr(in_data, sr_ori, WHISPER_SR)
-    if not use_temp:  # when use_temp will use the original audio
-        in_data = resampled
+    try:
+        # Run resample and use resampled audio if not using temp file
+        resampled = resample_sr(in_data, sr_ori, WHISPER_SR)
+        if not use_temp:  # when use_temp will use the original audio
+            in_data = resampled
 
-    if not threshold_enable:
-        bc.data_queue.put(in_data)  # record regardless of db
-    else:
-        # only record if db is above threshold
-        db = get_db(in_data)
-        audiometer.set_db(db)
-
-        if db > max_db:
-            max_db = db
-            audiometer.set_max(db)
-        elif db < min_db:
-            min_db = db
-            audiometer.set_min(db)
-
-        if threshold_auto_mode:
-            is_speech = get_speech(resampled, WHISPER_SR, frame_duration_ms, vad, get_only_first_frame=True)
-            audiometer.set_recording(is_speech)
-
-            if is_speech:
-                bc.data_queue.put(in_data)
-                was_recording = True
-            else:
-                bc.current_rec_status = "💤 Idle"
-                # toggle only once
-                if was_recording:
-                    was_recording = False
-                    if not is_silence:
-                        is_silence = True
-                        t_silence = time()
+        if not threshold_enable:
+            bc.data_queue.put(in_data)  # record regardless of db
         else:
-            if db > threshold_db:
-                bc.data_queue.put(in_data)
-                was_recording = True
-            else:
-                bc.current_rec_status = "💤 Idle"
-                # toggle only once
-                if was_recording:
-                    was_recording = False
-                    if not is_silence:
-                        is_silence = True
-                        t_silence = time()
+            # only record if db is above threshold
+            db = get_db(in_data)
+            audiometer.set_db(db)
 
-    return (in_data, pyaudio.paContinue)
+            if db > max_db:
+                max_db = db
+                audiometer.set_max(db)
+            elif db < min_db:
+                min_db = db
+                audiometer.set_min(db)
+
+            if threshold_auto_mode:
+                is_speech = get_speech(resampled, WHISPER_SR, frame_duration_ms, vad, get_only_first_frame=True)
+                audiometer.set_recording(is_speech)
+
+                if is_speech:
+                    bc.data_queue.put(in_data)
+                    was_recording = True
+                else:
+                    bc.current_rec_status = "💤 Idle"
+                    # toggle only once
+                    if was_recording:
+                        was_recording = False
+                        if not is_silence:
+                            is_silence = True
+                            t_silence = time()
+            else:
+                if db > threshold_db:
+                    bc.data_queue.put(in_data)
+                    was_recording = True
+                else:
+                    bc.current_rec_status = "💤 Idle"
+                    # toggle only once
+                    if was_recording:
+                        was_recording = False
+                        if not is_silence:
+                            is_silence = True
+                            t_silence = time()
+
+        return (in_data, pyaudio.paContinue)
+    except Exception as e:
+        logger.exception(e)
+        logger.error("Error in record_cb")
+        return (in_data, pyaudio.paContinue)
 
 
 def run_whisper_tl(audio, stable_tl, separator: str, with_lock, hallucination_filters, **whisper_args):

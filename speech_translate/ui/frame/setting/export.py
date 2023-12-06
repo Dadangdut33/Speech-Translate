@@ -279,15 +279,19 @@ class SettingExport:
         )
         self.lbl_remove_repetition_amount = ttk.Label(self.f_result_modify_2, text="Max Words Lookup", width=17)
         self.lbl_remove_repetition_amount.pack(side="left", padx=5)
-        self.entry_remove_repetition_amount = ttk.Entry(self.f_result_modify_2)
-        self.entry_remove_repetition_amount.insert(0, str(sj.cache["remove_repetition_amount"]))
-        self.entry_remove_repetition_amount.pack(side="left", padx=5)
-        self.entry_remove_repetition_amount.bind(
-            "<KeyRelease>",
-            lambda e: sj.save_key("remove_repetition_amount", int(self.entry_remove_repetition_amount.get()))
+        self.spn_remove_repetition_amount = SpinboxNumOnly(
+            self.root,
+            self.f_result_modify_2,
+            1,
+            100,
+            lambda x: sj.save_key("remove_repetition_amount", x),
+            initial_value=sj.cache["remove_repetition_amount"],
+            allow_empty=False,
+            delay=10,
         )
+        self.spn_remove_repetition_amount.pack(side="left", padx=5)
         tk_tooltips(
-            [self.lbl_remove_repetition_amount, self.entry_remove_repetition_amount],
+            [self.lbl_remove_repetition_amount, self.spn_remove_repetition_amount],
             "Set the maximum number of words to look for consecutively.\n\nDefault is 4",
             wrapLength=300,
         )

@@ -2,7 +2,6 @@ import hashlib
 import os
 
 import whisper
-from faster_whisper.utils import _MODELS as FW_MODELS
 from huggingface_hub import HfApi
 from huggingface_hub.file_download import repo_folder_name
 from loguru import logger
@@ -28,6 +27,8 @@ def download_model(model_key, root_win, **kwargs):
     model_bytes : bytes
         the model checkpoint as a byte string
     """
+    from faster_whisper.utils import _MODELS as FW_MODELS
+
     download_root = kwargs.pop("download_root", None)
     if download_root is None:
         download_root = get_default_download_root()
@@ -95,6 +96,7 @@ def verify_model_faster_whisper(model_key: str, cache_dir) -> bool:
     ValueError
         If the model key is invalid
     """
+    from faster_whisper.utils import _MODELS as FW_MODELS
     repo_id = FW_MODELS.get(model_key)
     if repo_id is None:
         raise ValueError("Invalid model size '%s', expected one of: %s" % (model_key, ", ".join(FW_MODELS.keys())))

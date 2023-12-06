@@ -602,7 +602,6 @@ def process_file(
 
         auto = lang_source == "auto detect"
         tl_engine_whisper = engine in model_values
-        lang_source = get_whisper_lang_similar(lang_source)
 
         export_format: str = sj.cache["export_format"]
         file_slice_start = (None if sj.cache["file_slice_start"] == "" else int(sj.cache["file_slice_start"]))
@@ -615,7 +614,7 @@ def process_file(
             transcribe, translate, tl_engine_whisper, model_name_tc, engine, sj.cache, **model_args
         )
         whisper_args = get_tc_args(to_args, sj.cache)
-        whisper_args["language"] = TO_LANGUAGE_CODE[lang_source] if not auto else None
+        whisper_args["language"] = TO_LANGUAGE_CODE[get_whisper_lang_similar(lang_source)] if not auto else None
         if sj.cache["filter_file_import"]:
             hallucination_filters = get_hallucination_filter('file', sj.cache["path_filter_file_import"])
         else:
