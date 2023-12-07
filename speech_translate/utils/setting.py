@@ -61,6 +61,7 @@ default_setting: SettingDict = {
     "auto_refresh_log": True,
     "debug_realtime_record": False,
     "debug_translate": False,
+    "debug_recorded_audio": False,
     # ------------------ #
     # Tl Settings
     "https_proxy": "",
@@ -74,7 +75,6 @@ default_setting: SettingDict = {
     "libre_https": True,
     # ------------------ #
     # Record settings
-    "debug_recorded_audio": False,
     # temp
     "use_temp": False,
     "keep_temp": False,
@@ -87,7 +87,9 @@ default_setting: SettingDict = {
     # mic - record option
     "threshold_enable_mic": True,
     "threshold_auto_mic": True,
-    "threshold_auto_mode_mic": 3,
+    "threshold_auto_silero_mic": True,
+    "threshold_silero_mic_min": 0.75,
+    "threshold_auto_level_mic": 3,
     "threshold_db_mic": -20.0,
     "auto_break_buffer_mic": True,
     "max_buffer_mic": 10,
@@ -101,7 +103,9 @@ default_setting: SettingDict = {
     # speaker - record option
     "threshold_enable_speaker": True,
     "threshold_auto_speaker": True,
-    "threshold_auto_mode_speaker": 3,
+    "threshold_auto_level_speaker": 3,
+    "threshold_auto_silero_speaker": True,
+    "threshold_silero_speaker_min": 0.75,
     "threshold_db_speaker": -20.0,
     "auto_break_buffer_speaker": True,
     "max_buffer_speaker": 10,

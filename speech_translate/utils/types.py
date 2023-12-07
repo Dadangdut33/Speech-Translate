@@ -135,7 +135,9 @@ class SettingDict(TypedDict):
     # mic - record option
     threshold_enable_mic: bool
     threshold_auto_mic: bool
-    threshold_auto_mode_mic: int
+    threshold_auto_level_mic: int
+    threshold_auto_silero_mic: bool
+    threshold_silero_mic_min: float
     threshold_db_mic: float
     auto_break_buffer_mic: bool
     max_buffer_mic: int
@@ -149,7 +151,9 @@ class SettingDict(TypedDict):
     # speaker - record option
     threshold_enable_speaker: bool
     threshold_auto_speaker: bool
-    threshold_auto_mode_speaker: int
+    threshold_auto_level_speaker: int
+    threshold_auto_silero_speaker: bool
+    threshold_silero_speaker_min: float
     threshold_db_speaker: float
     auto_break_buffer_speaker: bool
     max_buffer_speaker: int

@@ -16,7 +16,7 @@ else:
 
 from speech_translate.linker import sj, bc
 from speech_translate._constants import MIN_THRESHOLD, MAX_THRESHOLD, WHISPER_SR
-from speech_translate.utils.audio.device import get_db, get_device_details, get_frame_duration, get_speech, resample_sr
+from speech_translate.utils.audio.device import get_db, get_device_details, get_frame_duration, get_speech_webrtc, resample_sr
 from speech_translate.utils.helper import get_channel_int, cbtn_invoker, windows_os_only
 from speech_translate.ui.custom.audio import AudioMeter
 from speech_translate.ui.custom.tooltip import tk_tooltips, tk_tooltip
@@ -53,8 +53,14 @@ class SettingRecord:
         self.frame_duration_speaker = 10
 
         # ------------------ Record  ------------------
-        self.lf_device = LabelFrame(self.master, text="• Device Parameters")
+        self.lf_device = LabelFrame(self.master, text="• Device Parameters (Advanced Setting ⚠️)")
         self.lf_device.pack(side="top", fill="x", padx=5, pady=5)
+
+        tk_tooltip(
+            self.lf_device, "This is advanced settings, you should not change this unless you know what you are doing."
+            "\n\nChanging this option might cause the program to fail to record!",
+            delay=50
+        )
 
         self.f_device_1 = ttk.Frame(self.lf_device)
         self.f_device_1.pack(side="top", fill="x", pady=5, padx=5)
@@ -120,7 +126,7 @@ class SettingRecord:
         self.lbl_chunk_size_mic = ttk.Label(self.f_mic_device_1, text="Chunk Size", width=10)
         self.lbl_chunk_size_mic.pack(side="left", padx=5)
         self.cb_chunk_size_mic = ComboboxTypeOnCustom(
-            self.root, self.f_mic_device_1, ["160", "320", "480", "640", "800", "960", "1024", "1280"], "160", "1280",
+            self.root, self.f_mic_device_1, ["640", "800", "960", "1024", "1280"], "640", "1280",
             lambda x: sj.save_key("chunk_size_mic", int(x)), sj.cache["chunk_size_mic"]
         )
         self.cb_chunk_size_mic.pack(side="left", padx=5)
@@ -205,7 +211,7 @@ class SettingRecord:
         self.lbl_chunk_size_speaker = ttk.Label(self.f_speaker_device_1, text="Chunk Size", width=10)
         self.lbl_chunk_size_speaker.pack(side="left", padx=5)
         self.cb_chunk_size_speaker = ComboboxTypeOnCustom(
-            self.root, self.f_speaker_device_1, ["160", "320", "480", "640", "800", "960", "1024", "1280"], "160", "1280",
+            self.root, self.f_speaker_device_1, ["640", "800", "960", "1024", "1280"], "640", "1280",
             lambda x: sj.save_key("chunk_size_speaker", int(x)), sj.cache["chunk_size_speaker"]
         )
         self.cb_chunk_size_speaker.pack(side="left", padx=5)
@@ -492,11 +498,17 @@ class SettingRecord:
         self.radio_vad_mic_3.pack(side="left", padx=5)
 
         temp_map = {1: self.radio_vad_mic_1, 2: self.radio_vad_mic_2, 3: self.radio_vad_mic_3}
-        cbtn_invoker(sj.cache["threshold_auto_mic"], temp_map[sj.cache["threshold_auto_mode_mic"]])
-        self.vad_mic.set_mode(sj.cache["threshold_auto_mode_mic"])
-        self.radio_vad_mic_1.configure(command=lambda: sj.save_key("threshold_auto_mode_mic", 1) or self.vad_mic.set_mode(1))
-        self.radio_vad_mic_2.configure(command=lambda: sj.save_key("threshold_auto_mode_mic", 2) or self.vad_mic.set_mode(2))
-        self.radio_vad_mic_3.configure(command=lambda: sj.save_key("threshold_auto_mode_mic", 3) or self.vad_mic.set_mode(3))
+        cbtn_invoker(sj.cache["threshold_auto_mic"], temp_map[sj.cache["threshold_auto_level_mic"]])
+        self.vad_mic.set_mode(sj.cache["threshold_auto_level_mic"])
+        self.radio_vad_mic_1.configure(
+            command=lambda: sj.save_key("threshold_auto_level_mic", 1) or self.vad_mic.set_mode(1)
+        )
+        self.radio_vad_mic_2.configure(
+            command=lambda: sj.save_key("threshold_auto_level_mic", 2) or self.vad_mic.set_mode(2)
+        )
+        self.radio_vad_mic_3.configure(
+            command=lambda: sj.save_key("threshold_auto_level_mic", 3) or self.vad_mic.set_mode(3)
+        )
 
         # threshold for manual
         self.lbl_threshold_mic = ttk.Label(self.f_mic_recording_4, text="Threshold", width=10)
@@ -675,17 +687,17 @@ class SettingRecord:
         self.radio_vad_speaker_3.pack(side="left", padx=5)
 
         temp_map = {1: self.radio_vad_speaker_1, 2: self.radio_vad_speaker_2, 3: self.radio_vad_speaker_3}
-        cbtn_invoker(sj.cache["threshold_auto_speaker"], temp_map[sj.cache["threshold_auto_mode_speaker"]])
-        self.vad_speaker.set_mode(sj.cache["threshold_auto_mode_speaker"])
+        cbtn_invoker(sj.cache["threshold_auto_speaker"], temp_map[sj.cache["threshold_auto_level_speaker"]])
+        self.vad_speaker.set_mode(sj.cache["threshold_auto_level_speaker"])
 
         self.radio_vad_speaker_1.configure(
-            command=lambda: sj.save_key("threshold_auto_mode_speaker", 1) or self.vad_speaker.set_mode(1)
+            command=lambda: sj.save_key("threshold_auto_level_speaker", 1) or self.vad_speaker.set_mode(1)
         )
         self.radio_vad_speaker_2.configure(
-            command=lambda: sj.save_key("threshold_auto_mode_speaker", 2) or self.vad_speaker.set_mode(2)
+            command=lambda: sj.save_key("threshold_auto_level_speaker", 2) or self.vad_speaker.set_mode(2)
         )
         self.radio_vad_speaker_3.configure(
-            command=lambda: sj.save_key("threshold_auto_mode_speaker", 3) or self.vad_speaker.set_mode(3)
+            command=lambda: sj.save_key("threshold_auto_level_speaker", 3) or self.vad_speaker.set_mode(3)
         )
 
         # threshold for manual
@@ -854,7 +866,9 @@ class SettingRecord:
             self.audiometer_mic.min = db
 
         if sj.cache["threshold_auto_mic"]:
-            self.audiometer_mic.set_recording(get_speech(resampled, WHISPER_SR, self.frame_duration_mic, self.vad_mic))
+            self.audiometer_mic.set_recording(
+                get_speech_webrtc(resampled, WHISPER_SR, self.frame_duration_mic, self.vad_mic)
+            )
 
         return (in_data, pyaudio.paContinue)
 
@@ -876,7 +890,7 @@ class SettingRecord:
 
         if sj.cache["threshold_auto_speaker"]:
             self.audiometer_speaker.set_recording(
-                get_speech(resampled, WHISPER_SR, self.frame_duration_speaker, self.vad_speaker)
+                get_speech_webrtc(resampled, WHISPER_SR, self.frame_duration_speaker, self.vad_speaker)
             )
 
         return (in_data, pyaudio.paContinue)

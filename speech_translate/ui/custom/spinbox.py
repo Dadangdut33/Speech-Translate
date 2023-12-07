@@ -75,18 +75,27 @@ class SpinboxNumOnly(ttk.Spinbox):
         self.allow_empty = allow_empty
         self.delay = delay
 
+        self.increment = kwargs.get("increment", None)
+
         if initial_value is not None:
             self.set(initial_value)
 
         if num_float:
+            if not self.increment:
+                self.increment = 0.1
+
             self.configure(
-                increment=0.1,
+                increment=self.increment,
                 format="%.2f",
                 validatecommand=(root.register(lambda p: number_only_float(p, self.allow_empty)), "%P"),
-                command=lambda: self.callback(self.get()),
+                command=lambda: self.callback(self.get())
             )
         else:
+            if not self.increment:
+                self.increment = 1
+
             self.configure(
+                increment=self.increment,
                 validatecommand=(root.register(lambda p: number_only(p, self.allow_empty)), "%P"),
                 command=lambda: self.callback(self.get())
             )

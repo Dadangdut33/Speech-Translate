@@ -5,7 +5,7 @@ import tkinter as tk
 import ctypes
 from collections import OrderedDict
 from datetime import datetime
-from os import path, startfile
+from os import path, startfile, makedirs
 from platform import system
 from random import choice
 from tkinter import colorchooser, ttk
@@ -24,6 +24,7 @@ from speech_translate._constants import APP_NAME, HACKY_SPACE
 from speech_translate._path import p_app_icon, app_icon_missing
 from speech_translate.ui.custom.tooltip import tk_tooltip
 from speech_translate.utils.types import ToInsert
+
 
 def kill_thread(thread: Optional[Thread]) -> bool:
     ''' Attempt to kill thread, credits: https://github.com/JingheLee/KillThread
@@ -397,6 +398,7 @@ def generate_temp_filename(base_dir):
     """
     Generates a temporary filename with the current date and time.
     """
+    makedirs(base_dir, exist_ok=True)
     return path.join(base_dir, datetime.now().strftime("%Y-%m-%d %H_%M_%S_%f")) + ".wav"
 
 

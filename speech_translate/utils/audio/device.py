@@ -103,12 +103,13 @@ def get_db(audio_data: bytes) -> float:
         return 20 * log10(rms)  # convert to db
 
 
-def get_speech(data: bytes, sample_rate: int, frame_duration_ms: int, vad: Vad, get_only_first_frame: bool = True) -> bool:
+def get_speech_webrtc(
+    data: bytes, sample_rate: int, frame_duration_ms: int, vad: Vad, get_only_first_frame: bool = True
+) -> bool:
     frames = list(frame_generator(frame_duration_ms, data, sample_rate, get_only_first_frame=get_only_first_frame))
     data_to_check = data if len(frames) == 0 else frames[0].bytes
-
-    # Use WebRTC VAD to detect speech
-    return vad.is_speech(data_to_check, sample_rate)
+    is_speech: bool = vad.is_speech(data_to_check, sample_rate)
+    return is_speech
 
 
 def get_frame_duration(sample_rate: int, chunk_size: int) -> int:
