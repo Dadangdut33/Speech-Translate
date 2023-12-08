@@ -13,13 +13,14 @@ https://stackoverflow.com/questions/45389166/how-to-know-all-style-options-of-a-
 """
 import os
 import tkinter as tk
-from tkinter import ttk, TclError
+from tkinter import TclError, ttk
 
 from loguru import logger
 
-from speech_translate.linker import bc, sj
 from speech_translate._path import dir_theme
+from speech_translate.linker import bc, sj
 from speech_translate.ui.custom.message import mbox
+
 from ..helper import get_opposite_hex_color
 
 theme_list = ["sun-valley-light", "sun-valley-dark"]
@@ -89,9 +90,9 @@ def init_theme():
     # filter path list by making sure that the dir name contains .tcl with the same name as the dir
     dir_theme_list = [dir for dir in dir_theme_list if dir + ".tcl" in os.listdir(os.path.join(dir_theme, dir))]
 
-    for dir in dir_theme_list:
-        path = os.path.abspath(os.path.join(dir_theme, dir, (dir + ".tcl")))
-        theme_list.append(dir)
+    for _dir in dir_theme_list:
+        path = os.path.abspath(os.path.join(dir_theme, _dir, (_dir + ".tcl")))
+        theme_list.append(_dir)
 
         try:
             get_root().tk.call("source", str(path))
@@ -119,7 +120,7 @@ def set_theme(theme: str):
     real_theme_list = list(get_root().tk.call("ttk::style", "theme", "names"))
     real_theme_list.extend(theme_list)
     if theme not in real_theme_list:
-        raise Exception("not a valid theme name: {}".format(theme))
+        raise Exception(f"not a valid theme name: {theme}")
 
     try:
         get_style().theme_use(theme)

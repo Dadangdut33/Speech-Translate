@@ -1,26 +1,26 @@
-from tkinter import ttk, Tk, Toplevel
+from tkinter import Tk, Toplevel, ttk
 from typing import Union
 
 
-def number_only(P, allow_empty=False):
-    if P == "" and allow_empty:
-        return True
-    else:
-        return P.isdigit()
-
-
-def number_only_float(P, allow_empty=False):
-    if P == "" and allow_empty:
-        return True
-    else:
-        try:
-            float(P)
-        except ValueError:
-            return False
+def number_only(val, allow_empty=False):
+    if val == "" and allow_empty:
         return True
 
+    return val.isdigit()
 
-def num_check(el, min, max, cb_func=None, converts_to_float=False, allow_empty=False):
+
+def number_only_float(val, allow_empty=False):
+    if val == "" and allow_empty:
+        return True
+
+    try:
+        float(val)
+    except ValueError:
+        return False
+    return True
+
+
+def num_check(el, v_min, v_max, cb_func=None, converts_to_float=False, allow_empty=False):
     value = el.get()
     if value == "" and allow_empty:
         if cb_func is not None:
@@ -28,23 +28,23 @@ def num_check(el, min, max, cb_func=None, converts_to_float=False, allow_empty=F
         return
 
     converts_to = float if converts_to_float else int
-    if converts_to(value) > max:
-        el.set(max)
+    if converts_to(value) > v_max:
+        el.set(v_max)
 
-    if converts_to(value) < min:
-        el.set(min)
+    if converts_to(value) < v_min:
+        el.set(v_min)
 
     if cb_func is not None:
         cb_func()
 
 
 # verify value only after user has finished typing
-def max_number(root, el, min, max, cb_func=None, delay=300, allow_empty=False):
-    root.after(delay, lambda: num_check(el, min, max, cb_func, False, allow_empty))
+def max_number(root, el, v_min, v_max, cb_func=None, delay=300, allow_empty=False):
+    root.after(delay, lambda: num_check(el, v_min, v_max, cb_func, False, allow_empty))
 
 
-def max_number_float(root, el, min, max, cb_func=None, delay=300, allow_empty=False):
-    root.after(delay, lambda: num_check(el, min, max, cb_func, True, allow_empty))
+def max_number_float(root, el, v_min, v_max, cb_func=None, delay=300, allow_empty=False):
+    root.after(delay, lambda: num_check(el, v_min, v_max, cb_func, True, allow_empty))
 
 
 class SpinboxNumOnly(ttk.Spinbox):
@@ -58,11 +58,11 @@ class SpinboxNumOnly(ttk.Spinbox):
         v_min: Union[float, int],
         v_max: Union[float, int],
         callback,
+        *args,
         num_float=False,
         allow_empty=False,
         delay=300,
         initial_value=None,
-        *args,
         **kwargs
     ):
         super().__init__(master, from_=v_min, to=v_max, validate="key", *args, **kwargs)
@@ -101,10 +101,10 @@ class SpinboxNumOnly(ttk.Spinbox):
             )
 
         # Bind the KeyRelease event to capture text input
-        maxFunc = max_number_float if num_float else max_number
+        max_func = max_number_float if num_float else max_number
         self.bind(
             "<KeyRelease>",
-            lambda e: maxFunc(
+            lambda e: max_func(
                 self.root, self, self.v_min, self.v_max, lambda *args: self.callback(self.get()), self.delay, self.
                 allow_empty
             ),

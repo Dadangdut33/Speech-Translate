@@ -1,16 +1,16 @@
 from threading import Thread
 from tkinter import Canvas, Tk, Toplevel, ttk
 
+from loguru import logger
 from PIL import Image, ImageTk
 from requests import get
-from loguru import logger
 
 from speech_translate._constants import APP_NAME
 from speech_translate._path import p_app_icon
 from speech_translate._version import __version__
-from speech_translate.ui.custom.tooltip import tk_tooltip
 from speech_translate.linker import bc, sj
-from speech_translate.utils.helper import open_url, native_notify, no_connection_notify
+from speech_translate.ui.custom.tooltip import tk_tooltip
+from speech_translate.utils.helper import native_notify, no_connection_notify, open_url
 
 
 # Classes
@@ -45,14 +45,14 @@ class AboutWindow:
         try:  # Try catch the logo so if logo not found it can still run
             self.canvas_img = Canvas(self.f_top, width=100, height=100)
             self.canvas_img.pack(side="top", padx=5, pady=5)
-            self.imgObj = Image.open(p_app_icon.replace(".ico", ".png"))
-            self.imgObj = self.imgObj.resize((100, 100))
+            self.img_obj = Image.open(p_app_icon.replace(".ico", ".png"))
+            self.img_obj = self.img_obj.resize((100, 100))
 
-            self.img = ImageTk.PhotoImage(self.imgObj)
+            self.img = ImageTk.PhotoImage(self.img_obj)
             self.canvas_img.create_image(2, 50, anchor="w", image=self.img)
         except Exception:
-            self.logoNotFoud = ttk.Label(self.f_top, text="Fail To Load Logo, Logo not found", foreground="red")
-            self.logoNotFoud.pack(side="top", padx=5, pady=5)
+            self.lbl_not_found = ttk.Label(self.f_top, text="Fail To Load Logo, Logo not found", foreground="red")
+            self.lbl_not_found.pack(side="top", padx=5, pady=5)
             self.root.geometry("375x325")
 
         self.lbl_title = ttk.Label(
@@ -92,7 +92,8 @@ class AboutWindow:
         self.lbl_cuda.pack(padx=5, pady=2, ipadx=0, side="left")
         tk_tooltip(
             self.lbl_cuda,
-            "Detected CUDA Device.\n\nNote that your device still need to be compatible with the CUDA version used by the program (CUDA 11.8) in order to be used.",
+            "Detected CUDA Device.\n\nNote that your device still need to be compatible with " \
+            "the CUDA version used by the program (CUDA 11.8) in order to be used.",
         )
 
         # Button
@@ -102,8 +103,7 @@ class AboutWindow:
         # ------------------------------
         bc.about = self
         self.checking = False
-        self.checkingOnStart = False
-        self.checkedGet = None
+        self.checking_on_start = False
 
         # ------------------ Set Icon ------------------
         try:
@@ -113,13 +113,13 @@ class AboutWindow:
 
         # ------------------------------
         # on init
-        self.onInit()
+        self.on_init()
 
     # check update on start
-    def onInit(self):
+    def on_init(self):
         if sj.cache["checkUpdateOnStart"]:
             logger.info("Checking for update on start")
-            self.checkingOnStart = True
+            self.checking_on_start = True
             self.check_for_update()
 
     # Show/Hide
@@ -150,7 +150,7 @@ class AboutWindow:
     def req_update_check(self, notify_up_to_date=False):
         try:
             # request to github api, compare version. If not same tell user to update
-            req = get("https://api.github.com/repos/Dadangdut33/Speech-Translate/releases/latest")
+            req = get("https://api.github.com/repos/Dadangdut33/Speech-Translate/releases/latest", timeout=7)
 
             if req is not None and req.status_code == 200:
                 data = req.json()
@@ -176,7 +176,7 @@ class AboutWindow:
                 self.update_fg = "red"
                 self.update_func = self.check_for_update
                 self.tooltip_check_update.text = "Click to try again"
-                if not self.checkingOnStart:  # suppress error if checking on start
+                if not self.checking_on_start:  # suppress error if checking on start
                     native_notify("Fail to check for update!", "Click to try again")
 
             self.lbl_check_update.configure(text=self.update_text, foreground=self.update_fg)

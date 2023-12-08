@@ -1,9 +1,10 @@
 import os
+
 from setuptools import setup
 
 
 def version():
-    with open(os.path.join(os.path.dirname(__file__), "speech_translate/_version.py")) as f:
+    with open(os.path.join(os.path.dirname(__file__), "speech_translate/_version.py"), encoding="utf-8") as f:
         return f.readline().split("=")[1].strip().strip('"').strip("'")
 
 

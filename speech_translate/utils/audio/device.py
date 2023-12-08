@@ -1,3 +1,4 @@
+# pylint: disable=deprecated-module
 from audioop import rms as calculate_rms
 from io import BytesIO
 from platform import system
@@ -12,18 +13,18 @@ from numpy import float32, frombuffer, int16, log10
 from scipy.signal import butter, filtfilt, resample_poly
 from webrtcvad import Vad
 
-if system() == "Windows":
-    import pyaudiowpatch as pyaudio
-else:
-    import pyaudio  # type: ignore
-
 from speech_translate._constants import WHISPER_SR
+
+if system() == "Windows":
+    import pyaudiowpatch as pyaudio  # type: ignore # pylint: disable=import-error
+else:
+    import pyaudio  # type: ignore # pylint: disable=import-error
 
 
 class Frame(object):
     """Represents a "frame" of audio data."""
-    def __init__(self, bytes, timestamp, duration):
-        self.bytes = bytes
+    def __init__(self, _bytes, timestamp, duration):
+        self.bytes = _bytes
         self.timestamp = timestamp
         self.duration = duration
 
@@ -217,19 +218,17 @@ def get_device_details(device_type: Literal["speaker", "mic"], sj, p: pyaudio.Py
         device = sj.cache[device_type]
 
         # get the id in device string [ID: deviceIndex,hostIndex]
-        id = device.split("[ID: ")[1]  # first get the id bracket
-        id = id.split("]")[0]  # then get the id
-        deviceIndex = id.split(",")[0]
-        hostIndex = id.split(",")[1]
+        device_id = device.split("[ID: ")[1]  # first get the id bracket
+        device_id = device_id.split("]")[0]  # then get the id
+        device_index = device_id.split(",")[0]
+        host_index = device_id.split(",")[1]
 
-        device_detail = p.get_device_info_by_host_api_device_index(int(deviceIndex), int(hostIndex))
+        device_detail = p.get_device_info_by_host_api_device_index(int(device_index), int(host_index))
         if device_type == "speaker":
             # device_detail = p.get_wasapi_loopback_analogue_by_dict(device_detail)
             if not device_detail["isLoopbackDevice"]:
                 for loopback in p.get_loopback_device_info_generator():  # type: ignore
-                    """
-                    Try to find loopback device with same name(and [Loopback suffix]).
-                    """
+                    # Try to find loopback device with same name(and [Loopback suffix]).
                     if device_detail["name"] in loopback["name"]:
                         device_detail = loopback
                         break
@@ -274,7 +273,7 @@ def get_device_details(device_type: Literal["speaker", "mic"], sj, p: pyaudio.Py
         }
 
 
-def get_input_devices(hostAPI: str):
+def get_input_devices(host_api: str):
     """
     Get the input devices (mic) from the specified hostAPI.
     """
@@ -285,7 +284,7 @@ def get_input_devices(hostAPI: str):
             current_api_info = p.get_host_api_info_by_index(i)
             # This will ccheck hostAPI parameter
             # If it is empty, get all devices. If specified, get only the devices from the specified hostAPI
-            if (hostAPI == current_api_info["name"]) or (hostAPI == ""):
+            if (host_api == current_api_info["name"]) or (host_api == ""):
                 for j in range(int(current_api_info["deviceCount"])):
                     device = p.get_device_info_by_host_api_device_index(i, j)  # get device info by host api device index
                     if int(device["maxInputChannels"]) > 0:
@@ -299,10 +298,11 @@ def get_input_devices(hostAPI: str):
         devices = ["[ERROR] Check the terminal/log for more information."]
     finally:
         p.terminate()
-        return devices
+
+    return devices
 
 
-def get_output_devices(hostAPI: str):
+def get_output_devices(host_api: str):
     """
     Get the output devices (speaker) from the specified hostAPI.
     """
@@ -313,7 +313,7 @@ def get_output_devices(hostAPI: str):
             current_api_info = p.get_host_api_info_by_index(i)
             # This will check hostAPI parameter
             # If it is empty, get all devices. If specified, get only the devices from the specified hostAPI
-            if (hostAPI == current_api_info["name"]) or (hostAPI == ""):
+            if (host_api == current_api_info["name"]) or (host_api == ""):
                 for j in range(int(current_api_info["deviceCount"])):
                     device = p.get_device_info_by_host_api_device_index(i, j)  # get device info by host api device index
                     if int(device["maxOutputChannels"]) > 0:
@@ -327,29 +327,31 @@ def get_output_devices(hostAPI: str):
         devices = ["[ERROR] Check the terminal/log for more information."]
     finally:
         p.terminate()
-        return devices
+
+    return devices
 
 
 def get_host_apis():
     """
     Get the host apis from the system.
     """
-    apis = []
+    host_apis = []
     p = pyaudio.PyAudio()
     try:
         for i in range(p.get_host_api_count()):
             current_api_info = p.get_host_api_info_by_index(i)
-            apis.append(f"{current_api_info['name']}")
+            host_apis.append(f"{current_api_info['name']}")
 
-        if len(apis) == 0:  # check if input empty or not
-            apis = ["[WARNING] No host apis found."]
+        if len(host_apis) == 0:  # check if input empty or not
+            host_apis = ["[WARNING] No host apis found."]
     except Exception as e:
         logger.error("Something went wrong while trying to get the host apis.")
         logger.exception(e)
-        apis = ["[ERROR] Check the terminal/log for more information."]
+        host_apis = ["[ERROR] Check the terminal/log for more information."]
     finally:
         p.terminate()
-        return apis
+
+    return host_apis
 
 
 def get_default_input_device():
@@ -379,7 +381,8 @@ def get_default_input_device():
             default_device = str(e)
     finally:
         p.terminate()
-        return sucess, default_device
+
+    return sucess, default_device
 
 
 def get_default_output_device():
@@ -405,7 +408,8 @@ def get_default_output_device():
         default_device = "Looks like WASAPI is not available on the system."
     finally:
         p.terminate()
-        return sucess, default_device
+
+    return sucess, default_device
 
 
 def get_default_host_api():
@@ -430,4 +434,5 @@ def get_default_host_api():
         default_host_api = str(e)
     finally:
         p.terminate()
-        return sucess, default_host_api
+
+    return sucess, default_host_api

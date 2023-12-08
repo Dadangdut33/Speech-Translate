@@ -1,15 +1,19 @@
 from tkinter import ttk
+
 from tkhtmlview import HTMLLabel
 
 
 class LabelTitleText:
+    """
+    A label that contains a title and a text
+    """
     def __init__(self, master, title, text, **kwargs):
         self.master = master
         self.title = title
         self.text = text
         self.kwargs = kwargs
         self.label = ttk.Label(self.master, **self.kwargs)
-        self.lbl_title = ttk.Label(self.label, text=self.title, font=("TkDefaultFont 9 bold"))
+        self.lbl_title = ttk.Label(self.label, text=self.title, font="TkDefaultFont 9 bold")
         self.lbl_text = ttk.Label(self.label, text=self.text)
         self.lbl_title.pack(side="left")
         self.lbl_text.pack(side="left")
@@ -31,6 +35,9 @@ class LabelTitleText:
 
 
 class DraggableHtmlLabel(HTMLLabel):
+    """
+    A draggable HTML label
+    """
     def __init__(self, parent, root, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
         self.root = root
@@ -44,7 +51,7 @@ class DraggableHtmlLabel(HTMLLabel):
         self.x = event.x_root - self.root.winfo_x()
         self.y = event.y_root - self.root.winfo_y()
 
-    def stop_move(self, event):
+    def stop_move(self, _event):
         self.x = None
         self.y = None
 
@@ -52,4 +59,4 @@ class DraggableHtmlLabel(HTMLLabel):
         if self.x is not None and self.y is not None:
             new_x = event.x_root - self.x
             new_y = event.y_root - self.y
-            self.root.geometry("+%s+%s" % (new_x, new_y))
+            self.root.geometry(f"+{new_x}+{new_y}")

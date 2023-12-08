@@ -1,24 +1,37 @@
-from os import listdir, remove, path
+from os import listdir, path, remove
 from threading import Thread
-from tkinter import ttk, Menu, Toplevel, Frame, LabelFrame
+from tkinter import Frame, LabelFrame, Menu, Toplevel, ttk
 from typing import Union
-from speech_translate.ui.custom.checkbutton import CustomCheckButton
-from speech_translate.ui.custom.combobox import ComboboxWithKeyNav
 
 from loguru import logger
 
-from speech_translate.linker import sj, bc
-from speech_translate._path import dir_log, dir_temp, dir_debug
-from speech_translate._logging import current_log, change_log_level
-from speech_translate.utils.helper import insert_entry_readonly, popup_menu, up_first_case, change_folder_w_f_call
-from speech_translate.utils.whisper.download import verify_model_faster_whisper, verify_model_whisper, download_model, get_default_download_root
-from speech_translate.utils.helper import start_file
-from speech_translate.utils.tk.style import set_ui_style
+from speech_translate._logging import change_log_level, current_log
+from speech_translate._path import dir_debug, dir_log, dir_temp
+from speech_translate.linker import bc, sj
+from speech_translate.ui.custom.checkbutton import CustomCheckButton
+from speech_translate.ui.custom.combobox import ComboboxWithKeyNav
 from speech_translate.ui.custom.message import mbox
 from speech_translate.ui.custom.tooltip import tk_tooltip, tk_tooltips
+from speech_translate.utils.helper import (
+    change_folder_w_f_call,
+    insert_entry_readonly,
+    popup_menu,
+    start_file,
+    up_first_case,
+)
+from speech_translate.utils.tk.style import set_ui_style
+from speech_translate.utils.whisper.download import (
+    download_model,
+    get_default_download_root,
+    verify_model_faster_whisper,
+    verify_model_whisper,
+)
 
 
 class ModelDownloadFrame:
+    """
+    A base class for model download frame.
+    """
     def __init__(self, master, model_name, btn_cb) -> None:
         self.f = ttk.Frame(master)
         self.f.pack(side="left", fill="x", padx=5, pady=5)
@@ -126,7 +139,7 @@ class SettingGeneral:
             "Set theme for app.\n\nThe topmost selection is your default tkinter os theme."
             "\nTo add custom theme you can read the readme.txt in the theme folder."
             "\n\nMight need to reload the app for the changes to take effect.",
-            wrapLength=500,
+            wrap_len=500,
         )
 
         self.entry_theme = ttk.Entry(self.f_application_2)
@@ -136,7 +149,7 @@ class SettingGeneral:
             "Set the custom theme name if the one from dropdown is not working."
             "\n\nThe theme name should be according to the `set_theme` parameter in the .tcl folder of the theme."
             "\n\nMight need to reload the app for the changes to take effect.",
-            wrapLength=500,
+            wrap_len=500,
         )
 
         self.btn_theme_add = ttk.Button(self.f_application_2, text="Add", command=self.add_theme)
@@ -146,7 +159,7 @@ class SettingGeneral:
             "Add custom theme.\n\nThe theme name should be according to the `set_theme` "
             "parameter in the .tcl folder of the theme."
             "\n\nMight need to reload the app for the changes to take effect.",
-            wrapLength=500,
+            wrap_len=500,
         )
 
         self.lbl_notice_theme = ttk.Label(
@@ -217,7 +230,7 @@ class SettingGeneral:
         )
         self.menu_config_log.add_separator()
         self.menu_config_log.add_command(
-            label="Empty Log Folder", image=bc.trash_emoji, compound="left", command=lambda: self.promptDeleteLog()
+            label="Empty Log Folder", image=bc.trash_emoji, compound="left", command=self.prompt_del_log
         )
 
         self.cbtn_verbose = CustomCheckButton(
@@ -285,7 +298,7 @@ class SettingGeneral:
             "Save recorded audio as .wav file in the debug folder. "
             "Keep in mind that the files in that directory will be deleted automatically every time the app run\n\n"
             "Enabling could slow down the app.",
-            wrapLength=300,
+            wrap_len=300,
         )
 
         self.cbtn_debug_translate = CustomCheckButton(
@@ -346,8 +359,9 @@ class SettingGeneral:
         self.cbtn_auto_verify_model_on_first_setting_open.pack(side="left", padx=5)
         tk_tooltip(
             self.cbtn_auto_verify_model_on_first_setting_open,
-            "Check if model is downloaded on first setting open.\n\n"
-            "If you have a lot of model downloaded, this could take a while and might use lots of your RAM / Memory depending on the model size.",
+            "Check if model is downloaded on first setting open.\n\n" \
+            "If you have a lot of model downloaded, this could take a " \
+            "while and might use lots of your RAM / Memory depending on the model size.",
         )
 
         self.btn_model_config = ttk.Button(
@@ -507,7 +521,7 @@ class SettingGeneral:
         if not sj.cache["keep_temp"]:
             self.delete_temp()
 
-    def promptDeleteLog(self):
+    def prompt_del_log(self):
         # confirmation using mbox
         if mbox("Delete Log Files", "Are you sure you want to delete all log files?", 3, self.root):
             # delete all log files
@@ -579,7 +593,7 @@ class SettingGeneral:
         btn.configure(text="Download", command=lambda: self.model_download(model, btn, use_faster_whisper), state="normal")
         bc.cancel_dl = True  # Raise flag to stop
 
-    def model_btn_checker(self, model: str, btn: ttk.Button, faster_whisper: bool = False, on_start=False) -> None:
+    def model_btn_checker(self, model: str, btn: ttk.Button, faster_whisper: bool = False) -> None:
         """
         Helper to check if model is downloaded.
         It will first change btn state to disabled to prevent user from clicking it, set text to "Checking..."
@@ -865,7 +879,7 @@ class SettingGeneral:
         sj.save_key("log_level", self.cb_log_level.get())
         change_log_level(self.cb_log_level.get())
 
-    def path_default(self, key: str, element: ttk.Entry, default_path: str, save=True, prompt=True):
+    def path_default(self, key: str, element: ttk.Entry, default_path: str):
         # prompt are you sure
         if not mbox(
             f"Set {up_first_case(key.split('_')[1])} Folder to Default",

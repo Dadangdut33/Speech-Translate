@@ -1,3 +1,4 @@
+# pylint: disable=import-outside-toplevel, protected-access
 import hashlib
 import os
 
@@ -6,7 +7,7 @@ from huggingface_hub import HfApi
 from huggingface_hub.file_download import repo_folder_name
 from loguru import logger
 
-from speech_translate.ui.custom.download import whisper_download_with_progress_gui, faster_whisper_download_with_progress_gui
+from speech_translate.ui.custom.download import faster_whisper_download_with_progress_gui, whisper_download_with_progress_gui
 
 
 # donwload function
@@ -34,7 +35,6 @@ def download_model(model_key, root_win, **kwargs):
         download_root = get_default_download_root()
 
     use_faster_whisper = kwargs.pop("use_faster_whisper")
-
     model_id = whisper._MODELS[model_key] if not use_faster_whisper else FW_MODELS[model_key]
 
     # call different download function
@@ -77,7 +77,9 @@ def verify_model_whisper(model_key, download_root=None):
 
 
 def verify_model_faster_whisper(model_key: str, cache_dir) -> bool:
-    """Verify downloaded faster whisper model, more complex than checking whisper model because the model is downloaded from huggingface hub
+    """
+    Verify downloaded faster whisper model, 
+    a somewhat hacky check to see if the model is already downloaded
 
     Parameters
     ----------
@@ -99,7 +101,7 @@ def verify_model_faster_whisper(model_key: str, cache_dir) -> bool:
     from faster_whisper.utils import _MODELS as FW_MODELS
     repo_id = FW_MODELS.get(model_key)
     if repo_id is None:
-        raise ValueError("Invalid model size '%s', expected one of: %s" % (model_key, ", ".join(FW_MODELS.keys())))
+        raise ValueError(f"Invalid model size '{model_key}', expected one of: {', '.join(FW_MODELS.keys())}")
 
     storage_folder = os.path.join(cache_dir, repo_folder_name(repo_id=repo_id, repo_type="model"))
 

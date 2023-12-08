@@ -1,17 +1,17 @@
+from datetime import datetime
 from os import listdir, path, remove
-from tkinter import filedialog, ttk, Frame, LabelFrame, Toplevel, Event, Menu
+from tkinter import Frame, LabelFrame, Menu, Toplevel, filedialog, ttk
 from typing import Literal, Union
+
+from speech_translate._path import dir_export, p_parameters_text
+from speech_translate.linker import bc, sj
 from speech_translate.ui.custom.checkbutton import CustomCheckButton
 from speech_translate.ui.custom.combobox import ComboboxWithKeyNav
 from speech_translate.ui.custom.message import MBoxText, mbox
-from datetime import datetime
-
-from speech_translate.linker import sj, bc
-from speech_translate._path import dir_export, p_parameters_text
+from speech_translate.ui.custom.spinbox import SpinboxNumOnly
+from speech_translate.ui.custom.tooltip import tk_tooltip, tk_tooltips
 from speech_translate.utils.helper import filename_only, popup_menu, start_file, up_first_case
 from speech_translate.utils.whisper.helper import get_task_format
-from speech_translate.ui.custom.tooltip import tk_tooltip, tk_tooltips
-from speech_translate.ui.custom.spinbox import SpinboxNumOnly
 
 
 class SettingExport:
@@ -85,8 +85,9 @@ class SettingExport:
         self.cbtn_segment_level.pack(side="left", padx=5)
         tk_tooltip(
             self.cbtn_segment_level,
-            "Export the text in segment level.\n\n*Either segment level or word level must be enabled.\n\nDefault is checked",
-            wrapLength=350
+            "Export the text in segment level.\n\n*Either segment level or word level must " \
+            "be enabled.\n\nDefault is checked",
+            wrap_len=350
         )
 
         self.cbtn_word_level = CustomCheckButton(
@@ -100,7 +101,7 @@ class SettingExport:
         tk_tooltip(
             self.cbtn_word_level,
             "Export the text in word level.\n\n*Either segment level or word level must be enabled.\n\nDefault is checked",
-            wrapLength=350
+            wrap_len=350
         )
 
         self.lbl_export_to = ttk.Label(self.f_export_mode_2, text="Export to", width=17)
@@ -155,7 +156,7 @@ class SettingExport:
         tk_tooltip(
             self.cbtn_visaulize_suppression,
             "Visualize which parts of the audio will likely be suppressed (i.e. marked as silent).\n\nDefault is unchecked",
-            wrapLength=350
+            wrap_len=350
         )
 
         self.lbl_export = ttk.Label(self.f_export_mode_3, text="Export Folder", width=17)
@@ -193,7 +194,7 @@ class SettingExport:
         )
         self.menu_config_export.add_separator()
         self.menu_config_export.add_command(
-            label="Empty Export Folder", image=bc.trash_emoji, compound="left", command=lambda: self.clear_export()
+            label="Empty Export Folder", image=bc.trash_emoji, compound="left", command=self.clear_export
         )
 
         self.cbtn_auto_open_export = CustomCheckButton(
@@ -207,35 +208,8 @@ class SettingExport:
         tk_tooltip(
             self.cbtn_auto_open_export,
             "Auto open the export folder after file import and the transcribe/translate process is done.",
-            wrapLength=300,
+            wrap_len=300,
         )
-
-        def keybind_num(event: Event, widget: ttk.Entry):
-            vsym = event.keysym
-            vw = widget.get()
-            v = event.char
-            try:
-                # check number or not
-                int(v)  # pressed key
-            except ValueError:
-                # check value
-                if vw == "":  # if empty
-                    return "break"
-                elif vsym == "minus":  # if minus
-                    if "-" in vw:
-                        replaced = vw.replace("-", "")
-                        widget.delete(0, "end")
-                        widget.insert(0, replaced)
-                        return "break"
-                    else:
-                        replaced = "-" + vw
-                        widget.delete(0, "end")
-                        widget.insert(0, replaced)
-                        return "break"
-
-                # check pressed key
-                if v != "\x08" and v != "":  # other than backspace and empty is not allowed
-                    return "break"
 
         self.cbtn_remove_repetition_file_import = CustomCheckButton(
             self.f_result_modify_1,
@@ -269,13 +243,14 @@ class SettingExport:
                 self.cbtn_remove_repetition_file_import, self.cbtn_remove_repetition_result_refinement,
                 self.cbtn_remove_repetition_result_alignment
             ],
-            "If enabled will Remove words that repeat consecutively."
-            '\n\nExample 1: "This is is is a test." -> "This is a test."'
-            '\nIf you set max words to 1, it will remove the last two "is"'
-            '\n\nExample 2: "This is is is a test this is a test." -> "This is a test."'
-            '\nIf you set max words to 4, it will remove the second " is" and third " is", then remove the last "this is a test". '
-            '"this is a test" will get remove because it consists of 4 words and the max words is 4.',
-            wrapLength=450,
+            "If enabled will Remove words that repeat consecutively." \
+            '\n\nExample 1: "This is is is a test." -> "This is a test."' \
+            '\nIf you set max words to 1, it will remove the last two "is"' \
+            '\n\nExample 2: "This is is is a test this is a test." -> "This is a test."' \
+            '\nIf you set max words to 4, it will remove the second " is" and third " is"' \
+            ', then remove the last "this is a test". "this is a test" will get remove ' \
+            'because it consists of 4 words and the max words is 4.',
+            wrap_len=450,
         )
         self.lbl_remove_repetition_amount = ttk.Label(self.f_result_modify_2, text="Max Words Lookup", width=17)
         self.lbl_remove_repetition_amount.pack(side="left", padx=5)
@@ -293,7 +268,7 @@ class SettingExport:
         tk_tooltips(
             [self.lbl_remove_repetition_amount, self.spn_remove_repetition_amount],
             "Set the maximum number of words to look for consecutively.\n\nDefault is 4",
-            wrapLength=300,
+            wrap_len=300,
         )
 
         self.lbl_segment_max_words = ttk.Label(self.f_export_limit_1, text="Max Words", width=17)
@@ -337,7 +312,7 @@ class SettingExport:
         tk_tooltip(
             self.lbl_question_mark,
             "If both limit `Max words` and `Max chars` are empty, no splitting of segments will be done.",
-            wrapLength=300,
+            wrap_len=300,
         )
 
         self.lbl_segment_split_or_newline = ttk.Label(self.f_export_limit_2, text="Separate Method", width=17)
@@ -354,7 +329,7 @@ class SettingExport:
         tk_tooltips(
             [self.lbl_segment_split_or_newline, self.cb_segment_split_or_newline],
             "Whether to splitting into separate segments the split points or insert line break.\n\nDefault is Split",
-            wrapLength=300,
+            wrap_len=300,
         )
 
         self.cbtn_segment_even_split = CustomCheckButton(
@@ -368,7 +343,7 @@ class SettingExport:
         tk_tooltip(
             self.cbtn_segment_even_split,
             "Whether to evenly split a segment in length if it exceeds `max_chars` or `max_words`.\n\nDefault is checked",
-            wrapLength=300,
+            wrap_len=300,
         )
 
         self.lbl_slice_file_start = ttk.Label(self.f_export_format_1, text="Slice File Start", width=17)
@@ -409,6 +384,7 @@ class SettingExport:
             lambda e: sj.save_key("export_format", self.entry_export_format.get()) or self.update_preview_export_format(),
         )
 
+        # pylint: disable=line-too-long
         available_params = (
             "Default value: %Y-%m-%d %f {file}/{task-lang}"
             "\nTo folderize the result you can use / in the format. Example: {file}/{task-lang-with}"
@@ -463,7 +439,7 @@ class SettingExport:
             self.lbl_preview_export_format_result,
             "Preview of the export format with the current settings\n"
             "Filename: this is an example video or audio file.mp4",
-            wrapLength=350,
+            wrap_len=350,
         )
 
         # --------------------------
@@ -537,12 +513,12 @@ class SettingExport:
             pass
 
     def change_path(self, key: str, element: ttk.Entry):
-        path = filedialog.askdirectory()
-        if path != "":
-            sj.save_key(key, path)
+        dir_get = filedialog.askdirectory()
+        if dir_get != "":
+            sj.save_key(key, dir_get)
             element.configure(state="normal")
             element.delete(0, "end")
-            element.insert(0, path)
+            element.insert(0, dir_get)
             element.configure(state="readonly")
 
     def make_open_text(self, texts: str):

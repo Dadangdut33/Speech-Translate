@@ -1,33 +1,53 @@
-import sys
 import json
-from os import path, makedirs
+import sys
 from datetime import datetime
+from os import makedirs, path
 from threading import Thread
 from time import gmtime, sleep, strftime, time
 from tkinter import filedialog
-from typing import List, Literal, Union, Dict
+from typing import Dict, List, Literal, Union
 
 import stable_whisper  # https://github.com/jianfch/stable-ts # has no static annotation hence many type ignore
-from whisper.tokenizer import TO_LANGUAGE_CODE
 from torch import cuda
+from whisper.tokenizer import TO_LANGUAGE_CODE
 
-from speech_translate._path import dir_export, dir_alignment, dir_refinement, dir_translate
 from speech_translate._logging import logger
+from speech_translate._path import dir_alignment, dir_export, dir_refinement, dir_translate
 from speech_translate.linker import bc, sj
-from speech_translate.utils.translate.language import get_whisper_lang_name, verify_language_in_key, get_whisper_lang_similar
-from speech_translate.ui.custom.dialog import ModResultInputDialog, FileProcessDialog
+from speech_translate.ui.custom.dialog import FileProcessDialog, ModResultInputDialog
 from speech_translate.ui.custom.message import mbox
+from speech_translate.utils.translate.language import get_whisper_lang_name, get_whisper_lang_similar, verify_language_in_key
 
-from ..helper import cbtn_invoker, get_proxies, native_notify, filename_only, start_file, up_first_case, get_list_of_dict, kill_thread
-from ..whisper.helper import get_hallucination_filter, get_model, get_model_args, get_tc_args, save_output_stable_ts, model_values, to_language_name, get_task_format, split_res, remove_segments_by_str
+from ..helper import (
+    cbtn_invoker,
+    filename_only,
+    get_list_of_dict,
+    get_proxies,
+    kill_thread,
+    native_notify,
+    start_file,
+    up_first_case,
+)
 from ..translate.translator import translate
+from ..whisper.helper import (
+    get_hallucination_filter,
+    get_model,
+    get_model_args,
+    get_task_format,
+    get_tc_args,
+    model_values,
+    remove_segments_by_str,
+    save_output_stable_ts,
+    split_res,
+    to_language_name,
+)
 
 # Global variable
 # to track which file is processed
 # index 0 (even) is the name of the file, index 1 (odd) is the status (True if success, False if failed)
 processed_tc = []
 processed_tl = []
-global_file_import_counter = 0
+F_IMPORT_COUNTER = 0
 
 
 def update_q_process(list_of_dict: List[dict], index: int, status: str) -> None:
@@ -111,10 +131,10 @@ def run_translate_api(
 
         query.language = lang_target  # now its the target language
         # tl text in that segment
-        success, result = translate(engine, segment_texts, lang_source, lang_target, proxies, debug_log, **kwargs)
+        _success, result = translate(engine, segment_texts, lang_source, lang_target, proxies, debug_log, **kwargs)
 
         # replace
-        for s_index, segment in enumerate(query.segments):
+        for _s_index, segment in enumerate(query.segments):
             if len(result) == 0:
                 logger.warning("Some part of the text might not be translated")
                 return
@@ -126,7 +146,8 @@ def run_translate_api(
             segment.text = " " + str(result.pop(0))
 
             # because each word is taken from the text, we can replace the word with the translated text
-            # but we first need to check the  of splitted translated text because sometimes its not the same length as the original
+            # but we first need to check the  of splitted translated text
+            # because sometimes its not the same length as the original
             temp_words = segment.text.split()
             translated_word_length = len(temp_words)
             if translated_word_length == len(segment.words):
@@ -136,7 +157,8 @@ def run_translate_api(
                 # This is somewhat brute force but it should work just fine. Keep in mind that the timing might be a bit off
                 # considering that we are replacing the words in the segment without knowing the previous value
                 logger.warning(
-                    "Translated text words is not the same length as the words in the segment. Attempting to replace words..."
+                    "Translated text words is not the same length as " \
+                    "the words in the segment. Attempting to replace words..."
                 )
                 logger.warning(
                     f"Translated Words Length: {translated_word_length} | Original Words Length: {len(segment.words)}"
@@ -204,8 +226,8 @@ def cancellable_tc(
     stable_tc,
     stable_tl,
     auto: bool,
-    transcribe: bool,
-    translate: bool,
+    is_tc: bool,
+    is_tl: bool,
     engine: str,
     save_name: str,
     save_meta: str,
@@ -251,7 +273,7 @@ def cancellable_tc(
     None
     """
     assert bc.mw is not None
-    global global_file_import_counter, processed_tc
+    global F_IMPORT_COUNTER
     start = time()
 
     try:
@@ -312,7 +334,7 @@ def cancellable_tc(
             result_tc = result_tc.remove_repetition(sj.cache["remove_repetition_amount"])
 
         # export if transcribe mode is on
-        if transcribe:
+        if is_tc:
             result_tc_save = stable_whisper.WhisperResult(result_tc.to_dict())
             result_tc_save = split_res(result_tc_save, sj.cache)
             result_text = result_tc.text.strip()
@@ -345,11 +367,11 @@ def cancellable_tc(
             logger.error("Failed to update metadata")
 
         # start translation thread if translate mode is on
-        if translate:
+        if is_tl:
             # send result as srt if not using whisper because it will be send to translation API.
             # If using whisper translation will be done using whisper model
             res_to_tl = result_tc if engine not in model_values else audio_name
-            translateThread = Thread(
+            tl_thread = Thread(
                 target=cancellable_tl,
                 args=[
                     res_to_tl, lang_source, lang_target, stable_tl, engine, auto, save_name, save_meta, tracker_index,
@@ -359,7 +381,7 @@ def cancellable_tc(
                 daemon=True,
             )
 
-            translateThread.start()  # Start translation in a new thread to prevent blocking
+            tl_thread.start()  # Start translation in a new thread to prevent blocking
     except Exception as e:
         update_q_process(processed_tc, tracker_index, "Failed to transcribe")
         if str(e) == "Cancelled":
@@ -368,7 +390,7 @@ def cancellable_tc(
             logger.exception(e)
             native_notify("Error: Transcribing Audio", str(e))
     finally:
-        global_file_import_counter += 1
+        F_IMPORT_COUNTER += 1
 
 
 def cancellable_tl(
@@ -417,7 +439,7 @@ def cancellable_tl(
     None
     """
     assert bc.mw is not None
-    global global_file_import_counter, processed_tl
+    global F_IMPORT_COUNTER
     start = time()
 
     try:
@@ -482,9 +504,9 @@ def cancellable_tl(
                 result_tl = result_tl.remove_repetition(sj.cache["remove_repetition_amount"])
 
             # if whisper, sended text (toTranslate) is the audio file path
-            resultTxt = result_tl.text.strip()
+            res_text = result_tl.text.strip()
 
-            if len(resultTxt) == 0:
+            if len(res_text) == 0:
                 logger.warning("Translated Text is empty")
                 update_q_process(processed_tl, tracker_index, "TL Fail! Got empty translated text")
                 return
@@ -560,12 +582,11 @@ def cancellable_tl(
             logger.exception(e)
             native_notify(f"Error: translation with {engine} failed ", str(e) + " Check log for details")
     finally:
-        global_file_import_counter += 1
+        F_IMPORT_COUNTER += 1
 
 
 def process_file(
-    data_files: List[str], model_name_tc: str, lang_source: str, lang_target: str, transcribe: bool, translate: bool,
-    engine: str
+    data_files: List[str], model_name_tc: str, lang_source: str, lang_target: str, is_tc: bool, is_tl: bool, engine: str
 ) -> None:
     """Function to transcribe and translate from audio/video files.
 
@@ -579,9 +600,9 @@ def process_file(
         The language of the input.
     lang_target (str)
         The language to translate to.
-    transcibe (bool)
+    is_tc (bool)
         Whether to transcribe the audio.
-    translate (bool)
+    is_tl (bool)
         Whether to translate the audio.
     engine (str)
         The engine to use for the translation.
@@ -594,7 +615,7 @@ def process_file(
     try:
         bc.mw.disable_interactions()
         master = bc.mw.root
-        fp = FileProcessDialog(master, "File Import Progress", "export", ["Audio / Video File", "Status"], sj)
+        fp = FileProcessDialog(master, "File Import Progress", "export", ["Audio / Video File", "Status"])
 
         logger.info("Start Process (FILE)")
         bc.file_tced_counter = 0
@@ -611,7 +632,7 @@ def process_file(
         # load model
         model_args = get_model_args(sj.cache)
         _model_tc, _model_tl, stable_tc, stable_tl, to_args = get_model(
-            transcribe, translate, tl_engine_whisper, model_name_tc, engine, sj.cache, **model_args
+            is_tc, is_tl, tl_engine_whisper, model_name_tc, engine, sj.cache, **model_args
         )
         whisper_args = get_tc_args(to_args, sj.cache)
         whisper_args["language"] = TO_LANGUAGE_CODE[get_whisper_lang_similar(lang_source)] if not auto else None
@@ -625,32 +646,32 @@ def process_file(
 
         t_start = time()
         adding = False
-        taskname = "Transcribe & Translate" if transcribe and translate else "Transcribe" if transcribe else "Translate"
-        language = f"from {lang_source} to {lang_target}" if translate else lang_source
+        taskname = "Transcribe & Translate" if is_tc and is_tl else "Transcribe" if is_tc else "Translate"
+        language = f"from {lang_source} to {lang_target}" if is_tl else lang_source
         logger.info(f"Model Args: {model_args}")
         logger.info(f"Process Args: {whisper_args}")
         local_file_import_counter = 0
 
-        global processed_tc, processed_tl, global_file_import_counter
+        global processed_tc, processed_tl, F_IMPORT_COUNTER
         processed_tc = []
         processed_tl = []
-        global_file_import_counter = 0
+        F_IMPORT_COUNTER = 0
         all_done = False
 
         def get_queue_data():
-            nonlocal data_files, transcribe, translate
+            nonlocal data_files, is_tc, is_tl
             show = []
             for index, file in enumerate(data_files):
                 status = ""
-                if transcribe:
+                if is_tc:
                     temp = get_list_of_dict(processed_tc, "index", index)
                     if temp is not None:
                         status += f"{temp['status']}"
                     else:
                         status += "Waiting"
 
-                if translate:
-                    if transcribe:
+                if is_tl:
+                    if is_tc:
                         status += ", "
 
                     temp = get_list_of_dict(processed_tl, "index", index)
@@ -687,7 +708,7 @@ def process_file(
             )
 
             if len(to_add) > 0:
-                if transcribe:
+                if is_tc:
                     current_file_counter = bc.file_tced_counter
                 else:
                     current_file_counter = bc.file_tled_counter
@@ -713,17 +734,15 @@ def process_file(
                 try:
                     fp.lbl_elapsed.set_text(text=f"{strftime('%H:%M:%S', gmtime(time() - t_start))}")
 
-                    if local_file_import_counter > 0:
-                        cur_file = f"{local_file_import_counter}/{len(data_files)} ({filename_only(data_files[local_file_import_counter - 1])})"
-                    else:
-                        cur_file = f"{local_file_import_counter}/{len(data_files)} ({filename_only(data_files[local_file_import_counter])})"
+                    index = local_file_import_counter - 1 if local_file_import_counter > 0 else local_file_import_counter
+                    cur_file = f"{local_file_import_counter}/{len(data_files)} ({filename_only(data_files[index])})"
                     fp.lbl_files.set_text(text=cur_file)
 
                     processed = ""
-                    if transcribe:
+                    if is_tc:
                         processed += f"{bc.file_tced_counter} Transcribed"
-                    if translate:
-                        if transcribe:
+                    if is_tl:
+                        if is_tc:
                             processed += ", "
                         processed += f"{bc.file_tled_counter} Translated"
                     fp.lbl_processed.set_text(text=processed)
@@ -731,13 +750,14 @@ def process_file(
                     # update progressbar
                     # times 2 if:
                     # - either transcribe and translating
-                    # - or, only translating but not using whisper engine (which means it must get transcribed first, making the process twice)
-                    if (transcribe and translate) or (not transcribe and translate and not tl_engine_whisper):
+                    # - or, only translating but not using whisper engine
+                    # (which means it must get transcribed first, making the process twice)
+                    if (is_tc and is_tl) or (not is_tc and is_tl and not tl_engine_whisper):
                         prog_file_len = len(data_files) * 2
                     else:
                         prog_file_len = len(data_files)
 
-                    fp.progress_bar["value"] = (global_file_import_counter / prog_file_len * 100)
+                    fp.progress_bar["value"] = F_IMPORT_COUNTER / prog_file_len * 100
                     new = get_queue_data()
                     if new != prev_q_data:
                         prev_q_data = new
@@ -761,7 +781,7 @@ def process_file(
         update_ui_thread = Thread(target=update_modal_ui, daemon=True)
         update_ui_thread.start()
 
-        bc.mw.start_loadBar()
+        bc.mw.start_lb()
         bc.enable_file_tc()
         bc.enable_file_tl()
 
@@ -810,13 +830,13 @@ def process_file(
                     "meta_written_at": str(datetime.now()),
                     "task": taskname,
                     "filename": file_name,
-                    "transcribe": transcribe,
-                    "translate": translate,
-                    "model": model_name_tc if transcribe or tl_engine_whisper else "",
+                    "transcribe": is_tc,
+                    "translate": is_tl,
+                    "model": model_name_tc if is_tc or tl_engine_whisper else "",
                     "using_faster_whisper": sj.cache["use_faster_whisper"],
-                    "engine": engine if translate else "",
+                    "engine": engine if is_tl else "",
                     "source_language": lang_source,
-                    "target_language": lang_target if translate else "",
+                    "target_language": lang_target if is_tl else "",
                     "visualize_supression": visualize_suppression,
                     "segment_level": sj.cache["segment_level"],
                     "word_level": sj.cache["word_level"],
@@ -833,12 +853,12 @@ def process_file(
                 logger.debug("saved metadata")
 
             # if only translating and using the whisper engine
-            if translate and not transcribe and tl_engine_whisper:
+            if is_tl and not is_tc and tl_engine_whisper:
                 proc_thread = Thread(
                     target=cancellable_tl,
                     args=[
-                        file, lang_source, lang_target, stable_tl, engine, auto, save_name, save_meta,
-                        global_file_import_counter, hallucination_filters
+                        file, lang_source, lang_target, stable_tl, engine, auto, save_name, save_meta, F_IMPORT_COUNTER,
+                        hallucination_filters
                     ],
                     kwargs=whisper_args,
                     daemon=True,
@@ -849,8 +869,8 @@ def process_file(
                 proc_thread = Thread(
                     target=cancellable_tc,
                     args=[
-                        file, lang_source, lang_target, model_name_tc, stable_tc, stable_tl, auto, transcribe, translate,
-                        engine, save_name, save_meta, global_file_import_counter, hallucination_filters
+                        file, lang_source, lang_target, model_name_tc, stable_tc, stable_tl, auto, is_tc, is_tl, engine,
+                        save_name, save_meta, F_IMPORT_COUNTER, hallucination_filters
                     ],
                     kwargs=whisper_args,
                     daemon=True,
@@ -880,7 +900,7 @@ def process_file(
 
         del _model_tc, _model_tl, stable_tc, stable_tl, to_args, whisper_args
         # turn off loadbar
-        bc.mw.stop_loadBar("file")
+        bc.mw.stop_lb("file")
         bc.disable_file_process()  # update flag
 
         if bc.file_tced_counter > 0 or bc.file_tled_counter > 0:
@@ -889,14 +909,13 @@ def process_file(
                 export_to = dir_export if sj.cache["dir_export"] == "auto" else sj.cache["dir_export"]
                 start_file(export_to)
 
-        resultMsg = (
-            f"Transcribed {bc.file_tced_counter} file(s) and Translated {bc.file_tled_counter} file(s)"
-            if transcribe and translate else
-            f"Transcribed {bc.file_tced_counter} file(s)" if transcribe else f"Translated {bc.file_tled_counter} file(s)"
-        )
-
         if not canceled:
-            mbox(f"File {taskname} Done", resultMsg, 0, master)
+            res_msg = (
+                f"Transcribed {bc.file_tced_counter} file(s) and Translated {bc.file_tled_counter} file(s)"
+                if is_tc and is_tl else
+                f"Transcribed {bc.file_tced_counter} file(s)" if is_tc else f"Translated {bc.file_tled_counter} file(s)"
+            )
+            mbox(f"File {taskname} Done", res_msg, 0, master)
     except Exception as e:
         bc.disable_file_process()
         bc.disable_file_tc()
@@ -908,8 +927,8 @@ def process_file(
         try:
             if fp and fp.root.winfo_exists():  # type: ignore
                 fp.root.after(1000, fp.root.destroy)  # destroy progress window
-        except Exception as e:
-            logger.exception(e)
+        except Exception as ee:
+            logger.exception(ee)
             logger.warning("Failed to destroy progress window")
     finally:
         cuda.empty_cache()
@@ -947,7 +966,7 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
     try:
         bc.mw.disable_interactions()
         master = bc.mw.root
-        fp = FileProcessDialog(master, f"File {up_first_case(mode)} Progress", mode, ["Audio/Video File", "Status"], sj)
+        fp = FileProcessDialog(master, f"File {up_first_case(mode)} Progress", mode, ["Audio/Video File", "Status"])
         task_short = {"refinement": "rf", "alignment": "al"}
 
         logger.info("Start Process (MOD FILE)")
@@ -1024,16 +1043,14 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
                 try:
                     fp.lbl_elapsed.set_text(text=f"{strftime('%H:%M:%S', gmtime(time() - t_start))}")
 
-                    if bc.mod_file_counter > 0:
-                        cur_file = f"{bc.mod_file_counter}/{len(data_files)} ({filename_only(data_files[bc.mod_file_counter - 1][0])})"
-                    else:
-                        cur_file = f"{bc.mod_file_counter}/{len(data_files)} ({filename_only(data_files[bc.mod_file_counter][0])})"
+                    index = bc.mod_file_counter - 1 if bc.mod_file_counter > 0 else bc.mod_file_counter
+                    cur_file = f"{bc.mod_file_counter}/{len(data_files)} ({filename_only(data_files[index][0])})"
                     fp.lbl_files.set_text(text=cur_file)
 
                     fp.lbl_processed.set_text(text=f"{bc.mod_file_counter}")
                     # update progressbar
                     prog_file_len = len(data_files)
-                    fp.progress_bar["value"] = (bc.mod_file_counter / prog_file_len * 100)
+                    fp.progress_bar["value"] = bc.mod_file_counter / prog_file_len * 100
                     new = get_queue_data()
                     if new != prev_q_data:
                         prev_q_data = new
@@ -1060,7 +1077,7 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
 
         update_ui_thread = Thread(target=update_modal_ui, daemon=True)
         update_ui_thread.start()
-        bc.mw.start_loadBar()
+        bc.mw.start_lb()
 
         if mode == "refinement":
             export_to = dir_refinement if sj.cache["dir_export"] == "auto" else sj.cache["dir_export"] + "/@refined"
@@ -1128,6 +1145,7 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
                 mod_args["language"] = l_code
 
             def run_mod():
+                # pylint: disable=cell-var-from-loop
                 nonlocal mod_source, processed, model, mod_function
                 try:
                     update_q_process(processed, bc.mod_file_counter, f"Processing {mode}")
@@ -1154,10 +1172,10 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
                                 result = mod_function(audio, result, **mod_args)
                                 update_q_process(processed, bc.mod_file_counter, "Refined")
                                 bc.data_queue.put(result)
-                            except Exception as e:
-                                logger.exception(e)
+                            except Exception as ee:
+                                logger.exception(ee)
                                 fail = True
-                                fail_msg = e
+                                fail_msg = ee
                                 update_q_process(
                                     processed, bc.mod_file_counter, f"Failed to do {mode} on re-transcribe (check log)"
                                 )
@@ -1232,7 +1250,7 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
 
         del model, mod_function
         # turn off loadbar
-        bc.mw.stop_loadBar()
+        bc.mw.stop_lb()
 
         if bc.mod_file_counter > 0:
             # open folder
@@ -1254,8 +1272,8 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
         try:
             if fp and fp.root.winfo_exists():  # type: ignore
                 fp.root.after(1000, fp.root.destroy)  # destroy progress window
-        except Exception as e:
-            logger.exception(e)
+        except Exception as ee:
+            logger.exception(ee)
             logger.warning("Failed to destroy progress window")
     finally:
         cuda.empty_cache()
@@ -1283,7 +1301,7 @@ def translate_result(data_files: List, engine: str, lang_target: str):
     try:
         bc.mw.disable_interactions()
         master = bc.mw.root
-        fp = FileProcessDialog(master, "Result File Translation Progress", "translate", ["Source File", "Status"], sj)
+        fp = FileProcessDialog(master, "Result File Translation Progress", "translate", ["Source File", "Status"])
 
         logger.info("Start Process (MOD FILE)")
         bc.mod_file_counter = 0
@@ -1352,16 +1370,14 @@ def translate_result(data_files: List, engine: str, lang_target: str):
                 try:
                     fp.lbl_elapsed.set_text(text=f"{strftime('%H:%M:%S', gmtime(time() - t_start))}")
 
-                    if bc.mod_file_counter > 0:
-                        cur_file = f"{bc.mod_file_counter}/{len(data_files)} ({filename_only(data_files[bc.mod_file_counter - 1][0])})"
-                    else:
-                        cur_file = f"{bc.mod_file_counter}/{len(data_files)} ({filename_only(data_files[bc.mod_file_counter][0])})"
+                    index = bc.mod_file_counter - 1 if bc.mod_file_counter > 0 else bc.mod_file_counter
+                    cur_file = f"{bc.mod_file_counter}/{len(data_files)} ({filename_only(data_files[index][0])})"
                     fp.lbl_files.set_text(text=cur_file)
 
                     fp.lbl_processed.set_text(text=f"{bc.mod_file_counter}")
                     # update progressbar
                     prog_file_len = len(data_files)
-                    fp.progress_bar["value"] = (bc.mod_file_counter / prog_file_len * 100)
+                    fp.progress_bar["value"] = bc.mod_file_counter / prog_file_len * 100
                     new = get_queue_data()
                     if new != prev_q_data:
                         prev_q_data = new
@@ -1384,7 +1400,7 @@ def translate_result(data_files: List, engine: str, lang_target: str):
 
         update_ui_thread = Thread(target=update_modal_ui, daemon=True)
         update_ui_thread.start()
-        bc.mw.start_loadBar()
+        bc.mw.start_lb()
 
         for file in data_files:
             if not bc.file_processing:  # cancel button is pressed
@@ -1402,11 +1418,12 @@ def translate_result(data_files: List, engine: str, lang_target: str):
                 update_q_process(processed, bc.mod_file_counter, "Failed to parse or read file (check log)")
                 continue
 
-            lang_source = to_language_name(result.language) or "auto"  # type: ignore
+            lang_source = to_language_name(result.language) or "auto"
             tl_args["lang_source"] = lang_source  # convert from lang code to language name
             if not verify_language_in_key(lang_source, engine):
                 logger.warning(
-                    f"Language {lang_source} is not supported by {engine} engine. Will try to use auto and it might not work out the way its supposed to"
+                    f"Language {lang_source} is not supported by {engine} engine." \
+                    "Will try to use auto but it might not work out the way its supposed to"
                 )
 
             start = time()
@@ -1488,7 +1505,7 @@ def translate_result(data_files: List, engine: str, lang_target: str):
         logger.info(f"End process (Translate result) [Total time: {time() - t_start:.2f}s]")
 
         # turn off loadbar
-        bc.mw.stop_loadBar()
+        bc.mw.stop_lb()
 
         if bc.mod_file_counter > 0:
             # open folder
@@ -1509,8 +1526,8 @@ def translate_result(data_files: List, engine: str, lang_target: str):
         try:
             if fp and fp.root.winfo_exists():  # type: ignore
                 fp.root.after(1000, fp.root.destroy)  # destroy progress window
-        except Exception as e:
-            logger.exception(e)
+        except Exception as ee:
+            logger.exception(ee)
             logger.warning("Failed to destroy progress window")
     finally:
         bc.mw.translate_stop(prompt=False, notify=False)

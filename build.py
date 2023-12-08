@@ -1,8 +1,9 @@
-import sys
 import os
 import shutil
-from cx_Freeze import setup, Executable
+import sys
 from importlib.metadata import version as get_version
+
+from cx_Freeze import Executable, setup
 
 sys.setrecursionlimit(5000)
 
@@ -12,8 +13,8 @@ def get_env_name():
 
 
 def app_version():
-    with open(os.path.join(os.path.dirname(__file__), "speech_translate/_version.py")) as f:
-        return f.readline().split("=")[1].strip().strip('"').strip("'")
+    with open(os.path.join(os.path.dirname(__file__), "speech_translate/_version.py"), encoding="utf-8") as f_ver:
+        return f_ver.readline().split("=")[1].strip().strip('"').strip("'")
 
 
 # If you get cuda error try to remove your cuda from your system path because cx_freeze will try to include it from there
@@ -26,14 +27,14 @@ os.system("python build_patch.py")
 print(">> Done")
 
 
-def clear_dir(dir):
-    print(">> Clearing", dir)
+def clear_dir(_dir):
+    print(">> Clearing", _dir)
     try:
-        if not os.path.exists(dir):
+        if not os.path.exists(_dir):
             return
-        shutil.rmtree(dir)
+        shutil.rmtree(_dir)
     except Exception as e:
-        print(f">> Failed to clear {dir} reason: {e}")
+        print(f">> Failed to clear {_dir} reason: {e}")
 
 
 def get_whisper_version():
@@ -55,13 +56,13 @@ print("Whisper version:", get_whisper_version())
 folder_name = f"build/SpeechTranslate {app_version()} {get_env_name()}"
 
 build_exe_options = {
-    "excludes": ["yapf", "ruff", "cx_Freeze"],
+    "excludes": ["yapf", "ruff", "cx_Freeze", "pylint", "isort"],
     "packages": ["torch", "soundfile", "sounddevice", "av", "stable_whisper", "faster_whisper", "whisper"],
     "build_exe": folder_name,
     "include_msvcr": True
 }
 
-base = "Win32GUI" if sys.platform == "win32" else None
+BASE = "Win32GUI" if sys.platform == "win32" else None
 
 setup(
     name="SpeechTranslate",
@@ -73,7 +74,7 @@ setup(
     executables=[
         Executable(
             "Run.py",
-            base=base,
+            base=BASE,
             icon="speech_translate/assets/icon.ico",
             target_name="SpeechTranslate.exe",
         )

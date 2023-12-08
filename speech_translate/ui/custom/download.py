@@ -1,23 +1,22 @@
 import os
 import urllib.request
 from hashlib import sha256
+from pathlib import Path
 from threading import Thread
 from time import sleep, time
-from tkinter import Tk, Toplevel, ttk, Text
-from pathlib import Path
-from typing import Union, Optional, Literal, List, Dict
+from tkinter import Text, Tk, Toplevel, ttk
+from typing import Dict, List, Literal, Optional, Union
 
 import huggingface_hub
 import requests
-from tqdm.auto import tqdm as base_tqdm
-from loguru import logger
 from huggingface_hub.file_download import repo_folder_name
+from loguru import logger
 
-from speech_translate.utils.helper import kill_thread
-from speech_translate._path import p_app_icon
-from speech_translate.ui.custom.message import mbox
 from speech_translate._logging import recent_stderr
+from speech_translate._path import p_app_icon
 from speech_translate.linker import bc
+from speech_translate.ui.custom.message import mbox
+from speech_translate.utils.helper import kill_thread
 
 
 def whisper_download_with_progress_gui(
@@ -75,7 +74,7 @@ def whisper_download_with_progress_gui(
     root.transient(master)
     root.geometry("450x115")
     root.protocol("WM_DELETE_WINDOW", lambda: master.state("iconic"))  # minimize window when click close button
-    root.geometry("+{}+{}".format(master.winfo_rootx() + 50, master.winfo_rooty() + 50))
+    root.geometry(f"+{master.winfo_rootx() + 50}+{master.winfo_rooty() + 50}")
     root.minsize(200, 115)
     root.maxsize(600, 180)
     try:
@@ -131,13 +130,11 @@ def whisper_download_with_progress_gui(
             progress_bar = ttk.Progressbar(progress_frame, orient="horizontal", length=300, mode="determinate")
             progress_bar.pack(side="left", fill="x", padx=5, pady=5, expand=True)
 
-            global bytes_read
             bytes_read = 0
 
             def update_progress_bar():
                 if downloading:
                     # get how many percent of the file has been downloaded
-                    global bytes_read
                     percent = bytes_read / length * 100
                     progress_bar["value"] = percent
 
@@ -151,9 +148,8 @@ def whisper_download_with_progress_gui(
                         )
                         root.after(100, update_progress_bar)
                     else:
-                        lbl_status_text[
-                            "text"
-                        ] = f"Paused downloading for {model_name} model ({bytes_read / 1024 / 1024:.2f}/{length_in_mb:.2f} MB)"
+                        lbl_status_text["text"] = f"Paused downloading for {model_name} model " \
+                            "({bytes_read / 1024 / 1024:.2f}/{length_in_mb:.2f} MB)"
 
             update_progress_bar()
             while True:
@@ -248,8 +244,6 @@ def snapshot_download(
     local_files_only: bool = False,
     allow_patterns: Optional[Union[List[str], str]] = None,
     ignore_patterns: Optional[Union[List[str], str]] = None,
-    max_workers: int = 8,
-    tqdm_class: Optional[base_tqdm] = None,
 ) -> str:
     """
     Taken from huggingface library, modified to be able to cancel download
@@ -282,7 +276,7 @@ def snapshot_download(
         else:
             # retrieve commit_hash from file
             ref_path = os.path.join(storage_folder, "refs", revision)
-            with open(ref_path) as f:
+            with open(ref_path) as f:  # pylint: disable=unspecified-encoding
                 commit_hash = f.read()
 
         snapshot_folder = os.path.join(storage_folder, "snapshots", commit_hash)
@@ -319,7 +313,7 @@ def snapshot_download(
     if revision != commit_hash:
         ref_path = os.path.join(storage_folder, "refs", revision)
         os.makedirs(os.path.dirname(ref_path), exist_ok=True)
-        with open(ref_path, "w") as f:
+        with open(ref_path, "w") as f:  # pylint: disable=unspecified-encoding
             f.write(commit_hash)
 
     # we pass the commit_hash to hf_hub_download
@@ -394,13 +388,48 @@ def faster_whisper_download_with_progress_gui(
     root.transient(master)
     root.geometry("600x180")
     root.protocol("WM_DELETE_WINDOW", lambda: master.state("iconic"))  # minimize window when click close button
-    root.geometry("+{}+{}".format(master.winfo_rootx() + 50, master.winfo_rooty() + 50))
+    root.geometry(f"+{master.winfo_rootx() + 50}+{master.winfo_rooty() + 50}")
     root.minsize(200, 100)
     root.maxsize(1600, 200)
     try:
         root.iconbitmap(p_app_icon)
     except Exception:
         pass
+
+    failed = False
+    msg = ""
+    finished = False
+    paused = False
+    killed = False
+
+    def toggle_pause():
+        nonlocal paused, killed, threaded
+        paused = not paused
+        if paused:
+            logger.info("Download paused")
+            btn_pause["text"] = "Resume"
+            progress.stop()
+        else:
+            logger.info("Download resumed")
+            btn_pause["text"] = "Pause"
+            progress.start(15)
+            killed = False
+            threaded = Thread(target=run_threaded, daemon=True)
+            threaded.start()
+
+    def get_file_amount(path):
+        try:
+            # filter out .incomplete or .lock files
+            return len([name for name in os.listdir(path) if not name.endswith((".incomplete", ".lock"))])
+        except Exception:
+            return "Unknown"
+
+    def update_log():
+        # get only last 7 lines
+        content = "\n".join(recent_stderr[-7:])
+        text_log.delete(1.0, "end")
+        text_log.insert(1.0, content)
+        text_log.see("end")  # scroll to the bottom
 
     # clear recent_stderr
     recent_stderr.clear()
@@ -423,7 +452,7 @@ def faster_whisper_download_with_progress_gui(
     btn_cancel = ttk.Button(f1, text="Cancel", command=cancel_func, style="Accent.TButton")
     btn_cancel.pack(side="right", padx=(5, 10), pady=(5, 0))
 
-    btn_pause = ttk.Button(f1, text="Pause", command=lambda: toggle_pause())
+    btn_pause = ttk.Button(f1, text="Pause", command=toggle_pause)
     btn_pause.pack(side="right", padx=5, pady=(5, 0))
 
     # add progress bar that just goes back and forth
@@ -435,26 +464,6 @@ def faster_whisper_download_with_progress_gui(
     text_log.pack(side="top", fill="both", expand=True, padx=10, pady=(0, 10))
     text_log.bind("<Key>", lambda event: "break")  # disable text box
     text_log.insert(1.0, "Checking model please wait...")
-
-    def get_file_amount(path):
-        try:
-            # filter out .incomplete or .lock files
-            return len([name for name in os.listdir(path) if not name.endswith((".incomplete", ".lock"))])
-        except Exception:
-            return "Unknown"
-
-    def update_log():
-        # get only last 7 lines
-        content = "\n".join(recent_stderr[-7:])
-        text_log.delete(1.0, "end")
-        text_log.insert(1.0, content)
-        text_log.see("end")  # scroll to the bottom
-
-    failed = False
-    msg = ""
-    finished = False
-    paused = False
-    killed = False
 
     def run_threaded():
         nonlocal failed, msg, finished, paused
@@ -478,7 +487,9 @@ def faster_whisper_download_with_progress_gui(
                 snapshot_download(repo_id, **kwargs)
             except Exception as e:
                 failed = True
-                msg = f"Failed to download faster whisper model. Have tried to download the model from the Hugging Face Hub and from the local cache. Please check your internet connection and try again.\n\nError: {str(e)}"
+                msg = "Failed to download faster whisper model. Have tried to download the model from " \
+                    "the Hugging Face Hub and from the local cache. " \
+                    f"Please check your internet connection and try again.\n\nError: {str(e)}"
 
         except Exception as e:
             logger.exception(e)
@@ -492,21 +503,6 @@ def faster_whisper_download_with_progress_gui(
     threaded = Thread(target=run_threaded, daemon=True)
     threaded.start()
     start_time = time()
-
-    def toggle_pause():
-        nonlocal paused, killed, threaded
-        paused = not paused
-        if paused:
-            logger.info("Download paused")
-            btn_pause["text"] = "Resume"
-            progress.stop()
-        else:
-            logger.info("Download resumed")
-            btn_pause["text"] = "Pause"
-            progress.start(15)
-            killed = False
-            threaded = Thread(target=run_threaded, daemon=True)
-            threaded.start()
 
     while not finished:
         if paused and not killed:
@@ -527,7 +523,8 @@ def faster_whisper_download_with_progress_gui(
             root.title(f"{'Downloading' if not paused else 'Paused downloading of'} Faster Whisper Model")
             lbl_status_text.configure(
                 text=
-                f"{'Downloading' if not paused else 'Paused downloading'} {model_name} model, {get_file_amount(storage_folder + '/' + 'blobs')} files downloaded..."
+                f"{'Downloading' if not paused else 'Paused downloading'} {model_name} model, " \
+                f"{get_file_amount(storage_folder + '/' + 'blobs')} files downloaded..."
             )
             if not paused:
                 update_log()

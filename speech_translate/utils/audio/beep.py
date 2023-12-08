@@ -1,17 +1,16 @@
 from os import path
 
+from loguru import logger
 from sounddevice import play
 from soundfile import read
-from loguru import logger
 
 from speech_translate._path import dir_assets
 
 
 def beep():
-    beepPath = path.join(dir_assets, "beep.mp3")
+    beep_path = path.join(dir_assets, "beep.mp3")
     try:
-        data, fs = read(beepPath)
+        data, fs = read(beep_path)
         play(data, fs, blocking=False)
     except Exception as e:
         logger.exception(e)
-        pass

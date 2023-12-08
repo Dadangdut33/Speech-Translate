@@ -1,22 +1,30 @@
-from tkinter import IntVar, ttk, Tk, Toplevel, filedialog, StringVar, BooleanVar, messagebox, Text
-from typing import List, Literal, Union
-from time import sleep
 from threading import Thread
+from time import sleep
+from tkinter import BooleanVar, IntVar, StringVar, Text, Tk, Toplevel, filedialog, messagebox, ttk
+from typing import List, Literal, Union
 
-from tksheet import Sheet
 from loguru import logger
+from tksheet import Sheet
 
-from speech_translate.linker import sj
-from speech_translate._path import p_app_icon
 from speech_translate._logging import recent_stderr
-from speech_translate.ui.custom.tooltip import tk_tooltip, tk_tooltips
-from speech_translate.ui.custom.label import LabelTitleText
+from speech_translate._path import p_app_icon
+from speech_translate.linker import sj
 from speech_translate.ui.custom.combobox import CategorizedComboBox, ComboboxWithKeyNav
+from speech_translate.ui.custom.label import LabelTitleText
+from speech_translate.ui.custom.tooltip import tk_tooltip, tk_tooltips
+from speech_translate.utils.translate.language import (
+    TL_ENGINE_SOURCE_DICT,
+    TL_ENGINE_TARGET_DICT,
+    WHISPER_LIST_UPPED,
+    get_whisper_lang_source,
+)
 from speech_translate.utils.whisper.helper import model_keys
-from speech_translate.utils.translate.language import TL_ENGINE_SOURCE_DICT, TL_ENGINE_TARGET_DICT, WHISPER_LIST_UPPED, get_whisper_lang_source
 
 
 class MultipleChoiceQuestion:
+    """
+    Multiple choice question dialog
+    """
     def __init__(self, parent: Union[Tk, Toplevel], title: str, prompt: str, options: List):
         self.master = parent
         self.title = title
@@ -66,6 +74,9 @@ def prompt_with_choices(parent: Union[Tk, Toplevel], title: str, prompt: str, op
 
 
 class FileOperationDialog:
+    """
+    Base class for file operation dialog
+    """
     def __init__(
         self,
         master,
@@ -102,11 +113,13 @@ class FileOperationDialog:
 
         tk_tooltips(
             [self.lbl_model, self.cb_model],
-            "Each Whisper model have different requirements. The larger the model, the more accurate it will be but it will need more resources and time to do its task.\n\n"
-            "In terms of speed, they are relatively like this:\n"
-            "- Tiny: ~32x speed\n- Base: ~16x speed\n- Small: ~6x speed\n- Medium: ~2x speed\n- Large: ~1x speed\n\n"
-            "It is recommended to use Faster-Whisper to make the model run 4 times faster for the same accuracy while using less memory (you can change this option in setting)",
-            wrapLength=400,
+            "Each Whisper model have different requirements. The larger the model, the more accurate " \
+            "it will be but it will need more resources and time to do its task.\n\nIn terms of speed, " \
+            "they are relatively like this:\n- Tiny: ~32x speed\n- Base: ~16x speed\n- Small: ~6x speed" \
+            "\n- Medium: ~2x speed\n- Large: ~1x speed\n\n *It is recommended to use Faster-Whisper to " \
+            "make the model run 4 times faster for the same accuracy while using less memory " \
+            "(you can change this option in setting)",
+            wrap_len=400,
         )
 
         self.frame_sheet = ttk.Frame(self.root)
@@ -161,7 +174,7 @@ class FileOperationDialog:
         """
         Base function for adding file. Should be overridden
         """
-        pass
+        raise NotImplementedError
 
     def update_sheet(self):
         self.sheet.set_sheet_data(self.data_list, reset_col_positions=False)
@@ -229,6 +242,9 @@ class FileOperationDialog:
 
 
 class FileImportDialog(FileOperationDialog):
+    """
+    File import dialog
+    """
     def __init__(self, master, title: str, submit_func, theme: str, **kwargs):
         super().__init__(master, title, "File Import", ["Audio / Video File"], submit_func, theme, **kwargs)
 
@@ -255,7 +271,7 @@ class FileImportDialog(FileOperationDialog):
             "Same as transcribe, larger models are more accurate but are slower and require more power.\n"
             "\nIt is recommended to use google translate for the best result.\n\nIf you want full offline capability, "
             "you can use libretranslate by hosting it yourself locally",
-            wrapLength=400,
+            wrap_len=400,
         )
 
         # Lang from
@@ -470,6 +486,9 @@ class FileImportDialog(FileOperationDialog):
 
 
 class TranslateResultDialog(FileOperationDialog):
+    """
+    Translate result dialog
+    """
     def __init__(self, master, title: str, submit_func, theme: str, **kwargs):
         super().__init__(master, title, "Translate", ["Transcription Result File (.json)"], submit_func, theme, **kwargs)
         self.lbl_model.pack_forget()
@@ -496,7 +515,7 @@ class TranslateResultDialog(FileOperationDialog):
             [self.lbl_engine, self.cb_engine],
             "It is recommended to use google translate for the best result.\n\nIf you want full offline capability, "
             "you can use libretranslate by hosting it yourself locally",
-            wrapLength=400,
+            wrap_len=400,
         )
 
         # Lang to
@@ -514,8 +533,9 @@ class TranslateResultDialog(FileOperationDialog):
         self.hint.pack(side="right", padx=5)
         tk_tooltip(
             self.hint,
-            "Translate result of a transcription file. For this to work, you need to have a .json file of Whisper Result first.",
-            wrapLength=300
+            "Translate result of a transcription file. For this to work, " \
+            "you need to have a .json file of Whisper Result first.",
+            wrap_len=300
         )
         self.cb_engine_change(self.var_engine.get())
 
@@ -567,6 +587,11 @@ class TranslateResultDialog(FileOperationDialog):
 
 
 class ModResultInputDialog:
+    """
+    Modify result input dialog
+    
+    To get the file input for modifying result
+    """
     def __init__(self, master, title: str, mode: Union[Literal["Refinement", "Alignment"], str], with_lang=False):
         self.master = master
         self.audio_file = None
@@ -594,7 +619,8 @@ class ModResultInputDialog:
             self.result_file_chooser = (("JSON (Whisper Result)", "*.json"), )
         else:
             # *Alignment
-            # -> kwargs = {"audio": audio_file, "text": either json parsed into WhisperResult (WhisperResult(result_file)) or plain text read from file}
+            # -> kwargs = {"audio": audio_file, "text": either json parsed into WhisperResult
+            # (WhisperResult(result_file)) or plain text read from file}
             # model.align("audio.wav", WhisperResult("result.json") or "text from .txt file")
             self.audio_file_chooser = (
                 ("Audio files", "*.wav *.mp3 *.ogg *.flac *.aac *.wma *.m4a"),
@@ -618,7 +644,7 @@ class ModResultInputDialog:
         tk_tooltips(
             [self.source_file_entry, self.btn_source_file],
             f"This should be either an audio file or a video file that you wish to do {mode.lower()} on",
-            wrapLength=300
+            wrap_len=300
         )
 
         ttk.Label(self.f_2, text=f"{mode} File", width=14).pack(side="left", padx=(0, 5))
@@ -632,8 +658,9 @@ class ModResultInputDialog:
             [self.result_file_entry, self.btn_result_file],
             "This should be a .json file containing the result of transcription generated by stable whisper"
             if mode == "refinement" else
-            "This should be either a .json file containing the result of a transcription generated by stable whisper or a .txt file containing the text to align with the audio file.",
-            wrapLength=300
+            "This should be either a .json file containing the result of a transcription generated " \
+            "by stable whisper or a .txt file containing the text to align with the audio file.",
+            wrap_len=300
         )
 
         if with_lang:
@@ -742,6 +769,9 @@ class ModResultInputDialog:
 
 
 class RefinementDialog(FileOperationDialog):
+    """
+    Dialog for file refinement
+    """
     def __init__(self, master, title: str, submit_func, theme: str, **kwargs):
         super().__init__(master, title, "Refinement", ["Source File", "Refinement File"], submit_func, theme, **kwargs)
 
@@ -750,9 +780,11 @@ class RefinementDialog(FileOperationDialog):
         self.hint.pack(side="right", padx=5)
         tk_tooltip(
             self.hint,
-            "This can be used to be further improved timestamps. For this to work, you need to have a result of transcription file in .json form first.\n\n"
-            "The program will try to re-transcribe the audio file with original whisper model if they found null token in the result file (which usually happen when transcribing using faster-whisper).",
-            wrapLength=300
+            "This can be used to be further improved timestamps. For this to work, you need to have a result of " \
+            "transcription file in .json form first.\n\n The program will try to re-transcribe the audio file " \
+            "with original whisper model if they found null token in the result file (which usually happen " \
+            "when transcribing using faster-whisper).",
+            wrap_len=300
         )
 
         self.cb_model.bind("<<ComboboxSelected>>", lambda e: sj.save_key("model_f_refinement", self.var_model.get()))
@@ -760,7 +792,7 @@ class RefinementDialog(FileOperationDialog):
 
     def add_data(self):
         self.disable_interactions()
-        source_f, mode_f, lang = ModResultInputDialog(self.root, "Add File Pair", self.mode, with_lang=False).get_input()
+        source_f, mode_f, _lang = ModResultInputDialog(self.root, "Add File Pair", self.mode, with_lang=False).get_input()
         self.enable_interactions()
 
         if source_f and mode_f:
@@ -769,6 +801,9 @@ class RefinementDialog(FileOperationDialog):
 
 
 class AlignmentDialog(FileOperationDialog):
+    """
+    Dialog for file alignment
+    """
     def __init__(self, master, title: str, submit_func, theme: str, **kwargs):
         super().__init__(
             master, title, "Alignment", ["Source File", "Alignment File", "Language"], submit_func, theme, **kwargs
@@ -780,7 +815,7 @@ class AlignmentDialog(FileOperationDialog):
         tk_tooltip(
             self.hint,
             "This can be used to aligned/synced Audio with plain text or json result on word-level",
-            wrapLength=300
+            wrap_len=300
         )
 
         self.cb_model.bind("<<ComboboxSelected>>", lambda e: sj.save_key("model_f_alignment", self.var_model.get()))
@@ -797,23 +832,22 @@ class AlignmentDialog(FileOperationDialog):
 
 
 class QueueDialog:
+    """A dialog for showing queue of files
+
+    Parameters
+    ----------
+    master : Union[Tk, Toplevel]
+        A tkinter window
+    title : str
+        Title of the dialog
+    headers : List
+        Headers of the table
+    queue : List[List]
+        Queue of files
+    theme : str
+        Theme of the dialog sheet
+    """
     def __init__(self, master: Union[Tk, Toplevel], title: str, headers: List, queue: List[List], theme: str):
-        """A dialog for showing queue of files
-
-        Parameters
-        ----------
-        master : Union[Tk, Toplevel]
-            A tkinter window
-        title : str
-            Title of the dialog
-        headers : List
-            Headers of the table
-        queue : List[List]
-            Queue of files
-        theme : str
-            Theme of the dialog sheet
-        """
-
         self.prev_width = None
         self.master = master
         self.queue = queue
@@ -926,8 +960,10 @@ class QueueDialog:
 
 
 class FileProcessDialog:
-    def __init__(self, master: Union[Tk, Toplevel], title: str, mode: str, header: List, sj):
-
+    """
+    Dialog for file processing
+    """
+    def __init__(self, master: Union[Tk, Toplevel], title: str, mode: str, header: List):
         # window to show progress
         self.root = Toplevel(master)
         self.root.title(title)
@@ -935,7 +971,7 @@ class FileProcessDialog:
         self.root.geometry("450x225")
         self.root.minsize(450 - 100, 225 - 100)
         self.root.protocol("WM_DELETE_WINDOW", lambda: master.state("iconic"))  # minimize window when click close button
-        self.root.geometry("+{}+{}".format(master.winfo_rootx() + 50, master.winfo_rooty() + 50))
+        self.root.geometry(f"+{master.winfo_rootx() + 50}+{master.winfo_rooty() + 50}")
         try:
             self.root.iconbitmap(p_app_icon)
         except Exception:

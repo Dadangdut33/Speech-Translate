@@ -1,13 +1,19 @@
-from typing import Literal, Optional, TypedDict, List, Union
+from typing import List, Literal, Optional, TypedDict, Union
 
 
 class ToInsert(TypedDict):
+    """
+    Type class for inserting text to textbox
+    """
     text: str
     color: Optional[str]
     is_last: Optional[bool]
 
 
 class StableTsWordResult(TypedDict):
+    """
+    Type class for stable_ts word result (word in segment)
+    """
     word: str
     start: float
     end: float
@@ -18,6 +24,9 @@ class StableTsWordResult(TypedDict):
 
 
 class OriWordResult(TypedDict):
+    """
+    Type class for original whisper word result (word in segment)
+    """
     word: str
     start: float
     end: float
@@ -25,6 +34,9 @@ class OriWordResult(TypedDict):
 
 
 class StableTsSegmentResult(TypedDict):
+    """
+    Type class for stable_ts segment result
+    """
     start: float
     end: float
     text: str
@@ -39,6 +51,9 @@ class StableTsSegmentResult(TypedDict):
 
 
 class OriSegmentResult(TypedDict):
+    """
+    Type class for original whisper segment result
+    """
     id: int
     seek: int
     start: float
@@ -53,6 +68,9 @@ class OriSegmentResult(TypedDict):
 
 
 class StableTsResultDict(TypedDict):
+    """
+    Type class for stable_ts result
+    """
     text: str
     segments: List[StableTsSegmentResult]
     language: str
@@ -61,6 +79,9 @@ class StableTsResultDict(TypedDict):
 
 
 class SettingDict(TypedDict):
+    """
+    Type class for setting.json
+    """
     version: str
     checkUpdateOnStart: bool
     first_open: bool

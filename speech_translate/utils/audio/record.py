@@ -1,3 +1,4 @@
+# pylint: disable=global-variable-undefined
 from ast import literal_eval
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -5,7 +6,7 @@ from os import remove
 from platform import system
 from shlex import quote
 from threading import Lock, Thread
-from time import gmtime, strftime, time, sleep
+from time import gmtime, sleep, strftime, time
 from tkinter import IntVar, Toplevel, ttk
 from typing import Optional
 from wave import Wave_read, Wave_write
@@ -13,33 +14,55 @@ from wave import open as w_open
 
 import numpy as np
 import scipy.io.wavfile as wav
+import stable_whisper
 import torch
 import torchaudio
-import stable_whisper
-from whisper.tokenizer import TO_LANGUAGE_CODE
-from speech_translate.ui.custom.spinbox import SpinboxNumOnly
-from speech_translate.ui.custom.tooltip import tk_tooltip, tk_tooltips
-
-from speech_translate.utils.translate.language import get_whisper_lang_similar, get_whisper_lang_name
-
-if system() == "Windows":
-    import pyaudiowpatch as pyaudio
-else:
-    import pyaudio  # type: ignore
 import webrtcvad
+from whisper.tokenizer import TO_LANGUAGE_CODE
 
 from speech_translate._constants import MAX_THRESHOLD, MIN_THRESHOLD, WHISPER_SR
-from speech_translate._path import p_app_icon, dir_debug, dir_temp
+from speech_translate._logging import logger
+from speech_translate._path import dir_debug, dir_temp, p_app_icon
+from speech_translate.linker import bc, sj
+from speech_translate.ui.custom.audio import AudioMeter
 from speech_translate.ui.custom.label import LabelTitleText
 from speech_translate.ui.custom.message import mbox
-from speech_translate.ui.custom.audio import AudioMeter
-from speech_translate._logging import logger
-from speech_translate.linker import bc, sj
-from speech_translate.utils.audio.device import get_db, get_device_details, get_frame_duration, get_speech_webrtc, resample_sr, to_silero
+from speech_translate.ui.custom.spinbox import SpinboxNumOnly
+from speech_translate.ui.custom.tooltip import tk_tooltip, tk_tooltips
+from speech_translate.utils.audio.device import (
+    get_db,
+    get_device_details,
+    get_frame_duration,
+    get_speech_webrtc,
+    resample_sr,
+    to_silero,
+)
+from speech_translate.utils.translate.language import get_whisper_lang_name, get_whisper_lang_similar
 
-from ..helper import cbtn_invoker, generate_temp_filename, get_channel_int, get_proxies, native_notify, str_separator_to_html, unique_rec_list
-from ..whisper.helper import get_model, get_model_args, get_tc_args, stablets_verbose_log, model_values, get_hallucination_filter, remove_segments_by_str
+from ..helper import (
+    cbtn_invoker,
+    generate_temp_filename,
+    get_channel_int,
+    get_proxies,
+    native_notify,
+    str_separator_to_html,
+    unique_rec_list,
+)
 from ..translate.translator import translate
+from ..whisper.helper import (
+    get_hallucination_filter,
+    get_model,
+    get_model_args,
+    get_tc_args,
+    model_values,
+    remove_segments_by_str,
+    stablets_verbose_log,
+)
+
+if system() == "Windows":
+    import pyaudiowpatch as pyaudio  # type: ignore # pylint: disable=import-error
+else:
+    import pyaudio  # type: ignore # pylint: disable=import-error
 
 
 # -------------------------------------------------------------------------------------------------------------------------
@@ -49,8 +72,8 @@ def record_session(
     engine: str,
     model_name_tc: str,
     device: str,
-    transcribe: bool,
-    translate: bool,
+    is_tc: bool,
+    is_tl: bool,
     speaker: bool = False,
 ) -> None:
     """
@@ -69,9 +92,9 @@ def record_session(
         The key of the model in modelSelectDict as the selected model to use
     device: str
         Device to use
-    transcribe: bool
+    is_tc: bool
         Whether to transcribe the audio
-    translate: bool
+    is_tl: bool
         Whether to translate the audio
     speaker: bool, optional
         Device is speaker or not
@@ -88,7 +111,7 @@ def record_session(
     root.transient(master)
     root.geometry("450x275")
     root.protocol("WM_DELETE_WINDOW", lambda: master.state("iconic"))  # minimize window when click close button
-    root.geometry("+{}+{}".format(master.winfo_rootx() + 50, master.winfo_rooty() + 50))
+    root.geometry(f"+{master.winfo_rootx() + 50}+{master.winfo_rooty() + 50}")
     root.maxsize(600, 325)
     root.minsize(400, 225)
 
@@ -231,9 +254,10 @@ def record_session(
         pass
 
     try:
-        global sr_ori, frame_duration_ms, threshold_enable, threshold_db, threshold_auto, use_silero, silero_min_conf, vad_checked, num_of_channels,\
-            prev_tc_res, prev_tl_res, max_db, min_db, is_silence, was_recording, t_silence, samp_width, disable_silerovad, disable_auto_threshold,\
-            webrtc_vad, silero_vad, use_temp
+        global sr_ori, frame_duration_ms, threshold_enable, threshold_db, threshold_auto, use_silero, \
+            silero_min_conf, vad_checked, num_of_channels, prev_tc_res, prev_tl_res, max_db, min_db, \
+            is_silence, was_recording, t_silence, samp_width, webrtc_vad, silero_vad, use_temp, \
+            disable_silerovad, disable_auto_threshold
 
         auto = lang_source.lower() == "auto detect"
         tl_engine_whisper = engine in model_values
@@ -247,7 +271,7 @@ def record_session(
         silero_vad.reset_states()
 
         # cannot transcribe and translate concurrently. Will need to wait for the previous transcribe to finish
-        if transcribe and translate and tl_engine_whisper:
+        if is_tc and is_tl and tl_engine_whisper:
             bc.tc_lock = Lock()
         else:
             bc.tc_lock = None
@@ -255,7 +279,7 @@ def record_session(
         # load model first
         model_args = get_model_args(sj.cache)
         _model_tc, _model_tl, stable_tc, stable_tl, to_args = get_model(
-            transcribe, translate, tl_engine_whisper, model_name_tc, engine, sj.cache, **model_args
+            is_tc, is_tl, tl_engine_whisper, model_name_tc, engine, sj.cache, **model_args
         )
         whisper_args = get_tc_args(to_args, sj.cache)
         whisper_args["verbose"] = None  # set to none so no printing of the progress to stdout
@@ -271,9 +295,9 @@ def record_session(
 
         cuda_device = model_args["device"]
         # if only translate to english using whisper engine
-        task = "translate" if tl_engine_whisper and translate and not transcribe else "transcribe"
+        task = "translate" if tl_engine_whisper and is_tl and not is_tc else "transcribe"
 
-        bc.mw.stop_loadBar(rec_type)
+        bc.mw.stop_lb(rec_type)
         # ----------------- Get device -----------------
         logger.info("-" * 50)
         logger.info(f"Task: {task}")
@@ -282,7 +306,7 @@ def record_session(
         logger.info(f"CUDA: {cuda_device}")
         logger.info(f"Auto mode: {auto}")
         logger.info(f"Source Languange: {lang_source}")
-        if translate:
+        if is_tl:
             logger.info(f"Target Language: {lang_target}")
         logger.info(f"Model Args: {model_args}")
         logger.info(f"Process Args: {whisper_args}")
@@ -314,12 +338,12 @@ def record_session(
         # window to show progress
         root.title("Recording")
 
-        timerStart = time()
+        t_start = time()
         paused = False
         duration_seconds = 0
         bc.current_rec_status = "💤 Idle"
         bc.auto_detected_lang = "~"
-        language = f"{lang_source} → {lang_target}" if translate else lang_source
+        language = f"{lang_source} → {lang_target}" if is_tl else lang_source
 
         def stop_recording():
             bc.recording = False  # only set flag to false because cleanup is handled directly down below
@@ -435,10 +459,11 @@ def record_session(
             if cbtn_enable_silero.instate(["selected"]):
                 cbtn_enable_silero.invoke()
             cbtn_enable_silero.configure(state="disabled")
-            tooltip_cbtn_silero.text = "Silero VAD is unavailable on this current device configuration (check log for details)"
+            tooltip_cbtn_silero.text = "Silero VAD is unavailable on this current " \
+                                    "device configuration (check log for details)"
             spn_silero_min_conf.pack_forget()
 
-        def disable_auto_threshold():
+        def disable_auto_threshold():  # pylint: disable=unused-variable
             """
             Disable auto threshold when not possible to use it
             """
@@ -455,17 +480,17 @@ def record_session(
             lbl_status.configure(text=bc.current_rec_status)
 
         def update_modal_ui():
-            nonlocal timerStart, paused
+            nonlocal t_start, paused
             while bc.recording:
                 if paused:
                     sleep(0.1)
                     continue
                 try:
-                    timer = strftime("%H:%M:%S", gmtime(time() - timerStart))
+                    timer = strftime("%H:%M:%S", gmtime(time() - t_start))
                     data_queue_size = (bc.data_queue.qsize() * chunk_size) / 1024  # approx buffer size in kb
                     lbl_timer.configure(
                         text=f"REC: {timer} | "
-                        f"{language if not auto else language.replace('auto detect', f'auto detect ({bc.auto_detected_lang})')}"
+                        f"{language.replace('auto detect', f'auto detect ({bc.auto_detected_lang})') if auto else language}"
                     )
                     lbl_buffer.set_text(
                         f"{round(duration_seconds, 2)}/{round(max_record_time, 2)} sec (~{round(data_queue_size, 2)} kb)"
@@ -561,7 +586,6 @@ def record_session(
             Break the buffer (last_sample). Resetting the buffer means that the buffer will be cleared and
             it will be stored in the currently transcribed or translated text.
             """
-            global prev_tl_res, prev_tc_res
             nonlocal last_sample, duration_seconds
             last_sample = bytes()
             duration_seconds = 0
@@ -569,7 +593,7 @@ def record_session(
             # append if there is any text
             # remove text that is exactly the same because some dupe might accidentally happened
             # update only if there is any text
-            if transcribe:
+            if is_tc:
                 if prev_tc_res:
                     bc.tc_sentences.append(prev_tc_res)
                 bc.tc_sentences = unique_rec_list(bc.tc_sentences)
@@ -577,7 +601,7 @@ def record_session(
                     bc.tc_sentences.pop(0)
                 if len(bc.tc_sentences) > 0:
                     bc.update_tc(None, separator)
-            if translate:
+            if is_tl:
                 if prev_tl_res:
                     bc.tl_sentences.append(prev_tl_res)
                 bc.tl_sentences = unique_rec_list(bc.tl_sentences)
@@ -675,12 +699,12 @@ def record_session(
                 temp_list.append(audio_target)
 
                 # block until the file is written
-                timeNow = time()
+                t_start_write = time()
                 with open(audio_target, "wb") as f:
                     f.write(wf.getvalue())
 
                 if sj.cache["debug_realtime_record"]:
-                    logger.debug(f"File Write Time: {time() - timeNow}")
+                    logger.debug(f"File Write Time: {time() - t_start_write}")
 
             # if duration is < 0.4 seconds, skip. Wait until more context is available
             if duration_seconds < 0.4:
@@ -689,7 +713,7 @@ def record_session(
                 continue
 
             # If only translating and its using whisper engine
-            if translate and tl_engine_whisper and not transcribe:
+            if is_tl and tl_engine_whisper and not is_tc:
                 if sj.cache["debug_realtime_record"]:
                     logger.info("Translating")
                 bc.current_rec_status = "▶️ Recording ⟳ Translating Audio"
@@ -755,7 +779,7 @@ def record_session(
                     prev_tc_res = result
                     bc.update_tc(result, separator)
 
-                    if translate:
+                    if is_tl:
                         bc.current_rec_status = "▶️ Recording ⟳ Translating text"
                         if tl_engine_whisper:
                             bc.rec_tl_thread = Thread(
@@ -781,55 +805,56 @@ def record_session(
                 break_buffer_store_update()
 
             bc.current_rec_status = "▶️ Recording"  # reset status
-        else:
-            logger.debug("Stopping Record Session")
 
-            bc.current_rec_status = "⚠️ Stopping stream"
+        # ----------------- End recording -----------------
+        logger.debug("Stopping Record Session")
+
+        bc.current_rec_status = "⚠️ Stopping stream"
+        update_status_lbl()
+        logger.info("-" * 50)
+        logger.info("Stopping stream")
+        bc.stream.stop_stream()
+        bc.stream.close()
+        bc.stream = None
+        bc.rec_tc_thread = None
+        bc.rec_tl_thread = None
+
+        bc.current_rec_status = "⚠️ Terminating pyaudio"
+        update_status_lbl()
+        logger.info("Terminating pyaudio")
+        p.terminate()
+        p = None
+
+        # empty the queue
+        bc.current_rec_status = "⚠️ Emptying queue"
+        update_status_lbl()
+        logger.info("Emptying queue")
+        while not bc.data_queue.empty():
+            bc.data_queue.get()
+
+        if not sj.cache["keep_temp"]:
+            bc.current_rec_status = "⚠️ Cleaning up audioFiles (if any)"
             update_status_lbl()
-            logger.info("-" * 50)
-            logger.info("Stopping stream")
-            bc.stream.stop_stream()
-            bc.stream.close()
-            bc.stream = None
-            bc.rec_tc_thread = None
-            bc.rec_tl_thread = None
+            logger.info("Cleaning up audioFiles (if any)")
+            for audio in temp_list:
+                try:
+                    remove(audio)
+                except Exception:
+                    pass
+            logger.info("Done!")
 
-            bc.current_rec_status = "⚠️ Terminating pyaudio"
-            update_status_lbl()
-            logger.info("Terminating pyaudio")
-            p.terminate()
-            p = None
+        bc.current_rec_status = "⏹️ Stopped"
 
-            # empty the queue
-            bc.current_rec_status = "⚠️ Emptying queue"
-            update_status_lbl()
-            logger.info("Emptying queue")
-            while not bc.data_queue.empty():
-                bc.data_queue.get()
+        del _model_tc, _model_tl
 
-            if not sj.cache["keep_temp"]:
-                bc.current_rec_status = "⚠️ Cleaning up audioFiles (if any)"
-                update_status_lbl()
-                logger.info("Cleaning up audioFiles (if any)")
-                for audio in temp_list:
-                    try:
-                        remove(audio)
-                    except Exception:
-                        pass
-                logger.info("Done!")
+        update_status_lbl()
+        audiometer.stop()
+        bc.mw.after_rec_stop()
+        if root.winfo_exists():
+            root.destroy()
 
-            bc.current_rec_status = "⏹️ Stopped"
-
-            del _model_tc, _model_tl
-
-            update_status_lbl()
-            audiometer.stop()
-            bc.mw.after_rec_stop()
-            if root.winfo_exists():
-                root.destroy()
-
-            logger.info("Modal closed")
-            logger.info("-" * 50)
+        logger.info("Modal closed")
+        logger.info("-" * 50)
     except Exception as e:
         logger.exception(e)
         logger.error("Error in record session")
@@ -848,7 +873,7 @@ def record_session(
         logger.info("Record session ended")
 
 
-def record_cb(in_data, frame_count, time_info, status):
+def record_cb(in_data, _frame_count, _time_info, _status):
     """
     Record Audio From stream buffer and save it to queue in global class
     Will also check for sample rate and threshold setting 
@@ -909,11 +934,11 @@ def record_cb(in_data, frame_count, time_info, status):
         logger.debug(str(e))
         logger.error("Error in record_cb")
         if "Error while processing frame" in str(e):
-            disable_auto_threshold()
+            disable_auto_threshold()  # pylint: disable=undefined-variable
             logger.warning("Not possible to use Auto Threshold with the current device config! So it is now disabled")
 
         if "Input audio chunk is too short" in str(e):
-            disable_silerovad()
+            disable_silerovad()  # pylint: disable=undefined-variable
             logger.warning("Not possible to use Silero VAD with the current device config! So it is now disabled")
 
         return (in_data, pyaudio.paContinue)

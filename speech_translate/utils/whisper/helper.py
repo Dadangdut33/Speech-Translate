@@ -1,20 +1,21 @@
+# pylint: disable=import-outside-toplevel, protected-access
 import argparse
 import csv
 import json
 import os
 import re
+from typing import Dict, List, Literal, Optional, Union
+
 import requests
-from typing import List, Literal, Optional, Union, Dict
-
-import torch
 import stable_whisper
-from stable_whisper.utils import str_to_valid_type, isolate_useful_options
-from whisper.tokenizer import LANGUAGES
-from whisper.utils import optional_int, optional_float
-from whisper import DecodingOptions
+import torch
 from loguru import logger
+from stable_whisper.utils import isolate_useful_options, str_to_valid_type
+from whisper import DecodingOptions
+from whisper.tokenizer import LANGUAGES
+from whisper.utils import optional_float, optional_int
 
-from speech_translate._path import p_filter_rec, p_filter_file_import, p_base_filter
+from speech_translate._path import p_base_filter, p_filter_file_import, p_filter_rec
 from speech_translate.utils.types import SettingDict, StableTsResultDict
 from speech_translate.utils.whisper.download import get_default_download_root
 
@@ -43,6 +44,10 @@ def str2bool(string: str) -> bool:
 
 
 class ArgumentParserWithErrors(argparse.ArgumentParser):
+    """
+    An ArgumentParser that raises ValueError on error 
+    so we can see the error message by catching it 
+    """
     def error(self, message):
         raise ValueError(message)
 
@@ -316,6 +321,7 @@ def parse_args_stable_ts(
             # add with the other
             if "faster_whisper" in str(method):
                 from faster_whisper.transcribe import TranscriptionOptions
+
                 # force some option because it is needed in order to work for faster whisper
                 if kwargs["best_of"] is None:
                     kwargs["best_of"] = 1
@@ -379,8 +385,8 @@ def parse_args_stable_ts(
         logger.exception(e)
         args["success"] = False
         args["msg"] = str(e)
-    finally:
-        return args
+
+    return args
 
 
 def flatten(list_of_lists, key=None):
@@ -404,7 +410,7 @@ def write_csv(
 ):
     writer = csv.writer(file, delimiter=sep)
     if format_timestamps is None:
-        format_timestamps = lambda x: x  # noqa
+        format_timestamps = lambda x: x  # pylint: disable=unnecessary-lambda-assignment
     if header is True:
         header = ["text", "start", "end"] if text_first else ["start", "end", "text"]
     if header:
@@ -460,7 +466,7 @@ def fname_dupe_check(filename: str, extension: str):
 def save_output_stable_ts(
     result: Union[stable_whisper.WhisperResult, StableTsResultDict], outname, output_formats: List, sj
 ):
-    OUTPUT_FORMATS_METHODS = {
+    output_formats_methods = {
         "srt": "to_srt_vtt",
         "ass": "to_ass",
         "json": "save_as_json",
@@ -472,31 +478,33 @@ def save_output_stable_ts(
     # make sure the output dir is exist
     os.makedirs(os.path.dirname(outname), exist_ok=True)
 
-    for format in output_formats:
-        outname = fname_dupe_check(outname, format)
-        logger.debug(f"Saving to {format}")
+    for f_format in output_formats:
+        outname = fname_dupe_check(outname, f_format)
+        logger.debug(f"Saving to {f_format}")
 
-        if format == "csv":
-            # Save CSV
-            with open(outname + ".csv", "w", encoding="utf-8") as csv:
-                write_csv(result, file=csv)
-        elif format == "json":
-            # Save JSON
-            with open(fname_dupe_check(outname, format) + ".json", "w", encoding="utf-8") as js:
+        # Save CSV
+        if f_format == "csv":
+            with open(outname + ".csv", "w", encoding="utf-8") as f_csv:
+                write_csv(result, file=f_csv)
+
+        # Save JSON
+        elif f_format == "json":
+            with open(fname_dupe_check(outname, f_format) + ".json", "w", encoding="utf-8") as f_json:
                 res = result.to_dict() if isinstance(result, stable_whisper.WhisperResult) else result
-                json.dump(res, js, indent=2, allow_nan=True, ensure_ascii=False)
+                json.dump(res, f_json, indent=2, allow_nan=True, ensure_ascii=False)
+
+        # Save other formats (SRT, ASS, VTT, TSV)
         else:
-            # Save other formats (SRT, ASS, VTT, TSV)
-            save_method = getattr(result, OUTPUT_FORMATS_METHODS[format])
+            save_method = getattr(result, output_formats_methods[f_format])
             kwargs_to_pass = {
                 "save_path": outname,
                 "segment_level": sj.cache["segment_level"],
                 "word_level": sj.cache["word_level"]
             }
-            if format == "vtt":
+            if f_format == "vtt":
                 kwargs_to_pass["vtt"] = True
 
-            if format == "tsv":
+            if f_format == "tsv":
                 # must keep only segment or word level
                 # prioritize word level
                 logger.debug("Format is TSV so we only keep 1 type of export level")
@@ -628,6 +636,7 @@ def get_model_args(setting_cache: SettingDict):
         If the model args is not valid will throw exception containing the failure message
     """
     from faster_whisper import WhisperModel
+
     # load model
     model_args = parse_args_stable_ts(
         setting_cache["whisper_args"], "load",
@@ -645,7 +654,9 @@ def get_model_args(setting_cache: SettingDict):
 
 
 def get_tc_args(process_func, setting_cache: SettingDict, mode="transcribe"):
-    """Get arguments / parameter to load to stable ts for transcribe / translate using whisper and get their respective function
+    """
+    Get arguments / parameter to load to stable ts 
+    for transcribe / translate using whisper and get their respective function
 
     Parameters
     ----------
@@ -744,7 +755,8 @@ def get_model(
     """
     model_tc, model_tl, stable_tc, stable_tl = None, None, None, None
     if setting_cache["use_faster_whisper"] and model_name_tc:
-        if transcribe and translate and model_name_tc == engine:  # same model for both transcribe and translate. Load only once
+        if transcribe and translate and model_name_tc == engine:
+            # same model for both transcribe and translate. Load only once
             logger.debug("Loading model for both transcribe and translate using faster-whisper | Load only once")
             model_tc = stable_whisper.load_faster_whisper(model_name_tc, **model_args)
             stable_tc = model_tc.transcribe_stable  # type: ignore
@@ -760,16 +772,19 @@ def get_model(
                 model_tl = stable_whisper.load_faster_whisper(engine, **model_args)
                 stable_tl = model_tl.transcribe_stable  # type: ignore
 
-            # if translate and the engine is not using whisper, load model for transcribe, but check first wether the model is already loaded or not
+            # if translate and the engine is not using whisper,
+            # load model for transcribe, but check first wether the model is already loaded or not
             # if model is already loaded it means that the user is also transcribing
             elif translate and not tl_engine_whisper and model_tc is None:
                 logger.debug(
-                    "Mode is translate and engine is not using whisper, model for transcribe is not loaded yet, loading model for transcribe"
+                    "Mode is translate and engine is not using whisper, " \
+                    "model for transcribe is not loaded yet, loading model for transcribe"
                 )
                 model_tc = stable_whisper.load_faster_whisper(model_name_tc, **model_args)
                 stable_tc = model_tc.transcribe_stable  # type: ignore
     else:
-        if transcribe and translate and model_name_tc == engine:  # same model for both transcribe and translate. Load only once
+        if transcribe and translate and model_name_tc == engine:
+            # same model for both transcribe and translate. Load only once
             logger.debug("Loading model for both transcribe and translate using whisper | Load only once")
             model_tc = stable_whisper.load_model(model_name_tc, **model_args)
             stable_tc = model_tc.transcribe
@@ -785,11 +800,13 @@ def get_model(
                 model_tl = stable_whisper.load_model(engine, **model_args)
                 stable_tl = model_tl.transcribe
 
-            # if translate and the engine is not using whisper, load model for transcribe, but check first wether the model is already loaded or not
+            # if translate and the engine is not using whisper,
+            # load model for transcribe, but check first wether the model is already loaded or not
             # if model is already loaded it means that the user is also transcribing
             elif translate and not tl_engine_whisper and model_tc is None:
                 logger.debug(
-                    "Mode is translate and engine is not using whisper, model for transcribe is not loaded yet, loading model for transcribe"
+                    "Mode is translate and engine is not using whisper, " \
+                    "model for transcribe is not loaded yet, loading model for transcribe"
                 )
                 model_tc = stable_whisper.load_model(model_name_tc, **model_args)
                 stable_tc = model_tc.transcribe_stable
@@ -805,13 +822,15 @@ def get_model(
     return model_tc, model_tl, stable_tc, stable_tl, load_to_tc_args
 
 
-def to_language_name(lang: str):
-    """If using faster whisper, the language get is the language name. If using original whisper the language get is the language code.
+def to_language_name(lang):
+    """
+    Getting language name from language code, 
+    if the language is already language name, it will return the language name
 
     Parameters
     ----------
-    lang : str
-        Possible language name or language code
+    lang 
+        Language name
 
     Returns
     -------
@@ -821,6 +840,7 @@ def to_language_name(lang: str):
     try:
         return LANGUAGES[lang]
     except KeyError:
+        # already language name
         return lang
 
 
@@ -868,7 +888,7 @@ def get_task_format(
         "{task-short-with}": task_with,
         "{task-short-lang-with}": task_lang_with,
     }
-    both = normal.update(short)
+    combined = {**normal, **short}
 
     if short_only or both:
         normal_only = False  # toggle off the default value
@@ -878,7 +898,7 @@ def get_task_format(
     elif short_only:
         return short
     elif both:
-        return both
+        return combined
     else:
         raise ValueError("normal_only, short_only, and both can't be all False")
 
@@ -966,9 +986,9 @@ def get_base_filter() -> Dict:
             return json.load(f)
     except FileNotFoundError:
         logger.warning("Base filter file not found, attempting to download it")
-        filter_https = "https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/speech_translate/assets/base_hallucination_filter.json"
-        # download
-        r = requests.get(filter_https)
+        filter_https = "https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/" \
+            "master/speech_translate/assets/base_hallucination_filter.json"
+        r = requests.get(filter_https, timeout=10)
         if r.status_code != 200:
             logger.error("Failed to download base filter file!, returning empty!")
             return {}

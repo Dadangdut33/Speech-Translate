@@ -1,25 +1,32 @@
 from platform import system
 from threading import Thread
 from time import sleep
-from tkinter import ttk, Toplevel, Frame, LabelFrame, StringVar, IntVar
+from tkinter import Frame, IntVar, LabelFrame, StringVar, Toplevel, ttk
 from typing import Literal, Union
 
 from loguru import logger
 from webrtcvad import Vad
+
+from speech_translate._constants import MAX_THRESHOLD, MIN_THRESHOLD, WHISPER_SR
+from speech_translate.linker import bc, sj
+from speech_translate.ui.custom.audio import AudioMeter
 from speech_translate.ui.custom.checkbutton import CustomCheckButton
 from speech_translate.ui.custom.combobox import ComboboxTypeOnCustom
 from speech_translate.ui.custom.spinbox import SpinboxNumOnly
-if system() == "Windows":
-    import pyaudiowpatch as pyaudio
-else:
-    import pyaudio  # type: ignore
+from speech_translate.ui.custom.tooltip import tk_tooltip, tk_tooltips
+from speech_translate.utils.audio.device import (
+    get_db,
+    get_device_details,
+    get_frame_duration,
+    get_speech_webrtc,
+    resample_sr,
+)
+from speech_translate.utils.helper import cbtn_invoker, get_channel_int, windows_os_only
 
-from speech_translate.linker import sj, bc
-from speech_translate._constants import MIN_THRESHOLD, MAX_THRESHOLD, WHISPER_SR
-from speech_translate.utils.audio.device import get_db, get_device_details, get_frame_duration, get_speech_webrtc, resample_sr
-from speech_translate.utils.helper import get_channel_int, cbtn_invoker, windows_os_only
-from speech_translate.ui.custom.audio import AudioMeter
-from speech_translate.ui.custom.tooltip import tk_tooltips, tk_tooltip
+if system() == "Windows":
+    import pyaudiowpatch as pyaudio  # type: ignore # pylint: disable=import-error
+else:
+    import pyaudio  # type: ignore # pylint: disable=import-error
 
 
 class SettingRecord:
@@ -164,7 +171,7 @@ class SettingRecord:
             "If checked, the sample rate will be automatically set based on the device's sample rate."
             "\n\nInvalid value will cause the program to fail to record, it is better to leave it checked if you are having"
             " issues\n\nDefault is checked",
-            wrapLength=400,
+            wrap_len=400,
         )
 
         self.cbtn_auto_channels_mic = CustomCheckButton(
@@ -180,7 +187,7 @@ class SettingRecord:
             "If checked, the channels value will be automatically set based on the device's channels amount."
             "\n\nInvalid value will cause the program to fail to record, it is better to leave it checked if you are having"
             " issues\n\nDefault is checked",
-            wrapLength=400,
+            wrap_len=400,
         )
 
         # --------- Speaker
@@ -249,7 +256,7 @@ class SettingRecord:
             "If checked, the sample rate will be automatically set based on the device's sample rate."
             "\n\nInvalid value will cause the program to fail to record, it is better to leave it checked if you are having"
             " issues\n\nDefault is checked",
-            wrapLength=400,
+            wrap_len=400,
         )
 
         self.cbtn_auto_channels_speaker = CustomCheckButton(
@@ -265,7 +272,7 @@ class SettingRecord:
             "If checked, the channels value will be automatically set based on the device's channels amount."
             "\n\nInvalid value will cause the program to fail to record, it is better to leave it checked if you are having"
             " issues\n\nDefault is checked",
-            wrapLength=400,
+            wrap_len=400,
         )
 
         # ------------------ Recording ------------------
@@ -286,7 +293,7 @@ class SettingRecord:
             "\n\nFor more real time experience you can lower it more. The lower the value, the more resource it will use."
             "\n\nIf you lower the transcribe rate, you should also lower the max buffer for a better experience."
             "\n\nDefault value is 300ms.",
-            wrapLength=350,
+            wrap_len=350,
         )
 
         # ----- procesing
@@ -317,7 +324,7 @@ class SettingRecord:
             "The default and recommended method to process the audio. "
             "This will make the process faster because of no I/O process of file."
             "\n\nDefault value is checked.",
-            wrapLength=380,
+            wrap_len=380,
         )
 
         self.radio_temp_file = ttk.Radiobutton(
@@ -326,11 +333,12 @@ class SettingRecord:
         self.radio_temp_file.pack(side="left", padx=5)
         tk_tooltip(
             self.radio_temp_file,
-            "If checked, will use temporary created wav files to fed the audio to the Whisper model "
-            "instead of using numpy arrays.\n\nUsing this might help to fix error related to device or conversion in record session (which rarely happens), "
-            "but it could slow down the process especially if the buffer is long. When both VAD and Demucs are enabled in record session, this option will be used automatically."
-            ".\n\nDefault value is unchecked.",
-            wrapLength=400,
+            "If checked, will use temporary created wav files to fed the audio to the Whisper model " \
+            "instead of using numpy arrays.\n\nUsing this might help to fix error related to device " \
+            "or conversion in record session (which rarely happens), but it could slow down the process " \
+            "especially if the buffer is long. When both VAD and Demucs are enabled in record session, " \
+            "this option will be used automatically..\n\nDefault value is unchecked.",
+            wrap_len=400,
         )
 
         self.var_conversion.set("temp" if sj.cache["use_temp"] else "numpy")
@@ -341,15 +349,15 @@ class SettingRecord:
         self.lbl_hint_conversion.pack(side="left", padx=5)
         tk_tooltip(
             self.lbl_hint_conversion,
-            "Convert method is the method used to process the audio before feeding it to the model."
-            "\n\nNumpy array is the default and recommended method. It is faster and more efficient. "
-            "If there are any errors related to device or conversion in the record session, try using the temporary wav file."
-            "\n\nTemporary wav file is slower and less efficient but might be more accurate in some cases. "
-            "When using wav file, the I/O process of the recorded wav file might slow down the performance "
-            "of the app significantly, especially on long buffers."
-            "\n\nBoth setting will resample the audio to a 16k hz sample rate. Difference is, numpy array "
+            "Convert method is the method used to process the audio before feeding it to the model." \
+            "\n\nNumpy array is the default and recommended method. It is faster and more efficient. " \
+            "If there are any errors related to device or conversion in the record session, try using " \
+            "the temporary wav file.\n\nTemporary wav file is slower and less efficient but might be more " \
+            "accurate in some cases. When using wav file, the I/O process of the recorded wav file might " \
+            "slow down the performance of the app significantly, especially on long buffers." \
+            "\n\nBoth setting will resample the audio to a 16k hz sample rate. Difference is, numpy array " \
             "uses scipy to resample the audio while temporary wav file uses ffmpeg.",
-            wrapLength=400,
+            wrap_len=400,
         )
 
         self.cbtn_keep_temp = CustomCheckButton(
@@ -464,8 +472,8 @@ class SettingRecord:
         self.cbtn_auto_break_buffer_mic.pack(side="left", padx=5)
         tk_tooltip(
             self.cbtn_auto_break_buffer_mic,
-            "If checked, the buffer will be stopped and considered as 1 full sentence when there is silence detected for more than 1 second. "
-            "This could help in reducing the background noise."
+            "If checked, the buffer will be stopped and considered as 1 full sentence when there" \
+            "is silence detected for more than 1 second. This could help in reducing the background noise."
             "\n\nDefault is checked",
         )
 
@@ -581,7 +589,7 @@ class SettingRecord:
             "Buffer is the recorded audio that is kept in memory before being transcribed. "
             'Each buffer will act as "one sentence". So if max buffer is 10 seconds, '
             "the words that are in those 10 seconds is the sentence. ",
-            wrapLength=400,
+            wrap_len=400,
         )
 
         # 2
@@ -641,8 +649,8 @@ class SettingRecord:
         self.cbtn_auto_break_buffer_speaker.pack(side="left", padx=5)
         tk_tooltip(
             self.cbtn_auto_break_buffer_speaker,
-            "If checked, the buffer will be stopped and considered as 1 full sentence when there is silence detected for more than 1 second. "
-            "This could help in reducing the background noise."
+            "If checked, the buffer will be stopped and considered as 1 full sentence when there" \
+            "is silence detected for more than 1 second. This could help in reducing the background noise."
             "\n\nDefault is checked",
         )
 
@@ -658,7 +666,7 @@ class SettingRecord:
             "Instead you will see only green bar when the audio is loud enough to be recorded.\n\n"
             "If threshold is not auto, there will be a red line. If the green bar is above the red line, "
             "it means that the audio is loud enough to be recorded.",
-            wrapLength=400,
+            wrap_len=400,
         )
 
         # 4
@@ -740,7 +748,7 @@ class SettingRecord:
         tk_tooltips(
             [self.entry_separator, self.lbl_separator],
             "Set the separator for text resulted from the record session.\n\nDefault value \\n",
-            wrapLength=400,
+            wrap_len=400,
         )
 
         # --------------------------
@@ -807,14 +815,14 @@ class SettingRecord:
         elif device == "speaker":
             self.cb_channels_speaker.toggle_disable(auto)
 
-    def call_both_with_wait(self, open=True):
+    def call_both_with_wait(self, open_stream=True):
         if self.on_start:
             return
 
         if not sj.cache["show_audio_visualizer_in_setting"]:
             self.close_meter_mic()
         else:
-            mic = Thread(target=self.call_set_meter_mic, daemon=True, args=[open])
+            mic = Thread(target=self.call_set_meter_mic, daemon=True, args=[open_stream])
             mic.start()
             mic.join()
 
@@ -827,7 +835,7 @@ class SettingRecord:
             if not sj.cache["show_audio_visualizer_in_setting"]:
                 self.close_meter_speaker()
             else:
-                speaker = Thread(target=self.call_set_meter_speaker, daemon=True, args=[open])
+                speaker = Thread(target=self.call_set_meter_speaker, daemon=True, args=[open_stream])
                 speaker.start()
                 speaker.join()
 
@@ -849,7 +857,7 @@ class SettingRecord:
         self.lbl_threshold_db_speaker.configure(text=f"{float(event):.2f} dB")
         self.audiometer_speaker.set_threshold(float(event))
 
-    def mic_meter(self, in_data, frame_count, time_info, status):
+    def mic_meter(self, in_data, _frame_count, _time_info, _status):
         """
         Start the mic meter
         """
@@ -872,7 +880,7 @@ class SettingRecord:
 
         return (in_data, pyaudio.paContinue)
 
-    def speaker_meter(self, in_data, frame_count, time_info, status):
+    def speaker_meter(self, in_data, _frame_count, _time_info, _status):
         """
         Start the speaker meter
         """
@@ -895,7 +903,7 @@ class SettingRecord:
 
         return (in_data, pyaudio.paContinue)
 
-    def call_set_meter_mic(self, open=True):
+    def call_set_meter_mic(self, open_stream=True):
         if self.on_start:
             return
 
@@ -903,7 +911,7 @@ class SettingRecord:
             self.close_meter_mic()
             return
 
-        Thread(target=self.set_meter_mic, daemon=True, args=[open]).start()
+        Thread(target=self.set_meter_mic, daemon=True, args=[open_stream]).start()
 
     def close_meter_mic(self):
         self.audiometer_mic.stop()
@@ -919,10 +927,10 @@ class SettingRecord:
         except Exception as e:
             logger.exception(e)
 
-    def set_meter_mic(self, open=True):
+    def set_meter_mic(self, open_stream=True):
         try:
             # must be enable and not in auto mode
-            if open and sj.cache["threshold_enable_mic"]:
+            if open_stream and sj.cache["threshold_enable_mic"]:
                 self.f_mic_recording_4.pack(side="top", fill="x", pady=(10, 5), padx=5)
                 self.f_mic_recording_5.pack(side="top", fill="x", pady=(0, 5), padx=5)
                 self.audiometer_mic.pack(side="left", padx=5)
@@ -970,16 +978,16 @@ class SettingRecord:
             try:
                 self.audiometer_mic.pack_forget()
                 self.lbl_mic_emoji.configure(text="Fail to load device. Check log", image="", width=30, foreground="red")
-            except Exception as e:
+            except Exception:
                 pass
 
-    def call_set_meter_speaker(self, open=True):
+    def call_set_meter_speaker(self, open_stream=True):
         if system() == "Windows" and not self.on_start:
             if not sj.cache["show_audio_visualizer_in_setting"]:
                 self.close_meter_speaker()
                 return
 
-            Thread(target=self.set_meter_speaker, daemon=True, args=[open]).start()
+            Thread(target=self.set_meter_speaker, daemon=True, args=[open_stream]).start()
 
     def close_meter_speaker(self):
         if system() != "Windows":
@@ -997,13 +1005,13 @@ class SettingRecord:
         except Exception as e:
             logger.exception(e)
 
-    def set_meter_speaker(self, open=True):
+    def set_meter_speaker(self, open_stream=True):
         if system() != "Windows":
             return
 
         try:
             # must be enable and not in auto mode
-            if open and sj.cache["threshold_enable_speaker"]:
+            if open_stream and sj.cache["threshold_enable_speaker"]:
                 self.f_speaker_recording_4.pack(side="top", fill="x", pady=(10, 5), padx=5)
                 self.f_speaker_recording_5.pack(side="top", fill="x", pady=(0, 5), padx=5)
                 self.audiometer_speaker.pack(side="left", padx=5)
@@ -1049,22 +1057,22 @@ class SettingRecord:
             try:
                 self.audiometer_speaker.pack_forget()
                 self.lbl_speaker_emoji.configure(text="Fail to load device. Check log", image="", width=30, foreground="red")
-            except Exception as e:
+            except Exception:
                 pass
 
-    def toggle_enable_threshold_mic(self, open=True):
+    def toggle_enable_threshold_mic(self, open_stream=True):
         if "selected" in self.cbtn_threshold_enable_mic.state():
             self.cbtn_threshold_auto_mic.configure(state="normal")
             self.cbtn_auto_break_buffer_mic.configure(state="normal")
             self.toggle_auto_threshold_mic()
-            self.call_set_meter_mic(open)
+            self.call_set_meter_mic(open_stream)
         else:
             self.cbtn_threshold_auto_mic.configure(state="disabled")
             self.cbtn_auto_break_buffer_mic.configure(state="disabled")
             self.toggle_auto_threshold_mic()
             self.call_set_meter_mic(False)
 
-    def toggle_enable_threshold_speaker(self, open=True):
+    def toggle_enable_threshold_speaker(self, open_stream=True):
         if system() != "Windows":
             return
 
@@ -1072,7 +1080,7 @@ class SettingRecord:
             self.cbtn_threshold_auto_speaker.configure(state="normal")
             self.cbtn_auto_break_buffer_speaker.configure(state="normal")
             self.toggle_auto_threshold_speaker()
-            self.call_set_meter_speaker(open)
+            self.call_set_meter_speaker(open_stream)
         else:
             self.cbtn_threshold_auto_speaker.configure(state="disabled")
             self.cbtn_auto_break_buffer_speaker.configure(state="disabled")
@@ -1107,7 +1115,6 @@ class SettingRecord:
             self.lbl_threshold_db_mic.pack(side="left", padx=5)
 
     def toggle_auto_threshold_speaker(self):
-        pass
         if system() != "Windows":
             return
 

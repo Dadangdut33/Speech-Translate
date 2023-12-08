@@ -6,11 +6,11 @@ from tkinter import Text, Tk, Toplevel, ttk
 from loguru import logger
 
 from speech_translate._constants import APP_NAME
-from speech_translate._path import p_app_icon, dir_log
+from speech_translate._logging import clear_current_log_file, current_log
+from speech_translate._path import dir_log, p_app_icon
+from speech_translate.linker import bc, sj
 from speech_translate.ui.custom.checkbutton import CustomCheckButton
 from speech_translate.ui.custom.message import mbox
-from speech_translate._logging import current_log, clear_current_log_file
-from speech_translate.linker import bc, sj
 from speech_translate.utils.helper import bind_focus_recursively, start_file, tb_copy_only
 
 
@@ -24,7 +24,7 @@ class LogWindow:
         self.root.geometry("1200x350")
         self.root.minsize(600, 150)
         self.root.wm_withdraw()
-        self.currentFontSize = 10
+        self.current_font_size = 10
         self.is_open = False
         self.stay_on_top = False
         self.thread_refresh = None
@@ -38,15 +38,15 @@ class LogWindow:
         self.f_bot.pack(side="bottom", fill="both", expand=False)
 
         # Scrollbar
-        self.sbY = ttk.Scrollbar(self.f_1, orient="vertical")
-        self.sbY.pack(side="right", fill="both")
+        self.sb_y = ttk.Scrollbar(self.f_1, orient="vertical")
+        self.sb_y.pack(side="right", fill="both")
 
-        self.tbLogger = Text(self.f_1, height=5, width=100, font=("Consolas", self.currentFontSize))
-        self.tbLogger.bind("<Key>", lambda event: tb_copy_only(event))  # Disable textbox input
-        self.tbLogger.pack(side="left", fill="both", expand=True)
-        self.tbLogger.configure(yscrollcommand=self.sbY.set)
-        self.sbY.configure(command=self.tbLogger.yview)
-        self.tbLogger.bind(
+        self.tb_logger = Text(self.f_1, height=5, width=100, font=("Consolas", self.current_font_size))
+        self.tb_logger.bind("<Key>", tb_copy_only)  # Disable textbox input
+        self.tb_logger.pack(side="left", fill="both", expand=True)
+        self.tb_logger.configure(yscrollcommand=self.sb_y.set)
+        self.sb_y.configure(command=self.tb_logger.yview)
+        self.tb_logger.bind(
             "<Control-MouseWheel>", lambda event: self.increase_font_size() if event.delta > 0 else self.lower_font_size()
         )  # bind scrollwheel to change font size
 
@@ -125,7 +125,7 @@ class LogWindow:
             sleep(1)
 
     def update_log(self):
-        prev_content = self.tbLogger.get(1.0, "end").strip()
+        prev_content = self.tb_logger.get(1.0, "end").strip()
         try:
             content = open(path.join(dir_log, current_log), encoding="utf-8").read().strip()
         except FileNotFoundError:
@@ -134,14 +134,14 @@ class LogWindow:
 
         if len(prev_content) != len(content):
             if sj.cache["auto_scroll_log"]:
-                self.tbLogger.delete(1.0, "end")
-                self.tbLogger.insert("end", content)
-                self.tbLogger.see("end")  # scroll to the bottom
+                self.tb_logger.delete(1.0, "end")
+                self.tb_logger.insert("end", content)
+                self.tb_logger.see("end")  # scroll to the bottom
             else:
-                pos = self.sbY.get()
-                self.tbLogger.delete(1.0, "end")
-                self.tbLogger.insert("end", content)
-                self.tbLogger.yview_moveto(pos[0])
+                pos = self.sb_y.get()
+                self.tb_logger.delete(1.0, "end")
+                self.tb_logger.insert("end", content)
+                self.tb_logger.yview_moveto(pos[0])
 
     def clear_log(self):
         # Ask for confirmation first
@@ -152,14 +152,14 @@ class LogWindow:
 
     def lower_font_size(self):
         logger.info("Lowering font size")
-        self.currentFontSize -= 1
-        if self.currentFontSize < 3:
-            self.currentFontSize = 3
-        self.tbLogger.configure(font=("Consolas", self.currentFontSize))
+        self.current_font_size -= 1
+        if self.current_font_size < 3:
+            self.current_font_size = 3
+        self.tb_logger.configure(font=("Consolas", self.current_font_size))
 
     def increase_font_size(self):
         logger.info("Increasing font size")
-        self.currentFontSize += 1
-        if self.currentFontSize > 20:
-            self.currentFontSize = 20
-        self.tbLogger.configure(font=("Consolas", self.currentFontSize))
+        self.current_font_size += 1
+        if self.current_font_size > 20:
+            self.current_font_size = 20
+        self.tb_logger.configure(font=("Consolas", self.current_font_size))

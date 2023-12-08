@@ -1,27 +1,26 @@
+import ctypes
 import html
 import subprocess
 import textwrap
 import tkinter as tk
-import ctypes
 from collections import OrderedDict
 from datetime import datetime
-from os import path, startfile, makedirs
+from difflib import SequenceMatcher
+from os import makedirs, path, startfile
 from platform import system
 from random import choice
-from tkinter import colorchooser, ttk
-from tkinter import filedialog
-from typing import Dict, List, Union, Optional, Callable
-from webbrowser import open_new
-from difflib import SequenceMatcher
 from threading import Thread
+from tkinter import colorchooser, filedialog, ttk
+from typing import Callable, Dict, List, Optional, Union
+from webbrowser import open_new
 
-from stable_whisper import WhisperResult
 from loguru import logger
 from notifypy import Notify, exceptions
 from PIL import Image, ImageDraw, ImageFont, ImageTk
+from stable_whisper import WhisperResult
 
 from speech_translate._constants import APP_NAME, HACKY_SPACE
-from speech_translate._path import p_app_icon, app_icon_missing
+from speech_translate._path import APP_ICON_MISSING, p_app_icon
 from speech_translate.ui.custom.tooltip import tk_tooltip
 from speech_translate.utils.types import ToInsert
 
@@ -157,7 +156,9 @@ def unique_rec_list(list_of_data: List):
             meta = ""
             try:
                 # get some metadata in first segment to make it more unique
-                meta = f"{obj.segments[0].avg_logprob:.4f} {obj.segments[0].compression_ratio:.4f} {obj.segments[0].no_speech_prob:.4f}"
+                meta = f"{obj.segments[0].avg_logprob:.4f} " \
+                    f"{obj.segments[0].compression_ratio:.4f} " \
+                    f"{obj.segments[0].no_speech_prob:.4f}"
             except Exception:
                 pass
 
@@ -293,12 +294,12 @@ def get_proxies(proxy_http: str, proxy_https: str):
     return proxies
 
 
-def cbtn_invoker(settingVal: bool, widget: Union[ttk.Checkbutton, ttk.Radiobutton]):
+def cbtn_invoker(enabled: bool, widget: Union[ttk.Checkbutton, ttk.Radiobutton]):
     """
     Checkbutton invoker
     Invoking twice will make it unchecked
     """
-    if settingVal:
+    if enabled:
         widget.invoke()
     else:
         widget.invoke()
@@ -373,10 +374,10 @@ def native_notify(title: str, message: str, **kwargs):
     notification.application_name = APP_NAME
     notification.title = title
     notification.message = message
-    if not app_icon_missing:
+    if not APP_ICON_MISSING:
         try:
             notification.icon = p_app_icon
-        except exceptions:
+        except exceptions:  # pylint: disable=catching-non-exception
             pass
 
     notification.send()
@@ -402,7 +403,7 @@ def generate_temp_filename(base_dir):
     return path.join(base_dir, datetime.now().strftime("%Y-%m-%d %H_%M_%S_%f")) + ".wav"
 
 
-def similar(a, b):
+def similarity_rate(a, b):
     return SequenceMatcher(None, a, b).ratio()
 
 
@@ -424,22 +425,22 @@ def filename_only(filename: str):
     return filename
 
 
-def choose_color(theWidget, initialColor, parent):
-    """Choose color from colorchooser and insert it to theWidget
+def choose_color(_widget, initial_color, parent):
+    """Choose color from colorchooser and insert it to _widget
 
     Parameters
     ----------
-    theWidget : 
+      : 
         widget to insert the color
     initialColor : str
         initial color
     parent : 
         tk window or toplevel
     """
-    color = colorchooser.askcolor(initialcolor=initialColor, title="Choose a color", parent=parent)
+    color = colorchooser.askcolor(initialcolor=initial_color, title="Choose a color", parent=parent)
     if color[1] is not None:
-        theWidget.delete(0, "end")
-        theWidget.insert(0, color[1])
+        _widget.delete(0, "end")
+        _widget.insert(0, color[1])
 
 
 def popup_menu(root: Union[tk.Tk, tk.Toplevel], menu: tk.Menu):
@@ -469,12 +470,12 @@ def tb_copy_only(event):
     key = event.keysym
 
     # Allow
-    allowedEventState = [4, 8, 12]
+    allowed_state = [4, 8, 12]
     if key.lower() in ["left", "right"]:  # Arrow left right
         return
-    if event.state in allowedEventState and key.lower() == "a":  # Ctrl + a
+    if event.state in allowed_state and key.lower() == "a":  # Ctrl + a
         return
-    if event.state in allowedEventState and key.lower() == "c":  # Ctrl + c
+    if event.state in allowed_state and key.lower() == "c":  # Ctrl + c
         return
 
     # If not allowed
@@ -582,7 +583,7 @@ def get_opposite_hex_color(hex_color: str):
     hex_color = hex_color.lstrip("#")
     rgb_color = tuple(int(hex_color[i:i + 2], 16) for i in (0, 2, 4))
     opposite_rgb_color = tuple(255 - i for i in rgb_color)
-    opposite_hex_color = "#%02x%02x%02x" % opposite_rgb_color
+    opposite_hex_color = "#%02x%02x%02x" % opposite_rgb_color  # pylint: disable=consider-using-f-string
     return opposite_hex_color
 
 
@@ -594,18 +595,18 @@ def insert_entry_readonly(element: ttk.Entry, value: str):
 
 
 def change_folder_w_f_call(element: ttk.Entry, f_call: Callable, title, parent=None):
-    path = filedialog.askdirectory(parent=parent, title=title)
-    if path != "":
-        insert_entry_readonly(element, path)
-        f_call(path)
+    d_get = filedialog.askdirectory(parent=parent, title=title)
+    if d_get != "":
+        insert_entry_readonly(element, d_get)
+        f_call(d_get)
 
 
 def change_file_w_f_call(element: ttk.Entry, f_call: Callable, title, filetypes, parent=None):
-    path = filedialog.askopenfilename(
+    f_get = filedialog.askopenfilename(
         parent=parent,
         title=title,
         filetypes=filetypes,
     )
-    if path != "":
-        insert_entry_readonly(element, path)
-        f_call(path)
+    if f_get != "":
+        insert_entry_readonly(element, f_get)
+        f_call(f_get)

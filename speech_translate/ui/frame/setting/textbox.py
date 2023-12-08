@@ -1,16 +1,16 @@
-from tkinter import ttk, font, Toplevel, Frame, LabelFrame
+from tkinter import Frame, LabelFrame, Toplevel, font, ttk
 from typing import Union
 
 from matplotlib import pyplot as plt
 from tkhtmlview import HTMLText
 
-from speech_translate._constants import PREVIEW_WORDS, APP_NAME
+from speech_translate._constants import PREVIEW_WORDS
+from speech_translate.linker import bc, sj
 from speech_translate.ui.custom.checkbutton import CustomCheckButton
 from speech_translate.ui.custom.combobox import ComboboxWithKeyNav
 from speech_translate.ui.custom.spinbox import SpinboxNumOnly
-from speech_translate.linker import sj, bc
-from speech_translate.utils.helper import choose_color, generate_color, emoji_img
 from speech_translate.ui.custom.tooltip import tk_tooltip, tk_tooltips
+from speech_translate.utils.helper import choose_color, emoji_img, generate_color
 
 
 class SettingTextbox:
@@ -536,9 +536,7 @@ class SettingTextbox:
         )
         self.entry_gradient_high_conf.bind("<Key>", lambda e: "break")
 
-        self.btn_preview_gradient = ttk.Button(
-            self.f_confidence_1, image=self.eye_emoji, command=lambda: self.preview_gradient()
-        )
+        self.btn_preview_gradient = ttk.Button(self.f_confidence_1, image=self.eye_emoji, command=self.preview_gradient)
         self.btn_preview_gradient.pack(side="left", padx=5)
         tk_tooltip(self.btn_preview_gradient, "Preview gradient")
 
@@ -558,8 +556,8 @@ class SettingTextbox:
         self.cbtn_colorize_per_segment.pack(side="left", padx=5)
         tk_tooltip(
             self.cbtn_colorize_per_segment,
-            "Check this option if you want to colorize the text based on the total probability value of words in each segment. "
-            "This color will be set based on the color below",
+            "Check this option if you want to colorize the text based on the total probability value" \
+            "of words in each segment. This color will be set based on the color below",
         )
 
         self.cbtn_colorize_per_word = CustomCheckButton(
@@ -774,6 +772,7 @@ class SettingTextbox:
         # change window name
         if manager := plt.get_current_fig_manager():
             manager.set_window_title(
-                f"Gradient Preview {self.entry_gradient_low_conf.get()} Low / {self.entry_gradient_high_conf.get()} High - {APP_NAME}"
+                f"Gradient Preview {self.entry_gradient_low_conf.get()} Low / " \
+                "{self.entry_gradient_high_conf.get()} High - {APP_NAME}"
             )
         plt.show()

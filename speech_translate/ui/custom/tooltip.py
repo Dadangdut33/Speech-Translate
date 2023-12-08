@@ -8,12 +8,12 @@ def tb_copy_only(event):
     key = event.keysym
 
     # Allow
-    allowedEventState = [4, 8, 12]
+    allowed_event = [4, 8, 12]
     if key.lower() in ["left", "right"]:  # Arrow left right
         return
-    if event.state in allowedEventState and key.lower() == "a":  # Ctrl + a
+    if event.state in allowed_event and key.lower() == "a":  # Ctrl + a
         return
-    if event.state in allowedEventState and key.lower() == "c":  # Ctrl + c
+    if event.state in allowed_event and key.lower() == "c":  # Ctrl + c
         return
 
     # If not allowed
@@ -31,13 +31,13 @@ class Tooltip(object):
         widget,
         text: str,
         delay: int = 250,
-        wrapLength: int = 180,
+        wrap_len: int = 180,
         opacity: float = 1.0,
         always_on_top: bool = True,
         center: bool = False,
     ):
-        self.waitTime = delay  # miliseconds
-        self.wrapLength = wrapLength  # pixels
+        self.delay = delay  # miliseconds
+        self.wrap_len = wrap_len  # pixels
         self.widget = widget
         self.text = text
         self.opacity = opacity
@@ -46,31 +46,31 @@ class Tooltip(object):
         self.widget.bind("<Enter>", self.enter)
         self.widget.bind("<Leave>", self.leave)
         self.widget.bind("<ButtonPress>", self.leave)
-        self.id = None
+        self.after_id = None
         self.root = None
         try:
             self.widget.configure(cursor="question_arrow")
         except Exception:
             pass
 
-    def enter(self, event=None):
+    def enter(self, _event=None):
         self.schedule()
 
-    def leave(self, event=None):
+    def leave(self, _event=None):
         self.unschedule()
         self.hidetip()
 
     def schedule(self):
         self.unschedule()
-        self.id = self.widget.after(self.waitTime, self.showTip)
+        self.after_id = self.widget.after(self.delay, self.show_tip)
 
     def unschedule(self):
-        id = self.id
-        self.id = None
-        if id:
-            self.widget.after_cancel(id)
+        after_id = self.after_id
+        self.after_id = None
+        if after_id:
+            self.widget.after_cancel(after_id)
 
-    def showTip(self, event=None):
+    def show_tip(self, _event=None):
         x = y = 0
         x += self.widget.winfo_rootx() + 25
         y += self.widget.winfo_rooty() + 20
@@ -90,9 +90,9 @@ class Tooltip(object):
             d = self.root.winfo_width() - self.widget.winfo_width()
             x += d // 2
 
-        self.root.wm_geometry("+%d+%d" % (x, y))
+        self.root.wm_geometry(f"+{x}+{y}")
 
-        label = Label(self.root, text=self.text, justify="left", relief="solid", borderwidth=1, wraplength=self.wrapLength)
+        label = Label(self.root, text=self.text, justify="left", relief="solid", borderwidth=1, wraplength=self.wrap_len)
         label.pack(ipadx=1)
 
     def hidetip(self):
@@ -106,7 +106,7 @@ def tk_tooltip(
     widget: Union[Widget, ttk.Widget],
     text: str,
     delay: int = 250,
-    wrapLength: int = 180,
+    wrap_len: int = 180,
     opacity: float = 1.0,
     always_on_top: bool = True,
     center: bool = False,
@@ -114,14 +114,14 @@ def tk_tooltip(
     """
     Create a tooltip for a given widget
     """
-    return Tooltip(widget, text, delay, wrapLength, opacity, always_on_top, center)
+    return Tooltip(widget, text, delay, wrap_len, opacity, always_on_top, center)
 
 
 def tk_tooltips(
     widgets: List[Widget],
     text: str,
     delay: int = 250,
-    wrapLength: int = 180,
+    wrap_len: int = 180,
     opacity: float = 1.0,
     always_on_top: bool = True,
     center: bool = False,
@@ -131,12 +131,15 @@ def tk_tooltips(
     """
     tooltips = []
     for widget in widgets:
-        tooltips.append(tk_tooltip(widget, text, delay, wrapLength, opacity, always_on_top, center))
+        tooltips.append(tk_tooltip(widget, text, delay, wrap_len, opacity, always_on_top, center))
 
     return tooltips
 
 
 class CreateToolTipOnText:
+    """
+    Tooltip on text widget, shown below it
+    """
     def __init__(
         self,
         widget: Union[Text, Entry, ttk.Entry],
@@ -148,7 +151,7 @@ class CreateToolTipOnText:
         auto_width=True,
         focus_out_bind=None
     ):
-        self.waitTime = delay  # miliseconds
+        self.delay = delay  # miliseconds
         self.widget = widget
         self.text = text
         self.opacity = opacity
@@ -161,32 +164,32 @@ class CreateToolTipOnText:
         self.focused = False
         self.showing = False
 
-        self.id = None
+        self.after_id = None
         self.root = None
 
-    def enter(self, event=None):
+    def enter(self, _event=None):
         self.focused = True
         self.schedule()
 
-    def leave(self, event=None):
+    def leave(self, _event=None):
         self.focused = False
         self.unschedule()
-        self.widget.after(self.waitTime, self.hidetip)
-        # self.hidetip()
+        self.widget.after(self.delay, self.hidetip)
         if self.focus_out_bind:
             self.focus_out_bind()
 
     def schedule(self):
         self.unschedule()
-        self.id = self.widget.after(self.waitTime, self.showTip)
+        self.after_id = self.widget.after(self.delay, self.show_tip)
 
     def unschedule(self):
-        id = self.id
-        self.id = None
-        if id:
-            self.widget.after_cancel(id)
+        after_id = self.after_id
+        self.after_id = None
+        if after_id:
+            self.widget.after_cancel(after_id)
 
-    def showTip(self, event=None):
+    def show_tip(self, _event=None):
+        # pylint: disable=attribute-defined-outside-init
         if self.showing:  # still showing
             return
 
@@ -215,16 +218,16 @@ class CreateToolTipOnText:
 
         self.tb = Text(self.f_1, wrap="word", font=("Arial", 10))
         self.tb.insert("end", self.text)
-        self.tb.bind("<Key>", lambda event: tb_copy_only(event))  # Disable textbox input
+        self.tb.bind("<Key>", tb_copy_only)  # Disable textbox input
         self.tb.bind("<FocusIn>", self.make_focus)
         self.tb.bind("<Button-1>", self.make_focus)
         self.tb.pack(fill="both", expand=True, side="left")
 
-        self.scrollbar = ttk.Scrollbar(self.f_1, orient="vertical", command=self.tb.yview)
-        self.scrollbar.pack(fill="y", side="right")
-        self.scrollbar.bind("<FocusIn>", self.make_focus)
-        self.scrollbar.bind("<Button-1>", self.make_focus)
-        self.tb.configure(yscrollcommand=self.scrollbar.set)
+        self.sb = ttk.Scrollbar(self.f_1, orient="vertical", command=self.tb.yview)
+        self.sb.pack(fill="y", side="right")
+        self.sb.bind("<FocusIn>", self.make_focus)
+        self.sb.bind("<Button-1>", self.make_focus)
+        self.tb.configure(yscrollcommand=self.sb.set)
 
     def make_focus(self, _event):
         self.focused = True

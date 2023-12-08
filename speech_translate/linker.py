@@ -1,27 +1,30 @@
-import os
 import copy
+import os
 from ast import literal_eval
 from platform import system
 from shlex import quote
 from threading import Lock, Thread
 from tkinter import ttk
-from PIL import ImageTk
 from typing import TYPE_CHECKING, List, Literal, Optional, Sequence, Union
 
+from PIL import ImageTk
 from stable_whisper import WhisperResult
 
-from speech_translate.utils.types import ToInsert
 from speech_translate.utils.helper import generate_color, str_separator_to_html, wrap_result
+from speech_translate.utils.types import ToInsert
+
 from ._path import dir_debug, dir_export, dir_log, dir_temp, dir_user
 from .utils.setting import SettingJson
 
 if system() == "Windows":
     from multiprocessing import Queue
-    import pyaudiowpatch as pyaudio
+
+    import pyaudiowpatch as pyaudio  # type: ignore # pylint: disable=import-error
 else:
+    import pyaudio  # type: ignore # pylint: disable=import-error
+
     # to get qsize on platform other than windows
     from .utils.custom.queue import MyQueue as Queue
-    import pyaudio  # type: ignore
 
 # Forward declaration for type hinting
 if TYPE_CHECKING:
@@ -144,7 +147,7 @@ class BridgeClass:
     def update_result_display(
         self, total_len: int, res_with_conf: List[ToInsert], mode: Literal["mw_tc", "ex_tc", "mw_tl", "ex_tl"]
     ):
-        """Update display of the result to the respective text box. 
+        """Update display of the result to the respective text box.
 
         Parameters
         ----------
@@ -200,13 +203,13 @@ class BridgeClass:
             if color is None:
                 color = self.fg_color
 
-            to_insert += f'''<span style="color: {color}">{temp}</span>'''
+            to_insert += f"""<span style="color: {color}">{temp}</span>"""
 
-        insert = f'''<div style='font-family: {sj.cache.get(f"tb_{mode}_font")}; text-align: left;
+        insert = f"""<div style='font-family: {sj.cache.get(f"tb_{mode}_font")}; text-align: left;
                     font-size: {sj.cache.get(f"tb_{mode}_font_size")}px; replace-background-color:;
                     font-weight: {"bold" if sj.cache.get(f"tb_{mode}_font_bold") else "normal"};'>
                         {to_insert}
-                    </div>'''
+                    </div>"""
 
         if "mw" in mode:
             assert self.mw is not None
@@ -222,7 +225,7 @@ class BridgeClass:
     def map_result_lists(self, source_list: Sequence[Union[WhisperResult, str]], store_list: List[ToInsert], separator: str):
         """
         Map List of whisper result according to user setting while also calculating its color based on the confidence value.
-        
+
         Parameters
         ----------
         source_list : Sequence[Union[WhisperResult, str]]
@@ -333,7 +336,7 @@ class BridgeClass:
         ----------
         new_res : Union[WhisperResult, str]
             New result to be added to the translated text box.
-        separator : 
+        separator :
             Separator to be added to the end of the new result.
         """
         res_with_conf: List[ToInsert] = []

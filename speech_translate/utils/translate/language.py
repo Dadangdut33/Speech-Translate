@@ -1,10 +1,11 @@
 import copy
-from ..helper import up_first_case, get_similar_in_list
-from whisper.tokenizer import TO_LANGUAGE_CODE
 from typing import Dict, List
 
-from deep_translator import MyMemoryTranslator, GoogleTranslator
+from deep_translator import GoogleTranslator, MyMemoryTranslator
 from loguru import logger
+from whisper.tokenizer import TO_LANGUAGE_CODE
+
+from ..helper import get_similar_in_list, up_first_case
 
 # * using deep_translator v1.11.1
 # * v1.11.4 seems to add weird language code for mymemory
@@ -87,12 +88,12 @@ LIBRE_KEY_VAL = {
 }
 
 
-def verify_language_in_key(lang: str, engine: str) -> bool:
+def verify_language_in_key(search: str, engine: str) -> bool:
     """Verify if the language is in the key of the engine
 
     Parameters
     ----------
-    lang : str
+    search : str
         Language to verify
     engine : str
         Engine to verify
@@ -108,12 +109,13 @@ def verify_language_in_key(lang: str, engine: str) -> bool:
         If the engine is not found
 
     """
+    # pylint: disable=consider-iterating-dictionary
     if engine == "Google Translate":
-        return lang in GOOGLE_KEY_VAL.keys()
+        return search in GOOGLE_KEY_VAL.keys()
     elif engine == "LibreTranslate":
-        return lang in LIBRE_KEY_VAL.keys()
+        return search in LIBRE_KEY_VAL.keys()
     elif engine == "MyMemoryTranslator":
-        return lang in MYMEMORY_KEY_VAL.keys()
+        return search in MYMEMORY_KEY_VAL.keys()
     else:
         raise ValueError("Engine not found")
 
@@ -151,7 +153,8 @@ def get_whisper_lang_similar(similar: str, debug: bool = True) -> str:
         return should_be_there[0]
     else:
         raise ValueError(
-            f"Fail to get whisper language from similar while searching for {similar}. Please report this as a bug to https://github.com/Dadangdut33/Speech-Translate/issues"
+            f"Fail to get whisper language from similar while searching for {similar}. "\
+            "Please report this as a bug to https://github.com/Dadangdut33/Speech-Translate/issues"
         )
 
 
@@ -266,9 +269,9 @@ MYMEMORY_SOURCE.sort()
 
 # FOR SOURCE LANGUAGE SELECTION
 # so the basic idea is that
-# for whisper, we use the whisper source because every language from whisper can be used as source when translating using whisper
-# other than that, we filter the language that is not compatible with whisper to make sure that the language is compatible
-# between whisper and the engine
+# for whisper, we use the whisper source because every language from whisper can be used as source
+# when translating using whisper. Other than that, we filter the language that is not compatible
+# with whisper to make sure that the language is compatible between whisper and the engine
 TL_ENGINE_SOURCE_DICT = {
     # selecting whisper as the tl engine
     "⚡ Tiny [1GB VRAM] (Fastest)": WHISPER_SOURCE,

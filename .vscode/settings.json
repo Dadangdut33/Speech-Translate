@@ -7,21 +7,12 @@
 		"editor.formatOnPaste": true,
 		"editor.formatOnType": false,
 		"editor.codeActionsOnSave": {
-			"source.fixAll": false,
-			"source.organizeImports": false,
-			"source.organizeImports.ruff": false,
-			"source.organizeImports.python": false,
+			"source.organizeImports": "always",
+			"source.organizeImports.python": "never"
 		}
 	},
 	"yapf.args": ["--style", "{based_on_style: pep8, indent_width: 4, column_limit: 125, BLANK_LINE_BEFORE_NESTED_CLASS_OR_DEF: false, DEDENT_CLOSING_BRACKETS: true}"],
-	"ruff.enable": true,
-	"ruff.lint.args": [
-		"--line-length",
-		"125"
-	],
-	"ruff.format.args": [
-		"--line-length",
-		"125"
-	],
+	"pylint.args": ["--disable=E2513,E1101,W0718,W0603,W0719,C0114,C0116,C0302", "--max-line-length=125"],
+	"isort.args": ["--multi-line", "3", "--trailing-comma", "--line-width", "125"],
 	"python.analysis.autoImportCompletions": false,
 }

@@ -4,8 +4,8 @@ from os import makedirs, path
 from typing import List
 
 from darkdetect import isDark
-from notifypy import Notify
 from loguru import logger
+from notifypy import Notify
 
 from speech_translate._version import __setting_version__
 from speech_translate.ui.custom.message import mbox
@@ -235,17 +235,17 @@ class SettingJson:
         self.cache: SettingDict = {}  # type: ignore
         self.setting_path = setting_path
         self.dir = setting_dir
-        self.createDirectoryIfNotExist(self.dir)  # setting dir
+        self.create_dir_if_not_exist(self.dir)  # setting dir
         for checkdir in checkdirs:
-            self.createDirectoryIfNotExist(checkdir)
-        self.createDefaultSettingIfNotExist()  # setting file
+            self.create_dir_if_not_exist(checkdir)
+        self.create_default_setting_if_not_exist()  # setting file
 
         # Load setting
-        success, msg, data = self.loadSetting()
+        success, msg, data = self.load_setting()
         if success:
             self.cache = data
             # verify loaded setting
-            success, msg, data = self.verifyLoadedSetting(data)
+            success, msg, data = self.verify_loaded_setting(data)
             if not success:
                 self.cache = default_setting
                 notification = Notify()
@@ -265,7 +265,8 @@ class SettingJson:
                 notification = Notify()
                 notification.application_name = "Speech Translate"
                 notification.title = "Setting file is outdated"
-                notification.message = "Setting file is outdated. Setting has been reverted to default setting. You can find your old setting in the user folder."
+                notification.message = "Setting file is outdated. Setting has been reverted to default setting."
+                "You can find your old setting in the user folder."
                 notification.send()
                 logger.warning(
                     "Setting file is outdated. Setting has been reverted to default setting. "
@@ -278,17 +279,17 @@ class SettingJson:
             logger.error("Error loading setting file: " + msg)
             mbox("Error", "Error: Loading setting file. " + self.setting_path + "\nReason: " + msg, 2)
 
-    def createDirectoryIfNotExist(self, dir: str):
+    def create_dir_if_not_exist(self, _dir: str):
         """
         Create directory if it doesn't exist
         """
         try:
-            if not path.exists(dir):
-                makedirs(dir)
+            if not path.exists(_dir):
+                makedirs(_dir)
         except Exception as e:
-            mbox("Error", "Error: Creating directory. " + dir + "\nReason: " + str(e), 2)
+            mbox("Error", "Error: Creating directory. " + _dir + "\nReason: " + str(e), 2)
 
-    def createDefaultSettingIfNotExist(self):
+    def create_default_setting_if_not_exist(self):
         """
         Create default json file if it doesn't exist
         """
@@ -314,8 +315,8 @@ class SettingJson:
             self.cache = data
         except Exception as e:
             msg = str(e)
-        finally:
-            return success, msg
+
+        return success, msg
 
     def save_cache(self):
         """
@@ -339,8 +340,8 @@ class SettingJson:
             success = True
         except Exception as e:
             msg = str(e)
-        finally:
-            return success, msg
+
+        return success, msg
 
     def save_key(self, key: str, value):
         """
@@ -363,7 +364,7 @@ class SettingJson:
             notification.send()
             logger.error("Error saving setting file: " + msg)
 
-    def loadSetting(self):
+    def load_setting(self):
         """
         Load json file
         """
@@ -376,10 +377,10 @@ class SettingJson:
             success = True
         except Exception as e:
             msg = str(e)
-        finally:
-            return success, msg, data
 
-    def verifyLoadedSetting(self, data: SettingDict):
+        return success, msg, data
+
+    def verify_loaded_setting(self, data: SettingDict):
         """
         Verify loaded setting
         """
@@ -387,17 +388,17 @@ class SettingJson:
         msg: str = ""
         try:
             # check each key
-            for key in default_setting:
+            for key in default_setting:  # pylint: disable=consider-using-dict-items
                 if key not in data:
                     data[key] = default_setting[key]
 
             success = True
         except Exception as e:
             msg = str(e)
-        finally:
-            return success, msg, data
 
-    def getSetting(self):
+        return success, msg, data
+
+    def get_setting(self):
         """
         Get setting value
         """

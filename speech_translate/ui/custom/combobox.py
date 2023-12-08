@@ -1,4 +1,4 @@
-from tkinter import ttk, Tk, Toplevel, Menu
+from tkinter import Menu, Tk, Toplevel, ttk
 from typing import List, Union
 
 CB_NAV_KEY_SCRIPT = r"""
@@ -92,7 +92,7 @@ class ComboboxTypeOnCustom(ttk.Combobox):
         # code taken from https://wiki.tcl-lang.org/page/ttk%3A%3Acombobox by Pawel Salawa, copyright 2011
         self.tk.eval(CB_NAV_KEY_SCRIPT % (self))
 
-    def on_select(self, event):
+    def on_select(self, _event):
         selected_item = self.get()
         if selected_item == "Custom":
             self.set(self.prev)
@@ -106,7 +106,7 @@ class ComboboxTypeOnCustom(ttk.Combobox):
             self.save_func(selected_item)
             self.configure(state='readonly')
 
-    def on_key_release(self, event):
+    def on_key_release(self, _event):
         typed_text = self.get()
         if self.verify_after:
             self.root.after_cancel(self.verify_after)
@@ -184,7 +184,7 @@ class CategorizedComboBox(ttk.Combobox):
                 for item in categories[category]:
                     category_menu.add_command(label=item, command=lambda i=item: self.set_item(i))
 
-    def show_menu(self, event):
+    def show_menu(self, _event):
         """
         Show the dropdown menu if the combobox is clicked
         Position it based on the combobox location and height
@@ -205,7 +205,7 @@ class CategorizedComboBox(ttk.Combobox):
         self.callback(item)
         self.unpost_menu()
 
-    def unpost_menu(self, event=None):
+    def unpost_menu(self, _event=None):
         if not self.is_posted:
             return
 

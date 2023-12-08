@@ -21,6 +21,6 @@ p_filter_file_import: str = os.path.abspath(os.path.join(dir_user, "hallucinatio
 
 # verify app_icon exist or not
 if not os.path.exists(p_app_icon):
-    app_icon_missing = True
+    APP_ICON_MISSING = True
 else:
-    app_icon_missing = False
+    APP_ICON_MISSING = False

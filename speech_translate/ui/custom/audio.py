@@ -2,12 +2,19 @@ from tkinter import Canvas
 
 
 class AudioMeter(Canvas):
-    def __init__(self, master, root, show_threshold: bool, min: float, max: float, **kwargs):
+    """
+    An audio meter that shows the loudness of the audio signal.
+    
+    The meter can be set to auto mode, where it will flash when the audio signal is above the threshold.
+    
+    This class extends the tkinter Canvas class.
+    """
+    def __init__(self, master, root, show_threshold: bool, v_min: float, v_max: float, **kwargs):
         super().__init__(master, **kwargs)
 
         self.root = root
-        self.min = min
-        self.max = max
+        self.min = v_min
+        self.max = v_max
         self.show_threshold = show_threshold
         self.db = 0
         self.threshold = 0.0
@@ -23,11 +30,11 @@ class AudioMeter(Canvas):
     def set_db(self, db):
         self.db = db
 
-    def set_max(self, max):
-        self.max = max
+    def set_max(self, v_max):
+        self.max = v_max
 
-    def set_min(self, min):
-        self.min = min
+    def set_min(self, v_min):
+        self.min = v_min
 
     def set_threshold(self, threshold):
         self.threshold = threshold

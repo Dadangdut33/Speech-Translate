@@ -1,5 +1,5 @@
-from multiprocessing.queues import Queue
 import multiprocessing
+from multiprocessing.queues import Queue
 
 # The following implementation of custom MyQueue to avoid NotImplementedError
 # when calling queue.qsize() in MacOS X comes almost entirely from this github

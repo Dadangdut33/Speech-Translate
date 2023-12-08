@@ -1,4 +1,4 @@
-from tkinter import messagebox, ttk, TclError, Text, Tk, Toplevel
+from tkinter import TclError, Text, Tk, Toplevel, messagebox, ttk
 from typing import List, Literal, Optional, Union
 
 from speech_translate._path import p_app_icon
@@ -8,17 +8,20 @@ opened: List = []
 
 
 class MBoxText:
-    def __init__(self, id: str, parent: Union[Tk, Toplevel], title: str, text: str, geometry=None) -> None:
+    """
+    A kind of message box that suppose to show a lot of text
+    """
+    def __init__(self, mbox_id: str, parent: Union[Tk, Toplevel], title: str, text: str, geometry=None) -> None:
         # Check if already opened
-        if id in opened:
+        if mbox_id in opened:
             return
 
-        opened.append(id)
-        self.id = id
+        opened.append(mbox_id)
+        self.mbox_id = mbox_id
         self.root = Toplevel(parent)
         self.root.title(title)
         self.root.transient(parent)
-        relative_pos = "+{}+{}".format(parent.winfo_rootx() + 50, parent.winfo_rooty() + 50)
+        relative_pos = f"+{parent.winfo_rootx() + 50}+{parent.winfo_rooty() + 50}"
         self.root.geometry(geometry + relative_pos if geometry else relative_pos)
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.root.minsize(200, 200)
@@ -28,10 +31,10 @@ class MBoxText:
 
         self.tb = Text(self.f_1, wrap="word", font=("Arial", 10))
         self.tb.insert("end", text)
-        self.tb.bind(
+        self.tb.bind( # bind scrollwheel to change font size
             "<Control-MouseWheel>", lambda event: self.increase_font_size() if event.delta > 0 else self.lower_font_size()
-        )  # bind scrollwheel to change font size
-        self.tb.bind("<Key>", lambda event: tb_copy_only(event))  # Disable textbox input
+        )
+        self.tb.bind("<Key>", tb_copy_only)  # Disable textbox input
         self.tb.pack(fill="both", expand=True, side="left")
 
         self.scrollbar = ttk.Scrollbar(self.f_1, orient="vertical", command=self.tb.yview)
@@ -46,21 +49,20 @@ class MBoxText:
             pass
 
     def lower_font_size(self):
-        self.currentFontSize -= 1
-        if self.currentFontSize < 3:
-            self.currentFontSize = 3
-        self.tb.configure(font=("Arial", self.currentFontSize))
+        self.current_font_size -= 1
+        if self.current_font_size < 3:
+            self.current_font_size = 3
+        self.tb.configure(font=("Arial", self.current_font_size))
 
     def increase_font_size(self):
-        self.currentFontSize += 1
-        if self.currentFontSize > 20:
-            self.currentFontSize = 20
-        self.tb.configure(font=("Arial", self.currentFontSize))
+        self.current_font_size += 1
+        if self.current_font_size > 20:
+            self.current_font_size = 20
+        self.tb.configure(font=("Arial", self.current_font_size))
 
     def on_close(self):
         try:
-            id = self.id
-            opened.remove(id)
+            opened.remove(self.mbox_id)
         except ValueError:
             pass
 
