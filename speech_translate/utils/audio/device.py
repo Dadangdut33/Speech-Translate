@@ -1,15 +1,23 @@
 from audioop import rms as calculate_rms
+from io import BytesIO
 from platform import system
 from typing import Literal
+from wave import Wave_read, Wave_write
+from wave import open as w_open
 
+import numpy as np
+import torch
 from loguru import logger
+from numpy import float32, frombuffer, int16, log10
+from scipy.signal import butter, filtfilt, resample_poly
 from webrtcvad import Vad
-from scipy.signal import resample_poly, butter, filtfilt
-from numpy import log10, frombuffer, int16, float32
+
 if system() == "Windows":
     import pyaudiowpatch as pyaudio
 else:
     import pyaudio  # type: ignore
+
+from speech_translate._constants import WHISPER_SR
 
 
 class Frame(object):
@@ -110,6 +118,52 @@ def get_speech_webrtc(
     data_to_check = data if len(frames) == 0 else frames[0].bytes
     is_speech: bool = vad.is_speech(data_to_check, sample_rate)
     return is_speech
+
+
+def to_silero(sound_bytes: bytes, num_of_channels: int, samp_width: int = 2):
+    """Converts a byte array to a 32-bit float tensor.
+
+    Parameters
+    ----------
+    sound_bytes : byte array
+        A byte array representing a sound file.
+    num_of_channels : int
+        The number of channels in the sound file.
+
+    Returns
+    -------
+    torch tensor
+        A tensor representing the sound file data.
+    """
+    if num_of_channels == 1:
+        audio_as_np_int16 = np.frombuffer(sound_bytes, dtype=np.int16).flatten()
+        abs_max = np.abs(audio_as_np_int16).max()
+        np_buf = audio_as_np_int16.astype('float32')
+        if abs_max > 0:
+            np_buf *= 1 / abs_max
+    else:
+        # need to make temp in memory to make sure the audio will be read properly
+        wf = BytesIO()
+        wav_writer: Wave_write = w_open(wf, "wb")
+        wav_writer.setframerate(WHISPER_SR)
+        wav_writer.setsampwidth(samp_width)
+        wav_writer.setnchannels(num_of_channels)
+        wav_writer.writeframes(sound_bytes)
+        wav_writer.close()
+        wf.seek(0)
+
+        wav_reader: Wave_read = w_open(wf)
+        samples = wav_reader.getnframes()
+        audio_bytes = wav_reader.readframes(samples)
+
+        audio_as_np_int16 = np.frombuffer(audio_bytes, dtype=np.int16).flatten()
+        audio_as_np_float32 = audio_as_np_int16.astype(np.float32)
+        chunk_length = len(audio_as_np_float32) / num_of_channels
+        audio_reshaped = np.reshape(audio_as_np_float32, (int(chunk_length), num_of_channels))
+        np_buf = audio_reshaped[:, 0] / np.iinfo(np.int16).max  # take left channel only
+
+    torch_float32 = torch.from_numpy(np_buf.squeeze())
+    return torch_float32
 
 
 def get_frame_duration(sample_rate: int, chunk_size: int) -> int:
