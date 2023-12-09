@@ -1,3 +1,7 @@
 include speech_translate/assets/silero-vad/files/*
+include speech_translate/assets/silero-vad/*
 include speech_translate/assets/*
 include speech_translate/theme/*
+include speech_translate/theme/skip/*
+include speech_translate/theme/sv/*
+include speech_translate/theme/sv/resource/*

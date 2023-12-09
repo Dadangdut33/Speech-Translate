@@ -173,7 +173,7 @@ Check out the [wiki](https://github.com/Dadangdut33/Speech-Translate/wiki) for m
 > [!WARNING]  
 > You might need to have [Build tools for Visual Studio](https://visualstudio.microsoft.com/visual-cpp-build-tools/) installed
 
-1. Clone the repo with its submodules by running `git clone --recurse-submodules https://github.com/Dadangdut33/Speech-Translate.git``
+1. Clone the repo with its submodules by running `git clone --recurse-submodules https://github.com/Dadangdut33/Speech-Translate.git`
 2. Cd into the project directory
 3. Create a [virtual environment](https://docs.python.org/3/library/venv) by running `python -m venv venv`
 4. [Activate your virtual environment](https://docs.python.org/3/library/venv.html#how-venvs-work)
