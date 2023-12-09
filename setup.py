@@ -1,6 +1,6 @@
 import os
 
-from setuptools import setup
+from setuptools import find_packages, setup
 
 
 def version():
@@ -30,33 +30,7 @@ setup(
     author="Dadangdut33",
     url="https://github.com/Dadangdut33/Speech-Translate",
     license="MIT",
-    packages=[
-        "speech_translate",
-        "speech_translate.utils",
-        "speech_translate.utils.audio",
-        "speech_translate.utils.translate",
-        "speech_translate.utils.tk",
-        "speech_translate.utils.custom",
-        "speech_translate.utils.whisper",
-        "speech_translate.ui",
-        "speech_translate.ui.template",
-        "speech_translate.ui.custom",
-        "speech_translate.ui.window",
-        "speech_translate.ui.frame",
-        "speech_translate.ui.frame.settings",
-        "speech_translate.assets",
-        "speech_translate.theme",
-        "speech_translate.theme.skip",
-        "speech_translate.theme.sv",
-        "speech_translate.theme.sv.resource",
-    ],
-    package_data={
-        "speech_translate.assets": ["*"],
-        "speech_translate.theme": ["*"],
-        "speech_translate.theme.skip": ["*"],
-        "speech_translate.theme.sv": ["*"],
-        "speech_translate.theme.sv.resource": ["*"],
-    },
+    packages=find_packages(),
     install_requires=install_requires(),
     entry_points={"console_scripts": [
         "speech-translate=speech_translate.__main__:main",

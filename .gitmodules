@@ -1,0 +1,3 @@
+[submodule "speech_translate/assets/silero-vad"]
+	path = speech_translate/assets/silero-vad
+	url = https://github.com/snakers4/silero-vad

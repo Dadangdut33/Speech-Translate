@@ -21,9 +21,15 @@ def tl_batch_with_tqdm(self, batch: List[str], **kwargs) -> list:
     if not batch:
         raise Exception("Enter your text list that you want to translate")
     arr = []
-    for text in tqdm(batch, desc="Translating"):
-        translated = self.translate(text, **kwargs)
-        arr.append(translated)
+    with_tqdm = kwargs.pop("with_tqdm", True)
+    if with_tqdm:
+        for text in tqdm(batch, desc="Translating"):
+            translated = self.translate(text, **kwargs)
+            arr.append(translated)
+    else:
+        for text in batch:
+            translated = self.translate(text, **kwargs)
+            arr.append(translated)
 
     return arr
 
@@ -60,7 +66,7 @@ class TranslationConnection:
 TlCon = TranslationConnection(GoogleTranslator, MyMemoryTranslator)
 
 
-def google_tl(text: List[str], from_lang: str, to_lang: str, proxies: Dict, debug_log: bool = False):
+def google_tl(text: List[str], from_lang: str, to_lang: str, proxies: Dict, debug_log: bool = False, **kwargs):
     """Translate Using Google Translate
 
     Args
@@ -110,7 +116,12 @@ def google_tl(text: List[str], from_lang: str, to_lang: str, proxies: Dict, debu
                 no_connection_notify()
                 return is_success, "Error: Not connected to internet"
 
-        result = TlCon.GoogleTranslator(source=LCODE_FROM, target=LCODE_TO, proxies=proxies).translate_batch(text)
+        tl_kwargs = {}
+        if kwargs.pop("live_input", False):
+            tl_kwargs["with_tqdm"] = False
+
+        result = TlCon.GoogleTranslator(source=LCODE_FROM, target=LCODE_TO,
+                                        proxies=proxies).translate_batch(text, **tl_kwargs)
         is_success = True
     except Exception as e:
         logger.exception(e)
@@ -124,7 +135,7 @@ def google_tl(text: List[str], from_lang: str, to_lang: str, proxies: Dict, debu
     return is_success, result
 
 
-def memory_tl(text: List[str], from_lang: str, to_lang: str, proxies: Dict, debug_log: bool = False):
+def memory_tl(text: List[str], from_lang: str, to_lang: str, proxies: Dict, debug_log: bool = False, **kwargs):
     """Translate Using MyMemoryTranslator
 
     Args
@@ -174,7 +185,12 @@ def memory_tl(text: List[str], from_lang: str, to_lang: str, proxies: Dict, debu
                 no_connection_notify()
                 return is_success, "Error: Not connected to internet"
 
-        result = TlCon.MyMemoryTranslator(source=LCODE_FROM, target=LCODE_TO, proxies=proxies).translate_batch(text)
+        tl_kwargs = {}
+        if kwargs.pop("live_input", False):
+            tl_kwargs["with_tqdm"] = False
+
+        result = TlCon.MyMemoryTranslator(source=LCODE_FROM, target=LCODE_TO,
+                                          proxies=proxies).translate_batch(text, **tl_kwargs)
         is_success = True
     except Exception as e:
         result = str(e)
@@ -198,6 +214,7 @@ def libre_tl(
     libre_host: str,
     libre_port: str,
     libre_api_key: str,
+    **kwargs,
 ):
     """Translate Using LibreTranslate
 
@@ -252,14 +269,24 @@ def libre_tl(
             req["api_key"] = libre_api_key
 
         arr = []
-        for q in tqdm(text, desc="Translating"):
-            req["q"] = q
-            response = requests.post(adr, json=req, proxies=proxies, timeout=10).json()
-            if "error" in response:
-                raise Exception(response["error"])
+        if kwargs.pop("live_input", False):
+            for q in text:
+                req["q"] = q
+                response = requests.post(adr, json=req, proxies=proxies, timeout=10).json()
+                if "error" in response:
+                    raise Exception(response["error"])
 
-            translated = response["translatedText"]
-            arr.append(translated)
+                translated = response["translatedText"]
+                arr.append(translated)
+        else:
+            for q in tqdm(text, desc="Translating"):
+                req["q"] = q
+                response = requests.post(adr, json=req, proxies=proxies, timeout=10).json()
+                if "error" in response:
+                    raise Exception(response["error"])
+
+                translated = response["translatedText"]
+                arr.append(translated)
 
         result = arr
         is_success = True

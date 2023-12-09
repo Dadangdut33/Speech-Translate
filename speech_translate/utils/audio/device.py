@@ -130,6 +130,8 @@ def to_silero(sound_bytes: bytes, num_of_channels: int, samp_width: int = 2):
         A byte array representing a sound file.
     num_of_channels : int
         The number of channels in the sound file.
+    samp_width : int, optional
+        The sample width of the sound file, by default 2 (16-bit)
 
     Returns
     -------
@@ -194,7 +196,18 @@ def get_frame_duration(sample_rate: int, chunk_size: int) -> int:
         return 10
 
 
-def get_device_details(device_type: Literal["speaker", "mic"], sj, p: pyaudio.PyAudio):
+def get_channel_int(channel_string: str):
+    if channel_string.isdigit():
+        return int(channel_string)
+    elif channel_string.lower() == "mono":
+        return 1
+    elif channel_string.lower() == "stereo":
+        return 2
+    else:
+        raise ValueError("Invalid channel string")
+
+
+def get_device_details(device_type: Literal["speaker", "mic"], sj, p: pyaudio.PyAudio, debug: bool = True):
     """
     Function to get the device detail, chunk size, sample rate, and number of channels.
 
@@ -252,9 +265,12 @@ def get_device_details(device_type: Literal["speaker", "mic"], sj, p: pyaudio.Py
         else:
             num_of_channels = str(sj.cache[f"channels_{device_type}"])
 
-        logger.debug(f"Device: ({device_detail['index']}) {device_detail['name']}")
-        logger.debug(f"Sample Rate {sample_rate} | channels {num_of_channels} | chunk size {chunk_size}")
-        logger.debug(f"Actual device detail: {device_detail}")
+        num_of_channels = get_channel_int(num_of_channels)
+
+        if debug:
+            logger.debug(f"Device: ({device_detail['index']}) {device_detail['name']}" \
+                f"Sample Rate {sample_rate} | channels {num_of_channels} | chunk size {chunk_size}" \
+                f"Actual device detail: {device_detail}")
 
         return True, {
             "device_detail": device_detail,

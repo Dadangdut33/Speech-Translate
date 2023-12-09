@@ -355,17 +355,6 @@ def open_url(url: str):
         native_notify("Error", f"Cannot open the url specified. Reason: {e}")
 
 
-def get_channel_int(channel_string: str):
-    if channel_string.isdigit():
-        return int(channel_string)
-    elif channel_string.lower() == "mono":
-        return 1
-    elif channel_string.lower() == "stereo":
-        return 2
-    else:
-        raise ValueError("Invalid channel string")
-
-
 def native_notify(title: str, message: str, **kwargs):
     """
     Native notification

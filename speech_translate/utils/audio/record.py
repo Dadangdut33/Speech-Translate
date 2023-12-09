@@ -22,13 +22,13 @@ from whisper.tokenizer import TO_LANGUAGE_CODE
 
 from speech_translate._constants import MAX_THRESHOLD, MIN_THRESHOLD, WHISPER_SR
 from speech_translate._logging import logger
-from speech_translate._path import dir_debug, dir_temp, p_app_icon
+from speech_translate._path import dir_debug, dir_silero_vad, dir_temp, p_app_icon
 from speech_translate.linker import bc, sj
 from speech_translate.ui.custom.audio import AudioMeter
 from speech_translate.ui.custom.label import LabelTitleText
 from speech_translate.ui.custom.message import mbox
 from speech_translate.ui.custom.spinbox import SpinboxNumOnly
-from speech_translate.ui.custom.tooltip import tk_tooltip, tk_tooltips
+from speech_translate.ui.custom.tooltip import tk_tooltip
 from speech_translate.utils.audio.device import (
     get_db,
     get_device_details,
@@ -39,15 +39,7 @@ from speech_translate.utils.audio.device import (
 )
 from speech_translate.utils.translate.language import get_whisper_lang_name, get_whisper_lang_similar
 
-from ..helper import (
-    cbtn_invoker,
-    generate_temp_filename,
-    get_channel_int,
-    get_proxies,
-    native_notify,
-    str_separator_to_html,
-    unique_rec_list,
-)
+from ..helper import cbtn_invoker, generate_temp_filename, get_proxies, native_notify, str_separator_to_html, unique_rec_list
 from ..translate.translator import translate
 from ..whisper.helper import (
     get_hallucination_filter,
@@ -212,8 +204,8 @@ def record_session(
         frame_lbl_7,
         0.1,
         1.0,
-        lambda p: set_silero_min_conf(float(p)),
-        initial_value=sj.cache.get(f"silero_min_conf_{rec_type}", 0.75),
+        lambda x: set_silero_min_conf(float(x)),
+        initial_value=sj.cache.get(f"threshold_silero_{rec_type}_min", 0.75),
         num_float=True,
         allow_empty=False,
         delay=10,
@@ -267,7 +259,7 @@ def record_session(
         audiometer.set_disabled(not sj.cache["show_audio_visualizer_in_record"])
         webrtc_vad = webrtcvad.Vad(sj.cache.get(f"threshold_auto_mode_{rec_type}", 3))
         torchaudio.set_audio_backend("soundfile")
-        silero_vad, _ = torch.hub.load(repo_or_dir='snakers4/silero-vad', model="silero_vad", onnx=True)
+        silero_vad, _ = torch.hub.load(repo_or_dir=dir_silero_vad, source="local", model="silero_vad", onnx=True)
         silero_vad.reset_states()
 
         # cannot transcribe and translate concurrently. Will need to wait for the previous transcribe to finish
@@ -319,14 +311,14 @@ def record_session(
 
         device_detail = detail["device_detail"]
         sr_ori = detail["sample_rate"]
-        num_of_channels = get_channel_int(detail["num_of_channels"])
+        num_of_channels = detail["num_of_channels"]
         chunk_size = detail["chunk_size"]
-        frame_duration_ms = get_frame_duration(chunk_size, sr_ori)
+        frame_duration_ms = get_frame_duration(sr_ori, chunk_size)
         threshold_enable = sj.cache.get(f"threshold_enable_{rec_type}", True)
         threshold_db = sj.cache.get(f"threshold_db_{rec_type}", -20)
         threshold_auto = sj.cache.get(f"threshold_auto_{rec_type}", True)
         use_silero = sj.cache.get(f"threshold_auto_silero_{rec_type}", True)
-        silero_min_conf = sj.cache.get(f"silero_min_conf_{rec_type}", 0.75)
+        silero_min_conf = sj.cache.get(f"threshold_silero_{rec_type}_min", 0.75)
         vad_checked = False
         auto_break_buffer = sj.cache.get(f"auto_break_buffer_{rec_type}", True)
         if sj.cache["filter_rec"]:
@@ -368,7 +360,9 @@ def record_session(
                 root.title(f"Recording {rec_type}")
 
         def toggle_enable_threshold():
-            if "selected" in cbtn_enable_threshold.state():
+            val = cbtn_enable_threshold.instate(["selected"])
+            sj.save_key(f"threshold_enable_{rec_type}", val)
+            if val:
                 cbtn_auto_threshold.configure(state="normal")
                 cbtn_break_buffer_on_silence.configure(state="normal")
                 frame_lbl_7.pack(side="top", fill="x")
@@ -385,7 +379,9 @@ def record_session(
             toggle_auto_threshold()
 
         def toggle_auto_threshold():
-            if "selected" in cbtn_auto_threshold.state():
+            val = cbtn_auto_threshold.instate(["selected"])
+            sj.save_key(f"threshold_auto_{rec_type}", val)
+            if val:
                 audiometer.set_auto(True)
                 audiometer.configure(height=10)
 
@@ -421,6 +417,7 @@ def record_session(
             threshold_db = float(event)
             lbl_threshold_db.configure(text=f"{threshold_db:.2f} dB")
             audiometer.set_threshold(threshold_db)
+            sj.save_key(f"threshold_db_{rec_type}", threshold_db)
 
         def set_treshold(state: bool):
             global threshold_enable
@@ -442,7 +439,7 @@ def record_session(
 
         def set_silero_min_conf(state: float):
             global silero_min_conf
-            sj.save_key(f"silero_min_conf_{rec_type}", state)
+            sj.save_key(f"threshold_silero_{rec_type}_min", state)
             silero_min_conf = state
 
         def set_webrtc_level(mode: int):
@@ -461,7 +458,6 @@ def record_session(
             cbtn_enable_silero.configure(state="disabled")
             tooltip_cbtn_silero.text = "Silero VAD is unavailable on this current " \
                                     "device configuration (check log for details)"
-            spn_silero_min_conf.pack_forget()
 
         def disable_auto_threshold():  # pylint: disable=unused-variable
             """
@@ -470,9 +466,9 @@ def record_session(
             if cbtn_auto_threshold.instate(["selected"]):
                 cbtn_auto_threshold.invoke()
             cbtn_auto_threshold.configure(state="disabled")
-            tk_tooltips(
-                [cbtn_auto_threshold, cbtn_break_buffer_on_silence],
-                "Threshold is unavailable on this current device configuration (check log for details)"
+            tk_tooltip(
+                cbtn_auto_threshold,
+                "Auto threshold is unavailable on this current device configuration (check log for details)"
             )
             disable_silerovad()
 
@@ -878,7 +874,7 @@ def record_cb(in_data, _frame_count, _time_info, _status):
     Record Audio From stream buffer and save it to queue in global class
     Will also check for sample rate and threshold setting 
     """
-    global max_db, min_db, is_silence, t_silence, was_recording, vad_checked
+    global frame_duration_ms, max_db, min_db, is_silence, t_silence, was_recording, vad_checked
 
     try:
         # Run resample and use resampled audio if not using temp file
@@ -931,13 +927,22 @@ def record_cb(in_data, _frame_count, _time_info, _status):
         return (in_data, pyaudio.paContinue)
     except Exception as e:
         logger.exception(e)
-        logger.debug(str(e))
         logger.error("Error in record_cb")
         if "Error while processing frame" in str(e):
-            disable_auto_threshold()  # pylint: disable=undefined-variable
-            logger.warning("Not possible to use Auto Threshold with the current device config! So it is now disabled")
+            logger.error("WEBRTC Error!")
+            if frame_duration_ms >= 20:
+                logger.warning(
+                    "Webrtc Fail to process frame, trying to lower frame duration." \
+                    f"{frame_duration_ms} -> {frame_duration_ms - 10}"
+                )
+                frame_duration_ms -= 10
+                vad_checked = False  # try again with new frame duration
+            else:
+                disable_auto_threshold()  # pylint: disable=undefined-variable
+                logger.warning("Not possible to use Auto Threshold with the current device config! So it is now disabled")
 
-        if "Input audio chunk is too short" in str(e):
+        elif "Input audio chunk is too short" in str(e):
+            logger.error("SileroVAD Error!")
             disable_silerovad()  # pylint: disable=undefined-variable
             logger.warning("Not possible to use Silero VAD with the current device config! So it is now disabled")
 
@@ -987,12 +992,12 @@ def tl_api(text: str, lang_source: str, lang_target: str, engine: str, separator
     try:
         debug_log = sj.cache["debug_translate"]
         proxies = get_proxies(sj.cache["http_proxy"], sj.cache["https_proxy"])
-        kwargs = {}
+        kwargs = {"live_input": True}
         if engine == "LibreTranslate":
             kwargs["libre_https"] = sj.cache["libre_https"]
-            kwargs["libre_host"] = sj.cache["libre_host"]
-            kwargs["libre_port"] = sj.cache["libre_port"]
-            kwargs["libre_api_key"] = sj.cache["libre_api_key"]
+            kwargs["libre_host"] = sj.cache["libre_host"]  # type: ignore
+            kwargs["libre_port"] = sj.cache["libre_port"]  # type: ignore
+            kwargs["libre_api_key"] = sj.cache["libre_api_key"]  # type: ignore
 
         success, result = translate(engine, [text], lang_source, lang_target, proxies, debug_log, **kwargs)
         if not success:

@@ -95,35 +95,6 @@ Speech Translate aims to expand whisper ability by combining it with some transl
 
 - Speaker input only work on windows 8 and above.
 - Internet connection (for translation with API)
-- [FFmpeg](https://ffmpeg.org/) is required to be installed and added to the PATH environment variable. You can do it when prompted in the app, or you can download it [here](https://ffmpeg.org/download.html) and add it to your path manually. Alternatively, you can also download and add it to path automatically by using the following commands:
-
-```bash
-# on Windows using powershell (Also included in the release page, and can be run by right clicking and selecting "Run with PowerShell")
-# Must be run in an elevated PowerShell prompt (Run as administrator)
-Set-ExecutionPolicy RemoteSigned -Scope CurrentUser # Optional: Needed to run a remote script the first time
-& ([scriptblock]::Create(
-     (New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/master/install_ffmpeg.ps1')
-  )) -webdl
-
-# on Windows using Winget (Default package manager for Windows 10 and above)
-winget install --id=Gyan.FFmpeg  -e
-
-# on Windows using Chocolatey (https://chocolatey.org/)
-choco install ffmpeg
-
-# on Windows using Scoop (https://scoop.sh/)
-scoop install ffmpeg
-
-# on Ubuntu or Debian
-sudo apt update && sudo apt install ffmpeg
-
-# on Arch Linux
-sudo pacman -S ffmpeg
-
-# on MacOS using Homebrew (https://brew.sh/)
-brew install ffmpeg
-```
-
 - Recommended to have capable [GPU with CUDA compatibility](https://developer.nvidia.com/cuda-gpus) (prebuilt version is using CUDA 11.8) to run each model. Each whisper model has different requirements, for more information you can check it directly at the [whisper repository](https://github.com/openai/whisper).
 
 |  Size  | Parameters | English-only model | Multilingual model | Required VRAM | Relative speed |
@@ -191,9 +162,6 @@ Check out the [wiki](https://github.com/Dadangdut33/Speech-Translate/wiki) for m
 
 # 🛠️ Building / Developing / Compiling Yourself
 
-> [!IMPORTANT]  
-> Make sure that you have installed [FFmpeg](https://ffmpeg.org/) and added it to the PATH environment variable. [See here](#requirements) for more info
-
 > [!NOTE]  
 > Check the [wiki](https://github.com/Dadangdut33/Speech-Translate/wiki) for more details
 
@@ -205,11 +173,12 @@ Check out the [wiki](https://github.com/Dadangdut33/Speech-Translate/wiki) for m
 > [!WARNING]  
 > You might need to have [Build tools for Visual Studio](https://visualstudio.microsoft.com/visual-cpp-build-tools/) installed
 
-1. Create your virtual environment by running `python -m venv venv`
-2. Activate your virtual environment by running `source venv/bin/activate`
-3. Install all the dependencies needed by running `pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu118` if you are using GPU or `pip install -r requirements.txt` if you are using CPU.
-4. Make sure to have ffmpeg installed and added to your PATH
-5. Get to root directory and Run the script by typing `python Run.py`
+1. Clone the repo with its submodules by running `git clone --recurse-submodules https://github.com/Dadangdut33/Speech-Translate.git``
+2. Cd into the project directory
+3. Create a [virtual environment](https://docs.python.org/3/library/venv) by running `python -m venv venv`
+4. [Activate your virtual environment](https://docs.python.org/3/library/venv.html#how-venvs-work)
+5. Install all the dependencies needed by running `pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu118` if you are using GPU or `pip install -r requirements.txt` if you are using CPU.
+6. Run `python Run.py` in root directory to run the app.
 
 ## Running the app
 

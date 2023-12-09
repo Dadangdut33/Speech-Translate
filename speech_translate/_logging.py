@@ -11,10 +11,8 @@ from ._path import dir_log
 # ------------------ #
 FILE_ID = None
 recent_stderr = []
-
-# set environ for the format
-
 current_log: str = f"{strftime('%Y-%m-%d %H-%M-%S')}.log"
+
 # make sure log folder exist
 if not os.path.exists(dir_log):
     try:
@@ -84,7 +82,9 @@ def change_log_level(level: str):
     global FILE_ID
 
     logger.remove(FILE_ID)
-    FILE_ID = logger.add(dir_log + "/" + current_log, level=level, encoding="utf-8", backtrace=False, diagnose=True)
+    FILE_ID = logger.add(
+        dir_log + "/" + current_log, level=level, encoding="utf-8", backtrace=False, diagnose=True, format=LOG_FORMAT
+    )
 
 
 def clear_current_log_file():
@@ -92,4 +92,6 @@ def clear_current_log_file():
     logger.remove(FILE_ID)
     with open(dir_log + "/" + current_log, "w", encoding="utf-8") as f:
         f.write("")
-    FILE_ID = logger.add(dir_log + "/" + current_log, level="DEBUG", encoding="utf-8", backtrace=False, diagnose=True)
+    FILE_ID = logger.add(
+        dir_log + "/" + current_log, level="DEBUG", encoding="utf-8", backtrace=False, diagnose=True, format=LOG_FORMAT
+    )

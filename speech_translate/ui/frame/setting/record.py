@@ -4,10 +4,13 @@ from time import sleep
 from tkinter import Frame, IntVar, LabelFrame, StringVar, Toplevel, ttk
 from typing import Literal, Union
 
+import torch
+import torchaudio
+import webrtcvad
 from loguru import logger
-from webrtcvad import Vad
 
 from speech_translate._constants import MAX_THRESHOLD, MIN_THRESHOLD, WHISPER_SR
+from speech_translate._path import dir_silero_vad
 from speech_translate.linker import bc, sj
 from speech_translate.ui.custom.audio import AudioMeter
 from speech_translate.ui.custom.checkbutton import CustomCheckButton
@@ -20,8 +23,9 @@ from speech_translate.utils.audio.device import (
     get_frame_duration,
     get_speech_webrtc,
     resample_sr,
+    to_silero,
 )
-from speech_translate.utils.helper import cbtn_invoker, get_channel_int, windows_os_only
+from speech_translate.utils.helper import cbtn_invoker, windows_os_only
 
 if system() == "Windows":
     import pyaudiowpatch as pyaudio  # type: ignore # pylint: disable=import-error
@@ -29,6 +33,7 @@ else:
     import pyaudio  # type: ignore # pylint: disable=import-error
 
 
+# TODO: refactor the class. the mic and speaker thing can be made into a base class so its own class so more easy to do stuff
 class SettingRecord:
     """
     Record tab in setting window.
@@ -36,17 +41,18 @@ class SettingRecord:
     def __init__(self, root: Toplevel, master_frame: Union[ttk.Frame, Frame]):
         self.root = root
         self.master = master_frame
-        self.getting_threshold = False
         self.on_start = True
+        torchaudio.set_audio_backend("soundfile")
 
         self.max_mic = MAX_THRESHOLD
         self.min_mic = MIN_THRESHOLD
         self.p_mic = None
         self.detail_mic = None
         self.stream_mic = None
-        self.mic_stopped = False
-        self.thread_mic = None
-        self.vad_mic = Vad()
+        self.auto_threshold_disabled_mic = False
+        self.silero_disabled_mic = False
+        self.webrtcvad_mic = webrtcvad.Vad()
+        self.silerovad_mic, _ = torch.hub.load(repo_or_dir=dir_silero_vad, source="local", model="silero_vad", onnx=True)
         self.frame_duration_mic = 10
 
         self.max_speaker = MAX_THRESHOLD
@@ -54,9 +60,10 @@ class SettingRecord:
         self.p_speaker = None
         self.detail_speaker = None
         self.stream_speaker = None
-        self.speaker_stopped = False
-        self.thread_speaker = None
-        self.vad_speaker = Vad()
+        self.auto_threshold_disabled_speaker = False
+        self.silero_disabled_speaker = False
+        self.webrtcvad_speaker = webrtcvad.Vad()
+        self.silerovad_speaker, _ = torch.hub.load(repo_or_dir=dir_silero_vad, source="local", model="silero_vad", onnx=True)
         self.frame_duration_speaker = 10
 
         # ------------------ Record  ------------------
@@ -116,13 +123,8 @@ class SettingRecord:
         self.lbl_sr_mic = ttk.Label(self.f_mic_device_1, text="Sample Rate", width=14)
         self.lbl_sr_mic.pack(side="left", padx=5)
         self.cb_sr_mic = ComboboxTypeOnCustom(
-            self.root,
-            self.f_mic_device_1,
-            ["8000", "16000", "22050", "44100", "48000"],
-            "4000",
-            "384000",
-            lambda x: sj.save_key("sample_rate_mic", int(x)),
-            sj.cache["sample_rate_mic"],
+            self.root, self.f_mic_device_1, ["8000", "16000", "22050", "44100", "48000"], "4000", "384000",
+            lambda x: self.set_sr("mic", int(x)), sj.cache["sample_rate_mic"]
         )
         self.cb_sr_mic.pack(side="left", padx=5)
         tk_tooltips(
@@ -133,8 +135,8 @@ class SettingRecord:
         self.lbl_chunk_size_mic = ttk.Label(self.f_mic_device_1, text="Chunk Size", width=10)
         self.lbl_chunk_size_mic.pack(side="left", padx=5)
         self.cb_chunk_size_mic = ComboboxTypeOnCustom(
-            self.root, self.f_mic_device_1, ["640", "800", "960", "1024", "1280"], "640", "1280",
-            lambda x: sj.save_key("chunk_size_mic", int(x)), sj.cache["chunk_size_mic"]
+            self.root, self.f_mic_device_1, ["320", "480", "640", "800", "960", "1024", "1280"], "320", "1280",
+            lambda x: self.set_chunk_size("mic", int(x)), sj.cache["chunk_size_mic"]
         )
         self.cb_chunk_size_mic.pack(side="left", padx=5)
         tk_tooltips(
@@ -148,7 +150,7 @@ class SettingRecord:
         self.lbl_channels_mic = ttk.Label(self.f_mic_device_2, text="Channels", width=14)
         self.lbl_channels_mic.pack(side="left", padx=5)
         self.cb_channels_mic = ComboboxTypeOnCustom(
-            self.root, self.f_mic_device_2, ["Mono", "Stereo"], "1", "25", lambda x: sj.save_key("channels_mic", x),
+            self.root, self.f_mic_device_2, ["Mono", "Stereo"], "1", "25", lambda x: self.set_channels("mic", str(x)),
             sj.cache["channels_mic"]
         )
         self.cb_channels_mic.pack(side="left", padx=5)
@@ -161,7 +163,7 @@ class SettingRecord:
         self.cbtn_auto_sr_mic = CustomCheckButton(
             self.f_mic_device_3,
             sj.cache["auto_sample_rate_mic"],
-            lambda x: sj.save_key("auto_sample_rate_mic", x) or self.toggle_sr("mic", x),
+            lambda x: self.toggle_auto_sr("mic", x),
             text="Auto sample rate",
             style="Switch.TCheckbutton"
         )
@@ -177,7 +179,7 @@ class SettingRecord:
         self.cbtn_auto_channels_mic = CustomCheckButton(
             self.f_mic_device_3,
             sj.cache["auto_channels_mic"],
-            lambda x: sj.save_key("auto_channels_mic", x) or self.toggle_channels("mic", x),
+            lambda x: self.toggle_auto_channels("mic", x),
             text="Auto channels value",
             style="Switch.TCheckbutton"
         )
@@ -207,7 +209,7 @@ class SettingRecord:
         self.lbl_sr_speaker.pack(side="left", padx=5)
         self.cb_sr_speaker = ComboboxTypeOnCustom(
             self.root, self.f_speaker_device_1, ["8000", "16000", "22050", "44100", "48000"], "4000", "384000",
-            lambda x: sj.save_key("sample_rate_speaker", int(x)), sj.cache["sample_rate_speaker"]
+            lambda x: self.set_sr("speaker", int(x)), sj.cache["sample_rate_speaker"]
         )
         self.cb_sr_speaker.pack(side="left", padx=5)
         tk_tooltips(
@@ -218,8 +220,8 @@ class SettingRecord:
         self.lbl_chunk_size_speaker = ttk.Label(self.f_speaker_device_1, text="Chunk Size", width=10)
         self.lbl_chunk_size_speaker.pack(side="left", padx=5)
         self.cb_chunk_size_speaker = ComboboxTypeOnCustom(
-            self.root, self.f_speaker_device_1, ["640", "800", "960", "1024", "1280"], "640", "1280",
-            lambda x: sj.save_key("chunk_size_speaker", int(x)), sj.cache["chunk_size_speaker"]
+            self.root, self.f_speaker_device_1, ["320", "480", "640", "800", "960", "1024", "1280"], "320", "1280",
+            lambda x: self.set_chunk_size("speaker", int(x)), sj.cache["chunk_size_speaker"]
         )
         self.cb_chunk_size_speaker.pack(side="left", padx=5)
         tk_tooltips(
@@ -233,8 +235,8 @@ class SettingRecord:
         self.lbl_channels_speaker = ttk.Label(self.f_speaker_device_2, text="Channels", width=14)
         self.lbl_channels_speaker.pack(side="left", padx=5)
         self.cb_channels_speaker = ComboboxTypeOnCustom(
-            self.root, self.f_speaker_device_2, ["Mono", "Stereo"], "1", "25", lambda x: sj.save_key("channels_speaker", x),
-            sj.cache["channels_speaker"]
+            self.root, self.f_speaker_device_2, ["Mono", "Stereo"], "1", "25",
+            lambda x: self.set_channels("speaker", str(x)), sj.cache["channels_speaker"]
         )
         self.cb_channels_speaker.pack(side="left", padx=5)
         tk_tooltips(
@@ -246,7 +248,7 @@ class SettingRecord:
         self.cbtn_auto_sr_speaker = CustomCheckButton(
             self.f_speaker_device_3,
             sj.cache["auto_sample_rate_speaker"],
-            lambda x: sj.save_key("auto_sample_rate_speaker", x) or self.toggle_sr("speaker", x),
+            lambda x: self.toggle_auto_sr("speaker", x),
             text="Auto sample rate",
             style="Switch.TCheckbutton"
         )
@@ -262,7 +264,7 @@ class SettingRecord:
         self.cbtn_auto_channels_speaker = CustomCheckButton(
             self.f_speaker_device_3,
             sj.cache["auto_channels_speaker"],
-            lambda x: sj.save_key("auto_channels_speaker", x) or self.toggle_channels("speaker", x),
+            lambda x: self.toggle_auto_channels("speaker", x),
             text="Auto channels value",
             style="Switch.TCheckbutton"
         )
@@ -457,7 +459,7 @@ class SettingRecord:
             style="Switch.TCheckbutton"
         )
         self.cbtn_threshold_auto_mic.pack(side="left", padx=5)
-        tk_tooltip(
+        self.tooltip_cbtn_threshold_auto_mic = tk_tooltip(
             self.cbtn_threshold_auto_mic,
             "Wether to use VAD or manual threshold for the speaker input.\n\nDefault is checked"
         )
@@ -470,7 +472,7 @@ class SettingRecord:
             style="Switch.TCheckbutton"
         )
         self.cbtn_auto_break_buffer_mic.pack(side="left", padx=5)
-        tk_tooltip(
+        self.tooltip_cbtn_auto_break_buffer_mic = tk_tooltip(
             self.cbtn_auto_break_buffer_mic,
             "If checked, the buffer will be stopped and considered as 1 full sentence when there" \
             "is silence detected for more than 1 second. This could help in reducing the background noise."
@@ -507,15 +509,48 @@ class SettingRecord:
 
         temp_map = {1: self.radio_vad_mic_1, 2: self.radio_vad_mic_2, 3: self.radio_vad_mic_3}
         cbtn_invoker(sj.cache["threshold_auto_mic"], temp_map[sj.cache["threshold_auto_level_mic"]])
-        self.vad_mic.set_mode(sj.cache["threshold_auto_level_mic"])
+        self.webrtcvad_mic.set_mode(sj.cache["threshold_auto_level_mic"])
         self.radio_vad_mic_1.configure(
-            command=lambda: sj.save_key("threshold_auto_level_mic", 1) or self.vad_mic.set_mode(1)
+            command=lambda: sj.save_key("threshold_auto_level_mic", 1) or self.webrtcvad_mic.set_mode(1)
         )
         self.radio_vad_mic_2.configure(
-            command=lambda: sj.save_key("threshold_auto_level_mic", 2) or self.vad_mic.set_mode(2)
+            command=lambda: sj.save_key("threshold_auto_level_mic", 2) or self.webrtcvad_mic.set_mode(2)
         )
         self.radio_vad_mic_3.configure(
-            command=lambda: sj.save_key("threshold_auto_level_mic", 3) or self.vad_mic.set_mode(3)
+            command=lambda: sj.save_key("threshold_auto_level_mic", 3) or self.webrtcvad_mic.set_mode(3)
+        )
+
+        self.vert_sep_mic = ttk.Separator(self.f_mic_recording_4, orient="vertical")
+        self.vert_sep_mic.pack(side="left", padx=5, fill="y")
+
+        self.cbtn_threshold_auto_silero_mic = CustomCheckButton(
+            self.f_mic_recording_4,
+            sj.cache["threshold_auto_silero_mic"],
+            lambda x: self.toggle_silero_vad("mic", x),
+            text="Use Silero",
+            style="Switch.TCheckbutton"
+        )
+        self.cbtn_threshold_auto_silero_mic.pack(side="left", padx=5)
+        self.tooltip_cbtn_threshold_auto_silero_mic = tk_tooltip(
+            self.cbtn_threshold_auto_silero_mic, "If checked, will use Silero VAD alongside WebRTC VAD for better accuracy."
+        )
+
+        self.spn_silero_mic_min = SpinboxNumOnly(
+            self.root,
+            self.f_mic_recording_4,
+            0.1,
+            1.0,
+            lambda x: sj.save_key("threshold_silero_mic_min", float(x)),
+            initial_value=sj.cache["threshold_silero_mic_min"],
+            num_float=True,
+            allow_empty=False,
+            delay=10,
+            increment=0.05
+        )
+        self.spn_silero_mic_min.pack(side="left", padx=5)
+        tk_tooltip(
+            self.spn_silero_mic_min,
+            "Set the minimum confidence for your input to be considered as speech when using Silero VAD"
         )
 
         # threshold for manual
@@ -634,7 +669,7 @@ class SettingRecord:
             style="Switch.TCheckbutton"
         )
         self.cbtn_threshold_auto_speaker.pack(side="left", padx=5)
-        tk_tooltip(
+        self.tooltip_cbtn_threshold_auto_speaker = tk_tooltip(
             self.cbtn_threshold_auto_speaker,
             "Wether to use VAD or manual threshold for the speaker input.\n\nDefault is checked"
         )
@@ -647,7 +682,7 @@ class SettingRecord:
             style="Switch.TCheckbutton"
         )
         self.cbtn_auto_break_buffer_speaker.pack(side="left", padx=5)
-        tk_tooltip(
+        self.tooltip_cbtn_auto_break_buffer_speaker = tk_tooltip(
             self.cbtn_auto_break_buffer_speaker,
             "If checked, the buffer will be stopped and considered as 1 full sentence when there" \
             "is silence detected for more than 1 second. This could help in reducing the background noise."
@@ -696,16 +731,50 @@ class SettingRecord:
 
         temp_map = {1: self.radio_vad_speaker_1, 2: self.radio_vad_speaker_2, 3: self.radio_vad_speaker_3}
         cbtn_invoker(sj.cache["threshold_auto_speaker"], temp_map[sj.cache["threshold_auto_level_speaker"]])
-        self.vad_speaker.set_mode(sj.cache["threshold_auto_level_speaker"])
+        self.webrtcvad_speaker.set_mode(sj.cache["threshold_auto_level_speaker"])
 
         self.radio_vad_speaker_1.configure(
-            command=lambda: sj.save_key("threshold_auto_level_speaker", 1) or self.vad_speaker.set_mode(1)
+            command=lambda: sj.save_key("threshold_auto_level_speaker", 1) or self.webrtcvad_speaker.set_mode(1)
         )
         self.radio_vad_speaker_2.configure(
-            command=lambda: sj.save_key("threshold_auto_level_speaker", 2) or self.vad_speaker.set_mode(2)
+            command=lambda: sj.save_key("threshold_auto_level_speaker", 2) or self.webrtcvad_speaker.set_mode(2)
         )
         self.radio_vad_speaker_3.configure(
-            command=lambda: sj.save_key("threshold_auto_level_speaker", 3) or self.vad_speaker.set_mode(3)
+            command=lambda: sj.save_key("threshold_auto_level_speaker", 3) or self.webrtcvad_speaker.set_mode(3)
+        )
+
+        self.vert_sep_speaker = ttk.Separator(self.f_speaker_recording_4, orient="vertical")
+        self.vert_sep_speaker.pack(side="left", padx=5, fill="y")
+
+        self.cbtn_threshold_auto_silero_speaker = CustomCheckButton(
+            self.f_speaker_recording_4,
+            sj.cache["threshold_auto_silero_speaker"],
+            lambda x: self.toggle_silero_vad("speaker", x),
+            text="Use Silero",
+            style="Switch.TCheckbutton"
+        )
+        self.cbtn_threshold_auto_silero_speaker.pack(side="left", padx=5)
+        self.tooltip_cbtn_threshold_auto_silero_speaker = tk_tooltip(
+            self.cbtn_threshold_auto_silero_speaker,
+            "If checked, will use Silero VAD alongside WebRTC VAD for better accuracy."
+        )
+
+        self.spn_silero_speaker_min = SpinboxNumOnly(
+            self.root,
+            self.f_speaker_recording_4,
+            0.1,
+            1.0,
+            lambda x: sj.save_key("threshold_silero_speaker_min", float(x)),
+            initial_value=sj.cache["threshold_silero_speaker_min"],
+            num_float=True,
+            allow_empty=False,
+            delay=10,
+            increment=0.05
+        )
+        self.spn_silero_speaker_min.pack(side="left", padx=5)
+        tk_tooltip(
+            self.spn_silero_speaker_min,
+            "Set the minimum confidence for your input to be considered as speech when using Silero VAD"
         )
 
         # threshold for manual
@@ -764,16 +833,17 @@ class SettingRecord:
                 self.lbl_chunk_size_speaker, self.cb_chunk_size_speaker, self.cbtn_auto_sr_speaker,
                 self.cbtn_auto_channels_speaker, self.lbl_hint_buffer_speaker, self.lbl_buffer_speaker,
                 self.spn_buffer_speaker, self.lbl_max_sentences_speaker, self.spn_max_sentences_speaker,
-                self.cbtn_threshold_enable_speaker, self.cbtn_threshold_auto_speaker, self.cbtn_auto_break_buffer_speaker,
-                self.lbl_hint_threshold_speaker, self.scale_threshold_speaker
+                self.cbtn_threshold_enable_speaker, self.cbtn_threshold_auto_speaker, self.cbtn_threshold_auto_speaker,
+                self.spn_silero_speaker_min, self.cbtn_auto_break_buffer_speaker, self.lbl_hint_threshold_speaker,
+                self.scale_threshold_speaker
             ]
         )
 
         # toggle
-        self.toggle_sr("mic", self.cbtn_auto_sr_mic.instate(["selected"]))
-        self.toggle_channels("mic", self.cbtn_auto_channels_mic.instate(["selected"]))
-        self.toggle_sr("speaker", self.cbtn_auto_sr_speaker.instate(["selected"]))
-        self.toggle_channels("speaker", self.cbtn_auto_channels_speaker.instate(["selected"]))
+        self.toggle_auto_sr("mic", self.cbtn_auto_sr_mic.instate(["selected"]))
+        self.toggle_auto_channels("mic", self.cbtn_auto_channels_mic.instate(["selected"]))
+        self.toggle_auto_sr("speaker", self.cbtn_auto_sr_speaker.instate(["selected"]))
+        self.toggle_auto_channels("speaker", self.cbtn_auto_channels_speaker.instate(["selected"]))
         self.toggle_use_temp(self.radio_temp_file.instate(["selected"]))
 
         self.toggle_enable_threshold_mic(False)  # not open on start
@@ -797,23 +867,143 @@ class SettingRecord:
             self.lbl_hint_conversion.pack_configure(pady=(0, 5))
             self.f_processing_2.pack_forget()
 
-    def toggle_sr(self, device: Literal["mic", "speaker"], auto: bool) -> None:
+    def set_sr(self, device: Literal["mic", "speaker"], value: int) -> None:
+        """
+        Set the sample rate for the device
+        """
+        sj.save_key(f"sample_rate_{device}", value)
+        if device == "mic":
+            self.toggle_enable_threshold_mic()
+        elif device == "speaker":
+            self.toggle_enable_threshold_speaker()
+
+    def set_chunk_size(self, device: Literal["mic", "speaker"], value: int) -> None:
+        """
+        Set the chunk size for the device
+        """
+        sj.save_key(f"chunk_size_{device}", value)
+        if device == "mic":
+            self.toggle_enable_threshold_mic()
+        elif device == "speaker":
+            self.toggle_enable_threshold_speaker()
+
+    def set_channels(self, device: Literal["mic", "speaker"], value: str) -> None:
+        """
+        Set the channels for the device
+        """
+        sj.save_key(f"channels_{device}", value)
+        if device == "mic":
+            self.toggle_enable_threshold_mic()
+        elif device == "speaker":
+            self.toggle_enable_threshold_speaker()
+
+    def toggle_auto_sr(self, device: Literal["mic", "speaker"], auto: bool) -> None:
         """
         Toggle sr spinner disabled or not depending on auto value
         """
+        sj.save_key(f"auto_sample_rate_{device}", auto)
         if device == "mic":
             self.cb_sr_mic.toggle_disable(auto)
+            self.toggle_enable_threshold_mic()
         elif device == "speaker":
             self.cb_sr_speaker.toggle_disable(auto)
+            self.toggle_enable_threshold_speaker()
 
-    def toggle_channels(self, device: Literal["mic", "speaker"], auto: bool) -> None:
+    def toggle_auto_channels(self, device: Literal["mic", "speaker"], auto: bool) -> None:
         """
         Toggle channels spinner disabled or not depending on auto value
         """
+        sj.save_key(f"auto_channels_{device}", auto)
         if device == "mic":
             self.cb_channels_mic.toggle_disable(auto)
+            self.toggle_enable_threshold_mic()
         elif device == "speaker":
             self.cb_channels_speaker.toggle_disable(auto)
+            self.toggle_enable_threshold_speaker()
+
+    def toggle_silero_vad(self, device: Literal["mic", "speaker"], on: bool, save=True) -> None:
+        """
+        Toggle silero vad disabled or not depending on auto value
+        """
+        if save:
+            sj.save_key(f"threshold_auto_silero_{device}", on)
+
+        if device == "mic":
+            if on:
+                self.spn_silero_mic_min.pack(side="left", padx=5)
+            else:
+                self.spn_silero_mic_min.pack_forget()
+        elif device == "speaker":
+            if on:
+                self.spn_silero_speaker_min.pack(side="left", padx=5)
+            else:
+                self.spn_silero_speaker_min.pack_forget()
+
+    def disable_auto_threshold(self, device: Literal["mic", "speaker"]) -> None:
+        """
+        Disable auto threshold widget
+        """
+        disabled_text = "Auto threshold is unavailable on this current device configuration. You can try to change the " \
+                        "device configuration in the setting above"
+        if device == "mic":
+            if self.cbtn_threshold_auto_mic.instate(["selected"]):
+                self.cbtn_threshold_auto_mic.invoke()
+            self.cbtn_threshold_auto_mic.configure(state="disabled")
+            self.tooltip_cbtn_threshold_auto_mic.text = disabled_text
+            self.auto_threshold_disabled_mic = True
+        elif device == "speaker":
+            if self.cbtn_threshold_auto_speaker.instate(["selected"]):
+                self.cbtn_threshold_auto_speaker.invoke()
+            self.cbtn_threshold_auto_speaker.configure(state="disabled")
+            self.tooltip_cbtn_threshold_auto_speaker.text = disabled_text
+            self.auto_threshold_disabled_speaker = True
+
+    def possible_auto_threshold(self, device: Literal["mic", "speaker"]) -> None:
+        """
+        Enable auto threshold widget
+        """
+        text = "Wether to use VAD or manual threshold for the speaker input."
+        if device == "mic":
+            self.cbtn_threshold_auto_mic.configure(state="normal")
+            self.tooltip_cbtn_threshold_auto_mic.text = text
+            self.auto_threshold_disabled_mic = False
+        elif device == "speaker":
+            self.cbtn_threshold_auto_speaker.configure(state="normal")
+            self.tooltip_cbtn_threshold_auto_speaker.text = text
+            self.auto_threshold_disabled_speaker = False
+
+    def disable_silerovad(self, device: Literal["mic", "speaker"]) -> None:
+        """
+        Disable silero when not possible to use it
+        """
+        disabled_text = "Silero VAD is unavailable on this current " \
+                    "device configuration (check log for details)"
+        if device == "mic":
+            if self.cbtn_threshold_auto_silero_mic.instate(["selected"]):
+                self.cbtn_threshold_auto_silero_mic.invoke()
+            self.cbtn_threshold_auto_silero_mic.configure(state="disabled")
+            self.tooltip_cbtn_threshold_auto_silero_mic.text = disabled_text
+            self.silero_disabled_mic = True
+        elif device == "speaker":
+            if self.cbtn_threshold_auto_silero_speaker.instate(["selected"]):
+                self.cbtn_threshold_auto_silero_speaker.invoke()
+            self.cbtn_threshold_auto_silero_speaker.configure(state="disabled")
+            self.tooltip_cbtn_threshold_auto_silero_speaker.text = disabled_text
+            self.silero_disabled_speaker = True
+
+    def possible_silerovad(self, device: Literal["mic", "speaker"]) -> None:
+        """
+        Enable silero when possible to use it
+        """
+        text = "If checked, will use Silero VAD alongside WebRTC VAD for better accuracy."
+        if device == "mic":
+            self.cbtn_threshold_auto_silero_mic.configure(state="normal")
+            self.tooltip_cbtn_threshold_auto_silero_mic.text = text
+            self.silero_disabled_mic = False
+        elif device == "speaker":
+            self.cbtn_threshold_auto_silero_speaker.configure(state="normal")
+            self.tooltip_cbtn_threshold_auto_silero_speaker.text = text
+            self.silero_disabled_speaker = False
 
     def call_both_with_wait(self, open_stream=True):
         if self.on_start:
@@ -857,66 +1047,128 @@ class SettingRecord:
         self.lbl_threshold_db_speaker.configure(text=f"{float(event):.2f} dB")
         self.audiometer_speaker.set_threshold(float(event))
 
-    def mic_meter(self, in_data, _frame_count, _time_info, _status):
+    def mic_stream_cb(self, in_data, _frame_count, _time_info, _status):
         """
         Start the mic meter
         """
         assert self.detail_mic is not None
-        resampled = resample_sr(in_data, self.detail_mic["sample_rate"], WHISPER_SR)
-        db = get_db(in_data)
-        self.audiometer_mic.set_db(db)
+        try:
+            resampled = resample_sr(in_data, self.detail_mic["sample_rate"], WHISPER_SR)
+            db = get_db(in_data)
+            self.audiometer_mic.set_db(db)
 
-        if db > self.max_mic:
-            self.max_mic = db
-            self.audiometer_mic.max = db
-        elif db < self.min_mic:
-            self.min_mic = db
-            self.audiometer_mic.min = db
+            if db > self.max_mic:
+                self.max_mic = db
+                self.audiometer_mic.max = db
+            elif db < self.min_mic:
+                self.min_mic = db
+                self.audiometer_mic.min = db
 
-        if sj.cache["threshold_auto_mic"]:
-            self.audiometer_mic.set_recording(
-                get_speech_webrtc(resampled, WHISPER_SR, self.frame_duration_mic, self.vad_mic)
-            )
+            if sj.cache["threshold_auto_mic"] and not self.auto_threshold_disabled_mic:
+                is_speech = get_speech_webrtc(resampled, WHISPER_SR, self.frame_duration_mic, self.webrtcvad_mic)
+                if is_speech and  sj.cache["threshold_auto_silero_mic"] and not self.silero_disabled_mic:
+                    conf: torch.Tensor = self.silerovad_mic(
+                        to_silero(resampled, self.detail_mic["num_of_channels"]), WHISPER_SR
+                    )
+                    is_speech = conf.item() > sj.cache["threshold_silero_mic_min"]
 
-        return (in_data, pyaudio.paContinue)
+                self.audiometer_mic.set_recording(is_speech)
 
-    def speaker_meter(self, in_data, _frame_count, _time_info, _status):
+            return (in_data, pyaudio.paContinue)
+        except Exception as e:
+            logger.exception(e)
+            if "Error while processing frame" in str(e):
+                logger.error("WEBRTC Error!")
+                if self.frame_duration_mic >= 20:
+                    logger.warning(
+                        "Webrtc Fail to process frame, trying to lower frame duration." \
+                        f"{self.frame_duration_mic} -> {self.frame_duration_mic - 10}"
+                    )
+                    self.frame_duration_mic -= 10
+                else:
+                    self.disable_auto_threshold("mic")
+                logger.warning("Not possible to use Auto Threshold with the current device config! So it is now disabled")
+            elif "Input audio chunk is too short" in str(e):
+                logger.error("SileroVAD Error!")
+                self.disable_silerovad("mic")
+                logger.warning("Not possible to use Silero VAD with the current device config! So it is now disabled")
+
+            return (in_data, pyaudio.paContinue)
+
+    def speaker_stream_cb(self, in_data, _frame_count, _time_info, _status):
         """
         Start the speaker meter
         """
         assert self.detail_speaker is not None
-        resampled = resample_sr(in_data, self.detail_speaker["sample_rate"], WHISPER_SR)
-        db = get_db(in_data)
-        self.audiometer_speaker.set_db(db)
+        try:
+            resampled = resample_sr(in_data, self.detail_speaker["sample_rate"], WHISPER_SR)
+            db = get_db(in_data)
+            self.audiometer_speaker.set_db(db)
 
-        if db > self.max_speaker:
-            self.max_speaker = db
-            self.audiometer_speaker.max = db
-        elif db < self.min_speaker:
-            self.min_speaker = db
-            self.audiometer_speaker.min = db
+            if db > self.max_speaker:
+                self.max_speaker = db
+                self.audiometer_speaker.max = db
+            elif db < self.min_speaker:
+                self.min_speaker = db
+                self.audiometer_speaker.min = db
 
-        if sj.cache["threshold_auto_speaker"]:
-            self.audiometer_speaker.set_recording(
-                get_speech_webrtc(resampled, WHISPER_SR, self.frame_duration_speaker, self.vad_speaker)
-            )
+            if sj.cache["threshold_auto_speaker"] and not self.auto_threshold_disabled_speaker:
+                is_speech = get_speech_webrtc(resampled, WHISPER_SR, self.frame_duration_speaker, self.webrtcvad_speaker)
+                if is_speech and sj.cache["threshold_auto_silero_speaker"] and not self.silero_disabled_speaker:
+                    conf: torch.Tensor = self.silerovad_speaker(
+                        to_silero(resampled, self.detail_speaker["num_of_channels"]), WHISPER_SR
+                    )
+                    is_speech = conf.item() > sj.cache["threshold_silero_speaker_min"]
+                self.audiometer_speaker.set_recording(is_speech)
 
-        return (in_data, pyaudio.paContinue)
+            return (in_data, pyaudio.paContinue)
+        except Exception as e:
+            logger.exception(e)
+            if "Error while processing frame" in str(e):
+                logger.error("WEBRTC Error!")
+                if self.frame_duration_speaker >= 20:
+                    logger.warning(
+                        "Webrtc Fail to process frame, trying to lower frame duration." \
+                        f"{self.frame_duration_speaker} -> {self.frame_duration_speaker - 10}"
+                    )
+                    self.frame_duration_speaker -= 10
+                else:
+                    self.disable_auto_threshold("speaker")
+                logger.warning("Not possible to use Auto Threshold with the current device config! So it is now disabled")
+            elif "Input audio chunk is too short" in str(e):
+                logger.error("SileroVAD Error!")
+                self.disable_silerovad("speaker")
+                logger.warning("Not possible to use Silero VAD with the current device config! So it is now disabled")
+
+            return (in_data, pyaudio.paContinue)
 
     def call_set_meter_mic(self, open_stream=True):
+        """
+        Call the set meter mic function in a thread.
+        It will close the meter first before opening it 
+
+        Parameters
+        ----------
+        open_stream : bool, optional
+            Whether to open the stream or not, by default True
+        """
         if self.on_start:
             return
 
+        self.close_meter_mic()
         if not sj.cache["show_audio_visualizer_in_setting"]:
-            self.close_meter_mic()
             return
 
         Thread(target=self.set_meter_mic, daemon=True, args=[open_stream]).start()
 
     def close_meter_mic(self):
-        self.audiometer_mic.stop()
+        """
+        Reset silero, stop audio meter, and close the stream
+        """
         try:
             if self.stream_mic:
+                self.audiometer_mic.stop()
+                self.silerovad_mic.reset_states()
                 self.stream_mic.stop_stream()
                 self.stream_mic.close()
                 self.stream_mic = None
@@ -928,35 +1180,46 @@ class SettingRecord:
             logger.exception(e)
 
     def set_meter_mic(self, open_stream=True):
+        """
+        Open or close the mic meter alongside the audio stream. 
+        This function also handle the UI changes when the meter is opened or closed
+        
+        Parameters
+        ----------
+        open_stream : bool, optional
+            Whether to open the stream or not, by default True
+        """
         try:
             # must be enable and not in auto mode
             if open_stream and sj.cache["threshold_enable_mic"]:
+                logger.debug("Opening mic meter")
+                self.possible_auto_threshold("mic")
+                self.possible_silerovad("mic")
+                self.silerovad_mic.reset_states()
                 self.f_mic_recording_4.pack(side="top", fill="x", pady=(10, 5), padx=5)
                 self.f_mic_recording_5.pack(side="top", fill="x", pady=(0, 5), padx=5)
                 self.audiometer_mic.pack(side="left", padx=5)
+                self.lbl_mic_emoji.configure(text="", image=bc.mic_emoji, width=10, foreground="black")
 
                 self.max_mic = MAX_THRESHOLD
                 self.min_mic = MIN_THRESHOLD
                 self.p_mic = pyaudio.PyAudio()
                 self.audiometer_mic.set_threshold(sj.cache["threshold_db_mic"])
-                logger.debug("getting mic device details")
-                success, detail = get_device_details("mic", sj, self.p_mic)
+                success, detail = get_device_details("mic", sj, self.p_mic, debug=False)
                 if success:
                     self.detail_mic = detail
                 else:
                     raise Exception("Failed to get mic device details")
 
-                logger.debug(f"mic detail: {self.detail_mic}")
-
                 self.frame_duration_mic = get_frame_duration(self.detail_mic["sample_rate"], self.detail_mic["chunk_size"])
                 self.stream_mic = self.p_mic.open(
                     format=pyaudio.paInt16,
-                    channels=get_channel_int(self.detail_mic["num_of_channels"]),
+                    channels=self.detail_mic["num_of_channels"],
                     rate=self.detail_mic["sample_rate"],
                     input=True,
                     frames_per_buffer=self.detail_mic["chunk_size"],
                     input_device_index=self.detail_mic["device_detail"]["index"],  # type: ignore
-                    stream_callback=self.mic_meter,
+                    stream_callback=self.mic_stream_cb,
                 )
 
                 self.audiometer_mic.start()
@@ -971,30 +1234,47 @@ class SettingRecord:
             if "main thread is not in main loop" not in str(e):  # on init sometimes it will throw this error
                 logger.exception(e)
 
-            # fail because probably no device
+                # dont show the meter, show failed message
+                try:
+                    self.audiometer_mic.pack_forget()
+                    self.lbl_mic_emoji.configure(text="Fail to load device. Check log", image="", width=30, foreground="red")
+                except Exception:
+                    pass
             self.close_meter_mic()
 
-            # ddont show the meter, show failed message
-            try:
-                self.audiometer_mic.pack_forget()
-                self.lbl_mic_emoji.configure(text="Fail to load device. Check log", image="", width=30, foreground="red")
-            except Exception:
-                pass
-
     def call_set_meter_speaker(self, open_stream=True):
+        """
+        Call the set meter speaker function in a thread.
+        It will close the meter first before opening it.
+        
+        Only works on Windows
+
+        Parameters
+        ----------
+        open_stream : bool, optional
+            Whether to open the stream or not, by default True
+        """
+
         if system() == "Windows" and not self.on_start:
+            self.close_meter_speaker()
             if not sj.cache["show_audio_visualizer_in_setting"]:
-                self.close_meter_speaker()
                 return
 
             Thread(target=self.set_meter_speaker, daemon=True, args=[open_stream]).start()
 
     def close_meter_speaker(self):
+        """
+        Reset silero, stop audio meter, and close the stream
+        
+        Only works on Windows
+        """
         if system() != "Windows":
             return
-        self.audiometer_speaker.stop()
+
         try:
             if self.stream_speaker:
+                self.silerovad_speaker.reset_states()
+                self.audiometer_speaker.stop()
                 self.stream_speaker.stop_stream()
                 self.stream_speaker.close()
                 self.stream_speaker = None
@@ -1006,21 +1286,37 @@ class SettingRecord:
             logger.exception(e)
 
     def set_meter_speaker(self, open_stream=True):
+        """
+        Open or close the speaker meter alongside the audio stream.
+        This function also handle the UI changes when the meter is opened or closed
+
+        Only works on Windows
+
+        Parameters
+        ----------
+        open_stream : bool, optional
+            Whether to open the stream or not, by default True
+        """
         if system() != "Windows":
             return
 
         try:
             # must be enable and not in auto mode
             if open_stream and sj.cache["threshold_enable_speaker"]:
+                logger.debug("Opening speaker meter")
+                self.possible_auto_threshold("speaker")
+                self.possible_silerovad("speaker")
+                self.silerovad_speaker.reset_states()
                 self.f_speaker_recording_4.pack(side="top", fill="x", pady=(10, 5), padx=5)
                 self.f_speaker_recording_5.pack(side="top", fill="x", pady=(0, 5), padx=5)
                 self.audiometer_speaker.pack(side="left", padx=5)
+                self.lbl_speaker_emoji.configure(text="", image=bc.speaker_emoji, width=10, foreground="black")
 
                 self.max_speaker = MAX_THRESHOLD
                 self.min_speaker = MIN_THRESHOLD
                 self.p_speaker = pyaudio.PyAudio()
                 self.audiometer_speaker.set_threshold(sj.cache["threshold_db_speaker"])
-                success, detail = get_device_details("speaker", sj, self.p_speaker)
+                success, detail = get_device_details("speaker", sj, self.p_speaker, debug=False)
                 if success:
                     self.detail_speaker = detail
                 else:
@@ -1031,12 +1327,12 @@ class SettingRecord:
                 )
                 self.stream_speaker = self.p_speaker.open(
                     format=pyaudio.paInt16,
-                    channels=get_channel_int(self.detail_speaker["num_of_channels"]),
+                    channels=self.detail_speaker["num_of_channels"],
                     rate=self.detail_speaker["sample_rate"],
                     input=True,
                     frames_per_buffer=self.detail_speaker["chunk_size"],
                     input_device_index=self.detail_speaker["device_detail"]["index"],  # type: ignore
-                    stream_callback=self.speaker_meter,
+                    stream_callback=self.speaker_stream_cb,
                 )
                 self.stream_speaker.start_stream()
                 self.audiometer_speaker.start()
@@ -1051,16 +1347,26 @@ class SettingRecord:
             if "main thread is not in main loop" not in str(e):  # on init sometimes it will throw this error
                 logger.exception(e)
 
+                # dont show the meter, show failed message
+                try:
+                    self.audiometer_speaker.pack_forget()
+                    self.lbl_speaker_emoji.configure(
+                        text="Fail to load device. Check log", image="", width=30, foreground="red"
+                    )
+                except Exception:
+                    pass
+
             self.close_meter_speaker()
 
-            # dont show the meter, show failed message
-            try:
-                self.audiometer_speaker.pack_forget()
-                self.lbl_speaker_emoji.configure(text="Fail to load device. Check log", image="", width=30, foreground="red")
-            except Exception:
-                pass
-
     def toggle_enable_threshold_mic(self, open_stream=True):
+        """
+        Toggle the enable threshold checkbutton
+
+        Parameters
+        ----------
+        open_stream : bool, optional
+            open the stream or not, by default True
+        """
         if "selected" in self.cbtn_threshold_enable_mic.state():
             self.cbtn_threshold_auto_mic.configure(state="normal")
             self.cbtn_auto_break_buffer_mic.configure(state="normal")
@@ -1073,6 +1379,14 @@ class SettingRecord:
             self.call_set_meter_mic(False)
 
     def toggle_enable_threshold_speaker(self, open_stream=True):
+        """
+        Toggle the enable threshold checkbutton
+
+        Parameters
+        ----------
+        open_stream : bool, optional
+            open the stream or not, by default True
+        """
         if system() != "Windows":
             return
 
@@ -1088,6 +1402,9 @@ class SettingRecord:
             self.call_set_meter_speaker(False)
 
     def toggle_auto_threshold_mic(self):
+        """
+        Toggle the auto threshold checkbutton
+        """
         if "selected" in self.cbtn_threshold_auto_mic.state():
             self.audiometer_mic.set_auto(True)
             self.audiometer_mic.configure(height=10)
@@ -1100,6 +1417,9 @@ class SettingRecord:
             self.radio_vad_mic_1.pack(side="left", padx=5)
             self.radio_vad_mic_2.pack(side="left", padx=5)
             self.radio_vad_mic_3.pack(side="left", padx=5)
+            self.vert_sep_mic.pack(side="left", padx=5, fill="y")
+            self.cbtn_threshold_auto_silero_mic.pack(side="left", padx=5)
+            self.toggle_silero_vad("mic", self.cbtn_threshold_auto_silero_mic.instate(["selected"]), save=False)
         else:
             self.audiometer_mic.set_auto(False)
             self.lbl_threshold_db_mic.configure(text=f"{float(sj.cache['threshold_db_mic']):.2f} dB")
@@ -1109,12 +1429,18 @@ class SettingRecord:
             self.radio_vad_mic_1.pack_forget()
             self.radio_vad_mic_2.pack_forget()
             self.radio_vad_mic_3.pack_forget()
+            self.vert_sep_mic.pack_forget()
+            self.cbtn_threshold_auto_silero_mic.pack_forget()
+            self.spn_silero_mic_min.pack_forget()
 
             self.lbl_threshold_mic.pack(side="left", padx=5)
             self.scale_threshold_mic.pack(side="left", padx=5)
             self.lbl_threshold_db_mic.pack(side="left", padx=5)
 
     def toggle_auto_threshold_speaker(self):
+        """
+        Toggle the auto threshold checkbutton
+        """
         if system() != "Windows":
             return
 
@@ -1131,6 +1457,9 @@ class SettingRecord:
             self.radio_vad_speaker_1.pack(side="left", padx=5)
             self.radio_vad_speaker_2.pack(side="left", padx=5)
             self.radio_vad_speaker_3.pack(side="left", padx=5)
+            self.vert_sep_speaker.pack(side="left", padx=5, fill="y")
+            self.cbtn_threshold_auto_silero_speaker.pack(side="left", padx=5)
+            self.toggle_silero_vad("speaker", self.cbtn_threshold_auto_silero_speaker.instate(["selected"]), save=False)
         else:
             self.audiometer_speaker.set_auto(False)
             self.audiometer_speaker.configure(height=30)
@@ -1141,6 +1470,9 @@ class SettingRecord:
             self.radio_vad_speaker_1.pack_forget()
             self.radio_vad_speaker_2.pack_forget()
             self.radio_vad_speaker_3.pack_forget()
+            self.vert_sep_speaker.pack_forget()
+            self.cbtn_threshold_auto_silero_speaker.pack_forget()
+            self.spn_silero_speaker_min.pack_forget()
 
             self.lbl_threshold_speaker.pack(side="left", padx=5)
             self.scale_threshold_speaker.pack(side="left", padx=5)
