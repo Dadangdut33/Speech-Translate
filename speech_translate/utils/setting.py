@@ -123,12 +123,16 @@ default_setting: SettingDict = {
     "filter_rec_case_sensitive": False,
     "filter_rec_strip": True,
     "filter_rec_ignore_punctuations": "\"',.?!",
+    "filter_rec_exact_match": False,
+    "filter_rec_similarity": 0.75,
     # file
     "path_filter_file_import": "auto",
     "filter_file_import": True,
     "filter_file_import_case_sensitive": False,
     "filter_file_import_strip": True,
     "filter_file_import_ignore_punctuations": "\"',.?!",
+    "filter_file_import_exact_match": True,
+    "filter_file_import_similarity": 0.75,
     "remove_repetition_file_import": False,
     "remove_repetition_result_refinement": False,
     "remove_repetition_result_alignment": False,
@@ -159,8 +163,8 @@ default_setting: SettingDict = {
     "patience": 1.0,
     "compression_ratio_threshold": 2.4,
     "logprob_threshold": -1.0,
-    "no_speech_threshold": 0.6,
-    "suppress_tokens": "",  # 
+    "no_speech_threshold": 0.72,  # Whisper default is 0.6 
+    "suppress_tokens": "",  # Whisper default is -1
     "initial_prompt": None,
     "prefix": None,
     "suppress_blank": True,

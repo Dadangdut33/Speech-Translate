@@ -44,8 +44,8 @@ def kill_thread(thread: Optional[Thread]) -> bool:
                 ctypes.c_long(thread.ident),  # type: ignore
                 ctypes.py_object(SystemExit)
             ) == 1
-        else:
-            return False
+
+        return False
     except Exception as e:
         logger.exception(e)
         return False
@@ -392,7 +392,7 @@ def generate_temp_filename(base_dir):
     return path.join(base_dir, datetime.now().strftime("%Y-%m-%d %H_%M_%S_%f")) + ".wav"
 
 
-def similarity_rate(a, b):
+def rate_similarity(a, b):
     return SequenceMatcher(None, a, b).ratio()
 
 

@@ -322,9 +322,14 @@ def cancellable_tc(
             try:
                 assert result_tc.language is not None, "Language is None"
                 result_tc = remove_segments_by_str(
-                    result_tc, hallucination_filters[get_whisper_lang_name(result_tc.language) if auto else lang_source],
-                    sj.cache["filter_file_import_case_sensitive"], sj.cache["filter_file_import_strip"],
-                    sj.cache["filter_file_import_ignore_punctuations"]
+                    result_tc,
+                    hallucination_filters[get_whisper_lang_name(result_tc.language) if auto else lang_source],
+                    sj.cache["filter_file_import_case_sensitive"],
+                    sj.cache["filter_file_import_strip"],
+                    sj.cache["filter_file_import_ignore_punctuations"],
+                    sj.cache["filter_file_import_exact_match"],
+                    sj.cache["filter_file_import_similarity"],
+                    debug=True
                 )
             except Exception as e:
                 logger.exception(e)
@@ -492,9 +497,14 @@ def cancellable_tl(
                 try:
                     assert result_tl.language is not None, "Language is None"
                     result_tl = remove_segments_by_str(
-                        result_tl, hallucination_filters[get_whisper_lang_name(result_tl.language) if auto else lang_source],
-                        sj.cache["filter_file_import_case_sensitive"], sj.cache["filter_file_import_strip"],
-                        sj.cache["filter_file_import_ignore_punctuations"]
+                        result_tl,
+                        hallucination_filters[get_whisper_lang_name(result_tl.language) if auto else lang_source],
+                        sj.cache["filter_file_import_case_sensitive"],
+                        sj.cache["filter_file_import_strip"],
+                        sj.cache["filter_file_import_ignore_punctuations"],
+                        sj.cache["filter_file_import_exact_match"],
+                        sj.cache["filter_file_import_similarity"],
+                        debug=True
                     )
                 except Exception as e:
                     logger.exception(e)

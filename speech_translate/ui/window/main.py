@@ -55,7 +55,7 @@ from speech_translate.utils.helper import (
     open_folder,
     open_url,
     popup_menu,
-    similarity_rate,
+    rate_similarity,
     tb_copy_only,
     up_first_case,
     windows_os_only,
@@ -993,7 +993,7 @@ class MainWindow:
             found = False
             index = 0
             for i, name in enumerate(self.cb_mic["values"]):
-                if similarity_rate(default_device["name"], name) > 0.6:
+                if rate_similarity(default_device["name"], name) > 0.6:
                     found = True
                     index = i
                     break
@@ -1036,7 +1036,7 @@ class MainWindow:
             found = False
             index = 0
             for i, name in enumerate(self.cb_speaker["values"]):
-                if similarity_rate(default_device["name"], name) > 0.6:
+                if rate_similarity(default_device["name"], name) > 0.6:
                     found = True
                     index = i
                     break

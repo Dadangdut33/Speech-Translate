@@ -58,8 +58,13 @@ class RecordingOptionsDevice:
         self.auto_threshold_disabled = False
         self.silero_disabled = False
         self.webrtcvad = webrtcvad.Vad()
-        self.silerovad, _ = torch.hub.load(repo_or_dir=dir_silero_vad, source="local", model="silero_vad", onnx=True)
+        self.silerovad = None
         self.frame_duration = 10
+
+        def load_silero_in_thread():
+            self.silerovad, _ = torch.hub.load(repo_or_dir=dir_silero_vad, source="local", model="silero_vad", onnx=True)
+
+        Thread(target=load_silero_in_thread, daemon=True).start()
 
         self.lf_device = ttk.LabelFrame(self.master, text=self.long_device)
         self.lf_device.pack(side="top", padx=5, fill="both", expand=True)
@@ -335,6 +340,7 @@ class RecordingOptionsDevice:
 
         try:
             if open_stream and sj.cache.get(f"threshold_enable_{self.device}", True):
+                assert self.silerovad is not None, "SileroVAD is not loaded yet!"
                 logger.debug(f"Opening {self.long_device} meter")
                 self.possible_auto_threshold()
                 self.possible_silerovad()
@@ -402,7 +408,8 @@ class RecordingOptionsDevice:
 
         try:
             if self.stream:
-                self.silerovad.reset_states()
+                if self.silerovad:
+                    self.silerovad.reset_states()
                 self.audiometer.stop()
                 self.stream.stop_stream()
                 self.stream.close()
@@ -441,6 +448,7 @@ class RecordingOptionsDevice:
         Stream callback for the audio stream
         """
         try:
+            assert self.silerovad is not None, "SileroVAD is not loaded yet!"
             resampled = resample_sr(in_data, self.device_detail["sample_rate"], WHISPER_SR)
             db = get_db(in_data)
             self.audiometer.set_db(db)
@@ -465,7 +473,7 @@ class RecordingOptionsDevice:
                     conf: torch.Tensor = self.silerovad(
                         to_silero(resampled, self.device_detail["num_of_channels"]), WHISPER_SR
                     )
-                    is_speech = conf > sj.cache.get(f"threshold_silero_{self.device}_min", 0.7)
+                    is_speech = conf.item() >= sj.cache.get(f"threshold_silero_{self.device}_min", 0.7)
                 self.audiometer.set_recording(is_speech)
 
             return (in_data, pyaudio.paContinue)

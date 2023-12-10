@@ -199,7 +199,8 @@ class SettingTranscribe:
         self.spn_compression_ratio_threshold.pack(side="left", padx=5)
         tk_tooltips(
             [self.lbl_compression_ratio_threshold, self.spn_compression_ratio_threshold],
-            "if the gzip compression ratio is higher than this value, treat the decoding as failed"
+            "if the gzip compression ratio is higher than this value, treat the decoding as failed" \
+            "\n\nDefault is 2.4"
         )
 
         self.lbl_logprob_threshold = ttk.Label(self.f_threshold_1, text="Logprob", width=15)
@@ -217,7 +218,8 @@ class SettingTranscribe:
         self.spn_logprob_threshold.pack(side="left", padx=5)
         tk_tooltips(
             [self.lbl_logprob_threshold, self.spn_logprob_threshold],
-            "if the average log probability is lower than this value, treat the decoding as failed"
+            "if the average log probability is lower than this value, treat the decoding as failed" \
+            "\n\nDefault is -1.0"
         )
 
         self.lbl_no_speech_threshold = ttk.Label(self.f_threshold_1, text="No Speech", width=15)
@@ -236,7 +238,7 @@ class SettingTranscribe:
         tk_tooltips(
             [self.lbl_no_speech_threshold, self.spn_no_speech_threshold],
             "if the probability of the <|nospeech|> token is higher than this value AND the decoding " \
-            "has failed due to `logprob_threshold`, consider the segment as silence"
+            "has failed due to `logprob_threshold`, consider the segment as silence.\n\nDefault is 0.72"
         )
 
         # other whisper args
@@ -587,6 +589,9 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
         self.f_fltr_rec_3 = ttk.Frame(self.lf_fltr_rec)
         self.f_fltr_rec_3.pack(side="top", fill="x", pady=5, padx=5)
 
+        self.f_fltr_rec_4 = ttk.Frame(self.lf_fltr_rec)
+        self.f_fltr_rec_4.pack(side="top", fill="x", pady=5, padx=5)
+
         self.cbtn_fltr_rec = CustomCheckButton(
             self.f_fltr_rec_1,
             sj.cache["filter_rec"],
@@ -696,6 +701,50 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
             "Whether the case of the string need to match to be removed\n\nDefault is unchecked",
         )
 
+        self.lbl_fltr_rec_similarity = ttk.Label(self.f_fltr_rec_4, text="Similarity Rate", width=19)
+        self.lbl_fltr_rec_similarity.pack(side="left", padx=5)
+        self.spn_fltr_rec_similarity = SpinboxNumOnly(
+            self.root,
+            self.f_fltr_rec_4,
+            0.1,
+            1.0,
+            lambda x: sj.save_key("filter_rec_similarity", float(x)),
+            initial_value=sj.cache["filter_rec_similarity"],
+            num_float=True,
+            allow_empty=False,
+            delay=10,
+            width=15,
+        )
+        self.spn_fltr_rec_similarity.pack(side="left", padx=5)
+        tk_tooltips(
+            [self.lbl_fltr_rec_similarity, self.spn_fltr_rec_similarity],
+            "Similarity rate to use when not using \"Exact Match\" for comparing the filter and the" \
+            "result in segment in record.\n\nDefault is 0.8",
+        )
+
+        def toggle_exact_match_rec(value: bool, save=True):
+            if save:
+                sj.save_key("filter_rec_exact_match", value)
+            if value:
+                self.spn_fltr_rec_similarity.configure(state="disabled")
+            else:
+                self.spn_fltr_rec_similarity.configure(state="normal")
+
+        self.cbtn_fltr_rec_exact_match = CustomCheckButton(
+            self.f_fltr_rec_4,
+            sj.cache["filter_rec_exact_match"],
+            toggle_exact_match_rec,
+            text="Exact Match",
+            style="Switch.TCheckbutton",
+        )
+        self.cbtn_fltr_rec_exact_match.pack(side="left", padx=5)
+        tk_tooltip(
+            self.cbtn_fltr_rec_exact_match,
+            "Whether the string need to be exactly the same as the result in the segment to be removed" \
+            "\n\nDefault is unchecked",
+        )
+        toggle_exact_match_rec(sj.cache["filter_rec_exact_match"], save=False)
+
         # File import
         self.lf_fltr_file_import = ttk.LabelFrame(self.f_fltr_hallucination_1_r, text="• Filter File Import")
         self.lf_fltr_file_import.pack(side="top", fill="both", expand=True, padx=5, pady=5)
@@ -708,6 +757,9 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
 
         self.f_fltr_file_import_3 = ttk.Frame(self.lf_fltr_file_import)
         self.f_fltr_file_import_3.pack(side="top", fill="x", pady=5, padx=5)
+
+        self.f_fltr_file_import_4 = ttk.Frame(self.lf_fltr_file_import)
+        self.f_fltr_file_import_4.pack(side="top", fill="x", pady=5, padx=5)
 
         self.cbtn_filter_file_import = CustomCheckButton(
             self.f_fltr_file_import_1,
@@ -817,6 +869,50 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
             self.cbtn_fltr_file_import_case_sensitive,
             "Whether the case of the string need to match to be removed\n\nDefault is unchecked",
         )
+
+        self.lbl_fltr_file_import_similarity = ttk.Label(self.f_fltr_file_import_4, text="Similarity Rate", width=19)
+        self.lbl_fltr_file_import_similarity.pack(side="left", padx=5)
+        self.spn_fltr_file_import_similarity = SpinboxNumOnly(
+            self.root,
+            self.f_fltr_file_import_4,
+            0.1,
+            1.0,
+            lambda x: sj.save_key("filter_file_import_similarity", float(x)),
+            initial_value=sj.cache["filter_file_import_similarity"],
+            num_float=True,
+            allow_empty=False,
+            delay=10,
+            width=15,
+        )
+        self.spn_fltr_file_import_similarity.pack(side="left", padx=5)
+        tk_tooltips(
+            [self.lbl_fltr_file_import_similarity, self.spn_fltr_file_import_similarity],
+            "Similarity rate to use when not using \"Exact Match\" for comparing the filter and the" \
+            "result in segment in record.\n\nDefault is 0.8",
+        )
+
+        def toggle_exact_match_file_import(value: bool, save=True):
+            if save:
+                sj.save_key("filter_file_import_exact_match", value)
+            if value:
+                self.spn_fltr_file_import_similarity.configure(state="disabled")
+            else:
+                self.spn_fltr_file_import_similarity.configure(state="normal")
+
+        self.cbtn_fltr_file_import_exact_match = CustomCheckButton(
+            self.f_fltr_file_import_4,
+            sj.cache["filter_file_import_exact_match"],
+            toggle_exact_match_file_import,
+            text="Exact Match",
+            style="Switch.TCheckbutton",
+        )
+        self.cbtn_fltr_file_import_exact_match.pack(side="left", padx=5)
+        tk_tooltip(
+            self.cbtn_fltr_file_import_exact_match,
+            "Whether the string need to be exactly the same as the result in the segment to be removed" \
+            "\n\nDefault is checked",
+        )
+        toggle_exact_match_file_import(sj.cache["filter_file_import_exact_match"], save=False)
 
         # --------------------------
         self.__init_setting_once()

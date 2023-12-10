@@ -16,8 +16,10 @@ from whisper.tokenizer import LANGUAGES
 from whisper.utils import optional_float, optional_int
 
 from speech_translate._path import p_base_filter, p_filter_file_import, p_filter_rec
-from speech_translate.utils.types import SettingDict, StableTsResultDict
+from speech_translate.utils.types import SettingDict, StableTsResultDict, StableTsSegmentResult
 from speech_translate.utils.whisper.download import get_default_download_root
+
+from ..helper import rate_similarity
 
 model_select_dict = {
     "⚡ Tiny [1GB VRAM] (Fastest)": "tiny",
@@ -560,6 +562,7 @@ def stablets_verbose_log(result: stable_whisper.WhisperResult):
     logger.debug(f"Text: {res['text']}")
     logger.debug("Segments:")
     for segment in res["segments"]:
+        assert isinstance(segment, StableTsSegmentResult)
         logger.debug(f"Segment {segment['id']}")
         logger.debug(f"Seek: {segment['seek']}")
         logger.debug(f"Start: {segment['start']}")
@@ -937,6 +940,8 @@ def remove_segments_by_str(
     case_sensitive: bool = False,
     strip: bool = True,
     ignore_punctuations: str = "\"',.?!",
+    exact_match: bool = False,
+    sim_rate: float = 0.8,
     debug: bool = False,
 ):
     """
@@ -973,10 +978,12 @@ def remove_segments_by_str(
         str_to_find = [text.lower() for text in str_to_find]
 
     for i, full_segment in reversed(list(enumerate(all_segments_text))):
-        #  check if any of the exact str_to_find is the segment
-        if any(to_find == full_segment for to_find in str_to_find):
-            result.remove_segment(i, verbose=debug)
-
+        if exact_match:
+            if any(to_find == full_segment for to_find in str_to_find):
+                result.remove_segment(i, verbose=debug)
+        else:
+            if any(rate_similarity(to_find, full_segment) >= sim_rate for to_find in str_to_find):
+                result.remove_segment(i, verbose=debug)
     return result
 
 

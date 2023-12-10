@@ -192,12 +192,16 @@ class SettingDict(TypedDict):
     filter_rec_case_sensitive: bool
     filter_rec_strip: bool
     filter_rec_ignore_punctuations: str
+    filter_rec_exact_match: bool
+    filter_rec_similarity: float
     # file
     path_filter_file_import: str
     filter_file_import: bool
     filter_file_import_case_sensitive: bool
     filter_file_import_strip: bool
     filter_file_import_ignore_punctuations: str
+    filter_file_import_exact_match: bool
+    filter_file_import_similarity: float
     remove_repetition_file_import: bool
     remove_repetition_result_refinement: bool
     remove_repetition_result_alignment: bool

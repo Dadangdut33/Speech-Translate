@@ -755,7 +755,8 @@ def record_session(
                         result = remove_segments_by_str(
                             result, hallucination_filters[get_whisper_lang_name(result.language) if auto else lang_source],
                             sj.cache["filter_rec_case_sensitive"], sj.cache["filter_rec_strip"],
-                            sj.cache["filter_rec_ignore_punctuations"], sj.cache["debug_realtime_record"]
+                            sj.cache["filter_rec_ignore_punctuations"], sj.cache["filter_rec_exact_match"],
+                            sj.cache["filter_rec_similarity"], sj.cache["debug_realtime_record"]
                         )
                     except Exception as e:
                         logger.exception(e)
@@ -909,7 +910,7 @@ def record_cb(in_data, _frame_count, _time_info, _status):
                 is_speech = get_speech_webrtc(resampled, WHISPER_SR, frame_duration_ms, webrtc_vad)
                 if use_silero and is_speech:  # double check with silero if enabled
                     conf: torch.Tensor = silero_vad(to_silero(resampled, num_of_channels, samp_width), WHISPER_SR)
-                    is_speech = conf.item() > silero_min_conf
+                    is_speech = conf.item() >= silero_min_conf
 
                 audiometer.set_recording(is_speech)
             else:
@@ -965,7 +966,8 @@ def run_whisper_tl(audio, stable_tl, separator: str, with_lock, hallucination_fi
         try:
             result = remove_segments_by_str(
                 result, hallucination_filters["english"], sj.cache["filter_rec_case_sensitive"],
-                sj.cache["filter_rec_strip"], sj.cache["filter_rec_ignore_punctuations"], sj.cache["debug_realtime_record"]
+                sj.cache["filter_rec_strip"], sj.cache["filter_rec_ignore_punctuations"], sj.cache["filter_rec_exact_match"],
+                sj.cache["filter_rec_similarity"], sj.cache["debug_realtime_record"]
             )
         except Exception as e:
             logger.exception(e)
