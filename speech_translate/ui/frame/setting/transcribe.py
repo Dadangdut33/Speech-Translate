@@ -819,10 +819,10 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
         )
 
         # --------------------------
-        self.init_setting_once()
+        self.__init_setting_once()
 
     # ------------------ Functions ------------------
-    def init_setting_once(self):
+    def __init_setting_once(self):
         self.change_decoding_preset(sj.cache["decoding_preset"])
 
     def change_decoding_preset(self, value: str):

@@ -1,9 +1,8 @@
 from tkinter import TclError, ttk
 
 if __name__ == "__main__":
-    """
-    Debug get stylename options
-    """
+    # pylint: disable=consider-using-f-string
+    # Debug get stylename options
     stylename_map = {
         "TButton": ttk.Button,
         "TCheckbutton": ttk.Checkbutton,
@@ -31,8 +30,9 @@ if __name__ == "__main__":
         "Treeview": ttk.Treeview,
     }
 
-    def iter_layout(layout, tab_amnt=0, elements=[]):
+    def iter_layout(layout, tab_amnt=0):
         """Recursively prints the layout children."""
+        elements = []
         el_tabs = "  " * tab_amnt
         val_tabs = "  " * (tab_amnt + 1)
 
@@ -95,26 +95,26 @@ if __name__ == "__main__":
             )
 
     def main():
-        stylenameList = list(stylename_map.keys())
+        style_name_list = list(stylename_map.keys())
         print(">> Stylename List:")
-        for stylename in enumerate(stylenameList):
+        for stylename in enumerate(style_name_list):
             print("{:<3}{:<20}".format(stylename[0], stylename[1]))
 
         ask = input("Enter stylename (input nothing to print all): ")
 
         if len(ask) != 0:
             try:
-                styleNameGet = stylenameList[int(ask)]
-                stylename_map[styleNameGet]  # check
+                name_get = style_name_list[int(ask)]
+                stylename_map[name_get]  # check # pylint: disable=pointless-statement
 
                 print("=" * 100)
-                stylename_elements_options(styleNameGet)
+                stylename_elements_options(name_get)
             except Exception:
                 print("Invalid stylename. Input again")
                 print("=" * 100)
                 main()
         else:
-            for stylename in stylenameList:
+            for stylename in style_name_list:
                 print("=" * 100)
                 stylename_elements_options(stylename)
 

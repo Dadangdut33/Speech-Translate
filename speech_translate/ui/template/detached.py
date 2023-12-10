@@ -150,9 +150,9 @@ class SubtitleWindow:
             pass
 
         # init settings
-        self.init_settings()
+        self.__init_settings()
 
-    def init_settings(self):
+    def __init_settings(self):
         self.always_on_top.set(int(sj.cache[f"ex_{self.win_type}_always_on_top"]))
         self.toggle_always_on_top(from_keybind=False, on_init=True)
 

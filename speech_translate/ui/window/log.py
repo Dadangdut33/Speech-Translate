@@ -153,13 +153,11 @@ class LogWindow:
     def lower_font_size(self):
         logger.info("Lowering font size")
         self.current_font_size -= 1
-        if self.current_font_size < 3:
-            self.current_font_size = 3
+        self.current_font_size = max(self.current_font_size, 3)
         self.tb_logger.configure(font=("Consolas", self.current_font_size))
 
     def increase_font_size(self):
         logger.info("Increasing font size")
         self.current_font_size += 1
-        if self.current_font_size > 20:
-            self.current_font_size = 20
+        self.current_font_size = min(self.current_font_size, 20)
         self.tb_logger.configure(font=("Consolas", self.current_font_size))

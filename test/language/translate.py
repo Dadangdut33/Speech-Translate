@@ -1,14 +1,18 @@
 import os
 import sys
 from typing import Dict
+
+from deep_translator import GoogleTranslator, MyMemoryTranslator
 from loguru import logger
-from deep_translator import MyMemoryTranslator, GoogleTranslator
 
 toAdd = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(toAdd)
 
-from speech_translate.utils.translate.language import ( # noqa: E402
-    GOOGLE_TARGET, MY_MEMORY_TARGET, GOOGLE_KEY_VAL, MYMEMORY_KEY_VAL
+from speech_translate.utils.translate.language import (  # pylint: disable=wrong-import-position
+    GOOGLE_KEY_VAL,
+    GOOGLE_TARGET,
+    MY_MEMORY_TARGET,
+    MYMEMORY_KEY_VAL,
 )
 
 # * using deep_translator v1.11.1
@@ -18,9 +22,10 @@ from speech_translate.utils.translate.language import ( # noqa: E402
 # this time we are checking the key for translation. We want to see wether the translation works or not
 # this check may took a while because we are testing all the language
 # feel free to comment any engine that you dont want to test
-# i dont add test for libre because i added and tested the code from the docs directly and there is rarely any free libre server that is up
+# i dont add test for libre because i added and tested the code from the
+# docs directly and there is rarely any free libre server that is up
 
-test_string = "Hello world"
+TEST_STR = "Hello world"
 
 # GOOGLE
 logger.debug("---------------------------------------------------------")
@@ -33,9 +38,9 @@ for key in GOOGLE_TARGET:
     lang_code = GOOGLE_KEY_VAL[key]
 
     try:
-        logger.debug(f"Translating {test_string} to {key}")
-        res = GoogleTranslator(source="english", target=lang_code).translate(test_string)
-        logger.debug(f"Translated {test_string} to {key} with result {res}")
+        logger.debug(f"Translating {TEST_STR} to {key}")
+        res = GoogleTranslator(source="english", target=lang_code).translate(TEST_STR)
+        logger.debug(f"Translated {TEST_STR} to {key} with result {res}")
 
     except Exception as e:
         logger.exception(e)
@@ -56,9 +61,9 @@ for key in MY_MEMORY_TARGET:
     lang_code = MYMEMORY_KEY_VAL[key]
 
     try:
-        logger.debug(f"Translating {test_string} to {key}")
-        res = MyMemoryTranslator(source="english", target=lang_code).translate(test_string)
-        logger.debug(f"Translated {test_string} to {key} with result {res}")
+        logger.debug(f"Translating {TEST_STR} to {key}")
+        res = MyMemoryTranslator(source="english", target=lang_code).translate(TEST_STR)
+        logger.debug(f"Translated {TEST_STR} to {key} with result {res}")
         if "invalid" in str(res).lower():
             fail_info.append([key, lang_code, "got invalid"])
             logger.debug(f"Failed mymemory {len(fail_info)} times")

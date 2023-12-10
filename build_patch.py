@@ -1,10 +1,10 @@
-import torch._dynamo.skipfiles as skipfiles
+from torch._dynamo import skipfiles
 
 
 def replace_function(file_path: str, old_function_name: str, new_function_code: str):
     new_function_code = new_function_code.strip()
     # Step 1: Read the content of the file
-    with open(file_path, 'r') as file:
+    with open(file_path, 'r', encoding="utf-8") as file:
         file_content = file.read()
 
     # Step 2: Identify the function you want to replace
@@ -15,10 +15,10 @@ def replace_function(file_path: str, old_function_name: str, new_function_code: 
     old_function_end = file_content.find('\n\n', end_index)  # Assuming two newline characters indicate the end of a function
 
     # Step 4: Replace the old function with the new function
-    new_file_content = (file_content[:start_index] + new_function_code + file_content[old_function_end:])
+    new_file_content = file_content[:start_index] + new_function_code + file_content[old_function_end:]
 
     # Step 5: Write the modified content back to the file
-    with open(file_path, 'w') as file:
+    with open(file_path, 'w', encoding="utf-8") as file:
         file.write(new_file_content)
 
 

@@ -674,10 +674,10 @@ class SettingTextbox:
         )
 
         # --------------------------
-        self.init_setting_once()
+        self.__init_setting_once()
 
     # ------------------ Functions ------------------
-    def init_setting_once(self):
+    def __init_setting_once(self):
         self.preview_changes_tb()
 
     def tb_delete(self):

@@ -73,7 +73,7 @@ class SettingWindow:
         self.f_textbox = SettingTextbox(self.root, self.ft_textbox)
 
         # ------------------ Start ------------------
-        self.init_threaded()
+        self.__init_threaded()
         bind_focus_recursively(self.root, self.root)
         try:
             self.root.iconbitmap(p_app_icon)
@@ -81,7 +81,7 @@ class SettingWindow:
             pass
 
     # ------------------ Functions ------------------
-    def init_threaded(self):
+    def __init_threaded(self):
         """
         Init some startup function in a thread to avoid blocking
         """

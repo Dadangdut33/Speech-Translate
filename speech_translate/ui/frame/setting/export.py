@@ -443,10 +443,10 @@ class SettingExport:
         )
 
         # --------------------------
-        self.init_setting_once()
+        self.__init_setting_once()
 
     # ------------------ Functions ------------------
-    def init_setting_once(self):
+    def __init_setting_once(self):
         self.update_preview_export_format()
 
         if sj.cache["dir_export"] == "auto":

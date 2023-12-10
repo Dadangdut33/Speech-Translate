@@ -1,32 +1,32 @@
-import audioop
+import audioop  # pylint: disable=deprecated-module
 import wave
-import numpy as np
-from scipy.signal import resample_poly, butter, filtfilt
 
+import numpy as np
 import pyaudiowpatch as pyaudio
 import webrtcvad
+from scipy.signal import butter, filtfilt, resample_poly
 
 # Set the chunk size and sample rate
-chunk_size = 1024  # 160 = 10 ms
-sample_rate = 16000
-channel = 2
-max_int16 = 2**15
+CHUNK_SIZE = 1024  # 160 = 10 ms
+SR = 16000
+CHANNELS = 2
+MAX_INT16 = 2**15
 
-ms_per_read = (chunk_size / sample_rate) * 1000
+MS_PER_READ = (CHUNK_SIZE / SR) * 1000
 
 # Set the frame duration in ms based on ms_per_read
 # frame_duration_ms is based on WebRTC VAD compatibility (either 10, 20, or 30 ms)
 # if possible, set bigger frame duration for better detection
-if ms_per_read >= 30:
-    frame_duration_ms = 30
-elif ms_per_read >= 20:
-    frame_duration_ms = 20
+if MS_PER_READ >= 30:
+    FRAME_DURATION_MS = 30
+elif MS_PER_READ >= 20:
+    FRAME_DURATION_MS = 20
 else:
-    frame_duration_ms = 10
+    FRAME_DURATION_MS = 10
 
 print(
-    f"Chunk size: {chunk_size}, Sample rate: {sample_rate}, Channel: {channel}, "
-    f"Ms Per Read: {ms_per_read} ms, Frame duration: {frame_duration_ms} ms"
+    f"Chunk size: {CHUNK_SIZE}, Sample rate: {SR}, Channel: {CHANNELS}, "
+    f"Ms Per Read: {MS_PER_READ} ms, Frame duration: {FRAME_DURATION_MS} ms"
 )
 
 # 16kHz is needed for both whisper and WebRTC VAD
@@ -38,21 +38,21 @@ TARGET_RESAMPLE = 16000
 p = pyaudio.PyAudio()
 
 # Open the audio stream
-stream = p.open(format=pyaudio.paInt16, channels=channel, rate=sample_rate, input=True, frames_per_buffer=chunk_size)
+stream = p.open(format=pyaudio.paInt16, channels=CHANNELS, rate=SR, input=True, frames_per_buffer=CHUNK_SIZE)
 
 # Initialize WebRTC VAD
 vad = webrtcvad.Vad()
 vad.set_mode(3)  # Set the aggressiveness level (0-3)
 
 # Start recording
-recording = False
+RECORDING = False
 framestotal = []
 
 
 class Frame(object):
     """Represents a "frame" of audio data."""
-    def __init__(self, bytes, timestamp, duration):
-        self.bytes = bytes
+    def __init__(self, _bytes, timestamp, duration):
+        self.bytes = _bytes
         self.timestamp = timestamp
         self.duration = duration
 
@@ -82,9 +82,9 @@ try:
     print("Press Ctrl+C to stop recording")
     while True:
         # Read the audio data
-        data = stream.read(chunk_size)
+        data = stream.read(CHUNK_SIZE)
 
-        if sample_rate != TARGET_RESAMPLE:
+        if SR != TARGET_RESAMPLE:
             # resample the audio data to 16kHz
             audio_as_np_int16 = np.frombuffer(data, dtype=np.int16)  # read as numpy array of int16
             audio_as_np_float32 = audio_as_np_int16.astype(np.float32)  # convert to float32
@@ -93,17 +93,17 @@ try:
             # resampled = librosa.resample(audio_as_np_float32, orig_sr=sample_rate, target_sr=TARGET_RESAMPLE)
 
             # Filter the audio with a anti aliasing filter
-            nyquist = 0.5 * sample_rate
-            cutoff = 0.9 * nyquist  # Adjust the cutoff frequency as needed
-            b, a = butter(4, cutoff / nyquist, btype='low')
+            NYQUIST = 0.5 * SR
+            CUTOFF = 0.9 * NYQUIST  # Adjust the cutoff frequency as needed
+            b, a = butter(4, CUTOFF / NYQUIST, btype='low')
             y_filtered = filtfilt(b, a, audio_as_np_float32)
 
             # Resample the filtered audio with zero-padding
-            resampled = resample_poly(audio_as_np_float32, TARGET_RESAMPLE, sample_rate, window=('kaiser', 5.0))
+            resampled = resample_poly(audio_as_np_float32, TARGET_RESAMPLE, SR, window=('kaiser', 5.0))
 
             data = resampled.astype(np.int16).tobytes()  # convert back to int16 and bytes
 
-        frames = list(frame_generator(frame_duration_ms, data, TARGET_RESAMPLE, get_only_first_frame=True))
+        frames = list(frame_generator(FRAME_DURATION_MS, data, TARGET_RESAMPLE, get_only_first_frame=True))
 
         # Use WebRTC VAD to detect speech
         data_to_check = data if len(frames) == 0 else frames[0].bytes
@@ -112,23 +112,23 @@ try:
         # Calculate the dB value
         rms = audioop.rms(data, 2) / 32767
         if rms == 0.0:
-            db = 0.0
+            DB = 0.0
         else:
-            db = 20 * np.log10(rms)
+            DB = 20 * np.log10(rms)
 
         # If recording, store the audio data
         if is_speech:
             framestotal.append(data)
 
         # Print debugging information
-        print(f"Speech: {is_speech}, dB: {db:.2f}\tFrames: {len(frames)}", end="\r\r")
+        print(f"Speech: {is_speech}, dB: {DB:.2f}\tFrames: {len(frames)}", end="\r\r")
 
 except KeyboardInterrupt:
     pass
 
 # Save the recorded audio to a WAV file
 wf = wave.open("output.wav", "wb")
-wf.setnchannels(channel)
+wf.setnchannels(CHANNELS)
 wf.setsampwidth(p.get_sample_size(pyaudio.paInt16))
 wf.setframerate(TARGET_RESAMPLE)
 wf.writeframes(b"".join(framestotal))

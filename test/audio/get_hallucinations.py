@@ -1,14 +1,15 @@
+import json
 import os
 import sys
+
 import stable_whisper
-import json
 from loguru import logger
 from whisper.tokenizer import TO_LANGUAGE_CODE
 
 toAdd = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(toAdd)
 
-from speech_translate.utils.translate.language import (get_whisper_lang_similar)  # noqa: E402
+from speech_translate.utils.translate.language import get_whisper_lang_similar  # pylint: disable=wrong-import-position
 
 WHISPER_LANG_LIST = list(TO_LANGUAGE_CODE.keys())
 WHISPER_LANG_LIST.sort()
@@ -29,8 +30,10 @@ kwargs_sw = {
 logger.debug("Audio Path: " + audio)
 for lang in WHISPER_LANG_LIST:
     try:
-        res: stable_whisper.WhisperResult = model.transcribe_stable( # type: ignore
-            audio, task="transcribe", language=TO_LANGUAGE_CODE[get_whisper_lang_similar(lang, False)], verbose=False, **kwargs_fw
+        res: stable_whisper.WhisperResult = model.transcribe_stable( # type: ignore # pylint: disable=not-callable
+            audio, task="transcribe",
+            language=TO_LANGUAGE_CODE[get_whisper_lang_similar(lang, False)],
+            verbose=False, **kwargs_fw,
         )
         HALLUCINATION_LIST_FW[lang] = [res.text.strip()]
         logger.debug(f"Got {res.text} for {lang}")
@@ -52,7 +55,9 @@ HALLUCINATION_LIST_SW = {}
 for lang in WHISPER_LANG_LIST:
     try:
         res: stable_whisper.WhisperResult = model_sw.transcribe( # type: ignore
-            audio, task="transcribe", language=TO_LANGUAGE_CODE[get_whisper_lang_similar(lang, False)], verbose=False, **kwargs_sw # type: ignore
+            audio, task="transcribe",
+            language=TO_LANGUAGE_CODE[get_whisper_lang_similar(lang, False)],
+            verbose=False, **kwargs_sw # type: ignore
         )
         HALLUCINATION_LIST_SW[lang] = [res.text.strip()]
         logger.debug(f"Got {res.text} for {lang}")
@@ -71,7 +76,6 @@ sys.path.remove(toAdd)
 
 # Use this function below if you want to combine the results
 def combine_json_files(file1, file2, output_file):
-    import json
     # Load data from the three input JSON files
     with open(file1, 'r', encoding="utf-8") as f1:
         data1 = json.load(f1)

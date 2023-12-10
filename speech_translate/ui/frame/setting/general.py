@@ -477,10 +477,10 @@ class SettingGeneral:
         )
 
         # ------------------ Functions ------------------
-        self.init_setting_once()
+        self.__init_setting_once()
 
     # ------------------ Functions ------------------
-    def init_setting_once(self):
+    def __init_setting_once(self):
         self.fill_theme()
 
     def delete_log(self):

@@ -1,16 +1,18 @@
-import unittest
-from tkinter import Tk
-
 import os
 import sys
+import unittest
+from tkinter import Tk
 
 toAdd = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(toAdd)
 
-from speech_translate.ui.custom.combobox import ComboboxTypeOnCustom  # noqa: E402
+from speech_translate.ui.custom.combobox import ComboboxTypeOnCustom  # pylint: disable=wrong-import-position
 
 
 class TestComboboxTypeOnCustom(unittest.TestCase):
+    """
+    ComboboxTypeOnCustom class test    
+    """
     def setUp(self):
         self.root = Tk()
 

@@ -885,7 +885,9 @@ def record_cb(in_data, _frame_count, _time_info, _status):
         # run vad at least once to check if it is possible to use with current device config
         if not vad_checked:
             vad_checked = True
+            logger.debug("Checking if webrtcvad is possible to use. You can ignore the error log if it fails!")
             get_speech_webrtc(resampled, WHISPER_SR, frame_duration_ms, webrtc_vad)
+            logger.debug("Checking if silero is possible to use. You can ignore the error log if it fails!")
             silero_vad(to_silero(resampled, num_of_channels, samp_width), WHISPER_SR)
 
         if not threshold_enable:

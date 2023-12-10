@@ -100,11 +100,11 @@ class AppTray:
         self.menu: menu = None  # type: ignore
         self.menu_items = None  # type: ignore
         bc.tray = self
-        self.create_tray()
+        self.__create_tray()
         logger.info("Tray created")
 
     # -- Tray icon
-    def create_image(self, width, height, color1, color2):
+    def __create_image(self, width, height, color1, color2):
         # Generate an image and draw a pattern
         image = Image.new("RGB", (width, height), color1)
         dc = ImageDraw.Draw(image)
@@ -114,11 +114,11 @@ class AppTray:
         return image
 
     # -- Create tray
-    def create_tray(self):
+    def __create_tray(self):
         try:
             ico = Image.open(p_app_icon)
         except Exception:
-            ico = self.create_image(64, 64, "black", "white")
+            ico = self.__create_image(64, 64, "black", "white")
 
         self.menu_items = (
             item(f"{APP_NAME} {__version__}", lambda *args: None, enabled=False),  # do nothing
@@ -599,7 +599,7 @@ class MainWindow:
         self.root.lift()
         self.root.attributes('-topmost', True)
         self.root.after_idle(self.root.attributes, '-topmost', False)
-        self.on_init()
+        self.__on_init()
         # ------------------ Set Icon ------------------
         try:
             self.root.iconbitmap(p_app_icon)
@@ -607,7 +607,7 @@ class MainWindow:
             pass
 
     # on start
-    def on_init(self):
+    def __on_init(self):
         if system() != "Windows":
             self.radio_speaker.configure(state="disabled")
 

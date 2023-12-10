@@ -1,15 +1,26 @@
 import os
 import sys
 from typing import Dict
+
 from loguru import logger
 
 toAdd = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(toAdd)
 
-from speech_translate.utils.translate.language import ( # noqa: E402
-    GOOGLE_SOURCE, LIBRE_SOURCE, MYMEMORY_SOURCE, GOOGLE_TARGET, LIBRE_TARGET,
-    MY_MEMORY_TARGET, get_whisper_lang_similar, GOOGLE_KEY_VAL, LIBRE_KEY_VAL, MYMEMORY_KEY_VAL
+from speech_translate.utils.translate.language import (  # pylint: disable=wrong-import-position
+    GOOGLE_KEY_VAL,
+    GOOGLE_SOURCE,
+    GOOGLE_TARGET,
+    LIBRE_KEY_VAL,
+    LIBRE_SOURCE,
+    LIBRE_TARGET,
+    MY_MEMORY_TARGET,
+    MYMEMORY_KEY_VAL,
+    MYMEMORY_SOURCE,
+    get_whisper_lang_similar,
 )
+
+# pylint: disable=pointless-statement
 
 # making sure that every key in google source pass the get_whisper_key_from_similar
 # skipping auto detect because this is not a language and when on auto mode we already have a method set for it

@@ -1,15 +1,18 @@
-import unittest
-from unittest.mock import MagicMock
 import os
 import sys
+import unittest
+from unittest.mock import MagicMock
 
 toAdd = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(toAdd)
 
-from speech_translate.ui.custom.audio import AudioMeter  # noqa: E402
+from speech_translate.ui.custom.audio import AudioMeter  # pylint: disable=wrong-import-position
 
 
 class TestAudioMeter(unittest.TestCase):
+    """
+    Test AudioMeter class    
+    """
     def setUp(self):
         self.root = MagicMock()
         self.master = MagicMock()
