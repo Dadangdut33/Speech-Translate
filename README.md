@@ -94,8 +94,8 @@ Speech Translate aims to expand whisper ability by combining it with some transl
 \* Python 3.8 or later (3.11 is recommended) for installation as module.
 
 - Speaker input only work on windows 8 and above.
-- Internet connection (for translation with API)
-- Recommended to have capable [GPU with CUDA compatibility](https://developer.nvidia.com/cuda-gpus) (prebuilt version is using CUDA 11.8) to run each model. Each whisper model has different requirements, for more information you can check it directly at the [whisper repository](https://github.com/openai/whisper).
+- Internet connection (for translation with API & downloading models)
+- Recommended to have capable [GPU with CUDA compatibility](https://developer.nvidia.com/cuda-gpus) (prebuilt version is using CUDA 11.8) for faster result. Each whisper model has different requirements, for more information you can check it directly at the [whisper repository](https://github.com/openai/whisper).
 
 |  Size  | Parameters | English-only model | Multilingual model | Required VRAM | Relative speed |
 |:------:|:----------:|:------------------:|:------------------:|:-------------:|:--------------:|
@@ -118,7 +118,7 @@ Speech Translate aims to expand whisper ability by combining it with some transl
 > [!NOTE]  
 > The prebuilt binary is shipped with CUDA 11.8, so it will only work with GPU that has CUDA 11.8 compatibility. If your GPU is not compatible, you can try [installation as module](#as-a-module) or [from git](#From-Git) below.
 
-1. Download the [latest release](https://github.com/Dadangdut33/Speech-Translate/releases/latest) (There are 2 versions, CPU and GPU)
+1. Download the [latest release](https://github.com/Dadangdut33/Speech-Translate/releases/latest) (There are 2 versions, CPU and GPU/CUDA)
 2. Install/extract the downloaded file
 3. Run the program
 4. Set the settings to your liking
