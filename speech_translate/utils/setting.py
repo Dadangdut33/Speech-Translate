@@ -92,6 +92,7 @@ default_setting: SettingDict = {
     "threshold_auto_level_mic": 3,
     "threshold_db_mic": -20.0,
     "auto_break_buffer_mic": True,
+    "min_input_length_mic": 0.4,
     "max_buffer_mic": 10,
     "max_sentences_mic": 5,
     # speaker - device option
@@ -108,6 +109,7 @@ default_setting: SettingDict = {
     "threshold_silero_speaker_min": 0.7,
     "threshold_db_speaker": -20.0,
     "auto_break_buffer_speaker": True,
+    "min_input_length_speaker": 0.4,
     "max_buffer_speaker": 10,
     "max_sentences_speaker": 5,
     # Transcribe settings

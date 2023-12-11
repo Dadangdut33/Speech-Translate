@@ -653,7 +653,7 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
             )
         )
         self.menu_fltr_rec.add_command(
-            label="Set back to Default Filter File",
+            label="Set Back to Default Filter File",
             compound="left",
             image=bc.reset_emoji,
             command=lambda: confirm_reset("Reset Filter File", self.entry_fltr_rec, "path_filter_rec", p_filter_rec),
@@ -822,7 +822,7 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
             ),
         )
         self.menu_fltr_file_import.add_command(
-            label="Set back to Default Filter File",
+            label="Set Back to Default Filter File",
             image=bc.reset_emoji,
             compound="left",
             command=lambda:

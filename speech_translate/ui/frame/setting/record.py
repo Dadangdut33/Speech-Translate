@@ -85,11 +85,34 @@ class RecordingOptionsDevice:
         self.f_device_5.pack(side="top", fill="x", pady=5, padx=5)
 
         # 1
-        self.lbl_buffer = ttk.Label(self.f_device_1, text="Max buffer (s)", width=14)
+        self.lbl_min_input = ttk.Label(self.f_device_1, text="Min Input Length", width=16)
+        self.lbl_min_input.pack(side="left", padx=5)
+        self.spn_min_input = SpinboxNumOnly(
+            self.root,
+            self.f_device_1,
+            0.1,
+            10,
+            lambda x: sj.save_key(f"min_input_length_{device}", float(x)),
+            initial_value=sj.cache.get(f"min_input_length_{device}", 0.4),
+            num_float=True,
+            allow_empty=False,
+            delay=10
+        )
+        self.spn_min_input.pack(side="left", padx=5)
+        tk_tooltips(
+            [self.lbl_min_input, self.spn_min_input],
+            f"Set the minimum input length (in seconds) for the {self.long_device} " \
+            "input to be considered as a valid input." \
+            "\n\nThis means that the input must be at least x seconds long before being passed " \
+            "to Whisper to get the result.\n\nDefault value is 0.4 seconds.",
+        )
+
+        # 1
+        self.lbl_buffer = ttk.Label(self.f_device_2, text="Max buffer (s)", width=16)
         self.lbl_buffer.pack(side="left", padx=5)
         self.spn_buffer = SpinboxNumOnly(
             self.root,
-            self.f_device_1,
+            self.f_device_2,
             1,
             30,
             lambda x: sj.save_key(f"max_buffer_{device}", int(x)),
@@ -98,16 +121,12 @@ class RecordingOptionsDevice:
         self.spn_buffer.pack(side="left", padx=5)
         tk_tooltips(
             [self.lbl_buffer, self.spn_buffer],
-            "Set the max buffer (in seconds) for {self.long_device} input.\n\nThe longer the buffer, the more time "
+            f"Set the max buffer (in seconds) for {self.long_device} input.\n\nThe longer the buffer, the more time "
             "it will take to transcribe the audio. Not recommended to have very long buffer on low end PC."
             "\n\nDefault value is 10 seconds.",
         )
 
-        self.lbl_hint_buffer = ttk.Label(self.f_device_1, image=bc.help_emoji, compound="left")
-        self.lbl_hint_buffer.pack(side="left", padx=5)
-
-        # 2
-        self.lbl_max_sentences = ttk.Label(self.f_device_2, text="Max Sentences", width=14)
+        self.lbl_max_sentences = ttk.Label(self.f_device_2, text="Max Sentences", width=16)
         self.lbl_max_sentences.pack(side="left", padx=5)
         self.spn_max_sentences = SpinboxNumOnly(
             self.root,
@@ -167,9 +186,6 @@ class RecordingOptionsDevice:
             "is silence detected for more than 1 second. This could help in reducing the background noise." \
             "\n\nDefault is checked",
         )
-
-        self.lbl_hint_threshold = ttk.Label(self.f_device_3, image=bc.help_emoji, compound="left")
-        self.lbl_hint_threshold.pack(side="left", padx=5)
 
         # 4
         # vad for auto
@@ -312,7 +328,7 @@ class RecordingOptionsDevice:
             self.audiometer.set_auto(False)
             self.audiometer.configure(height=30)
             self.scale_threshold_db.configure(state="normal")
-            self.lbl_threshold_db.configure(text=f"{float(self.scale_threshold_db.get()):.2f} dB")
+            self.lbl_threshold_db_value.configure(text=f"{float(self.scale_threshold_db.get()):.2f} dB")
 
             self.lbl_sensitivity.pack_forget()
             self.radio_webrtc_sens_1.pack_forget()
@@ -320,6 +336,7 @@ class RecordingOptionsDevice:
             self.radio_webrtc_sens_3.pack_forget()
             self.vert_sep.pack_forget()
             self.cbtn_threshold_auto_silero.pack_forget()
+            self.toggle_silero_vad(False, save=False)
 
             self.lbl_threshold_db.pack(side="left", padx=5)
             self.scale_threshold_db.pack(side="left", padx=5)
@@ -975,7 +992,7 @@ class SettingRecord:
                 self.speaker_rec_option.spn_max_sentences, self.speaker_rec_option.cbtn_threshold_enable,
                 self.speaker_rec_option.cbtn_threshold_auto, self.speaker_rec_option.cbtn_threshold_auto,
                 self.speaker_rec_option.spn_silero_min, self.speaker_rec_option.cbtn_auto_break_buffer,
-                self.speaker_rec_option.lbl_hint_threshold, self.speaker_rec_option.scale_threshold_db
+                self.speaker_rec_option.scale_threshold_db
             ]
         )
 

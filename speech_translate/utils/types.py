@@ -161,6 +161,7 @@ class SettingDict(TypedDict):
     threshold_silero_mic_min: float
     threshold_db_mic: float
     auto_break_buffer_mic: bool
+    min_input_length_mic: float
     max_buffer_mic: int
     max_sentences_mic: int
     # speaker - device option
@@ -177,6 +178,7 @@ class SettingDict(TypedDict):
     threshold_silero_speaker_min: float
     threshold_db_speaker: float
     auto_break_buffer_speaker: bool
+    min_input_length_speaker: float
     max_buffer_speaker: int
     max_sentences_speaker: int
     # Transcribe settings

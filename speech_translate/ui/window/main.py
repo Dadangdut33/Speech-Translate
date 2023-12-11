@@ -222,6 +222,7 @@ class MainWindow:
 
         set_ui_style(sj.cache["theme"])
 
+        bc.help_emoji = emoji_img(16, "❓")
         bc.wrench_emoji = emoji_img(16, "     🛠️")
         bc.folder_emoji = emoji_img(13, " 📂")
         bc.open_emoji = emoji_img(13, "     ↗️")

@@ -705,7 +705,7 @@ def record_session(
                     logger.debug(f"File Write Time: {time() - t_start_write}")
 
             # if duration is < 0.4 seconds, skip. Wait until more context is available
-            if duration_seconds < 0.4:
+            if duration_seconds < sj.cache.get(f"min_input_length_{rec_type}", 0.4):
                 if sj.cache["debug_realtime_record"]:
                     logger.debug(f"Duration is {duration_seconds} seconds. Skipping")
                 continue
