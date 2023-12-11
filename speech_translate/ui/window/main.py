@@ -1,4 +1,5 @@
 import os
+import sys
 from platform import processor, release, system, version
 from signal import SIGINT, signal  # Import the signal module to handle Ctrl+C
 from threading import Thread
@@ -6,7 +7,6 @@ from time import sleep, strftime, time
 from tkinter import Frame, Menu, StringVar, Tk, Toplevel, filedialog, ttk
 from typing import Callable, Dict, Literal, Optional
 
-import static_ffmpeg
 from loguru import logger
 from PIL import Image, ImageDraw
 from pystray import Icon as icon
@@ -79,6 +79,27 @@ from speech_translate.utils.whisper.helper import (
     model_keys,
     save_output_stable_ts,
 )
+
+
+# modify static_ffmpeg add_paths
+def add_ffmpeg_to_path(weak=False) -> bool:
+    """Add the ffmpeg executable to the path"""
+    if getattr(sys, "frozen", False):
+        # pylint: disable=import-outside-toplevel, protected-access
+        from static_ffmpeg import _add_paths, run
+        run.sys.stdout = sys.stderr
+        if weak:
+            has_ffmpeg = _add_paths._has("ffmpeg") is not None
+            has_ffprobe = _add_paths._has("ffprobe") is not None
+            if has_ffmpeg and has_ffprobe:
+                return False
+        ffmpeg, _ = run.get_or_fetch_platform_executables_else_raise()
+        os.environ["PATH"] = os.pathsep.join([os.path.dirname(ffmpeg), os.environ["PATH"]])
+        return True
+    else:
+        # pylint: disable=import-outside-toplevel
+        from static_ffmpeg import _add_paths
+        return _add_paths.add_paths()
 
 
 # Function to handle Ctrl+C and exit just like clicking the exit button
@@ -646,7 +667,7 @@ class MainWindow:
         def check_ffmpeg():
             try:
                 logger.debug("Checking ffmpeg...")
-                static_ffmpeg.add_paths()
+                add_ffmpeg_to_path()
                 logger.debug("Checking ffmpeg done")
                 bc.has_ffmpeg = True
             except Exception as e:

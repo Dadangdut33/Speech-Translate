@@ -4,8 +4,7 @@ Speech Translate is a practical application that combines OpenAI's Whisper ASR m
 
 Requirements:
 - Windows 8.1 or higher for speaker input
-- FFmpeg installed in your system (the app will prompt you to install it if you don't have it)
-- Internet connection (for translation with API)
+- Internet connection (for translation with API & downloading models)
 - Each whisper model requires the following VRAM:
   * tiny (~1 GB)
   * base (~1 GB)
@@ -13,7 +12,7 @@ Requirements:
   * medium (~5 GB)
   * large (~10 GB)
 
-Whisper can be used with CPU but will be very limited when doing so. It is recommended to use a cuda compatible GPU for better performance.
+Whisper can be used with CPU but will be very limited / slow when doing so. It is recommended to use a cuda compatible GPU for better performance.
   
 Please also note that when using faster-whisper, the speed will be significantly faster and the model size will be reduced depending on the usage. For more information about this please visit https://github.com/guillaumekln/faster-whisper
 

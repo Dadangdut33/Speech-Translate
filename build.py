@@ -54,12 +54,17 @@ print(">> Done")
 print("Whisper version:", get_whisper_version())
 
 folder_name = f"build/SpeechTranslate {app_version()} {get_env_name()}"
+root = os.path.dirname(os.path.abspath(__file__))
+
+print("ROOT:", root)
+print("Assets:", os.path.abspath(os.path.join(root, "speech_translate", "assets")))
 
 build_exe_options = {
     "excludes": ["yapf", "ruff", "cx_Freeze", "pylint", "isort"],
     "packages": ["torch", "soundfile", "sounddevice", "av", "stable_whisper", "faster_whisper", "whisper"],
     "build_exe": folder_name,
-    "include_msvcr": True
+    "include_msvcr": True,
+    "include_files": [(os.path.abspath(os.path.join(root, "speech_translate", "assets")), "lib/speech_translate/assets")],
 }
 
 BASE = "Win32GUI" if sys.platform == "win32" else None
@@ -114,11 +119,6 @@ with open("build/pre_install_note.txt", "r", encoding="utf-8") as f:
 print(">> Creating version.txt")
 with open(f"{folder_name}/version.txt", "w", encoding="utf-8") as f:
     f.write(app_version())
-
-# copy install_ffmpeg.ps1 to build folder
-print(">> Copying install_ffmpeg.ps1 to build folder")
-shutil.copyfile("install_ffmpeg.ps1", f"{folder_name}/install_ffmpeg.ps1")
-shutil.copyfile("install_ffmpeg.ps1", f"{folder_name}/lib/install_ffmpeg.ps1")
 
 # create link to repo
 print(">> Creating link to repo")

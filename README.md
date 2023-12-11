@@ -150,7 +150,7 @@ You can then run the program by typing `speech-translate` in your terminal/conso
 
 - If you are **updating from an older version**, you need to add `--upgrade --force-reinstall` at the end of the command, if the update does not need new dependencies you can add `--no-deps` at the end of the command to speed up the installation process.
 - If you want to **install** from a **specific branch or commit**, you can do it by adding `@branch_name` or `@commit_hash` at the end of the url. Example: `pip install -U git+https://github.com/Dadangdut33/Speech-Translate.git@dev --extra-index-url https://download.pytorch.org/whl/cu118`
-- The **--extra-index-url here might not always be up to date or compatible with your system**. You can check the latest version of pytorch [here](https://pytorch.org/get-started/locally/). You can check older version of pytorch [here](https://pytorch.org/get-started/previous-versions/) or [here](https://download.pytorch.org/whl/torch_stable.html).
+- The **--extra-index-url here is for the version of CUDA**. If your device is not compatible or you need to use other version of CUDA you can check older version of pytorch [here](https://pytorch.org/get-started/previous-versions/) or [here](https://download.pytorch.org/whl/torch_stable.html).
 
 ## From Git
 
@@ -179,6 +179,11 @@ Check out the [wiki](https://github.com/Dadangdut33/Speech-Translate/wiki) for m
 4. [Activate your virtual environment](https://docs.python.org/3/library/venv.html#how-venvs-work)
 5. Install all the dependencies needed by running `pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu118` if you are using GPU or `pip install -r requirements.txt` if you are using CPU.
 6. Run `python Run.py` in root directory to run the app.
+
+Notes: 
+
+- If you forgot the `--recure-submodules` flag when cloning the repository, you can do `git submodule update --init --recursive` in the project directory to pull the needed submodules.
+- The `--extra-index-url` is needed to install CUDA version of pytorch and for this one we are using CUDA 11.8. If your device is not compatible or you need to use other version of CUDA you can check the previous pytorch version in this [link](https://pytorch.org/get-started/previous-versions/) or [this](https://download.pytorch.org/whl/torch_stable.html).
 
 ## Running the app
 
