@@ -323,7 +323,8 @@ def cancellable_tc(
                 assert result_tc.language is not None, "Language is None"
                 result_tc = remove_segments_by_str(
                     result_tc,
-                    hallucination_filters[get_whisper_lang_name(result_tc.language) if auto else lang_source],
+                    hallucination_filters[get_whisper_lang_name(result_tc.language) \
+                                        if auto else get_whisper_lang_similar(lang_source)],
                     sj.cache["filter_file_import_case_sensitive"],
                     sj.cache["filter_file_import_strip"],
                     sj.cache["filter_file_import_ignore_punctuations"],
@@ -498,7 +499,7 @@ def cancellable_tl(
                     assert result_tl.language is not None, "Language is None"
                     result_tl = remove_segments_by_str(
                         result_tl,
-                        hallucination_filters[get_whisper_lang_name(result_tl.language) if auto else lang_source],
+                        hallucination_filters["english"],
                         sj.cache["filter_file_import_case_sensitive"],
                         sj.cache["filter_file_import_strip"],
                         sj.cache["filter_file_import_ignore_punctuations"],

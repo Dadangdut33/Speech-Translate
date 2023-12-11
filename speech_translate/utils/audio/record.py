@@ -275,7 +275,8 @@ def record_session(
         )
         whisper_args = get_tc_args(to_args, sj.cache)
         whisper_args["verbose"] = None  # set to none so no printing of the progress to stdout
-        whisper_args["language"] = TO_LANGUAGE_CODE[get_whisper_lang_similar(lang_source)] if not auto else None
+        whisper_lang = get_whisper_lang_similar(lang_source) if not auto else None
+        whisper_args["language"] = TO_LANGUAGE_CODE[whisper_lang] if whisper_lang else None
 
         if sj.cache["use_faster_whisper"] and not use_temp:
             whisper_args["input_sr"] = WHISPER_SR  # when using numpy array as input, will need to set input_sr
@@ -297,6 +298,7 @@ def record_session(
         logger.info(f"Engine: {engine}")
         logger.info(f"CUDA: {cuda_device}")
         logger.info(f"Auto mode: {auto}")
+        logger.info(f"Whisper Lang/Key: {whisper_lang}/{whisper_args['language']}")
         logger.info(f"Source Languange: {lang_source}")
         if is_tl:
             logger.info(f"Target Language: {lang_target}")
@@ -753,10 +755,15 @@ def record_session(
                 if sj.cache["filter_rec"]:
                     try:
                         result = remove_segments_by_str(
-                            result, hallucination_filters[get_whisper_lang_name(result.language) if auto else lang_source],
-                            sj.cache["filter_rec_case_sensitive"], sj.cache["filter_rec_strip"],
-                            sj.cache["filter_rec_ignore_punctuations"], sj.cache["filter_rec_exact_match"],
-                            sj.cache["filter_rec_similarity"], sj.cache["debug_realtime_record"]
+                            result,
+                            hallucination_filters[get_whisper_lang_name(result.language) \
+                                                  if auto else whisper_lang],
+                            sj.cache["filter_rec_case_sensitive"],
+                            sj.cache["filter_rec_strip"],
+                            sj.cache["filter_rec_ignore_punctuations"],
+                            sj.cache["filter_rec_exact_match"],
+                            sj.cache["filter_rec_similarity"],
+                            sj.cache["debug_realtime_record"],
                         )
                     except Exception as e:
                         logger.exception(e)
