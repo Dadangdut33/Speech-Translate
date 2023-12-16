@@ -142,7 +142,7 @@ class SettingTranscribe:
         self.spn_best_of.pack(side="left", padx=5)
         tk_tooltips([self.lbl_best_of, self.spn_best_of], "Number of candidates when sampling with non-zero temperature")
 
-        self.lbl_beam_size = ttk.Label(self.f_decoding_3, text="Beam size", width=15)
+        self.lbl_beam_size = ttk.Label(self.f_decoding_3, text="Beam size", width=10)
         self.lbl_beam_size.pack(side="left", padx=5)
         self.spn_beam_size = SpinboxNumOnly(
             self.root,
@@ -162,7 +162,7 @@ class SettingTranscribe:
             "Number of beams in beam search, only applicable when temperature is zero"
         )
 
-        self.lbl_patience = ttk.Label(self.f_decoding_3, text="Patience", width=19)
+        self.lbl_patience = ttk.Label(self.f_decoding_3, text="Patience", width=10)
         self.lbl_patience.pack(side="left", padx=5)
         self.spn_patience = SpinboxNumOnly(
             self.root,
@@ -203,7 +203,7 @@ class SettingTranscribe:
             "\n\nDefault is 2.4"
         )
 
-        self.lbl_logprob_threshold = ttk.Label(self.f_threshold_1, text="Logprob", width=15)
+        self.lbl_logprob_threshold = ttk.Label(self.f_threshold_1, text="Logprob", width=10)
         self.lbl_logprob_threshold.pack(side="left", padx=5)
         self.spn_logprob_threshold = SpinboxNumOnly(
             self.root,
@@ -222,7 +222,7 @@ class SettingTranscribe:
             "\n\nDefault is -1.0"
         )
 
-        self.lbl_no_speech_threshold = ttk.Label(self.f_threshold_1, text="No Speech", width=15)
+        self.lbl_no_speech_threshold = ttk.Label(self.f_threshold_1, text="No Speech", width=10)
         self.lbl_no_speech_threshold.pack(side="left", padx=5)
         self.spn_no_speech_threshold = SpinboxNumOnly(
             self.root,
@@ -258,7 +258,7 @@ class SettingTranscribe:
             "optional text to provide as a prompt for the first window.\n\nDefault is empty",
         )
 
-        self.lbl_prefix = ttk.Label(self.f_whisper_args_1, text="Prefix", width=15)
+        self.lbl_prefix = ttk.Label(self.f_whisper_args_1, text="Prefix")
         self.lbl_prefix.pack(side="left", padx=5)
         self.entry_prefix = ttk.Entry(self.f_whisper_args_1, width=30)
         self.entry_prefix.insert(0, sj.cache["prefix"] or "")
@@ -273,7 +273,7 @@ class SettingTranscribe:
             "Optional text to prefix the current context.\n\nDefault is empty",
         )
 
-        self.lbl_suppress_tokens = ttk.Label(self.f_whisper_args_1, text="Supress Token", width=15)
+        self.lbl_suppress_tokens = ttk.Label(self.f_whisper_args_1, text="Supress Token")
         self.lbl_suppress_tokens.pack(side="left", padx=5)
         self.entry_supress_tokens = ttk.Entry(self.f_whisper_args_1, width=30)
         self.entry_supress_tokens.pack(side="left", padx=5, fill="x")

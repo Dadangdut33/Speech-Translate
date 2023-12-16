@@ -108,6 +108,7 @@ class BridgeClass:
         self.file_emoji: Union[ImageTk.PhotoImage, str] = ""
         self.open_emoji: Union[ImageTk.PhotoImage, str] = ""
         self.trash_emoji: Union[ImageTk.PhotoImage, str] = ""
+        self.refresh_emoji: Union[ImageTk.PhotoImage, str] = ""
         self.reset_emoji: Union[ImageTk.PhotoImage, str] = ""
         self.question_emoji: Union[ImageTk.PhotoImage, str] = ""
         self.mic_emoji: Union[ImageTk.PhotoImage, str] = ""

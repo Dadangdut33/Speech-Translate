@@ -595,7 +595,8 @@ def record_session(
                 if prev_tc_res:
                     bc.tc_sentences.append(prev_tc_res)
                 bc.tc_sentences = unique_rec_list(bc.tc_sentences)
-                if len(bc.tc_sentences) > max_sentences:
+                # pop if not limitless
+                if not sj.cache.get(f"{rec_type}_no_limit", False) and len(bc.tc_sentences) > max_sentences:
                     bc.tc_sentences.pop(0)
                 if len(bc.tc_sentences) > 0:
                     bc.update_tc(None, separator)
@@ -603,7 +604,7 @@ def record_session(
                 if prev_tl_res:
                     bc.tl_sentences.append(prev_tl_res)
                 bc.tl_sentences = unique_rec_list(bc.tl_sentences)
-                if len(bc.tl_sentences) > max_sentences:
+                if not sj.cache.get(f"{rec_type}_no_limit", False) and len(bc.tl_sentences) > max_sentences:
                     bc.tl_sentences.pop(0)
                 if len(bc.tl_sentences) > 0:
                     bc.update_tl(None, separator)

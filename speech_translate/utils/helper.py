@@ -20,7 +20,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageTk
 from stable_whisper import WhisperResult
 
 from speech_translate._constants import APP_NAME, HACKY_SPACE
-from speech_translate._path import APP_ICON_MISSING, p_app_icon
+from speech_translate._path import APP_ICON_MISSING, p_app_icon, p_font_emoji
 from speech_translate.ui.custom.tooltip import tk_tooltip
 from speech_translate.utils.types import ToInsert
 
@@ -486,8 +486,7 @@ def emoji_img(size, text):
     ImageTk.PhotoImage
         the emoji but in image format
     """
-    font = ImageFont.truetype("seguiemj.ttf", size=int(round(size * 72 / 96, 0)))
-    # pixels = points * 96 / 72 : 96 is windowsDPI
+    font = ImageFont.truetype(p_font_emoji, size=int(round(size * 72 / 96, 0)))
     im = Image.new("RGBA", (size, size), (255, 255, 255, 0))
     draw = ImageDraw.Draw(im)
     draw.text((size / 2, size / 2), text, embedded_color=True, font=font, anchor="mm")

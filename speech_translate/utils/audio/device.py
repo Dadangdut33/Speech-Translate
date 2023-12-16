@@ -419,9 +419,13 @@ def get_default_output_device():
         default_device = p.get_default_wasapi_loopback()  # type: ignore
         sucess = True
     except OSError as e:
-        logger.error("Looks like WASAPI is not available on the system.")
         logger.exception(e)
+        logger.error("Looks like WASAPI is not available on the system.")
         default_device = "Looks like WASAPI is not available on the system."
+    except Exception as e:
+        logger.exception(e)
+        logger.error("Something went wrong while trying to get the default output device (speaker).")
+        default_device = str(e)
     finally:
         p.terminate()
 

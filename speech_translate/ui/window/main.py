@@ -7,11 +7,9 @@ from time import sleep, strftime, time
 from tkinter import Frame, Menu, StringVar, Tk, Toplevel, filedialog, ttk
 from typing import Callable, Dict, Literal, Optional
 
+import pystray
 from loguru import logger
 from PIL import Image, ImageDraw
-from pystray import Icon as icon
-from pystray import Menu as menu
-from pystray import MenuItem as item
 from stable_whisper import WhisperResult
 from tkhtmlview import HTMLText
 from torch import cuda
@@ -116,12 +114,11 @@ class AppTray:
     Tray app
     """
     def __init__(self):
-        self.tray: icon = None  # type: ignore
-        self.menu: menu = None  # type: ignore
+        self.tray_app = None  # type: ignore
+        self.menu = None  # type: ignore
         self.menu_items = None  # type: ignore
         bc.tray = self
         self.__create_tray()
-        logger.info("Tray created")
 
     # -- Tray icon
     def __create_image(self, width, height, color1, color2):
@@ -139,57 +136,79 @@ class AppTray:
             ico = Image.open(p_app_icon)
         except Exception:
             ico = self.__create_image(64, 64, "black", "white")
+        try:
+            self.menu_items = (
+                pystray.MenuItem(f"{APP_NAME} {__version__}", lambda *args: None, enabled=False),  # do nothing
+                pystray.MenuItem("Show Main Window", self.open_app),
+                pystray.Menu.SEPARATOR,
+                pystray.MenuItem(
+                    "View",
+                    pystray.Menu(
+                        pystray.MenuItem("About", lambda *args: bc.mw.open_about()),  # type: ignore
+                        pystray.MenuItem("Settings", lambda *args: bc.mw.open_setting()),  # type: ignore
+                        pystray.MenuItem("Log", lambda *args: bc.mw.open_log()),  # type: ignore
+                        pystray.Menu.SEPARATOR,
+                        pystray.MenuItem("Export Directory", lambda *args: bc.mw.open_export_dir()),  # type: ignore
+                        pystray.MenuItem("Log Directory", lambda *args: bc.mw.open_log_dir()),  # type: ignore
+                        pystray.MenuItem("Model Directory", lambda *args: bc.mw.open_model_dir()),  # type: ignore
+                    )
+                ),
+                pystray.MenuItem(
+                    "Show",
+                    pystray.Menu(
+                        pystray.MenuItem("Transcribed Speech Subtitle Window",
+                                         lambda *args: bc.mw.open_detached_tcw()),  # type: ignore
+                        pystray.MenuItem("Translated Speech Subtitle Window",
+                                         lambda *args: bc.mw.open_detached_tlw()),  # type: ignore
+                    )
+                ),
+                pystray.MenuItem(
+                    "Action",
+                    pystray.Menu(
+                        pystray.MenuItem(
+                            "Record",
+                            lambda *args: self.open_app() or bc.mw.root.after(0, bc.mw.rec)  # type: ignore
+                        ),
+                        pystray.MenuItem(
+                            "Import File",
+                            lambda *args: self.open_app() or bc.mw.root.after(0, bc.mw.import_file)  # type: ignore
+                        ),
+                        pystray.MenuItem(
+                            "Align Result",
+                            lambda *args: self.open_app() or bc.mw.root.after(0, bc.mw.align_file)  # type: ignore
+                        ),
+                        pystray.MenuItem(
+                            "Refine Result",
+                            lambda *args: self.open_app() or bc.mw.root.after(0, bc.mw.refine_file)  # type: ignore
+                        ),
+                        pystray.MenuItem(
+                            "Translate Result",
+                            lambda *args: self.open_app() or bc.mw.root.after(0, bc.mw.translate_file)  # type: ignore
+                        ),
+                    )
+                ),
+                pystray.Menu.SEPARATOR,
+                pystray.MenuItem(
+                    "Visit Repository", lambda *args: open_url("https://github.com/Dadangdut33/Speech-Translate")
+                ),
+                pystray.MenuItem(
+                    "Read Wiki", lambda *args: open_url("https://github.com/Dadangdut33/Speech-Translate/wiki")
+                ),
+                pystray.MenuItem("Check for Update", lambda *args: bc.mw.check_update()),  # type: ignore
+                pystray.Menu.SEPARATOR,
+                pystray.MenuItem("Exit", self.exit_app),
+                pystray.MenuItem("Hidden onclick", self.open_app, default=True,
+                                 visible=False),  # onclick the icon will open_app
+            )
+            self.menu = pystray.Menu(*self.menu_items)
+            self.tray_app = pystray.Icon("Speech Translate", ico, f"Speech Translate V{__version__}", self.menu)
+            self.tray_app.run_detached()
 
-        self.menu_items = (
-            item(f"{APP_NAME} {__version__}", lambda *args: None, enabled=False),  # do nothing
-            item("Show Main Window", self.open_app),
-            menu.SEPARATOR,
-            item(
-                "View",
-                menu(
-                    item("About", lambda *args: bc.mw.open_about()),  # type: ignore
-                    item("Settings", lambda *args: bc.mw.open_setting()),  # type: ignore
-                    item("Log", lambda *args: bc.mw.open_log()),  # type: ignore
-                    menu.SEPARATOR,
-                    item("Export Directory", lambda *args: bc.mw.open_export_dir()),  # type: ignore
-                    item("Log Directory", lambda *args: bc.mw.open_log_dir()),  # type: ignore
-                    item("Model Directory", lambda *args: bc.mw.open_model_dir()),  # type: ignore
-                )
-            ),
-            item(
-                "Show",
-                menu(
-                    item("Transcribed Speech Subtitle Window", lambda *args: bc.mw.open_detached_tcw()),  # type: ignore
-                    item("Translated Speech Subtitle Window", lambda *args: bc.mw.open_detached_tlw()),  # type: ignore
-                )
-            ),
-            item(
-                "Action",
-                menu(
-                    item("Record", lambda *args: self.open_app() or bc.mw.root.after(0, bc.mw.rec)),  # type: ignore
-                    item("Import File",
-                         lambda *args: self.open_app() or bc.mw.root.after(0, bc.mw.import_file)),  # type: ignore
-                    item("Align Result",
-                         lambda *args: self.open_app() or bc.mw.root.after(0, bc.mw.align_file)),  # type: ignore
-                    item("Refine Result",
-                         lambda *args: self.open_app() or bc.mw.root.after(0, bc.mw.refine_file)),  # type: ignore
-                    item(
-                        "Translate Result",
-                        lambda *args: self.open_app() or bc.mw.root.after(0, bc.mw.translate_file)  # type: ignore
-                    ),
-                )
-            ),
-            menu.SEPARATOR,
-            item("Visit Repository", lambda *args: open_url("https://github.com/Dadangdut33/Speech-Translate")),
-            item("Read Wiki", lambda *args: open_url("https://github.com/Dadangdut33/Speech-Translate/wiki")),
-            item("Check for Update", lambda *args: bc.mw.check_update()),  # type: ignore
-            menu.SEPARATOR,
-            item("Exit", self.exit_app),
-            item("Hidden onclick", self.open_app, default=True, visible=False),  # onclick the icon will open_app
-        )
-        self.menu = menu(*self.menu_items)
-        self.tray = icon("Speech Translate", ico, f"Speech Translate V{__version__}", self.menu)
-        self.tray.run_detached()
+            logger.info("Tray created successfully")
+        except Exception as e:
+            logger.exception(e)
+            logger.error(f"Error creating tray: {e}")
+            native_notify("Error creating tray app for speech translate", f"{e}")
 
     def open_app(self):
         assert bc.mw is not None
@@ -242,14 +261,13 @@ class MainWindow:
 
         set_ui_style(sj.cache["theme"])
 
-        bc.help_emoji = emoji_img(16, "❓")
-        bc.wrench_emoji = emoji_img(16, "     🛠️")
-        bc.folder_emoji = emoji_img(13, " 📂")
-        bc.open_emoji = emoji_img(13, "     ↗️")
-        bc.trash_emoji = emoji_img(13, "     🗑️")
-        bc.reset_emoji = emoji_img(13, " 🔄")
+        bc.wrench_emoji = emoji_img(16, "🔧")
+        bc.open_emoji = emoji_img(16, "🚀")
+        bc.trash_emoji = emoji_img(16, "🗑️")
+        bc.folder_emoji = emoji_img(16, "📁")
+        bc.reset_emoji = emoji_img(16, "🔄")
         bc.question_emoji = emoji_img(16, "❔")
-        bc.mic_emoji = emoji_img(20, "     🎙️")
+        bc.mic_emoji = emoji_img(20, "🎤")
         bc.speaker_emoji = emoji_img(20, "🔊")
         bc.cuda = check_cuda_and_gpu()
 
@@ -629,9 +647,6 @@ class MainWindow:
 
     # on start
     def __on_init(self):
-        if system() != "Windows":
-            self.radio_speaker.configure(state="disabled")
-
         # update on start
         self.cb_input_device_init()
         self.cb_engine_change(sj.cache["tl_engine_mw"])
@@ -711,8 +726,8 @@ class MainWindow:
         bc.disable_file_tl()
 
         logger.info("Stopping tray...")
-        if bc.tray:
-            bc.tray.tray.stop()
+        if bc.tray and bc.tray.tray_app:
+            bc.tray.tray_app.stop()
 
         # destroy windows
         logger.info("Destroying windows...")
@@ -772,12 +787,22 @@ class MainWindow:
     def on_close(self):
         self.save_win_size()
 
-        # Only show notification once
-        if not self.notified_hidden and not sj.cache["supress_hidden_to_tray"]:
-            native_notify("Hidden to tray", "The app is still running in the background.")
-            self.notified_hidden = True
+        # if tray available, make hidden
+        if bc.tray:
+            # Only show notification once
+            if not self.notified_hidden and not sj.cache["supress_hidden_to_tray"]:
+                native_notify("Hidden to tray", "The app is still running in the background.")
+                self.notified_hidden = True
 
-        self.root.withdraw()
+            self.root.withdraw()
+        # else quit app, ask confirmation first
+        else:
+            if mbox(
+                "Exit confirmation", "Are you sure you want to exit the app?\n\n" \
+                "(This will close every running process in the app)", 3,
+                self.root
+            ):
+                self.quit_app()
 
     # Toggle Stay on top
     def toggle_always_on_top(self):
@@ -920,29 +945,31 @@ class MainWindow:
         self.cb_mic["values"] = get_input_devices(self.cb_host_api.get())
         self.cb_speaker["values"] = get_output_devices(self.cb_host_api.get())
 
-        # Search mic
-        prev_name = self.cb_mic.get().split("|")[1].strip()
-        found, index = False, 0
-        for i, name in enumerate(self.cb_mic["values"]):
-            if prev_name in name:
-                found, index = True, i
-                break
-        if found:
-            self.cb_mic.current(index)
-        else:
-            self.mic_set_default()
+        if "[WARNING]" not in self.cb_mic.get():
+            # Search mic
+            prev_name = self.cb_mic.get().split("|")[1].strip()
+            found, index = False, 0
+            for i, name in enumerate(self.cb_mic["values"]):
+                if prev_name in name:
+                    found, index = True, i
+                    break
+            if found:
+                self.cb_mic.current(index)
+            else:
+                self.mic_set_default()
 
-        # Search speaker
-        prev_name = self.cb_speaker.get().split("|")[1].strip()
-        found, index = False, 0
-        for i, name in enumerate(self.cb_speaker["values"]):
-            if prev_name in name:
-                found, index = True, i
-                break
-        if found:
-            self.cb_speaker.current(index)
-        else:
-            self.speaker_set_default()
+        if "[WARNING]" not in self.cb_speaker.get():
+            # Search speaker
+            prev_name = self.cb_speaker.get().split("|")[1].strip()
+            found, index = False, 0
+            for i, name in enumerate(self.cb_speaker["values"]):
+                if prev_name in name:
+                    found, index = True, i
+                    break
+            if found:
+                self.cb_speaker.current(index)
+            else:
+                self.speaker_set_default()
 
     def host_api_refresh(self, _event=None):
         """
@@ -2054,9 +2081,13 @@ def main(with_log_init=True):
     logger.info(f"App Version: {__version__}")
     logger.info(f"OS: {system()} {release()} {version()} | CPU: {processor()}")
     logger.info(f"GPU: {get_gpu_info()} | CUDA: {check_cuda_and_gpu()}")
-
+    logger.debug(f"Sys args: {sys.argv}")
+    logger.debug("Loading UI...")
     # --- GUI ---
-    AppTray()  # Start tray app in the background
+    if "--no-tray" in sys.argv:
+        logger.debug("No tray mode enabled")
+    else:
+        AppTray()  # Start tray app in the background
     main_ui = MainWindow()
     TcsWindow(main_ui.root)
     TlsWindow(main_ui.root)

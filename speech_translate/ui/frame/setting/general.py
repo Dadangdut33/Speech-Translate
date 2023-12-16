@@ -488,7 +488,8 @@ class SettingGeneral:
         for file in os.listdir(dir_log):
             if file.endswith(".log"):
                 try:
-                    os.remove(os.path.join(dir_log, file))
+                    if file != current_log:
+                        os.remove(os.path.join(dir_log, file))
                 except Exception as e:
                     if file != current_log:  # show warning only if the fail to delete is not the current log
                         logger.warning("Failed to delete log file: " + file)

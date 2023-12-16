@@ -164,6 +164,7 @@ class SettingDict(TypedDict):
     min_input_length_mic: float
     max_buffer_mic: int
     max_sentences_mic: int
+    mic_no_limit: bool
     # speaker - device option
     sample_rate_speaker: int
     channels_speaker: str
@@ -181,6 +182,7 @@ class SettingDict(TypedDict):
     min_input_length_speaker: float
     max_buffer_speaker: int
     max_sentences_speaker: int
+    speaker_no_limit: bool
     # Transcribe settings
     dir_export: str
     auto_open_dir_export: bool

@@ -213,6 +213,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 # Attribution
 
 - [Sunvalley TTK Theme](https://github.com/rdbende/Sun-Valley-ttk-theme/) (used for app theme although i modified it a bit)
+- [Noto Emoji](https://fonts.google.com/noto/specimen/Noto+Emoji) for the icons used in the app
 
 # Other
 

@@ -16,13 +16,13 @@ class SubtitleWindow:
 
     # ----------------------------------------------------------------------
     def __init__(self, master: Tk, title: str, win_type: Literal["tc", "tl"]):
-        self.close_emoji = emoji_img(14, " ❌")
-        self.copy_emoji = emoji_img(14, " 📋")
-        self.pin_emoji = emoji_img(14, " 📌")
-        self.help_emoji = emoji_img(14, " ❓")
-        self.title_emoji = emoji_img(14, "📝")
-        self.up_emoji = emoji_img(18, "↑")
-        self.down_emoji = emoji_img(18, "↓")
+        self.close_emoji = emoji_img(16, "❌")
+        self.copy_emoji = emoji_img(16, "📋")
+        self.pin_emoji = emoji_img(16, "📌")
+        self.help_emoji = emoji_img(16, "❓")
+        self.title_emoji = emoji_img(16, "🪟")
+        self.up_emoji = emoji_img(16, "⬆️")
+        self.down_emoji = emoji_img(16, "⬇️")
 
         self.master = master
         self.title = title

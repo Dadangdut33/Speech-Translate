@@ -84,8 +84,11 @@ class RecordingOptionsDevice:
         self.f_device_5 = ttk.Frame(self.lf_device)
         self.f_device_5.pack(side="top", fill="x", pady=5, padx=5)
 
+        self.f_device_6 = ttk.Frame(self.lf_device)
+        self.f_device_6.pack(side="top", fill="x", pady=5, padx=5)
+
         # 1
-        self.lbl_min_input = ttk.Label(self.f_device_1, text="Min Input Length", width=16)
+        self.lbl_min_input = ttk.Label(self.f_device_1, text="Min Buffer (s)", width=14)
         self.lbl_min_input.pack(side="left", padx=5)
         self.spn_min_input = SpinboxNumOnly(
             self.root,
@@ -96,27 +99,29 @@ class RecordingOptionsDevice:
             initial_value=sj.cache.get(f"min_input_length_{device}", 0.4),
             num_float=True,
             allow_empty=False,
-            delay=10
+            delay=10,
+            width=10
         )
         self.spn_min_input.pack(side="left", padx=5)
         tk_tooltips(
             [self.lbl_min_input, self.spn_min_input],
-            f"Set the minimum input length (in seconds) for the {self.long_device} " \
+            f"Set the minimum buffer input length (in seconds) for the {self.long_device} " \
             "input to be considered as a valid input." \
             "\n\nThis means that the input must be at least x seconds long before being passed " \
             "to Whisper to get the result.\n\nDefault value is 0.4 seconds.",
         )
 
         # 1
-        self.lbl_buffer = ttk.Label(self.f_device_2, text="Max buffer (s)", width=16)
+        self.lbl_buffer = ttk.Label(self.f_device_1, text="Max buffer (s)", width=14)
         self.lbl_buffer.pack(side="left", padx=5)
         self.spn_buffer = SpinboxNumOnly(
             self.root,
-            self.f_device_2,
+            self.f_device_1,
             1,
             30,
             lambda x: sj.save_key(f"max_buffer_{device}", int(x)),
-            initial_value=sj.cache.get(f"max_buffer_{device}", 10)
+            initial_value=sj.cache.get(f"max_buffer_{device}", 10),
+            width=10,
         )
         self.spn_buffer.pack(side="left", padx=5)
         tk_tooltips(
@@ -126,7 +131,7 @@ class RecordingOptionsDevice:
             "\n\nDefault value is 10 seconds.",
         )
 
-        self.lbl_max_sentences = ttk.Label(self.f_device_2, text="Max Sentences", width=16)
+        self.lbl_max_sentences = ttk.Label(self.f_device_2, text="Max Sentences", width=14)
         self.lbl_max_sentences.pack(side="left", padx=5)
         self.spn_max_sentences = SpinboxNumOnly(
             self.root,
@@ -134,19 +139,49 @@ class RecordingOptionsDevice:
             1,
             100,
             lambda x: sj.save_key(f"max_sentences_{device}", int(x)),
-            initial_value=sj.cache.get(f"max_sentences_{device}", 5)
+            initial_value=sj.cache.get(f"max_sentences_{device}", 5),
+            width=10,
         )
         self.spn_max_sentences.pack(side="left", padx=5)
         tk_tooltips(
             [self.lbl_max_sentences, self.spn_max_sentences],
-            "Set max number of sentences, \n\none sentence equals one buffer. "
+            "Set max number of sentences to be saved in memory during the recording session,\n\n" \
+            "one sentence equals to the length of the max buffer. "
             "So if max buffer is 10 seconds, the words that are in those 10 seconds is the sentence."
             "\n\nDefault value is 5.",
         )
 
+        def toggle_no_limit(x, save=True):
+            if save:
+                sj.save_key(f"{device}_no_limit", x)
+            if x:
+                self.spn_max_sentences.configure(state="disabled")
+            else:
+                self.spn_max_sentences.configure(state="normal")
+
+        self.cbtn_no_limit = CustomCheckButton(
+            self.f_device_2,
+            sj.cache.get(f"{device}_no_limit", False),
+            toggle_no_limit,
+            text="Set no limit to sentences",
+            style="Switch.TCheckbutton"
+        )
+        self.cbtn_no_limit.pack(side="left", padx=5)
+        toggle_no_limit(self.cbtn_no_limit.instate(["selected"]), save=False)
+        tk_tooltip(
+            self.cbtn_no_limit,
+            "If checked, the number of sentences to be saved during the recording session will be limitless." \
+            "\n\nYou can enable this if you want to have no limit to the transcribed text."
+            "\n\nDefault is unchecked",
+        )
+
         # 3
+        self.hori_sep = ttk.Separator(self.f_device_3, orient="horizontal")
+        self.hori_sep.pack(side="top", fill="x", pady=5, padx=5)
+
+        # 4
         self.cbtn_threshold_enable = CustomCheckButton(
-            self.f_device_3,
+            self.f_device_4,
             sj.cache.get(f"threshold_enable_{device}", True),
             lambda x: sj.save_key(f"threshold_enable_{device}", x) or self.toggle_enable_threshold(),
             text="Enable threshold",
@@ -160,7 +195,7 @@ class RecordingOptionsDevice:
         )
 
         self.cbtn_threshold_auto = CustomCheckButton(
-            self.f_device_3,
+            self.f_device_4,
             sj.cache.get(f"threshold_auto_{device}", True),
             lambda x: sj.save_key(f"threshold_auto_{device}", x) or self.toggle_auto_threshold(),
             text="Auto",
@@ -173,7 +208,7 @@ class RecordingOptionsDevice:
         )
 
         self.cbtn_auto_break_buffer = CustomCheckButton(
-            self.f_device_3,
+            self.f_device_4,
             sj.cache.get(f"auto_break_buffer_{device}", True),
             lambda x: sj.save_key(f"auto_break_buffer_{device}", x),
             text="Break buffer on silence",
@@ -187,9 +222,9 @@ class RecordingOptionsDevice:
             "\n\nDefault is checked",
         )
 
-        # 4
+        # 5
         # vad for auto
-        self.lbl_sensitivity = ttk.Label(self.f_device_4, text="Filter Noise", width=10)
+        self.lbl_sensitivity = ttk.Label(self.f_device_5, text="Filter Noise", width=10)
         self.lbl_sensitivity.pack(side="left", padx=5)
         tk_tooltip(
             self.lbl_sensitivity,
@@ -198,11 +233,11 @@ class RecordingOptionsDevice:
         )
 
         self.var_sensitivity = IntVar()
-        self.radio_webrtc_sens_1 = ttk.Radiobutton(self.f_device_4, text="1", value=1, variable=self.var_sensitivity)
+        self.radio_webrtc_sens_1 = ttk.Radiobutton(self.f_device_5, text="1", value=1, variable=self.var_sensitivity)
         self.radio_webrtc_sens_1.pack(side="left", padx=5)
-        self.radio_webrtc_sens_2 = ttk.Radiobutton(self.f_device_4, text="2", value=2, variable=self.var_sensitivity)
+        self.radio_webrtc_sens_2 = ttk.Radiobutton(self.f_device_5, text="2", value=2, variable=self.var_sensitivity)
         self.radio_webrtc_sens_2.pack(side="left", padx=5)
-        self.radio_webrtc_sens_3 = ttk.Radiobutton(self.f_device_4, text="3", value=3, variable=self.var_sensitivity)
+        self.radio_webrtc_sens_3 = ttk.Radiobutton(self.f_device_5, text="3", value=3, variable=self.var_sensitivity)
         self.radio_webrtc_sens_3.pack(side="left", padx=5)
 
         temp_map = {1: self.radio_webrtc_sens_1, 2: self.radio_webrtc_sens_2, 3: self.radio_webrtc_sens_3}
@@ -218,11 +253,11 @@ class RecordingOptionsDevice:
             command=lambda: sj.save_key(f"threshold_auto_level_{device}", 3) or self.webrtcvad.set_mode(3)
         )
 
-        self.vert_sep = ttk.Separator(self.f_device_4, orient="vertical")
+        self.vert_sep = ttk.Separator(self.f_device_5, orient="vertical")
         self.vert_sep.pack(side="left", fill="y", padx=5)
 
         self.cbtn_threshold_auto_silero = CustomCheckButton(
-            self.f_device_4,
+            self.f_device_5,
             sj.cache.get(f"threshold_auto_silero_{device}", True),
             self.toggle_silero_vad,
             text="Use Silero",
@@ -236,7 +271,7 @@ class RecordingOptionsDevice:
 
         self.spn_silero_min = SpinboxNumOnly(
             self.root,
-            self.f_device_4,
+            self.f_device_5,
             0.1,
             1.0,
             lambda x: sj.save_key(f"threshold_silero_{device}_min", float(x)),
@@ -255,10 +290,10 @@ class RecordingOptionsDevice:
         )
 
         # manual
-        self.lbl_threshold_db = ttk.Label(self.f_device_4, text="Threshold (dB)", width=14)
+        self.lbl_threshold_db = ttk.Label(self.f_device_5, text="Threshold (dB)", width=14)
         self.lbl_threshold_db.pack(side="left", padx=5)
 
-        self.scale_threshold_db = ttk.Scale(self.f_device_4, from_=-60.0, to=0.0, orient="horizontal", length=300)
+        self.scale_threshold_db = ttk.Scale(self.f_device_5, from_=-60.0, to=0.0, orient="horizontal", length=300)
         self.scale_threshold_db.set(sj.cache.get(f"threshold_db_{device}", -30.0))
         self.scale_threshold_db.configure(command=self.slider_move)
         self.scale_threshold_db.bind(
@@ -266,15 +301,15 @@ class RecordingOptionsDevice:
         )
         self.scale_threshold_db.pack(side="left", padx=5)
 
-        self.lbl_threshold_db_value = ttk.Label(self.f_device_4, text="0 dB", width=8)
+        self.lbl_threshold_db_value = ttk.Label(self.f_device_5, text="0 dB", width=8)
         self.lbl_threshold_db_value.configure(text=f"{self.scale_threshold_db.get():.2f} dB")
         self.lbl_threshold_db_value.pack(side="left", padx=5)
 
-        # 5
-        self.lbl_device_emoji = ttk.Label(self.f_device_5, image=bc.mic_emoji if device == "mic" else bc.speaker_emoji)
+        # 6
+        self.lbl_device_emoji = ttk.Label(self.f_device_6, image=bc.mic_emoji if device == "mic" else bc.speaker_emoji)
         self.lbl_device_emoji.pack(side="left", padx=5)
 
-        self.audiometer = AudioMeter(self.f_device_5, self.master, True, MIN_THRESHOLD, MAX_THRESHOLD, height=30, width=300)
+        self.audiometer = AudioMeter(self.f_device_6, self.master, True, MIN_THRESHOLD, MAX_THRESHOLD, height=30, width=300)
         self.audiometer.set_db(MIN_THRESHOLD)
         self.audiometer.pack(side="left", padx=5)
 
@@ -287,9 +322,6 @@ class RecordingOptionsDevice:
         open_stream : bool, optional
             open the stream or not, by default True
         """
-        if self.device == "speaker" and system() != "Windows":
-            return
-
         if "selected" in self.cbtn_threshold_enable.state():
             self.cbtn_threshold_auto.configure(state="normal")
             self.cbtn_auto_break_buffer.configure(state="normal")
@@ -305,9 +337,6 @@ class RecordingOptionsDevice:
         """
         Toggle the auto threshold checkbutton
         """
-        if self.device == "speaker" and system() != "Windows":
-            return
-
         if "selected" in self.cbtn_threshold_auto.state():
             self.audiometer.set_auto(True)
             self.audiometer.configure(height=10)
@@ -362,8 +391,8 @@ class RecordingOptionsDevice:
                 self.possible_auto_threshold()
                 self.possible_silerovad()
                 self.silerovad.reset_states()
-                self.f_device_4.pack(side="top", fill="x", pady=(10, 5), padx=5)
-                self.f_device_5.pack(side="top", fill="x", pady=(0, 5), padx=5)
+                self.f_device_5.pack(side="top", fill="x", pady=(10, 5), padx=5)
+                self.f_device_6.pack(side="top", fill="x", pady=(0, 5), padx=5)
                 self.audiometer.pack(side="left", padx=5)
                 self.lbl_device_emoji.configure(
                     text="", image=bc.mic_emoji if self.device == "mic" else bc.speaker_emoji, width=10, foreground="black"
@@ -395,8 +424,8 @@ class RecordingOptionsDevice:
                 # STOP
                 self.close_meter()
 
-                self.f_device_4.pack_forget()
                 self.f_device_5.pack_forget()
+                self.f_device_6.pack_forget()
                 self.audiometer.pack_forget()
         except Exception as e:
             if "main thread is not in main loop" not in str(e):  # on init sometimes it will throw this error
@@ -406,9 +435,9 @@ class RecordingOptionsDevice:
                 try:
                     self.audiometer.pack_forget()
                     self.lbl_device_emoji.configure(
-                        text="Fail to load device to open audio stream. Check log for details",
+                        text="Failed to load device to open audio stream. Check log for details",
                         image="",
-                        width=70,
+                        width=50,
                         foreground="red"
                     )
                 except Exception:
@@ -914,7 +943,7 @@ class SettingRecord:
         self.radio_numpy_array.configure(command=lambda: sj.save_key("use_temp", False) or self.toggle_use_temp(False))
         self.radio_temp_file.configure(command=lambda: sj.save_key("use_temp", True) or self.toggle_use_temp(True))
 
-        self.lbl_hint_conversion = ttk.Label(self.f_processing_1, image=bc.help_emoji, compound="left")
+        self.lbl_hint_conversion = ttk.Label(self.f_processing_1, image=bc.question_emoji, compound="left")
         self.lbl_hint_conversion.pack(side="left", padx=5)
         tk_tooltip(
             self.lbl_hint_conversion,
@@ -981,30 +1010,38 @@ class SettingRecord:
     # ------------------ Functions ------------------
     def __init_setting_once(self):
         """Initialize the setting once"""
-        # disable
-
-        windows_os_only(
-            [
-                self.lbl_sr_speaker, self.cb_sr_speaker, self.lbl_channels_speaker, self.cb_channels_speaker,
-                self.lbl_chunk_size_speaker, self.cb_chunk_size_speaker, self.cbtn_auto_sr_speaker,
-                self.cbtn_auto_channels_speaker, self.speaker_rec_option.lbl_buffer, self.speaker_rec_option.lbl_buffer,
-                self.speaker_rec_option.spn_buffer, self.speaker_rec_option.lbl_max_sentences,
-                self.speaker_rec_option.spn_max_sentences, self.speaker_rec_option.cbtn_threshold_enable,
-                self.speaker_rec_option.cbtn_threshold_auto, self.speaker_rec_option.cbtn_threshold_auto,
-                self.speaker_rec_option.spn_silero_min, self.speaker_rec_option.cbtn_auto_break_buffer,
-                self.speaker_rec_option.scale_threshold_db
-            ]
-        )
-
         # toggle
+        self.toggle_use_temp(self.radio_temp_file.instate(["selected"]))
         self.cb_sr_mic.toggle_disable(self.cbtn_auto_sr_mic.instate(["selected"]))
         self.cb_channels_mic.toggle_disable(self.cbtn_auto_channels_mic.instate(["selected"]))
         self.cb_sr_speaker.toggle_disable(self.cbtn_auto_sr_speaker.instate(["selected"]))
         self.cb_channels_speaker.toggle_disable(self.cbtn_auto_channels_speaker.instate(["selected"]))
-        self.toggle_use_temp(self.radio_temp_file.instate(["selected"]))
-
         self.mic_rec_option.toggle_enable_threshold(False)  # not open on start
         self.speaker_rec_option.toggle_enable_threshold(False)  # not open on start
+
+        # disable
+        windows_os_only(
+            [
+                self.lbl_sr_speaker, self.cb_sr_speaker, self.lbl_channels_speaker, self.cb_channels_speaker,
+                self.lbl_chunk_size_speaker, self.cb_chunk_size_speaker, self.cbtn_auto_sr_speaker,
+                self.cbtn_auto_channels_speaker, self.speaker_rec_option.lbl_min_input,
+                self.speaker_rec_option.spn_min_input, self.speaker_rec_option.lbl_buffer,
+                self.speaker_rec_option.lbl_buffer, self.speaker_rec_option.spn_buffer,
+                self.speaker_rec_option.lbl_max_sentences, self.speaker_rec_option.spn_max_sentences,
+                self.speaker_rec_option.cbtn_no_limit, self.speaker_rec_option.cbtn_threshold_enable,
+                self.speaker_rec_option.cbtn_threshold_auto, self.speaker_rec_option.cbtn_threshold_auto,
+                self.speaker_rec_option.spn_silero_min, self.speaker_rec_option.cbtn_auto_break_buffer,
+                self.speaker_rec_option.scale_threshold_db, self.speaker_rec_option.lbl_threshold_db_value,
+                self.speaker_rec_option.lbl_threshold_db, self.speaker_rec_option.lbl_sensitivity,
+                self.speaker_rec_option.radio_webrtc_sens_1, self.speaker_rec_option.radio_webrtc_sens_2,
+                self.speaker_rec_option.radio_webrtc_sens_3, self.speaker_rec_option.cbtn_threshold_auto_silero
+            ]
+        )
+
+        if system() != "Windows":
+            self.speaker_rec_option.cbtn_threshold_auto.configure(state="disabled")
+            self.speaker_rec_option.cbtn_auto_break_buffer.configure(state="disabled")
+
         self.on_start = False
         self.mic_rec_option.on_start = False
         self.speaker_rec_option.on_start = False
@@ -1084,7 +1121,8 @@ class SettingRecord:
         if self.on_start:
             return
 
-        logger.debug("Opening both meter")
+        if open_stream:
+            logger.debug("Opening both meter")
 
         if not sj.cache["show_audio_visualizer_in_setting"]:
             self.mic_rec_option.close_meter()

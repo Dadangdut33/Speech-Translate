@@ -95,6 +95,7 @@ default_setting: SettingDict = {
     "min_input_length_mic": 0.4,
     "max_buffer_mic": 10,
     "max_sentences_mic": 5,
+    "mic_no_limit": False,
     # speaker - device option
     "sample_rate_speaker": 44100,
     "channels_speaker": "Stereo",
@@ -112,6 +113,7 @@ default_setting: SettingDict = {
     "min_input_length_speaker": 0.4,
     "max_buffer_speaker": 10,
     "max_sentences_speaker": 5,
+    "speaker_no_limit": False,
     # Transcribe settings
     "dir_export": "auto",
     "auto_open_dir_export": True,

@@ -23,7 +23,7 @@ class SettingTextbox:
         self.fonts = list(font.families())
         self.fonts.append("TKDefaultFont")
         self.fonts.sort()
-        self.eye_emoji = emoji_img(16, "👀")
+        self.preview_emoji = emoji_img(16, "🔍")
 
         # ------------------ Textbox ------------------
         self.f_tb_param = ttk.Frame(self.master)
@@ -536,7 +536,7 @@ class SettingTextbox:
         )
         self.entry_gradient_high_conf.bind("<Key>", lambda e: "break")
 
-        self.btn_preview_gradient = ttk.Button(self.f_confidence_1, image=self.eye_emoji, command=self.preview_gradient)
+        self.btn_preview_gradient = ttk.Button(self.f_confidence_1, image=self.preview_emoji, command=self.preview_gradient)
         self.btn_preview_gradient.pack(side="left", padx=5)
         tk_tooltip(self.btn_preview_gradient, "Preview gradient")
 
@@ -773,6 +773,6 @@ class SettingTextbox:
         if manager := plt.get_current_fig_manager():
             manager.set_window_title(
                 f"Gradient Preview {self.entry_gradient_low_conf.get()} Low / " \
-                "{self.entry_gradient_high_conf.get()} High - {APP_NAME}"
+                f"{self.entry_gradient_high_conf.get()} High - {APP_NAME}"
             )
         plt.show()

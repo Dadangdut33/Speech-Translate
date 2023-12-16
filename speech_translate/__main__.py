@@ -1,6 +1,7 @@
 import os
 import subprocess
 import sys
+from platform import system
 from warnings import simplefilter
 
 from numba.core.errors import NumbaDeprecationWarning, NumbaPendingDeprecationWarning
@@ -19,12 +20,13 @@ if getattr(sys, "frozen", False):
 # monkey patch subprocess.run
 class NoConsolePopen(subprocess.Popen):
     """
-    A custom Popen class that disables creation of a console window
+    A custom Popen class that disables creation of a console window in Windows.
     """
     def __init__(self, args, **kwargs):
         if 'startupinfo' not in kwargs:
-            kwargs['startupinfo'] = subprocess.STARTUPINFO()
-            kwargs['startupinfo'].dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            if system() == 'Windows':
+                kwargs['startupinfo'] = subprocess.STARTUPINFO()
+                kwargs['startupinfo'].dwFlags |= subprocess.STARTF_USESHOWWINDOW
         super().__init__(args, **kwargs)
 
 
