@@ -1,16 +1,175 @@
 from tkinter import Frame, LabelFrame, Toplevel, font, ttk
-from typing import Union
+from typing import Callable, List, Union
 
 from matplotlib import pyplot as plt
 from tkhtmlview import HTMLText
 
-from speech_translate._constants import PREVIEW_WORDS
+from speech_translate._constants import APP_NAME, PREVIEW_WORDS
 from speech_translate.linker import bc, sj
 from speech_translate.ui.custom.checkbutton import CustomCheckButton
 from speech_translate.ui.custom.combobox import ComboboxWithKeyNav
 from speech_translate.ui.custom.spinbox import SpinboxNumOnly
 from speech_translate.ui.custom.tooltip import tk_tooltip, tk_tooltips
 from speech_translate.utils.helper import choose_color, emoji_img, generate_color
+
+
+class BaseTbSetting:
+    """
+    Base class for the textbox settings.
+    """
+    def __init__(
+        self, root: Toplevel, master_frame: Union[ttk.Frame, Frame], title: str, f_type: str, is_main: bool,
+        preview_changes_tb: Callable, fonts: List
+    ):
+        self.lf = LabelFrame(master_frame, text=title)
+        self.lf.pack(side="left", fill="x", expand=True, padx=5, pady=5)
+
+        self.f_1 = ttk.Frame(self.lf)
+        self.f_1.pack(side="top", fill="x", pady=5, padx=5)
+
+        self.f_2 = ttk.Frame(self.lf)
+        self.f_2.pack(side="top", fill="x", pady=5, padx=5)
+
+        self.f_3 = ttk.Frame(self.lf)
+        self.f_3.pack(side="top", fill="x", pady=5, padx=5)
+
+        self.lbl_max = ttk.Label(self.f_1, text="Max Length", width=16)
+        self.lbl_max.pack(side="left", padx=5)
+        self.spn_max = SpinboxNumOnly(
+            root,
+            self.f_1,
+            1,
+            5000,
+            lambda x: sj.save_key(f"tb_{f_type}_max", int(x)) or preview_changes_tb(),
+            initial_value=sj.cache[f"tb_{f_type}_max"],
+            width=38
+        )
+        self.spn_max.pack(side="left", padx=5)
+        tk_tooltips(
+            [self.lbl_max, self.spn_max],
+            "Max character shown. Keep in mind that the result is also limited by "
+            "the max buffer and max sentence in the record setting",
+        )
+
+        self.cbtn_limit_max = CustomCheckButton(
+            self.f_1,
+            sj.cache[f"tb_{f_type}_limit_max"],
+            lambda x: sj.save_key(f"tb_{f_type}_limit_max", x) or preview_changes_tb(),
+            text="Enable",
+            style="Switch.TCheckbutton"
+        )
+        self.cbtn_limit_max.pack(side="left", padx=5)
+
+        self.lbl_max_per_line = ttk.Label(self.f_2, text="Max Per Line", width=16)
+        self.lbl_max_per_line.pack(side="left", padx=5)
+        self.spn_max_per_line = SpinboxNumOnly(
+            root,
+            self.f_2,
+            1,
+            5000,
+            lambda x: sj.save_key(f"tb_{f_type}_max_per_line", int(x)) or preview_changes_tb(),
+            initial_value=sj.cache[f"tb_{f_type}_max_per_line"],
+            width=38
+        )
+        self.spn_max_per_line.pack(side="left", padx=5)
+        tk_tooltips(
+            [self.lbl_max_per_line, self.spn_max_per_line],
+            "Max character shown per line. Separator needs to contain a line break (\\n) for this to work",
+        )
+
+        self.cbtn_limit_max_per_line = CustomCheckButton(
+            self.f_2,
+            sj.cache[f"tb_{f_type}_limit_max_per_line"],
+            lambda x: sj.save_key(f"tb_{f_type}_limit_max_per_line", x) or preview_changes_tb(),
+            text="Enable",
+            style="Switch.TCheckbutton"
+        )
+        self.cbtn_limit_max_per_line.pack(side="left", padx=5)
+
+        self.lbl_font = ttk.Label(self.f_3, text="Font", width=16)
+        self.lbl_font.pack(side="left", padx=5)
+        self.cb_font = ComboboxWithKeyNav(self.f_3, values=fonts, state="readonly", width=30)
+        self.cb_font.set(sj.cache[f"tb_{f_type}_font"])
+        self.cb_font.pack(side="left", padx=5)
+        self.cb_font.bind(
+            "<<ComboboxSelected>>",
+            lambda e: sj.save_key(f"tb_{f_type}_font", self.cb_font.get()) or preview_changes_tb(),
+        )
+        self.spn_font_size = SpinboxNumOnly(
+            root,
+            self.f_3,
+            3,
+            120,
+            lambda x: sj.save_key(f"tb_{f_type}_font_size", int(x)) or preview_changes_tb(),
+            initial_value=sj.cache[f"tb_{f_type}_font_size"],
+            width=3
+        )
+        tk_tooltip(self.spn_font_size, "Font Size")
+        self.spn_font_size.pack(side="left", padx=5)
+        self.cbtn_font_bold = CustomCheckButton(
+            self.f_3,
+            sj.cache[f"tb_{f_type}_font_bold"],
+            lambda x: sj.save_key(f"tb_{f_type}_font_bold", x) or preview_changes_tb(),
+            text="Bold",
+            style="Switch.TCheckbutton"
+        )
+        self.cbtn_font_bold.pack(side="left", padx=5)
+
+        if not is_main:
+            self.f_4 = ttk.Frame(self.lf)
+            self.f_4.pack(side="top", fill="x", pady=5, padx=5)
+
+            self.lbl_font_color = ttk.Label(self.f_4, text="Font Color", width=16)
+            self.lbl_font_color.pack(side="left", padx=5)
+            self.entry_font_color = ttk.Entry(self.f_4, width=10)
+            self.entry_font_color.insert("end", sj.cache[f"tb_{f_type}_font_color"])
+            self.entry_font_color.pack(side="left", padx=5)
+            self.entry_font_color.bind(
+                "<Button-1>",
+                lambda e: choose_color(self.entry_font_color, self.entry_font_color.get(), root) or sj.
+                save_key(f"tb_{f_type}_font_color", self.entry_font_color.get()) or preview_changes_tb(),
+            )
+            self.entry_font_color.bind("<Key>", lambda e: "break")
+
+            self.lbl_bg_color = ttk.Label(self.f_4, text="Background Color")
+            self.lbl_bg_color.pack(side="left", padx=5)
+            self.entry_bg_color = ttk.Entry(self.f_4, width=10)
+            self.entry_bg_color.insert("end", sj.cache[f"tb_{f_type}_bg_color"])
+            self.entry_bg_color.pack(side="left", padx=5)
+            self.entry_bg_color.bind(
+                "<Button-1>",
+                lambda e: choose_color(self.entry_bg_color, self.entry_bg_color.get(), root) or sj.
+                save_key(f"tb_{f_type}_bg_color", self.entry_bg_color.get()) or preview_changes_tb(),
+            )
+            self.entry_bg_color.bind("<Key>", lambda e: "break")
+
+        self.f_5 = ttk.Frame(self.lf)
+        self.f_5.pack(side="top", fill="x", pady=5, padx=5)
+
+        self.cbtn_use_conf_color = CustomCheckButton(
+            self.f_5,
+            sj.cache[f"tb_{f_type}_use_conf_color"],
+            lambda x: sj.save_key(f"tb_{f_type}_use_conf_color", x) or preview_changes_tb(),
+            text="Colorize text based on confidence value when available"
+        )
+        self.cbtn_use_conf_color.pack(side="left", padx=5)
+
+        self.cbtn_auto_scroll = CustomCheckButton(
+            self.f_5,
+            sj.cache[f"tb_{f_type}_auto_scroll"],
+            lambda x: sj.save_key(f"tb_{f_type}_auto_scroll", x) or preview_changes_tb(),
+            text="Auto Scroll"
+        )
+        self.cbtn_auto_scroll.pack(side="left", padx=5)
+        tk_tooltip(
+            self.cbtn_auto_scroll,
+            "Automatically scroll to the bottom when new text is added",
+        )
+
+        tk_tooltips(
+            [self.cbtn_limit_max, self.cbtn_limit_max_per_line],
+            "Enable character limit",
+        )
 
 
 class SettingTextbox:
@@ -20,10 +179,10 @@ class SettingTextbox:
     def __init__(self, root: Toplevel, master_frame: Union[ttk.Frame, Frame]):
         self.root = root
         self.master = master_frame
+        self.preview_emoji = emoji_img(16, "🔍", "dark" in sj.cache["theme"])
         self.fonts = list(font.families())
         self.fonts.append("TKDefaultFont")
         self.fonts.sort()
-        self.preview_emoji = emoji_img(16, "🔍")
 
         # ------------------ Textbox ------------------
         self.f_tb_param = ttk.Frame(self.master)
@@ -45,73 +204,26 @@ class SettingTextbox:
         self.f_tb_param_3.pack(side="top", fill="x")
 
         # -----
-        self.lf_param_mw_tc = LabelFrame(self.f_tb_param_1, text="• Main Window Transcribed Speech")
-        self.lf_param_mw_tc.pack(side="left", fill="x", expand=True, padx=5, pady=5)
+        self.opt_tb_mw_tc = BaseTbSetting(
+            self.root, self.f_tb_param_1, "• Main Window Transcribed Speech", "mw_tc", True, self.preview_changes_tb,
+            self.fonts
+        )
+        self.opt_tb_mw_tl = BaseTbSetting(
+            self.root, self.f_tb_param_1, "• Main Window Translated Speech", "mw_tl", True, self.preview_changes_tb,
+            self.fonts
+        )
 
-        self.f_mw_tc_1 = ttk.Frame(self.lf_param_mw_tc)
-        self.f_mw_tc_1.pack(side="top", fill="x", pady=5, padx=5)
+        self.opt_tb_ex_tc = BaseTbSetting(
+            self.root, self.f_tb_param_2, "• Subtitle Window for Transcribed Speech", "ex_tc", False,
+            self.preview_changes_tb, self.fonts
+        )
+        self.opt_tb_ex_tl = BaseTbSetting(
+            self.root, self.f_tb_param_2, "• Subtitle Window for Translated Speech", "ex_tl", False, self.preview_changes_tb,
+            self.fonts
+        )
 
-        self.f_mw_tc_2 = ttk.Frame(self.lf_param_mw_tc)
-        self.f_mw_tc_2.pack(side="top", fill="x", pady=5, padx=5)
-
-        self.f_mw_tc_3 = ttk.Frame(self.lf_param_mw_tc)
-        self.f_mw_tc_3.pack(side="top", fill="x", pady=5, padx=5)
-
-        self.f_mw_tc_4 = ttk.Frame(self.lf_param_mw_tc)
-        self.f_mw_tc_4.pack(side="top", fill="x", pady=(0, 10), padx=5)
-
-        self.lf_param_mw_tl = LabelFrame(self.f_tb_param_1, text="• Main Window Translated Speech")
-        self.lf_param_mw_tl.pack(side="left", fill="x", expand=True, padx=5, pady=5)
-
-        self.f_mw_tl_1 = ttk.Frame(self.lf_param_mw_tl)
-        self.f_mw_tl_1.pack(side="top", fill="x", pady=5, padx=5)
-
-        self.f_mw_tl_2 = ttk.Frame(self.lf_param_mw_tl)
-        self.f_mw_tl_2.pack(side="top", fill="x", pady=5, padx=5)
-
-        self.f_mw_tl_3 = ttk.Frame(self.lf_param_mw_tl)
-        self.f_mw_tl_3.pack(side="top", fill="x", pady=5, padx=5)
-
-        self.f_mw_tl_4 = ttk.Frame(self.lf_param_mw_tl)
-        self.f_mw_tl_4.pack(side="top", fill="x", pady=(0, 10), padx=5)
-
-        self.lf_param_ex_tc = LabelFrame(self.f_tb_param_2, text="• Subtitle Window Transcribed Speech")
-        self.lf_param_ex_tc.pack(side="left", fill="x", expand=True, padx=5, pady=5)
-
-        self.f_ex_tc_1 = ttk.Frame(self.lf_param_ex_tc)
-        self.f_ex_tc_1.pack(side="top", fill="x", pady=5, padx=5)
-
-        self.f_ex_tc_2 = ttk.Frame(self.lf_param_ex_tc)
-        self.f_ex_tc_2.pack(side="top", fill="x", pady=5, padx=5)
-
-        self.f_ex_tc_3 = ttk.Frame(self.lf_param_ex_tc)
-        self.f_ex_tc_3.pack(side="top", fill="x", pady=5, padx=5)
-
-        self.f_ex_tc_4 = ttk.Frame(self.lf_param_ex_tc)
-        self.f_ex_tc_4.pack(side="top", fill="x", pady=5, padx=5)
-
-        self.f_ex_tc_5 = ttk.Frame(self.lf_param_ex_tc)
-        self.f_ex_tc_5.pack(side="top", fill="x", pady=(0, 10), padx=5)
-
-        self.lf_param_ex_tl = LabelFrame(self.f_tb_param_2, text="• Subtitle Window Translated Speech")
-        self.lf_param_ex_tl.pack(side="left", fill="x", expand=True, padx=5, pady=5)
-
-        self.f_ex_tl_1 = ttk.Frame(self.lf_param_ex_tl)
-        self.f_ex_tl_1.pack(side="top", fill="x", pady=5, padx=5)
-
-        self.f_ex_tl_2 = ttk.Frame(self.lf_param_ex_tl)
-        self.f_ex_tl_2.pack(side="top", fill="x", pady=5, padx=5)
-
-        self.f_ex_tl_3 = ttk.Frame(self.lf_param_ex_tl)
-        self.f_ex_tl_3.pack(side="top", fill="x", pady=5, padx=5)
-
-        self.f_ex_tl_4 = ttk.Frame(self.lf_param_ex_tl)
-        self.f_ex_tl_4.pack(side="top", fill="x", pady=5, padx=5)
-
-        self.f_ex_tl_5 = ttk.Frame(self.lf_param_ex_tl)
-        self.f_ex_tl_5.pack(side="top", fill="x", pady=(0, 10), padx=5)
-
-        # -----
+        # ------------------ Other ------------------
+        # # -----
         self.lf_param_other = LabelFrame(self.f_tb_param_3, text="• Other")
         self.lf_param_other.pack(side="left", fill="x", expand=True, padx=5, pady=5)
 
@@ -121,395 +233,6 @@ class SettingTextbox:
         self.f_confidence_1 = ttk.Frame(self.lf_confidence)
         self.f_confidence_1.pack(side="top", fill="x", pady=5, padx=5)
 
-        # -------------
-        # mw tc
-        # 1
-        self.lbl_mw_tc_max = ttk.Label(self.f_mw_tc_1, text="Max Length", width=16)
-        self.lbl_mw_tc_max.pack(side="left", padx=5)
-        self.spn_mw_tc_max = SpinboxNumOnly(
-            self.root,
-            self.f_mw_tc_1,
-            1,
-            5000,
-            lambda x: sj.save_key("tb_mw_tc_max", int(x)) or self.preview_changes_tb(),
-            initial_value=sj.cache["tb_mw_tc_max"],
-            width=38
-        )
-        self.spn_mw_tc_max.pack(side="left", padx=5)
-        self.cbtn_mw_tc_limit_max = CustomCheckButton(
-            self.f_mw_tc_1,
-            sj.cache["tb_mw_tc_limit_max"],
-            lambda x: sj.save_key("tb_mw_tc_limit_max", x) or self.preview_changes_tb(),
-            text="Enable",
-            style="Switch.TCheckbutton"
-        )
-        self.cbtn_mw_tc_limit_max.pack(side="left", padx=5)
-
-        # 2
-        self.lbl_mw_tc_max_per_line = ttk.Label(self.f_mw_tc_2, text="Max Per Line", width=16)
-        self.lbl_mw_tc_max_per_line.pack(side="left", padx=5)
-        self.spn_mw_tc_max_per_line = SpinboxNumOnly(
-            self.root,
-            self.f_mw_tc_2,
-            1,
-            5000,
-            lambda x: sj.save_key("tb_mw_tc_max_per_line", int(x)) or self.preview_changes_tb(),
-            initial_value=sj.cache["tb_mw_tc_max_per_line"],
-            width=38
-        )
-        self.spn_mw_tc_max_per_line.pack(side="left", padx=5)
-        self.cbtn_mw_tc_limit_max_per_line = CustomCheckButton(
-            self.f_mw_tc_2,
-            sj.cache["tb_mw_tc_limit_max_per_line"],
-            lambda x: sj.save_key("tb_mw_tc_limit_max_per_line", x) or self.preview_changes_tb(),
-            text="Enable",
-            style="Switch.TCheckbutton"
-        )
-        self.cbtn_mw_tc_limit_max_per_line.pack(side="left", padx=5)
-
-        # 3
-        self.lbl_mw_tc_font = ttk.Label(self.f_mw_tc_3, text="Font", width=16)
-        self.lbl_mw_tc_font.pack(side="left", padx=5)
-        self.cb_mw_tc_font = ComboboxWithKeyNav(self.f_mw_tc_3, values=self.fonts, state="readonly", width=30)
-        self.cb_mw_tc_font.set(sj.cache["tb_mw_tc_font"])
-        self.cb_mw_tc_font.pack(side="left", padx=5)
-        self.cb_mw_tc_font.bind(
-            "<<ComboboxSelected>>",
-            lambda e: sj.save_key("tb_mw_tc_font", self.cb_mw_tc_font.get()) or self.preview_changes_tb(),
-        )
-        self.spn_mw_tc_font_size = SpinboxNumOnly(
-            self.root,
-            self.f_mw_tc_3,
-            3,
-            120,
-            lambda x: sj.save_key("tb_mw_tc_font_size", int(x)) or self.preview_changes_tb(),
-            initial_value=sj.cache["tb_mw_tc_font_size"],
-            width=3
-        )
-        self.spn_mw_tc_font_size.pack(side="left", padx=5)
-        tk_tooltip(self.spn_mw_tc_font_size, "Font Size")
-        self.spn_mw_tc_font_size.pack(side="left", padx=5)
-        self.cbtn_mw_tc_font_bold = CustomCheckButton(
-            self.f_mw_tc_3,
-            sj.cache["tb_mw_tc_font_bold"],
-            lambda x: sj.save_key("tb_mw_tc_font_bold", x) or self.preview_changes_tb(),
-            text="Bold",
-            style="Switch.TCheckbutton"
-        )
-        self.cbtn_mw_tc_font_bold.pack(side="left", padx=5)
-
-        self.cbtn_mw_tc_use_conf_color = CustomCheckButton(
-            self.f_mw_tc_4,
-            sj.cache["tb_mw_tc_use_conf_color"],
-            lambda x: sj.save_key("tb_mw_tc_use_conf_color", x) or self.preview_changes_tb(),
-            text="Colorize text based on confidence value when available"
-        )
-        self.cbtn_mw_tc_use_conf_color.pack(side="left", padx=5)
-
-        # -------------
-        # mw tl
-        # 1
-        self.lbl_mw_tl_max = ttk.Label(self.f_mw_tl_1, text="Max Length", width=16)
-        self.lbl_mw_tl_max.pack(side="left", padx=5)
-        self.spn_mw_tl_max = SpinboxNumOnly(
-            self.root,
-            self.f_mw_tl_1,
-            1,
-            5000,
-            lambda x: sj.save_key("tb_mw_tl_max", int(x)) or self.preview_changes_tb(),
-            initial_value=sj.cache["tb_mw_tl_max"],
-            width=38
-        )
-        self.spn_mw_tl_max.pack(side="left", padx=5)
-        self.cbtn_mw_tl_limit_max = CustomCheckButton(
-            self.f_mw_tl_1,
-            sj.cache["tb_mw_tl_limit_max"],
-            lambda x: sj.save_key("tb_mw_tl_limit_max", x) or self.preview_changes_tb(),
-            text="Enable",
-            style="Switch.TCheckbutton"
-        )
-        self.cbtn_mw_tl_limit_max.pack(side="left", padx=5)
-
-        # 2
-        self.lbl_mw_tl_max_per_line = ttk.Label(self.f_mw_tl_2, text="Max Per Line", width=16)
-        self.lbl_mw_tl_max_per_line.pack(side="left", padx=5)
-        self.spn_mw_tl_max_per_line = SpinboxNumOnly(
-            self.root,
-            self.f_mw_tl_2,
-            1,
-            5000,
-            lambda x: sj.save_key("tb_mw_tl_max_per_line", int(x)) or self.preview_changes_tb(),
-            initial_value=sj.cache["tb_mw_tl_max_per_line"],
-            width=38
-        )
-        self.spn_mw_tl_max_per_line.pack(side="left", padx=5)
-        self.cbtn_mw_tl_limit_max_per_line = CustomCheckButton(
-            self.f_mw_tl_2,
-            sj.cache["tb_mw_tl_limit_max_per_line"],
-            lambda x: sj.save_key("tb_mw_tl_limit_max_per_line", x) or self.preview_changes_tb(),
-            text="Enable",
-            style="Switch.TCheckbutton"
-        )
-        self.cbtn_mw_tl_limit_max_per_line.pack(side="left", padx=5)
-
-        # 3
-        self.lbl_mw_tl_font = ttk.Label(self.f_mw_tl_3, text="Font", width=16)
-        self.lbl_mw_tl_font.pack(side="left", padx=5)
-        self.cb_mw_tl_font = ComboboxWithKeyNav(self.f_mw_tl_3, values=self.fonts, state="readonly", width=30)
-        self.cb_mw_tl_font.set(sj.cache["tb_mw_tl_font"])
-        self.cb_mw_tl_font.pack(side="left", padx=5)
-        self.cb_mw_tl_font.bind(
-            "<<ComboboxSelected>>",
-            lambda e: sj.save_key("tb_mw_tl_font", self.cb_mw_tl_font.get()) or self.preview_changes_tb(),
-        )
-        self.spn_mw_tl_font_size = SpinboxNumOnly(
-            self.root,
-            self.f_mw_tl_3,
-            3,
-            120,
-            lambda x: sj.save_key("tb_mw_tl_font_size", int(x)) or self.preview_changes_tb(),
-            initial_value=sj.cache["tb_mw_tl_font_size"],
-            width=3
-        )
-        tk_tooltip(self.spn_mw_tl_font_size, "Font Size")
-        self.spn_mw_tl_font_size.pack(side="left", padx=5)
-        self.cbtn_mw_tl_font_bold = CustomCheckButton(
-            self.f_mw_tl_3,
-            sj.cache["tb_mw_tl_font_bold"],
-            lambda x: sj.save_key("tb_mw_tl_font_bold", x) or self.preview_changes_tb(),
-            text="Bold",
-            style="Switch.TCheckbutton"
-        )
-        self.cbtn_mw_tl_font_bold.pack(side="left", padx=5)
-
-        self.cbtn_mw_tl_use_conf_color = CustomCheckButton(
-            self.f_mw_tl_4,
-            sj.cache["tb_mw_tl_use_conf_color"],
-            lambda x: sj.save_key("tb_mw_tl_use_conf_color", x) or self.preview_changes_tb(),
-            text="Colorize text based on confidence value when available"
-        )
-        self.cbtn_mw_tl_use_conf_color.pack(side="left", padx=5)
-
-        # -------------
-        # detached tc
-        # 1
-        self.lbl_ex_tc_max = ttk.Label(self.f_ex_tc_1, text="Max Length", width=16)
-        self.lbl_ex_tc_max.pack(side="left", padx=5)
-        self.spn_ex_tc_max = SpinboxNumOnly(
-            self.root,
-            self.f_ex_tc_1,
-            1,
-            5000,
-            lambda x: sj.save_key("tb_ex_tc_max", int(x)) or self.preview_changes_tb(),
-            initial_value=sj.cache["tb_ex_tc_max"],
-            width=38
-        )
-        self.spn_ex_tc_max.pack(side="left", padx=5)
-        self.cbtn_ex_tc_limit_max = CustomCheckButton(
-            self.f_ex_tc_1,
-            sj.cache["tb_ex_tc_limit_max"],
-            lambda x: sj.save_key("tb_ex_tc_limit_max", x) or self.preview_changes_tb(),
-            text="Enable",
-            style="Switch.TCheckbutton"
-        )
-        self.cbtn_ex_tc_limit_max.pack(side="left", padx=5)
-
-        # 2
-        self.lbl_ex_tc_max_per_line = ttk.Label(self.f_ex_tc_2, text="Max Per Line", width=16)
-        self.lbl_ex_tc_max_per_line.pack(side="left", padx=5)
-        self.spn_ex_tc_max_per_line = SpinboxNumOnly(
-            self.root,
-            self.f_ex_tc_2,
-            1,
-            5000,
-            lambda x: sj.save_key("tb_ex_tc_max_per_line", int(x)) or self.preview_changes_tb(),
-            initial_value=sj.cache["tb_ex_tc_max_per_line"],
-            width=38
-        )
-        self.spn_ex_tc_max_per_line.pack(side="left", padx=5)
-        self.cbtn_ex_tc_limit_max_per_line = CustomCheckButton(
-            self.f_ex_tc_2,
-            sj.cache["tb_ex_tc_limit_max_per_line"],
-            lambda x: sj.save_key("tb_ex_tc_limit_max_per_line", x) or self.preview_changes_tb(),
-            text="Enable",
-            style="Switch.TCheckbutton"
-        )
-        self.cbtn_ex_tc_limit_max_per_line.pack(side="left", padx=5)
-
-        # 3
-        self.lbl_ex_tc_font = ttk.Label(self.f_ex_tc_3, text="Font", width=16)
-        self.lbl_ex_tc_font.pack(side="left", padx=5)
-        self.cb_ex_tc_font = ComboboxWithKeyNav(self.f_ex_tc_3, values=self.fonts, state="readonly", width=30)
-        self.cb_ex_tc_font.set(sj.cache["tb_ex_tc_font"])
-        self.cb_ex_tc_font.pack(side="left", padx=5)
-        self.cb_ex_tc_font.bind(
-            "<<ComboboxSelected>>",
-            lambda e: sj.save_key("tb_ex_tc_font", self.cb_ex_tc_font.get()) or self.preview_changes_tb(),
-        )
-        self.spn_ex_tc_font_size = SpinboxNumOnly(
-            self.root,
-            self.f_ex_tc_3,
-            3,
-            120,
-            lambda x: sj.save_key("tb_ex_tc_font_size", int(x)) or self.preview_changes_tb(),
-            initial_value=sj.cache["tb_ex_tc_font_size"],
-            width=3
-        )
-        tk_tooltip(self.spn_ex_tc_font_size, "Font Size")
-        self.spn_ex_tc_font_size.pack(side="left", padx=5)
-        self.cbtn_ex_tc_font_bold = CustomCheckButton(
-            self.f_ex_tc_3,
-            sj.cache["tb_ex_tc_font_bold"],
-            lambda x: sj.save_key("tb_ex_tc_font_bold", x) or self.preview_changes_tb(),
-            text="Bold",
-            style="Switch.TCheckbutton"
-        )
-        self.cbtn_ex_tc_font_bold.pack(side="left", padx=5)
-
-        # 4
-        self.lbl_ex_tc_font_color = ttk.Label(self.f_ex_tc_4, text="Font Color", width=16)
-        self.lbl_ex_tc_font_color.pack(side="left", padx=5)
-        self.entry_ex_tc_font_color = ttk.Entry(self.f_ex_tc_4, width=10)
-        self.entry_ex_tc_font_color.insert("end", sj.cache["tb_ex_tc_font_color"])
-        self.entry_ex_tc_font_color.pack(side="left", padx=5)
-        self.entry_ex_tc_font_color.bind(
-            "<Button-1>",
-            lambda e: choose_color(self.entry_ex_tc_font_color, self.entry_ex_tc_font_color.get(), self.root) or sj.
-            save_key("tb_ex_tc_font_color", self.entry_ex_tc_font_color.get()) or self.preview_changes_tb(),
-        )
-        self.entry_ex_tc_font_color.bind("<Key>", lambda e: "break")
-
-        self.lbl_ex_tc_bg_color = ttk.Label(self.f_ex_tc_4, text="Background Color")
-        self.lbl_ex_tc_bg_color.pack(side="left", padx=5)
-        self.entry_ex_tc_bg_color = ttk.Entry(self.f_ex_tc_4, width=10)
-        self.entry_ex_tc_bg_color.insert("end", sj.cache["tb_ex_tc_bg_color"])
-        self.entry_ex_tc_bg_color.pack(side="left", padx=5)
-        self.entry_ex_tc_bg_color.bind(
-            "<Button-1>",
-            lambda e: choose_color(self.entry_ex_tc_bg_color, self.entry_ex_tc_bg_color.get(), self.root) or sj.
-            save_key("tb_ex_tc_bg_color", self.entry_ex_tc_bg_color.get()) or self.preview_changes_tb(),
-        )
-        self.entry_ex_tc_bg_color.bind("<Key>", lambda e: "break")
-
-        # 5
-        self.cbtn_ex_tc_use_conf_color = CustomCheckButton(
-            self.f_ex_tc_5,
-            sj.cache["tb_ex_tc_use_conf_color"],
-            lambda x: sj.save_key("tb_ex_tc_use_conf_color", x) or self.preview_changes_tb(),
-            text="Colorize text based on confidence value when available"
-        )
-        self.cbtn_ex_tc_use_conf_color.pack(side="left", padx=5)
-
-        # -------------
-        # detached tl
-        self.lbl_ex_tl_max = ttk.Label(self.f_ex_tl_1, text="Max Length", width=16)
-        self.lbl_ex_tl_max.pack(side="left", padx=5)
-        self.spn_ex_tl_max = SpinboxNumOnly(
-            self.root,
-            self.f_ex_tl_1,
-            1,
-            5000,
-            lambda x: sj.save_key("tb_ex_tl_max", int(x)) or self.preview_changes_tb(),
-            initial_value=sj.cache["tb_ex_tl_max"],
-            width=38
-        )
-        self.spn_ex_tl_max.pack(side="left", padx=5)
-        self.cbtn_ex_tl_limit_max = CustomCheckButton(
-            self.f_ex_tl_1,
-            sj.cache["tb_ex_tl_limit_max"],
-            lambda x: sj.save_key("tb_ex_tl_limit_max", x) or self.preview_changes_tb(),
-            text="Enable",
-            style="Switch.TCheckbutton"
-        )
-        self.cbtn_ex_tl_limit_max.pack(side="left", padx=5)
-
-        # 2
-        self.lbl_ex_tl_max_per_line = ttk.Label(self.f_ex_tl_2, text="Max Per Line", width=16)
-        self.lbl_ex_tl_max_per_line.pack(side="left", padx=5)
-        self.spn_ex_tl_max_per_line = SpinboxNumOnly(
-            self.root,
-            self.f_ex_tl_2,
-            1,
-            5000,
-            lambda x: sj.save_key("tb_ex_tl_max_per_line", int(x)) or self.preview_changes_tb(),
-            initial_value=sj.cache["tb_ex_tl_max_per_line"],
-            width=38
-        )
-        self.spn_ex_tl_max_per_line.pack(side="left", padx=5)
-        self.cbtn_ex_tl_limit_max_per_line = CustomCheckButton(
-            self.f_ex_tl_2,
-            sj.cache["tb_ex_tl_limit_max_per_line"],
-            lambda x: sj.save_key("tb_ex_tl_limit_max_per_line", x) or self.preview_changes_tb(),
-            text="Enable",
-            style="Switch.TCheckbutton"
-        )
-        self.cbtn_ex_tl_limit_max_per_line.pack(side="left", padx=5)
-
-        # 3
-        self.lbl_ex_tl_font = ttk.Label(self.f_ex_tl_3, text="Font", width=16)
-        self.lbl_ex_tl_font.pack(side="left", padx=5)
-        self.cb_ex_tl_font = ComboboxWithKeyNav(self.f_ex_tl_3, values=self.fonts, state="readonly", width=30)
-        self.cb_ex_tl_font.set(sj.cache["tb_ex_tl_font"])
-        self.cb_ex_tl_font.pack(side="left", padx=5)
-        self.cb_ex_tl_font.bind(
-            "<<ComboboxSelected>>",
-            lambda e: sj.save_key("tb_ex_tl_font", self.cb_ex_tl_font.get()) or self.preview_changes_tb(),
-        )
-        self.spn_ex_tl_font_size = SpinboxNumOnly(
-            self.root,
-            self.f_ex_tl_3,
-            3,
-            120,
-            lambda x: sj.save_key("tb_ex_tl_font_size", int(x)) or self.preview_changes_tb(),
-            initial_value=sj.cache["tb_ex_tl_font_size"],
-            width=3
-        )
-        tk_tooltip(self.spn_ex_tl_font_size, "Font Size")
-        self.spn_ex_tl_font_size.pack(side="left", padx=5)
-        self.cbtn_ex_tl_font_bold = CustomCheckButton(
-            self.f_ex_tl_3,
-            sj.cache["tb_ex_tl_font_bold"],
-            lambda x: sj.save_key("tb_ex_tl_font_bold", x) or self.preview_changes_tb(),
-            text="Bold",
-            style="Switch.TCheckbutton"
-        )
-        self.cbtn_ex_tl_font_bold.pack(side="left", padx=5)
-
-        # 4
-        self.lbl_ex_tl_font_color = ttk.Label(self.f_ex_tl_4, text="Font Color", width=16)
-        self.lbl_ex_tl_font_color.pack(side="left", padx=5)
-        self.entry_ex_tl_font_color = ttk.Entry(self.f_ex_tl_4, width=10)
-        self.entry_ex_tl_font_color.insert("end", sj.cache["tb_ex_tl_font_color"])
-        self.entry_ex_tl_font_color.pack(side="left", padx=5)
-        self.entry_ex_tl_font_color.bind(
-            "<Button-1>",
-            lambda e: choose_color(self.entry_ex_tl_font_color, self.entry_ex_tl_font_color.get(), self.root) or sj.
-            save_key("tb_ex_tl_font_color", self.entry_ex_tl_font_color.get()) or self.preview_changes_tb(),
-        )
-        self.entry_ex_tl_font_color.bind("<Key>", lambda e: "break")
-
-        self.lbl_ex_tl_bg_color = ttk.Label(self.f_ex_tl_4, text="Background Color")
-        self.lbl_ex_tl_bg_color.pack(side="left", padx=5)
-        self.entry_ex_tl_bg_color = ttk.Entry(self.f_ex_tl_4, width=10)
-        self.entry_ex_tl_bg_color.insert("end", sj.cache["tb_ex_tl_bg_color"])
-        self.entry_ex_tl_bg_color.pack(side="left", padx=5)
-        self.entry_ex_tl_bg_color.bind(
-            "<Button-1>",
-            lambda e: choose_color(self.entry_ex_tl_bg_color, self.entry_ex_tl_bg_color.get(), self.root) or sj.
-            save_key("tb_ex_tl_bg_color", self.entry_ex_tl_bg_color.get()) or self.preview_changes_tb(),
-        )
-        self.entry_ex_tl_bg_color.bind("<Key>", lambda e: "break")
-
-        # 5
-        self.cbtn_ex_tl_use_conf_color = CustomCheckButton(
-            self.f_ex_tl_5,
-            sj.cache["tb_ex_tl_use_conf_color"],
-            lambda x: sj.save_key("tb_ex_tl_use_conf_color", x) or self.preview_changes_tb(),
-            text="Colorize text based on confidence value when available"
-        )
-        self.cbtn_ex_tl_use_conf_color.pack(side="left", padx=5)
-
-        # ------------------ Other ------------------
         self.lbl_gradient_low_conf = ttk.Label(self.f_confidence_1, text="Low Confidence", width=16)
         self.lbl_gradient_low_conf.pack(side="left", padx=5)
 
@@ -646,34 +369,6 @@ class SettingTextbox:
         self.tb_preview_4.pack(side="left", padx=5, pady=5, fill="both", expand=True)
 
         # --------------------------
-        # tooltips
-        tk_tooltips(
-            [
-                self.lbl_mw_tc_max, self.spn_mw_tc_max, self.lbl_mw_tl_max, self.spn_mw_tl_max, self.lbl_ex_tc_max,
-                self.spn_ex_tc_max, self.lbl_ex_tl_max, self.spn_ex_tl_max
-            ],
-            "Max character shown. Keep in mind that the result is also limited by "
-            "the max buffer and max sentence in the record setting",
-        )
-        tk_tooltips(
-            [
-                self.lbl_mw_tc_max_per_line, self.spn_mw_tc_max_per_line, self.lbl_mw_tl_max_per_line,
-                self.spn_mw_tl_max_per_line, self.lbl_ex_tc_max_per_line, self.spn_ex_tc_max_per_line,
-                self.lbl_ex_tl_max_per_line, self.spn_ex_tl_max_per_line
-            ],
-            "Max character shown per line.\n\n"
-            "Separator needs to contain a line break (\\n) for this to work",
-        )
-        tk_tooltips(
-            [
-                self.cbtn_mw_tc_limit_max, self.cbtn_mw_tc_limit_max_per_line, self.cbtn_mw_tl_limit_max,
-                self.cbtn_mw_tl_limit_max_per_line, self.cbtn_ex_tc_limit_max, self.cbtn_ex_tc_limit_max_per_line,
-                self.cbtn_ex_tl_limit_max, self.cbtn_ex_tl_limit_max_per_line
-            ],
-            "Enable character limit",
-        )
-
-        # --------------------------
         self.__init_setting_once()
 
     # ------------------ Functions ------------------
@@ -703,31 +398,31 @@ class SettingTextbox:
 
         bc.mw.tb_transcribed.configure(
             font=(
-                self.cb_mw_tc_font.get(),
-                int(self.spn_mw_tc_font_size.get()),
-                "bold" if self.cbtn_mw_tc_font_bold.instate(["selected"]) else "normal",
+                self.opt_tb_mw_tc.cb_font.get(),
+                int(self.opt_tb_mw_tc.spn_font_size.get()),
+                "bold" if self.opt_tb_mw_tc.cbtn_font_bold.instate(["selected"]) else "normal",
             )
         )
         self.tb_preview_1.configure(
             font=(
-                self.cb_mw_tc_font.get(),
-                int(self.spn_mw_tc_font_size.get()),
-                "bold" if self.cbtn_mw_tc_font_bold.instate(["selected"]) else "normal",
+                self.opt_tb_mw_tc.cb_font.get(),
+                int(self.opt_tb_mw_tc.spn_font_size.get()),
+                "bold" if self.opt_tb_mw_tc.cbtn_font_bold.instate(["selected"]) else "normal",
             )
         )
 
         bc.mw.tb_translated.configure(
             font=(
-                self.cb_mw_tl_font.get(),
-                int(self.spn_mw_tl_font_size.get()),
-                "bold" if self.cbtn_mw_tl_font_bold.instate(["selected"]) else "normal",
+                self.opt_tb_mw_tl.cb_font.get(),
+                int(self.opt_tb_mw_tl.spn_font_size.get()),
+                "bold" if self.opt_tb_mw_tl.cbtn_font_bold.instate(["selected"]) else "normal",
             )
         )
         self.tb_preview_2.configure(
             font=(
-                self.cb_mw_tl_font.get(),
-                int(self.spn_mw_tl_font_size.get()),
-                "bold" if self.cbtn_mw_tl_font_bold.instate(["selected"]) else "normal",
+                self.opt_tb_mw_tl.cb_font.get(),
+                int(self.opt_tb_mw_tl.spn_font_size.get()),
+                "bold" if self.opt_tb_mw_tl.cbtn_font_bold.instate(["selected"]) else "normal",
             )
         )
 
@@ -735,24 +430,24 @@ class SettingTextbox:
         bc.ex_tcw.update_window_bg()
         self.tb_preview_3.configure(
             font=(
-                self.cb_ex_tc_font.get(),
-                int(self.spn_ex_tc_font_size.get()),
-                "bold" if self.cbtn_ex_tc_font_bold.instate(["selected"]) else "normal",
+                self.opt_tb_ex_tc.cb_font.get(),
+                int(self.opt_tb_ex_tc.spn_font_size.get()),
+                "bold" if self.opt_tb_ex_tc.cbtn_font_bold.instate(["selected"]) else "normal",
             ),
-            foreground=self.entry_ex_tc_font_color.get(),
-            background=self.entry_ex_tc_bg_color.get(),
+            foreground=self.opt_tb_ex_tc.entry_font_color.get(),
+            background=self.opt_tb_ex_tc.entry_bg_color.get(),
         )
 
         assert bc.ex_tlw is not None
         bc.ex_tlw.update_window_bg()
         self.tb_preview_4.configure(
             font=(
-                self.cb_ex_tl_font.get(),
-                int(self.spn_ex_tl_font_size.get()),
-                "bold" if self.cbtn_ex_tl_font_bold.instate(["selected"]) else "normal",
+                self.opt_tb_ex_tl.cb_font.get(),
+                int(self.opt_tb_ex_tl.spn_font_size.get()),
+                "bold" if self.opt_tb_ex_tl.cbtn_font_bold.instate(["selected"]) else "normal",
             ),
-            foreground=self.entry_ex_tl_font_color.get(),
-            background=self.entry_ex_tl_bg_color.get(),
+            foreground=self.opt_tb_ex_tl.entry_font_color.get(),
+            background=self.opt_tb_ex_tl.entry_bg_color.get(),
         )
 
     def preview_gradient(self):

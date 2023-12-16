@@ -7,6 +7,7 @@ from threading import Lock, Thread
 from tkinter import ttk
 from typing import TYPE_CHECKING, List, Literal, Optional, Sequence, Union
 
+import tkhtmlview
 from PIL import ImageTk
 from stable_whisper import WhisperResult
 
@@ -212,16 +213,28 @@ class BridgeClass:
                         {to_insert}
                     </div>"""
 
+        def update_it(widget: tkhtmlview.HTMLText, insert, pos):
+            if sj.cache.get(f"tb_{mode}_auto_scroll"):
+                widget.set_html(insert)
+                widget.see("end")
+            else:
+                widget.set_html(insert)
+                widget.yview_moveto(pos)
+
         if "mw" in mode:
             assert self.mw is not None
             tb = self.mw.tb_transcribed if "tc" in mode else self.mw.tb_translated
+            sb = self.mw.sb_transcribed if "tc" in mode else self.mw.sb_translated
             insert.replace("replace-background-color:;", f'background-color: {self.mw.root.cget("bg")};')
-            self.mw.root.after(0, tb.set_html, insert)
+            prev_pos = sb.get()[0]
+            self.mw.root.after(0, update_it, tb, insert, prev_pos)
         else:
             assert self.ex_tcw and self.ex_tlw is not None
             lbl = self.ex_tcw.lbl_text if "tc" in mode else self.ex_tlw.lbl_text
+            sb = self.ex_tcw.hidden_sb_y if "tc" in mode else self.ex_tlw.hidden_sb_y
             insert.replace("replace-background-color:;", f'background-color: {sj.cache.get(f"tb_{mode}_bg_color")};')
-            lbl.after(0, lbl.set_html, insert)
+            prev_pos = sb.get()[0]
+            lbl.after(0, update_it, lbl, insert, prev_pos)
 
     def map_result_lists(self, source_list: Sequence[Union[WhisperResult, str]], store_list: List[ToInsert], separator: str):
         """

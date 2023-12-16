@@ -261,14 +261,15 @@ class MainWindow:
 
         set_ui_style(sj.cache["theme"])
 
-        bc.wrench_emoji = emoji_img(16, "🔧")
-        bc.open_emoji = emoji_img(16, "🚀")
-        bc.trash_emoji = emoji_img(16, "🗑️")
-        bc.folder_emoji = emoji_img(16, "📁")
-        bc.reset_emoji = emoji_img(16, "🔄")
-        bc.question_emoji = emoji_img(16, "❔")
-        bc.mic_emoji = emoji_img(20, "🎤")
-        bc.speaker_emoji = emoji_img(20, "🔊")
+        dark = "dark" in sj.cache["theme"]
+        bc.wrench_emoji = emoji_img(16, "🔧", dark)
+        bc.open_emoji = emoji_img(16, "🚀", dark)
+        bc.trash_emoji = emoji_img(16, "🗑️", dark)
+        bc.folder_emoji = emoji_img(16, "📁", dark)
+        bc.reset_emoji = emoji_img(16, "🔄", dark)
+        bc.question_emoji = emoji_img(16, "❔", dark)
+        bc.mic_emoji = emoji_img(20, "🎤", dark)
+        bc.speaker_emoji = emoji_img(20, "🔊", dark)
         bc.cuda = check_cuda_and_gpu()
 
         # ------------------ Frames ------------------

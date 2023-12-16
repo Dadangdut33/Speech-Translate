@@ -75,6 +75,7 @@ default_setting: SettingDict = {
     "libre_https": True,
     # ------------------ #
     # Record settings
+    "rec_ask_confirmation_first": True,
     # temp
     "use_temp": False,
     "keep_temp": False,
@@ -183,6 +184,7 @@ default_setting: SettingDict = {
     "gradient_low_conf": "#FF0000",
     "gradient_high_conf": "#00FF00",
     # mw tc
+    "tb_mw_tc_auto_scroll": True,
     "tb_mw_tc_limit_max": False,
     "tb_mw_tc_limit_max_per_line": False,
     "tb_mw_tc_max": 300,
@@ -192,6 +194,7 @@ default_setting: SettingDict = {
     "tb_mw_tc_font_size": 10,
     "tb_mw_tc_use_conf_color": True,
     # mw tl
+    "tb_mw_tl_auto_scroll": True,
     "tb_mw_tl_limit_max": False,
     "tb_mw_tl_limit_max_per_line": False,
     "tb_mw_tl_max": 300,
@@ -206,6 +209,7 @@ default_setting: SettingDict = {
     "ex_tc_click_through": 0,
     "ex_tc_no_title_bar": 1,
     "ex_tc_no_tooltip": 0,
+    "tb_ex_tc_auto_scroll": True,
     "tb_ex_tc_limit_max": False,
     "tb_ex_tc_limit_max_per_line": False,
     "tb_ex_tc_max": 120,
@@ -222,6 +226,7 @@ default_setting: SettingDict = {
     "ex_tl_click_through": 0,
     "ex_tl_no_title_bar": 1,
     "ex_tl_no_tooltip": 0,
+    "tb_ex_tl_auto_scroll": True,
     "tb_ex_tl_limit_max": False,
     "tb_ex_tl_limit_max_per_line": False,
     "tb_ex_tl_max": 120,

@@ -1,5 +1,5 @@
 from platform import system
-from tkinter import IntVar, Menu, Tk, Toplevel
+from tkinter import IntVar, Menu, Tk, Toplevel, ttk
 from typing import Literal
 
 from speech_translate._path import p_app_icon
@@ -16,13 +16,14 @@ class SubtitleWindow:
 
     # ----------------------------------------------------------------------
     def __init__(self, master: Tk, title: str, win_type: Literal["tc", "tl"]):
-        self.close_emoji = emoji_img(16, "❌")
-        self.copy_emoji = emoji_img(16, "📋")
-        self.pin_emoji = emoji_img(16, "📌")
-        self.help_emoji = emoji_img(16, "❓")
-        self.title_emoji = emoji_img(16, "🪟")
-        self.up_emoji = emoji_img(16, "⬆️")
-        self.down_emoji = emoji_img(16, "⬇️")
+        dark = "dark" in sj.cache["theme"]
+        self.close_emoji = emoji_img(16, "❌", dark)
+        self.copy_emoji = emoji_img(16, "📋", dark)
+        self.pin_emoji = emoji_img(16, "📌", dark)
+        self.help_emoji = emoji_img(16, "❓", dark)
+        self.title_emoji = emoji_img(16, "🪟", dark)
+        self.up_emoji = emoji_img(16, "⬆️", dark)
+        self.down_emoji = emoji_img(16, "⬇️", dark)
 
         self.master = master
         self.title = title
@@ -59,6 +60,11 @@ class SubtitleWindow:
             "title bar first\n\nTo hide this tooltip you can check the Hide Tooltip option in the menu or press Alt + X",
             wrap_len=250,
         )
+
+        self.hidden_sb_y = ttk.Scrollbar(self.lbl_text, orient="vertical")
+        # self.hidden_sb_y.pack(side="right", fill="y")
+        self.lbl_text.configure(yscrollcommand=self.hidden_sb_y.set)
+        self.hidden_sb_y.configure(command=self.lbl_text.yview)
 
         self.menu_dropdown = Menu(self.root, tearoff=0)
         self.menu_dropdown.add_command(label=self.title, command=self.open_menu, image=self.title_emoji, compound="left")
@@ -345,4 +351,4 @@ class SubtitleWindow:
         Method to copy the textbox content to clipboard.
         """
         self.root.clipboard_clear()
-        self.root.clipboard_append(self.lbl_text.cget("text").strip())
+        self.root.clipboard_append(self.lbl_text.get("1.0", "end"))

@@ -130,6 +130,7 @@ class SettingDict(TypedDict):
     auto_refresh_log: bool
     debug_realtime_record: bool
     debug_translate: bool
+    debug_recorded_audio: bool
     # ------------------ #
     # Tl Settings
     https_proxy: str
@@ -143,7 +144,7 @@ class SettingDict(TypedDict):
     libre_https: bool
     # ------------------ #
     # Record settings
-    debug_recorded_audio: bool
+    rec_ask_confirmation_first: bool
     # temp
     use_temp: bool
     keep_temp: bool
@@ -248,6 +249,7 @@ class SettingDict(TypedDict):
     gradient_low_conf: str
     gradient_high_conf: str
     # mw tc
+    tb_mw_tc_auto_scroll: bool
     tb_mw_tc_limit_max: bool
     tb_mw_tc_limit_max_per_line: bool
     tb_mw_tc_max: int
@@ -257,6 +259,7 @@ class SettingDict(TypedDict):
     tb_mw_tc_font_size: int
     tb_mw_tc_use_conf_color: bool
     # mw tl
+    tb_mw_tl_auto_scroll: bool
     tb_mw_tl_limit_max: bool
     tb_mw_tl_limit_max_per_line: bool
     tb_mw_tl_max: int
@@ -271,6 +274,7 @@ class SettingDict(TypedDict):
     ex_tc_click_through: Literal[0, 1]
     ex_tc_no_title_bar: Literal[0, 1]
     ex_tc_no_tooltip: Literal[0, 1]
+    tb_ex_tc_auto_scroll: bool
     tb_ex_tc_limit_max: bool
     tb_ex_tc_limit_max_per_line: bool
     tb_ex_tc_max: int
@@ -287,6 +291,7 @@ class SettingDict(TypedDict):
     ex_tl_click_through: Literal[0, 1]
     ex_tl_no_title_bar: Literal[0, 1]
     ex_tl_no_tooltip: Literal[0, 1]
+    tb_ex_tl_auto_scroll: bool
     tb_ex_tl_limit_max: bool
     tb_ex_tl_limit_max_per_line: bool
     tb_ex_tl_max: int

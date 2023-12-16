@@ -471,7 +471,7 @@ def tb_copy_only(event):
     return "break"
 
 
-def emoji_img(size, text):
+def emoji_img(size, text, is_dark):
     """Generate emoji image
 
     Parameters
@@ -487,7 +487,10 @@ def emoji_img(size, text):
         the emoji but in image format
     """
     font = ImageFont.truetype(p_font_emoji, size=int(round(size * 72 / 96, 0)))
-    im = Image.new("RGBA", (size, size), (255, 255, 255, 0))
+    if is_dark:
+        im = Image.new("RGBA", (size, size), (255, 255, 255, 0))
+    else:
+        im = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(im)
     draw.text((size / 2, size / 2), text, embedded_color=True, font=font, anchor="mm")
     return ImageTk.PhotoImage(im)

@@ -68,6 +68,9 @@ class SettingGeneral:
         self.f_application_3 = ttk.Frame(self.lf_application)
         self.f_application_3.pack(side="top", fill="x", padx=5)
 
+        self.f_application_4 = ttk.Frame(self.lf_application)
+        self.f_application_4.pack(side="top", fill="x", padx=5)
+
         self.cbtn_update_on_start = CustomCheckButton(
             self.f_application_1,
             sj.cache["checkUpdateOnStart"],
@@ -78,31 +81,14 @@ class SettingGeneral:
         self.cbtn_update_on_start.pack(side="left", padx=5, pady=5)
         tk_tooltip(self.cbtn_update_on_start, "Check for app update on start.")
 
-        self.cbtn_show_audio_visualizer_in_record = CustomCheckButton(
+        self.cbtn_ask_confirmation_on_record = CustomCheckButton(
             self.f_application_1,
-            sj.cache["show_audio_visualizer_in_record"],
-            lambda x: sj.save_key("show_audio_visualizer_in_record", x),
-            text="Show audio visualizer (record)",
+            sj.cache["rec_ask_confirmation_first"],
+            lambda x: sj.save_key("rec_ask_confirmation_first", x),
+            text="Ask confirmation before recording",
             style="Switch.TCheckbutton"
         )
-        self.cbtn_show_audio_visualizer_in_record.pack(side="left", padx=5, pady=5)
-        tk_tooltip(
-            self.cbtn_show_audio_visualizer_in_record,
-            "Show audio visualizer when recording in the recording modal window.\n\nDisabling could improve performance."
-        )
-
-        self.cbtn_show_audio_visualizer_in_setting = CustomCheckButton(
-            self.f_application_1,
-            sj.cache["show_audio_visualizer_in_setting"],
-            lambda x: sj.save_key("show_audio_visualizer_in_setting", x),
-            text="Show audio visualizer (setting)",
-            style="Switch.TCheckbutton"
-        )
-        self.cbtn_show_audio_visualizer_in_setting.pack(side="left", padx=5, pady=5)
-        tk_tooltip(
-            self.cbtn_show_audio_visualizer_in_setting,
-            "Show audio visualizer in the setting -> record page.\n\nDisabling could improve performance."
-        )
+        self.cbtn_ask_confirmation_on_record.pack(side="left", padx=5, pady=5)
 
         self.cbtn_supress_hidden_to_tray = CustomCheckButton(
             self.f_application_1,
@@ -127,11 +113,37 @@ class SettingGeneral:
             "Supress warning notification that usually shows up when no input device is detected.",
         )
 
+        self.cbtn_show_audio_visualizer_in_record = CustomCheckButton(
+            self.f_application_2,
+            sj.cache["show_audio_visualizer_in_record"],
+            lambda x: sj.save_key("show_audio_visualizer_in_record", x),
+            text="Show audio visualizer (in record)",
+            style="Switch.TCheckbutton"
+        )
+        self.cbtn_show_audio_visualizer_in_record.pack(side="left", padx=5, pady=5)
+        tk_tooltip(
+            self.cbtn_show_audio_visualizer_in_record,
+            "Show audio visualizer when recording in the recording modal window.\n\nDisabling could improve performance."
+        )
+
+        self.cbtn_show_audio_visualizer_in_setting = CustomCheckButton(
+            self.f_application_2,
+            sj.cache["show_audio_visualizer_in_setting"],
+            lambda x: sj.save_key("show_audio_visualizer_in_setting", x),
+            text="Show audio visualizer (in setting)",
+            style="Switch.TCheckbutton"
+        )
+        self.cbtn_show_audio_visualizer_in_setting.pack(side="left", padx=5, pady=5)
+        tk_tooltip(
+            self.cbtn_show_audio_visualizer_in_setting,
+            "Show audio visualizer in the setting -> record page.\n\nDisabling could improve performance."
+        )
+
         # theme
-        self.lbl_theme = ttk.Label(self.f_application_2, text="Theme")
+        self.lbl_theme = ttk.Label(self.f_application_3, text="Theme")
         self.lbl_theme.pack(side="left", padx=5, pady=5)
 
-        self.cb_theme = ComboboxWithKeyNav(self.f_application_2, values=["dummy list"], state="readonly")
+        self.cb_theme = ComboboxWithKeyNav(self.f_application_3, values=["dummy list"], state="readonly")
         self.cb_theme.pack(side="left", padx=5, pady=5)
         self.cb_theme.bind("<<ComboboxSelected>>", self.cb_theme_change)
         tk_tooltips(
@@ -142,7 +154,7 @@ class SettingGeneral:
             wrap_len=500,
         )
 
-        self.entry_theme = ttk.Entry(self.f_application_2)
+        self.entry_theme = ttk.Entry(self.f_application_3)
         self.entry_theme.pack(side="left", padx=5, pady=5, fill="x", expand=True)
         tk_tooltip(
             self.entry_theme,
@@ -152,7 +164,7 @@ class SettingGeneral:
             wrap_len=500,
         )
 
-        self.btn_theme_add = ttk.Button(self.f_application_2, text="Add", command=self.add_theme)
+        self.btn_theme_add = ttk.Button(self.f_application_3, text="Add", command=self.add_theme)
         self.btn_theme_add.pack(side="left", padx=5, pady=5)
         tk_tooltip(
             self.btn_theme_add,
@@ -163,7 +175,7 @@ class SettingGeneral:
         )
 
         self.lbl_notice_theme = ttk.Label(
-            self.f_application_3,
+            self.f_application_4,
             text="Might need to reload the app for theme changes to fully take effect.",
             cursor="hand2",
             foreground="blue",
@@ -833,11 +845,11 @@ class SettingGeneral:
             self.btn_theme_add.pack_forget()
 
             if self.initial_theme != self.cb_theme.get():
-                self.f_application_3.pack(side="top", fill="x", padx=5)
+                self.f_application_4.pack(side="top", fill="x", padx=5)
                 self.lbl_notice_theme.pack(side="left", padx=5, pady=(0, 10))
             else:
                 self.lbl_notice_theme.pack_forget()
-                self.f_application_3.pack_forget()
+                self.f_application_4.pack_forget()
 
             # save
             sj.save_key("theme", self.cb_theme.get())

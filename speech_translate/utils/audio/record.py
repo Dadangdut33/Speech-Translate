@@ -25,6 +25,7 @@ from speech_translate._logging import logger
 from speech_translate._path import dir_debug, dir_silero_vad, dir_temp, p_app_icon
 from speech_translate.linker import bc, sj
 from speech_translate.ui.custom.audio import AudioMeter
+from speech_translate.ui.custom.checkbutton import CustomCheckButton
 from speech_translate.ui.custom.label import LabelTitleText
 from speech_translate.ui.custom.message import mbox
 from speech_translate.ui.custom.spinbox import SpinboxNumOnly
@@ -98,165 +99,255 @@ def record_session(
     rec_type = "speaker" if speaker else "mic"
     assert bc.mw is not None
     master = bc.mw.root
-    root = Toplevel(master)
-    root.title("Loading...")
-    root.transient(master)
-    root.geometry("450x275")
-    root.protocol("WM_DELETE_WINDOW", lambda: master.state("iconic"))  # minimize window when click close button
-    root.geometry(f"+{master.winfo_rootx() + 50}+{master.winfo_rooty() + 50}")
-    root.maxsize(600, 325)
-    root.minsize(400, 225)
+    root = None
 
-    frame_lbl = ttk.Frame(root)
-    frame_lbl.pack(side="top", fill="both", padx=5, pady=5, expand=True)
-
-    frame_btn = ttk.Frame(root)
-    frame_btn.pack(side="top", fill="x", padx=5, pady=(0, 5), expand=True)
-
-    frame_lbl_1 = ttk.Frame(frame_lbl)
-    frame_lbl_1.pack(side="top", fill="x")
-
-    frame_lbl_2 = ttk.Frame(frame_lbl)
-    frame_lbl_2.pack(side="top", fill="x")
-
-    frame_lbl_3 = ttk.Frame(frame_lbl)
-    frame_lbl_3.pack(side="top", fill="x")
-
-    frame_lbl_4 = ttk.Frame(frame_lbl)
-    frame_lbl_4.pack(side="top", fill="x")
-
-    frame_lbl_5 = ttk.Frame(frame_lbl)
-    frame_lbl_5.pack(side="top", fill="x")
-
-    frame_lbl_6 = ttk.Frame(frame_lbl)
-    frame_lbl_6.pack(side="top", fill="x")
-
-    frame_lbl_7 = ttk.Frame(frame_lbl)
-    frame_lbl_7.pack(side="top", fill="x")
-
-    frame_lbl_8 = ttk.Frame(frame_lbl)
-    frame_lbl_8.pack(side="top", fill="x", expand=True)
-
-    # 1
-    lbl_device = LabelTitleText(frame_lbl_1, "Device: ", device)
-    lbl_device.pack(side="left", fill="x", padx=5, pady=5)
-
-    # 2
-    lbl_sample_rate = LabelTitleText(frame_lbl_2, "Sample Rate: ", "⌛")
-    lbl_sample_rate.pack(side="left", fill="x", padx=5, pady=5)
-
-    lbl_channels = LabelTitleText(frame_lbl_2, "Channels: ", "⌛")
-    lbl_channels.pack(side="left", fill="x", padx=5, pady=5)
-
-    lbl_chunk_size = LabelTitleText(frame_lbl_2, "Chunk Size: ", "⌛")
-    lbl_chunk_size.pack(side="left", fill="x", padx=5, pady=5)
-
-    # 3
-    lbl_buffer = LabelTitleText(frame_lbl_3, "Buffer: ", "0/0 sec")
-    lbl_buffer.pack(side="left", fill="x", padx=5, pady=5)
-
-    # 4
-    progress_buffer = ttk.Progressbar(frame_lbl_4, orient="horizontal", length=200, mode="determinate")
-    progress_buffer.pack(side="left", fill="x", padx=5, pady=5, expand=True)
-
-    # 5
-    lbl_timer = ttk.Label(frame_lbl_5, text="REC: 00:00:00")
-    lbl_timer.pack(side="left", fill="x", padx=5, pady=5)
-
-    lbl_status = ttk.Label(frame_lbl_5, text="⌛ Setting up session...")
-    lbl_status.pack(side="right", fill="x", padx=5, pady=5)
-
-    # 6
-    cbtn_enable_threshold = ttk.Checkbutton(frame_lbl_6, text="Enable Threshold", state="disabled")
-    cbtn_enable_threshold.pack(side="left", fill="x", padx=5, pady=5)
-
-    cbtn_auto_threshold = ttk.Checkbutton(frame_lbl_6, text="Auto Threshold", state="disabled")
-    cbtn_auto_threshold.pack(side="left", fill="x", padx=5, pady=5)
-
-    cbtn_break_buffer_on_silence = ttk.Checkbutton(frame_lbl_6, text="Break buffer on silence", state="disabled")
-    cbtn_break_buffer_on_silence.pack(side="left", fill="x", padx=5, pady=5)
-
-    # 7
-    lbl_sensitivity = ttk.Label(frame_lbl_7, text="Filter Noise")
-    lbl_sensitivity.pack(side="left", fill="x", padx=5, pady=5)
-
-    var_sensitivity = IntVar()
-    radio_vad_1 = ttk.Radiobutton(frame_lbl_7, text="1", variable=var_sensitivity, value=1, state="disabled")
-    radio_vad_1.pack(side="left", fill="x", padx=5, pady=5)
-    radio_vad_2 = ttk.Radiobutton(frame_lbl_7, text="2", variable=var_sensitivity, value=2, state="disabled")
-    radio_vad_2.pack(side="left", fill="x", padx=5, pady=5)
-    radio_vad_3 = ttk.Radiobutton(frame_lbl_7, text="3", variable=var_sensitivity, value=3, state="disabled")
-    radio_vad_3.pack(side="left", fill="x", padx=5, pady=5)
-
-    vert_sep = ttk.Separator(frame_lbl_7, orient="vertical")
-    vert_sep.pack(side="left", fill="y", padx=5, pady=5)
-
-    cbtn_enable_silero = ttk.Checkbutton(frame_lbl_7, text="Use Silero", state="disabled")
-    cbtn_enable_silero.pack(side="left", fill="x", padx=5, pady=5)
-    tooltip_cbtn_silero = tk_tooltip(
-        cbtn_enable_silero,
-        "Use Silero VAD for more accurate VAD alongside WebRTC VAD"
-        " (Silero will be automatically disabled if it failed on usage)",
-    )
-
-    spn_silero_min_conf = SpinboxNumOnly(
-        root,
-        frame_lbl_7,
-        0.1,
-        1.0,
-        lambda x: set_silero_min_conf(float(x)),
-        initial_value=sj.cache.get(f"threshold_silero_{rec_type}_min", 0.75),
-        num_float=True,
-        allow_empty=False,
-        delay=10,
-        increment=0.05,
-    )
-    spn_silero_min_conf.configure(state="disabled")
-    spn_silero_min_conf.pack(side="left", fill="x", padx=5, pady=5)
-    tk_tooltip(
-        spn_silero_min_conf, "Set the minimum confidence for your input to be considered as speech when using Silero VAD"
-    )
-
-    lbl_threshold = ttk.Label(frame_lbl_7, text="Threshold")
-    lbl_threshold.pack(side="left", fill="x", padx=5, pady=5)
-
-    scale_threshold = ttk.Scale(frame_lbl_7, from_=-60.0, to=0.0, orient="horizontal", state="disabled")
-    scale_threshold.pack(side="left", fill="x", padx=5, pady=5, expand=True)
-
-    lbl_threshold_db = ttk.Label(frame_lbl_7, text="0.0 dB")
-    lbl_threshold_db.pack(side="left", fill="x", padx=5, pady=5)
-
-    # 8
-    global audiometer
-    lbl_mic = ttk.Label(frame_lbl_8, image=bc.mic_emoji if not speaker else bc.speaker_emoji)
-    lbl_mic.pack(side="left", fill="x", padx=(5, 0), pady=0)
-
-    audiometer = AudioMeter(frame_lbl_8, root, True, MIN_THRESHOLD, MAX_THRESHOLD, height=10)
-    audiometer.pack(side="left", fill="x", padx=5, pady=0, expand=True)
-
-    # btn
-    btn_pause = ttk.Button(frame_btn, text="Pause", state="disabled")
-    btn_pause.pack(side="left", fill="x", padx=5, expand=True)
-
-    btn_stop = ttk.Button(frame_btn, text="Stop", style="Accent.TButton")
-    btn_stop.pack(side="right", fill="x", padx=5, expand=True)
-    try:
-        root.iconbitmap(p_app_icon)
-    except Exception:
-        pass
-
+    # ----------------- Get device -----------------
     try:
         global sr_ori, frame_duration_ms, threshold_enable, threshold_db, threshold_auto, use_silero, \
             silero_min_conf, vad_checked, num_of_channels, prev_tc_res, prev_tl_res, max_db, min_db, \
             is_silence, was_recording, t_silence, samp_width, webrtc_vad, silero_vad, use_temp, \
-            disable_silerovad, disable_auto_threshold
+            disable_silerovad, disable_auto_threshold, silero_disabled
+
+        p = pyaudio.PyAudio()
+        success, detail = get_device_details(rec_type, sj, p)
+
+        if not success:
+            raise Exception("Failed to get device details")
+
+        device_detail = detail["device_detail"]
+        sr_ori = detail["sample_rate"]
+        num_of_channels = detail["num_of_channels"]
+        chunk_size = detail["chunk_size"]
+        transcribe_rate = timedelta(seconds=sj.cache["transcribe_rate"] / 1000)
+        max_buffer_s = int(sj.cache.get(f"max_buffer_{rec_type}", 10))
+        max_sentences = int(sj.cache.get(f"max_sentences_{rec_type}", 5))
+        sentence_limitless = sj.cache.get(f"{rec_type}_no_limit", False)
+        tl_engine_whisper = engine in model_values
+
+        taskname = "Transcribe & Translate" if is_tc and is_tl else "Transcribe" if is_tc else "Translate"
+        more_information = f"\n> Language: {lang_source} → {lang_target}" if is_tl else f"\n> Language: {lang_source}"
+        more_information += f"\n> {taskname} using {model_name_tc}"
+        if is_tl and (model_name_tc != engine):
+            more_information += f" → {engine}"
+
+        # ask confirmation first if enabled
+        # show the selected device and recording type
+        if sj.cache["rec_ask_confirmation_first"]:
+            bc.mw.stop_lb()
+            if not mbox(
+                "Record Confirmation",
+                f"> Device: {device} ({'Speaker' if speaker else 'Mic'})" \
+                f"\n> Sample Rate: {sr_ori} | Channels: {num_of_channels} | Chunk Size: {chunk_size}" \
+                f"{more_information}\n\nContinue?",
+                3,
+                master,
+            ):
+                bc.mw.rec_stop()
+                bc.mw.after_rec_stop()
+                return
+            bc.mw.start_lb()
+
+        vad_checked = False
+        frame_duration_ms = get_frame_duration(sr_ori, chunk_size)
+        threshold_enable = sj.cache.get(f"threshold_enable_{rec_type}", True)
+        threshold_db = sj.cache.get(f"threshold_db_{rec_type}", -20)
+        threshold_auto = sj.cache.get(f"threshold_auto_{rec_type}", True)
+        use_silero = sj.cache.get(f"threshold_auto_silero_{rec_type}", True)
+        silero_disabled = False
+        silero_min_conf = sj.cache.get(f"threshold_silero_{rec_type}_min", 0.75)
+        auto_break_buffer = sj.cache.get(f"auto_break_buffer_{rec_type}", True)
 
         auto = lang_source.lower() == "auto detect"
-        tl_engine_whisper = engine in model_values
+        use_temp = sj.cache["use_temp"]
+        language = f"{lang_source} → {lang_target}" if is_tl else lang_source
+
+        # ----------------- Modal window -----------------
+        root = Toplevel(master)
+        root.title("Loading...")
+        root.transient(master)
+        root.geometry("450x275")
+        root.protocol("WM_DELETE_WINDOW", lambda: master.state("iconic"))  # minimize window when click close button
+        root.geometry(f"+{master.winfo_rootx() + 50}+{master.winfo_rooty() + 50}")
+        root.maxsize(600, 325)
+        root.minsize(400, 225)
+
+        frame_lbl = ttk.Frame(root)
+        frame_lbl.pack(side="top", fill="both", padx=5, pady=5, expand=True)
+
+        frame_btn = ttk.Frame(root)
+        frame_btn.pack(side="top", fill="x", padx=5, pady=(0, 5), expand=True)
+
+        frame_lbl_1 = ttk.Frame(frame_lbl)
+        frame_lbl_1.pack(side="top", fill="x")
+
+        frame_lbl_2 = ttk.Frame(frame_lbl)
+        frame_lbl_2.pack(side="top", fill="x")
+
+        frame_lbl_3 = ttk.Frame(frame_lbl)
+        frame_lbl_3.pack(side="top", fill="x")
+
+        frame_lbl_4 = ttk.Frame(frame_lbl)
+        frame_lbl_4.pack(side="top", fill="x")
+
+        frame_lbl_5 = ttk.Frame(frame_lbl)
+        frame_lbl_5.pack(side="top", fill="x")
+
+        frame_lbl_6 = ttk.Frame(frame_lbl)
+        frame_lbl_6.pack(side="top", fill="x")
+
+        frame_lbl_7 = ttk.Frame(frame_lbl)
+        frame_lbl_7.pack(side="top", fill="x")
+
+        frame_lbl_8 = ttk.Frame(frame_lbl)
+        frame_lbl_8.pack(side="top", fill="x", expand=True)
+
+        # 1
+        lbl_device = LabelTitleText(frame_lbl_1, "Device: ", device)
+        lbl_device.pack(side="left", fill="x", padx=5, pady=5)
+
+        # 2
+        lbl_sample_rate = LabelTitleText(frame_lbl_2, "Sample Rate: ", "⌛")
+        lbl_sample_rate.pack(side="left", fill="x", padx=5, pady=5)
+        lbl_sample_rate.set_text(sr_ori)
+
+        lbl_channels = LabelTitleText(frame_lbl_2, "Channels: ", "⌛")
+        lbl_channels.pack(side="left", fill="x", padx=5, pady=5)
+        lbl_channels.set_text(num_of_channels)
+
+        lbl_chunk_size = LabelTitleText(frame_lbl_2, "Chunk Size: ", "⌛")
+        lbl_chunk_size.pack(side="left", fill="x", padx=5, pady=5)
+        lbl_chunk_size.set_text(chunk_size)
+
+        # 3
+        lbl_buffer = LabelTitleText(frame_lbl_3, "Buffer: ", "0/0 sec")
+        lbl_buffer.pack(side="left", fill="x", padx=5, pady=5)
+        lbl_buffer.set_text(f"0/{round(max_buffer_s, 2)} sec")
+
+        lbl_sentences = LabelTitleText(frame_lbl_3, "Sentences: ", "0/0")
+        lbl_sentences.pack(side="left", fill="x", padx=5, pady=5)
+
+        # 4
+        progress_buffer = ttk.Progressbar(frame_lbl_4, orient="horizontal", length=200, mode="determinate")
+        progress_buffer.pack(side="left", fill="x", padx=5, pady=5, expand=True)
+
+        # 5
+        lbl_timer = ttk.Label(frame_lbl_5, text="REC: 00:00:00")
+        lbl_timer.pack(side="left", fill="x", padx=5, pady=5)
+        lbl_timer.configure(text=f"REC: 00:00:00 | {language}")
+
+        lbl_status = ttk.Label(frame_lbl_5, text="⌛ Setting up session...")
+        lbl_status.pack(side="right", fill="x", padx=5, pady=5)
+
+        # 6
+        cbtn_enable_threshold = CustomCheckButton(
+            frame_lbl_6,
+            threshold_enable,
+            lambda: set_treshold(cbtn_enable_threshold.instate(["selected"])) or toggle_enable_threshold(),
+            text="Enable Threshold",
+            state="disabled"
+        )
+        cbtn_enable_threshold.pack(side="left", fill="x", padx=5, pady=5)
+
+        cbtn_auto_threshold = CustomCheckButton(
+            frame_lbl_6,
+            threshold_auto,
+            lambda: set_threshold_auto(cbtn_auto_threshold.instate(["selected"])) or toggle_auto_threshold(),
+            text="Auto Threshold",
+            state="disabled"
+        )
+        cbtn_auto_threshold.pack(side="left", fill="x", padx=5, pady=5)
+
+        cbtn_break_buffer_on_silence = CustomCheckButton(
+            frame_lbl_6,
+            auto_break_buffer,
+            lambda: set_threshold_auto_break_buffer(cbtn_break_buffer_on_silence.instate(["selected"])),
+            text="Break buffer on silence",
+            state="disabled"
+        )
+        cbtn_break_buffer_on_silence.pack(side="left", fill="x", padx=5, pady=5)
+
+        # 7
+        lbl_sensitivity = ttk.Label(frame_lbl_7, text="Filter Noise")
+        lbl_sensitivity.pack(side="left", fill="x", padx=5, pady=5)
+
+        var_sensitivity = IntVar()
+        radio_vad_1 = ttk.Radiobutton(frame_lbl_7, text="1", variable=var_sensitivity, value=1, state="disabled")
+        radio_vad_1.pack(side="left", fill="x", padx=5, pady=5)
+        radio_vad_2 = ttk.Radiobutton(frame_lbl_7, text="2", variable=var_sensitivity, value=2, state="disabled")
+        radio_vad_2.pack(side="left", fill="x", padx=5, pady=5)
+        radio_vad_3 = ttk.Radiobutton(frame_lbl_7, text="3", variable=var_sensitivity, value=3, state="disabled")
+        radio_vad_3.pack(side="left", fill="x", padx=5, pady=5)
+
+        vert_sep = ttk.Separator(frame_lbl_7, orient="vertical")
+        vert_sep.pack(side="left", fill="y", padx=5, pady=5)
+
+        cbtn_enable_silero = CustomCheckButton(
+            frame_lbl_7,
+            use_silero,
+            lambda: set_use_silero(cbtn_enable_silero.instate(["selected"])),
+            text="Use Silero",
+            state="disabled"
+        )
+        cbtn_enable_silero.pack(side="left", fill="x", padx=5, pady=5)
+        tooltip_cbtn_silero = tk_tooltip(
+            cbtn_enable_silero,
+            "Use Silero VAD for more accurate VAD alongside WebRTC VAD"
+            " (Silero will be automatically disabled if it failed on usage)",
+        )
+
+        spn_silero_min_conf = SpinboxNumOnly(
+            root,
+            frame_lbl_7,
+            0.1,
+            1.0,
+            lambda x: set_silero_min_conf(float(x)),
+            initial_value=sj.cache.get(f"threshold_silero_{rec_type}_min", 0.75),
+            num_float=True,
+            allow_empty=False,
+            delay=10,
+            increment=0.05,
+        )
+        spn_silero_min_conf.configure(state="disabled")
+        spn_silero_min_conf.pack(side="left", fill="x", padx=5, pady=5)
+        tk_tooltip(
+            spn_silero_min_conf, "Set the minimum confidence for your input to be considered as speech when using Silero VAD"
+        )
+
+        lbl_threshold = ttk.Label(frame_lbl_7, text="Threshold")
+        lbl_threshold.pack(side="left", fill="x", padx=5, pady=5)
+
+        scale_threshold = ttk.Scale(frame_lbl_7, from_=-60.0, to=0.0, orient="horizontal", state="disabled")
+        scale_threshold.pack(side="left", fill="x", padx=5, pady=5, expand=True)
+        scale_threshold.set(sj.cache.get(f"threshold_db_{rec_type}", -20))
+
+        lbl_threshold_db = ttk.Label(frame_lbl_7, text="0.0 dB")
+        lbl_threshold_db.pack(side="left", fill="x", padx=5, pady=5)
+        lbl_threshold_db.configure(text=f"{sj.cache.get(f'threshold_db_{rec_type}'):.2f} dB")
+
+        # 8
+        global audiometer
+        lbl_mic = ttk.Label(frame_lbl_8, image=bc.mic_emoji if not speaker else bc.speaker_emoji)
+        lbl_mic.pack(side="left", fill="x", padx=(5, 0), pady=0)
+
+        audiometer = AudioMeter(frame_lbl_8, root, True, MIN_THRESHOLD, MAX_THRESHOLD, height=10)
+        audiometer.pack(side="left", fill="x", padx=5, pady=0, expand=True)
+        audiometer.set_disabled(not sj.cache["show_audio_visualizer_in_record"])
+        audiometer.set_threshold(sj.cache.get(f"threshold_db_{rec_type}"))
+
+        # btn
+        btn_pause = ttk.Button(frame_btn, text="Pause", state="disabled")
+        btn_pause.pack(side="left", fill="x", padx=5, expand=True)
+
+        btn_stop = ttk.Button(frame_btn, text="Stop", style="Accent.TButton")
+        btn_stop.pack(side="right", fill="x", padx=5, expand=True)
+        try:
+            root.iconbitmap(p_app_icon)
+        except Exception:
+            pass
+
+        # ----------------- Vars that is load after window to show loading -----------------
         max_int16 = np.iinfo(np.int16).max  # bit depth of 16 bit audio (32768)
         separator = str_separator_to_html(literal_eval(quote(sj.cache["separate_with"])))
-        use_temp = sj.cache["use_temp"]
-        audiometer.set_disabled(not sj.cache["show_audio_visualizer_in_record"])
         webrtc_vad = webrtcvad.Vad(sj.cache.get(f"threshold_auto_mode_{rec_type}", 3))
         torchaudio.set_audio_backend("soundfile")
         silero_vad, _ = torch.hub.load(repo_or_dir=dir_silero_vad, source="local", model="silero_vad", onnx=True)
@@ -268,7 +359,7 @@ def record_session(
         else:
             bc.tc_lock = None
 
-        # load model first
+        # ---- load model -----
         model_args = get_model_args(sj.cache)
         _model_tc, _model_tl, stable_tc, stable_tl, to_args = get_model(
             is_tc, is_tl, tl_engine_whisper, model_name_tc, engine, sj.cache, **model_args
@@ -287,13 +378,18 @@ def record_session(
             use_temp = True
 
         cuda_device = model_args["device"]
-        # if only translate to english using whisper engine
-        task = "translate" if tl_engine_whisper and is_tl and not is_tc else "transcribe"
+
+        # ---- load hallucination filter -----
+        if sj.cache["filter_rec"]:
+            hallucination_filters = get_hallucination_filter('rec', sj.cache["path_filter_rec"])
+        else:
+            hallucination_filters = {}
 
         bc.mw.stop_lb(rec_type)
-        # ----------------- Get device -----------------
         logger.info("-" * 50)
-        logger.info(f"Task: {task}")
+        logger.info(f"Taskname: {taskname}")
+        logger.info(f"TC: {is_tc}")
+        logger.info(f"TL: {is_tl}")
         logger.info(f"Model: {model_name_tc}")
         logger.info(f"Engine: {engine}")
         logger.info(f"CUDA: {cuda_device}")
@@ -305,29 +401,6 @@ def record_session(
         logger.info(f"Model Args: {model_args}")
         logger.info(f"Process Args: {whisper_args}")
 
-        p = pyaudio.PyAudio()
-        success, detail = get_device_details(rec_type, sj, p)
-
-        if not success:
-            raise Exception("Failed to get device details")
-
-        device_detail = detail["device_detail"]
-        sr_ori = detail["sample_rate"]
-        num_of_channels = detail["num_of_channels"]
-        chunk_size = detail["chunk_size"]
-        frame_duration_ms = get_frame_duration(sr_ori, chunk_size)
-        threshold_enable = sj.cache.get(f"threshold_enable_{rec_type}", True)
-        threshold_db = sj.cache.get(f"threshold_db_{rec_type}", -20)
-        threshold_auto = sj.cache.get(f"threshold_auto_{rec_type}", True)
-        use_silero = sj.cache.get(f"threshold_auto_silero_{rec_type}", True)
-        silero_min_conf = sj.cache.get(f"threshold_silero_{rec_type}_min", 0.75)
-        vad_checked = False
-        auto_break_buffer = sj.cache.get(f"auto_break_buffer_{rec_type}", True)
-        if sj.cache["filter_rec"]:
-            hallucination_filters = get_hallucination_filter('rec', sj.cache["path_filter_rec"])
-        else:
-            hallucination_filters = {}
-
         # ----------------- Start modal -----------------
         # window to show progress
         root.title("Recording")
@@ -337,7 +410,6 @@ def record_session(
         duration_seconds = 0
         bc.current_rec_status = "💤 Idle"
         bc.auto_detected_lang = "~"
-        language = f"{lang_source} → {lang_target}" if is_tl else lang_source
 
         def stop_recording():
             bc.recording = False  # only set flag to false because cleanup is handled directly down below
@@ -432,6 +504,7 @@ def record_session(
         def set_use_silero(state: bool):
             global use_silero
             use_silero = state
+            logger.info(f"Silero VAD is {'enabled' if state else 'disabled'}")
             sj.save_key(f"threshold_auto_silero_{rec_type}", state)
             silero_vad.reset_states()
             if state:
@@ -455,8 +528,10 @@ def record_session(
             """
             Disable silero when not possible to use it
             """
+            global silero_disabled
             if cbtn_enable_silero.instate(["selected"]):
                 cbtn_enable_silero.invoke()
+            silero_disabled = True
             cbtn_enable_silero.configure(state="disabled")
             tooltip_cbtn_silero.text = "Silero VAD is unavailable on this current " \
                                     "device configuration (check log for details)"
@@ -491,9 +566,14 @@ def record_session(
                         f"{language.replace('auto detect', f'auto detect ({bc.auto_detected_lang})') if auto else language}"
                     )
                     lbl_buffer.set_text(
-                        f"{round(duration_seconds, 2)}/{round(max_record_time, 2)} sec (~{round(data_queue_size, 2)} kb)"
+                        f"{round(duration_seconds, 2)}/{round(max_buffer_s, 2)} sec (~{round(data_queue_size, 2)} kb)"
                     )
-                    progress_buffer["value"] = duration_seconds / max_record_time * 100
+                    sentence_text = f"{len(bc.tc_sentences) or len(bc.tl_sentences) or '0'}"
+                    if not sentence_limitless:
+                        sentence_text += f"/{max_sentences}"
+                    lbl_sentences.set_text(sentence_text)
+
+                    progress_buffer["value"] = duration_seconds / max_buffer_s * 100
                     update_status_lbl()
                     sleep(0.1)
                 except Exception as e:
@@ -502,47 +582,19 @@ def record_session(
                         logger.warning("Failed to update modal ui | Ignore if already closed")
                         break
 
-        transcribe_rate = timedelta(seconds=sj.cache["transcribe_rate"] / 1000)
-        max_record_time = int(sj.cache.get(f"max_buffer_{rec_type}", 10))
-        max_sentences = int(sj.cache.get(f"max_sentences_{rec_type}", 5))
-
-        lbl_sample_rate.set_text(sr_ori)
-        lbl_channels.set_text(num_of_channels)
-        lbl_chunk_size.set_text(chunk_size)
-        lbl_buffer.set_text(f"0/{round(max_record_time, 2)} sec")
-        lbl_timer.configure(text=f"REC: 00:00:00 | {language}")
-        lbl_status.configure(text="▶️ Recording")
-
         cbtn_enable_threshold.configure(state="normal")
         cbtn_auto_threshold.configure(state="normal")
         cbtn_break_buffer_on_silence.configure(state="normal")
         cbtn_enable_silero.configure(state="normal")
         spn_silero_min_conf.configure(state="normal")
-        scale_threshold.set(sj.cache.get(f"threshold_db_{rec_type}", -20))
+        btn_pause.configure(state="normal", command=toggle_pause)
+        btn_stop.configure(state="normal", command=stop_recording)
         scale_threshold.configure(command=slider_move, state="normal")
-        lbl_threshold_db.configure(text=f"{sj.cache.get(f'threshold_db_{rec_type}'):.2f} dB")
         temp_map = {1: radio_vad_1, 2: radio_vad_2, 3: radio_vad_3}
         radio_vad_1.configure(command=lambda: set_webrtc_level(1), state="normal")
         radio_vad_2.configure(command=lambda: set_webrtc_level(2), state="normal")
         radio_vad_3.configure(command=lambda: set_webrtc_level(3), state="normal")
-        cbtn_invoker(threshold_enable, cbtn_enable_threshold)
-        cbtn_invoker(threshold_auto, cbtn_auto_threshold)
-        cbtn_invoker(auto_break_buffer, cbtn_break_buffer_on_silence)
         cbtn_invoker(threshold_auto, temp_map[sj.cache.get(f"threshold_auto_level_{rec_type}", 3)])
-        cbtn_invoker(use_silero, cbtn_enable_silero)
-        cbtn_enable_threshold.configure(
-            command=lambda: set_treshold(cbtn_enable_threshold.instate(["selected"])) or toggle_enable_threshold()
-        )
-        cbtn_auto_threshold.configure(
-            command=lambda: set_threshold_auto(cbtn_auto_threshold.instate(["selected"])) or toggle_auto_threshold()
-        )
-        cbtn_break_buffer_on_silence.configure(
-            command=lambda: set_threshold_auto_break_buffer(cbtn_break_buffer_on_silence.instate(["selected"]))
-        )
-        cbtn_enable_silero.configure(command=lambda: set_use_silero(cbtn_enable_silero.instate(["selected"])))
-        btn_pause.configure(state="normal", command=toggle_pause)
-        btn_stop.configure(state="normal", command=stop_recording)
-        audiometer.set_threshold(sj.cache.get(f"threshold_db_{rec_type}"))
         if not use_silero:
             spn_silero_min_conf.pack_forget()
         toggle_enable_threshold()
@@ -550,6 +602,7 @@ def record_session(
         update_ui_thread.start()
 
         # ----------------- Start recording -----------------
+        lbl_status.configure(text="▶️ Recording")
         # recording session init
         bc.tc_sentences = []
         bc.tl_sentences = []
@@ -595,8 +648,7 @@ def record_session(
                 if prev_tc_res:
                     bc.tc_sentences.append(prev_tc_res)
                 bc.tc_sentences = unique_rec_list(bc.tc_sentences)
-                # pop if not limitless
-                if not sj.cache.get(f"{rec_type}_no_limit", False) and len(bc.tc_sentences) > max_sentences:
+                if not sentence_limitless and len(bc.tc_sentences) > max_sentences:
                     bc.tc_sentences.pop(0)
                 if len(bc.tc_sentences) > 0:
                     bc.update_tc(None, separator)
@@ -604,7 +656,7 @@ def record_session(
                 if prev_tl_res:
                     bc.tl_sentences.append(prev_tl_res)
                 bc.tl_sentences = unique_rec_list(bc.tl_sentences)
-                if not sj.cache.get(f"{rec_type}_no_limit", False) and len(bc.tl_sentences) > max_sentences:
+                if not sentence_limitless and len(bc.tl_sentences) > max_sentences:
                     bc.tl_sentences.pop(0)
                 if len(bc.tl_sentences) > 0:
                     bc.update_tl(None, separator)
@@ -806,7 +858,7 @@ def record_session(
                 temp_list.remove(audio_target)
 
             # break up the buffer If we've reached max recording time
-            if duration_seconds > max_record_time:
+            if duration_seconds > max_buffer_s:
                 break_buffer_store_update()
 
             bc.current_rec_status = "▶️ Recording"  # reset status
@@ -871,7 +923,7 @@ def record_session(
         mbox("Error in record session", f"{str(e)}", 2, bc.mw.root)
         bc.mw.rec_stop()
         bc.mw.after_rec_stop()
-        if root.winfo_exists():
+        if root and root.winfo_exists():
             root.destroy()  # close if not destroyed
     finally:
         torch.cuda.empty_cache()
@@ -916,7 +968,7 @@ def record_cb(in_data, _frame_count, _time_info, _status):
             # using vad
             if threshold_auto:
                 is_speech = get_speech_webrtc(resampled, WHISPER_SR, frame_duration_ms, webrtc_vad)
-                if use_silero and is_speech:  # double check with silero if enabled
+                if use_silero and is_speech and not silero_disabled:  # double check with silero if enabled
                     conf: torch.Tensor = silero_vad(to_silero(resampled, num_of_channels, samp_width), WHISPER_SR)
                     is_speech = conf.item() >= silero_min_conf
 
