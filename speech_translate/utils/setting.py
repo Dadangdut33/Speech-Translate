@@ -1,6 +1,6 @@
 __all__ = ["default_setting", "SettingJson"]
 import json
-from os import makedirs, path
+import os
 from typing import List
 
 from darkdetect import isDark
@@ -290,8 +290,8 @@ class SettingJson:
         Create directory if it doesn't exist
         """
         try:
-            if not path.exists(_dir):
-                makedirs(_dir)
+            if not os.path.exists(_dir):
+                os.makedirs(_dir)
         except Exception as e:
             mbox("Error", "Error: Creating directory. " + _dir + "\nReason: " + str(e), 2)
 
@@ -301,7 +301,7 @@ class SettingJson:
         """
         setting_path = self.setting_path
         try:
-            if not path.exists(setting_path):
+            if not os.path.exists(setting_path):
                 with open(setting_path, "w", encoding="utf-8") as f:
                     json.dump(default_setting, f, ensure_ascii=False, indent=4)
         except Exception as e:

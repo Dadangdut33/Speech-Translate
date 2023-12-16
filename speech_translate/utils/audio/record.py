@@ -1,8 +1,8 @@
 # pylint: disable=global-variable-undefined
+import os
 from ast import literal_eval
 from datetime import datetime, timedelta
 from io import BytesIO
-from os import remove
 from platform import system
 from shlex import quote
 from threading import Lock, Thread
@@ -801,7 +801,7 @@ def record_session(
                         bc.rec_tl_thread.join()
 
             if use_temp and not sj.cache["keep_temp"]:
-                remove(audio_target)  # type: ignore
+                os.remove(audio_target)  # type: ignore
                 temp_list.remove(audio_target)
 
             # break up the buffer If we've reached max recording time
@@ -842,7 +842,7 @@ def record_session(
             logger.info("Cleaning up audioFiles (if any)")
             for audio in temp_list:
                 try:
-                    remove(audio)
+                    os.remove(audio)
                 except Exception:
                     pass
             logger.info("Done!")

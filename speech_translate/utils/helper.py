@@ -1,12 +1,12 @@
 import ctypes
 import html
+import os
 import subprocess
 import textwrap
 import tkinter as tk
 from collections import OrderedDict
 from datetime import datetime
 from difflib import SequenceMatcher
-from os import makedirs, path, startfile
 from platform import system
 from random import choice
 from threading import Thread
@@ -315,11 +315,11 @@ def open_folder(filename: str):
     filename : str
         The filename
     """
-    if path.exists(filename):
-        if path.isdir(filename):
+    if os.path.exists(filename):
+        if os.path.isdir(filename):
             start_file(filename)
         else:
-            start_file(path.dirname(filename))
+            start_file(os.path.dirname(filename))
     else:
         logger.exception("Cannot find the file specified.")
         native_notify("Error", "Cannot find the file specified.")
@@ -333,7 +333,7 @@ def start_file(filename: str):
         if system() == 'Darwin':  # macOS
             subprocess.call(('open', filename))
         elif system() == 'Windows':  # Windows
-            startfile(filename)
+            os.startfile(filename)
         else:  # linux variants
             subprocess.call(('xdg-open', filename))
     except FileNotFoundError:
@@ -388,8 +388,8 @@ def generate_temp_filename(base_dir):
     """
     Generates a temporary filename with the current date and time.
     """
-    makedirs(base_dir, exist_ok=True)
-    return path.join(base_dir, datetime.now().strftime("%Y-%m-%d %H_%M_%S_%f")) + ".wav"
+    os.makedirs(base_dir, exist_ok=True)
+    return os.path.join(base_dir, datetime.now().strftime("%Y-%m-%d %H_%M_%S_%f")) + ".wav"
 
 
 def rate_similarity(a, b):

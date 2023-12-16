@@ -1,4 +1,4 @@
-from os import path
+import os
 
 from loguru import logger
 from sounddevice import play
@@ -8,7 +8,7 @@ from speech_translate._path import dir_assets
 
 
 def beep():
-    beep_path = path.join(dir_assets, "beep.mp3")
+    beep_path = os.path.join(dir_assets, "beep.mp3")
     try:
         data, fs = read(beep_path)
         play(data, fs, blocking=False)

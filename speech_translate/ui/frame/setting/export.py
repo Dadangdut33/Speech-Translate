@@ -1,5 +1,5 @@
+import os
 from datetime import datetime
-from os import listdir, path, remove
 from tkinter import Frame, LabelFrame, Menu, Toplevel, filedialog, ttk
 from typing import Literal, Union
 
@@ -522,7 +522,7 @@ class SettingExport:
             element.configure(state="readonly")
 
     def make_open_text(self, texts: str):
-        if not path.exists(p_parameters_text):
+        if not os.path.exists(p_parameters_text):
             with open(p_parameters_text, "w", encoding="utf-8") as f:
                 f.write(texts)
 
@@ -548,6 +548,6 @@ class SettingExport:
     def clear_export(self):
         if mbox("Clear Export Folder", "Are you sure you want to clear the export folder?", 3, self.root):
             # get all the files in the export folder
-            files = listdir(sj.cache["dir_export"])
+            files = os.listdir(sj.cache["dir_export"])
             for file in files:
-                remove(path.join(sj.cache["dir_export"], file))
+                os.remove(os.path.join(sj.cache["dir_export"], file))

@@ -1,4 +1,4 @@
-from os import listdir, path, remove
+import os
 from threading import Thread
 from tkinter import Frame, LabelFrame, Menu, Toplevel, ttk
 from typing import Union
@@ -485,10 +485,10 @@ class SettingGeneral:
 
     def delete_log(self):
         # delete all log files
-        for file in listdir(dir_log):
+        for file in os.listdir(dir_log):
             if file.endswith(".log"):
                 try:
-                    remove(path.join(dir_log, file))
+                    os.remove(os.path.join(dir_log, file))
                 except Exception as e:
                     if file != current_log:  # show warning only if the fail to delete is not the current log
                         logger.warning("Failed to delete log file: " + file)
@@ -496,19 +496,19 @@ class SettingGeneral:
 
     def delete_temp(self):
         # delete all temp wav files
-        for file in listdir(dir_temp):
+        for file in os.listdir(dir_temp):
             if file.endswith(".wav"):
                 try:
-                    remove(path.join(dir_temp, file))
+                    os.remove(os.path.join(dir_temp, file))
                 except Exception as e:
                     logger.warning("Failed to delete temp file: " + file)
                     logger.warning("Reason " + str(e))
 
     def delete_debug(self):
         # delete all debug files
-        for file in listdir(dir_debug):
+        for file in os.listdir(dir_debug):
             try:
-                remove(path.join(dir_debug, file))
+                os.remove(os.path.join(dir_debug, file))
             except Exception as e:
                 logger.warning("Failed to delete debug file: " + file)
                 logger.warning("Reason " + str(e))

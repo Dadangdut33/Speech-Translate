@@ -1,4 +1,4 @@
-from os import path
+import os
 from threading import Thread
 from time import sleep
 from tkinter import Text, Tk, Toplevel, ttk
@@ -127,10 +127,10 @@ class LogWindow:
     def update_log(self):
         prev_content = self.tb_logger.get(1.0, "end").strip()
         try:
-            content = open(path.join(dir_log, current_log), encoding="utf-8").read().strip()
+            content = open(os.path.join(dir_log, current_log), encoding="utf-8").read().strip()
         except FileNotFoundError:
-            logger.error(f"Log file not found | {path.join(dir_log, current_log)}")
-            content = f"Log file not found | {path.join(dir_log, current_log)}"
+            logger.error(f"Log file not found | {os.path.join(dir_log, current_log)}")
+            content = f"Log file not found | {os.path.join(dir_log, current_log)}"
 
         if len(prev_content) != len(content):
             if sj.cache["auto_scroll_log"]:

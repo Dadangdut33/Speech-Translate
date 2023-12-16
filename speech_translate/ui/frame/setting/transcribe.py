@@ -1,4 +1,4 @@
-from os import path
+import os
 from tkinter import Frame, LabelFrame, Menu, StringVar, Toplevel, ttk
 from typing import Literal, Union
 
@@ -983,7 +983,7 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
             pass
 
     def make_open_text(self, texts: str):
-        if not path.exists(p_parameters_text):
+        if not os.path.exists(p_parameters_text):
             with open(p_parameters_text, "w", encoding="utf-8") as f:
                 f.write(texts)
 

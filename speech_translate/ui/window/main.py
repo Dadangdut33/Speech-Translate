@@ -84,8 +84,8 @@ from speech_translate.utils.whisper.helper import (
 # modify static_ffmpeg add_paths
 def add_ffmpeg_to_path(weak=False) -> bool:
     """Add the ffmpeg executable to the path"""
+    # pylint: disable=import-outside-toplevel, protected-access
     if getattr(sys, "frozen", False):
-        # pylint: disable=import-outside-toplevel, protected-access
         from static_ffmpeg import _add_paths, run
         run.sys.stdout = sys.stderr
         if weak:
@@ -97,7 +97,6 @@ def add_ffmpeg_to_path(weak=False) -> bool:
         os.environ["PATH"] = os.pathsep.join([os.path.dirname(ffmpeg), os.environ["PATH"]])
         return True
     else:
-        # pylint: disable=import-outside-toplevel
         from static_ffmpeg import _add_paths
         return _add_paths.add_paths()
 
