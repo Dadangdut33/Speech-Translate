@@ -423,9 +423,14 @@ def get_default_output_device():
         logger.error("Looks like WASAPI is not available on the system.")
         default_device = "Looks like WASAPI is not available on the system."
     except Exception as e:
-        logger.exception(e)
-        logger.error("Something went wrong while trying to get the default output device (speaker).")
-        default_device = str(e)
+        if "AttributeError: 'PyAudio' object has no attribute 'get_default_wasapi_loopback'" not in str(e):
+            logger.exception(e)
+            logger.error("Something went wrong while trying to get the default output device (speaker).")
+            default_device = str(e)
+        else:
+            logger.exception(e)
+            logger.error("Speaker as input is not available on the system.")
+            default_device = "Speaker as input is not available on the system."
     finally:
         p.terminate()
 
