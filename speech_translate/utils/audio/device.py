@@ -388,12 +388,12 @@ def get_default_input_device():
         sucess = True
     except Exception as e:
         if "Error querying device -1" in str(e):
-            logger.warning("No input device found. Ignore this if you dont have a mic. Err details below:")
             logger.exception(e)
+            logger.warning("No input device found. Ignore this if you dont have a mic.")
             default_device = "No input device found."
         else:
-            logger.error("Something went wrong while trying to get the default input device (mic).")
             logger.exception(e)
+            logger.error("Something went wrong while trying to get the default input device (mic).")
             default_device = str(e)
     finally:
         p.terminate()
@@ -423,7 +423,7 @@ def get_default_output_device():
         logger.error("Looks like WASAPI is not available on the system.")
         default_device = "Looks like WASAPI is not available on the system."
     except Exception as e:
-        if "AttributeError: 'PyAudio' object has no attribute 'get_default_wasapi_loopback'" not in str(e):
+        if "object has no attribute" not in str(e):
             logger.exception(e)
             logger.error("Something went wrong while trying to get the default output device (speaker).")
             default_device = str(e)
@@ -454,8 +454,12 @@ def get_default_host_api():
         default_host_api = p.get_default_host_api_info()
         sucess = True
     except OSError as e:
-        logger.error("Something went wrong while trying to get the default host api.")
         logger.exception(e)
+        logger.error("Something went wrong while trying to get the default host api.")
+        default_host_api = str(e)
+    except Exception as e:
+        logger.exception(e)
+        logger.error("Something went wrong while trying to get the default host api.")
         default_host_api = str(e)
     finally:
         p.terminate()
