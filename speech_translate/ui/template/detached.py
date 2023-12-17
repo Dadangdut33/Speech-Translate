@@ -183,6 +183,8 @@ class SubtitleWindow:
         """
         Help window.
         """
+        extra = "- Alt + s to toggle click through or transparent window\n" if system() == "Windows" else ""
+
         mbox(
             f"{self.title} - Help",
             "This is a window that shows the result of the recording session in a separate window. You can think of this as"
@@ -191,7 +193,7 @@ class SubtitleWindow:
             "- Alt + scroll to change opacity\n"
             "- Alt + c to copy text\n"
             "- Alt + t to toggle title bar (remove title bar)\n"
-            "- Alt + s to toggle click through or transparent window\n"
+            f"{extra}"
             "- Alt + o to toggle always on top\n"
             "- Alt + x to toggle on/off tooltip",
             0,

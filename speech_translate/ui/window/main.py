@@ -492,7 +492,7 @@ class MainWindow:
             lambda x: sj.save_key("transcribe_mw", x) or self.cbtn_task_change(),
             text="Transcribe"
         )
-        self.cbtn_task_transcribe.pack(side="left", padx=5, pady=2.5, ipady=0)
+        self.cbtn_task_transcribe.pack(side="left", padx=5, pady=3, ipady=0)
 
         self.cbtn_task_translate = CustomCheckButton(
             self.f3_2_row3,
@@ -500,7 +500,7 @@ class MainWindow:
             lambda x: sj.save_key("translate_mw", x) or self.cbtn_task_change(),
             text="Translate"
         )
-        self.cbtn_task_translate.pack(side="left", padx=5, pady=2.5, ipady=0)
+        self.cbtn_task_translate.pack(side="left", padx=5, pady=3, ipady=0)
 
         # ------
         self.f3_3 = ttk.Frame(self.f3_toolbar)
@@ -527,7 +527,7 @@ class MainWindow:
             command=lambda: sj.save_key("input", "mic"),
             variable=self.strvar_input,
         )
-        self.radio_mic.pack(side="left", padx=5, pady=2.5, ipady=0)
+        self.radio_mic.pack(side="left", padx=5, pady=3, ipady=0)
 
         self.radio_speaker = ttk.Radiobutton(
             self.f3_3_row3,
@@ -537,7 +537,7 @@ class MainWindow:
             command=lambda: sj.save_key("input", "speaker"),
             variable=self.strvar_input,
         )
-        self.radio_speaker.pack(side="left", padx=5, pady=2.5, ipady=0)
+        self.radio_speaker.pack(side="left", padx=5, pady=3, ipady=0)
         self.strvar_input.set("mic" if sj.cache["input"] == "mic" else "speaker")
 
         # ------
