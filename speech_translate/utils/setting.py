@@ -244,14 +244,13 @@ class SettingJson:
     """
     Class to handle setting.json
     """
-    def __init__(self, setting_path: str, setting_dir: str, checkdirs: List[str]):
+    def __init__(self, setting_path: str, checkdirs: List[str], path_icon: str):
         self.cache: SettingDict = {}  # type: ignore
+        self.icon_path = path_icon
         self.setting_path = setting_path
-        self.dir = setting_dir
-        self.create_dir_if_not_exist(self.dir)  # setting dir
         for checkdir in checkdirs:
             self.create_dir_if_not_exist(checkdir)
-        self.create_default_setting_if_not_exist()  # setting file
+        self.create_default_setting_if_not_exist()
 
         # Load setting
         success, msg, data = self.load_setting()
@@ -261,11 +260,7 @@ class SettingJson:
             success, msg, data = self.verify_loaded_setting(data)
             if not success:
                 self.cache = default_setting
-                notification = Notify()
-                notification.application_name = "Speech Translate"
-                notification.title = "Error: Verifying setting file"
-                notification.message = "Setting reverted to default. Details: " + msg
-                notification.send()
+                self.__notify("Error: Verifying setting file", "Setting reverted to default. Details: " + msg)
                 logger.warning("Error verifying setting file: " + msg)
 
             # verify setting version
@@ -275,22 +270,33 @@ class SettingJson:
                 self.cache = default_setting  # load default
                 self.cache["first_open"] = False  # keep first_open to false because it's not first open
                 self.save(self.cache)  # save
-                notification = Notify()
-                notification.application_name = "Speech Translate"
-                notification.title = "Setting file is outdated"
-                notification.message = "Setting file is outdated. Setting has been reverted to default setting."
-                "You can find your old setting in the user folder."
-                notification.send()
-                logger.warning(
-                    "Setting file is outdated. Setting has been reverted to default setting. "
+                msg = "Setting file is outdated. Setting has been reverted to default setting. " \
                     "You can find your old setting in the user folder."
-                )
+                self.__notify("Setting file is outdated", msg, error=False)
+                logger.warning(msg)
 
             logger.info("Setting loaded")
         else:
             self.cache = default_setting
             logger.error("Error loading setting file: " + msg)
             mbox("Error", "Error: Loading setting file. " + self.setting_path + "\nReason: " + msg, 2)
+
+    def __notify(self, title: str, msg: str, error: bool = True):
+        """
+        Notify from setting
+        """
+        notification = Notify()
+        notification.application_name = "Speech Translate"
+        notification.title = title
+        notification.message = msg
+        try:
+            notification.icon = self.icon_path
+        except Exception:
+            pass
+        notification.send()
+        if error:
+            logger.error(title)
+            logger.error(msg)
 
     def create_dir_if_not_exist(self, _dir: str):
         """
@@ -339,7 +345,7 @@ class SettingJson:
 
     def save_old_setting(self, data: SettingDict):
         """
-        Save json file
+        Save old setting as backup
         """
         success: bool = False
         msg: str = ""
@@ -358,10 +364,10 @@ class SettingJson:
 
     def save_key(self, key: str, value):
         """
-        Save only a part of the setting
+        Save setting by key
         """
         if key not in self.cache:
-            logger.error("Error saving setting: " + key + " not in cache")
+            logger.error(f"Error saving setting: {key}. It's not a valid setting key")
             return
         if self.cache[key] == value:  # if same value
             return
@@ -370,12 +376,7 @@ class SettingJson:
         success, msg = self.save(self.cache)
 
         if not success:
-            notification = Notify()
-            notification.application_name = "Speech Translate"
-            notification.title = "Error: Saving setting file"
-            notification.message = "Reason: " + msg
-            notification.send()
-            logger.error("Error saving setting file: " + msg)
+            self.__notify("Error: Saving setting file", "Reason: " + msg)
 
     def load_setting(self):
         """

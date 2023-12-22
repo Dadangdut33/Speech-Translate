@@ -2,17 +2,17 @@ import os
 import sys
 import threading
 
-from loguru import logger
-
 toAdd = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(toAdd)
-
 from speech_translate._constants import LOG_FORMAT  # pylint: disable=wrong-import-position
-from speech_translate._logging import init_logging  # pylint: disable=wrong-import-position
 
 os.environ["LOGURU_FORMAT"] = LOG_FORMAT
 
-init_logging("DEBUG")
+from loguru import logger  # pylint: disable=wrong-import-position
+
+from speech_translate._logging import init_logging  # pylint: disable=wrong-import-position
+
+init_logging("DEBUG")  # check speech_translate/log for the log file
 
 # test file
 # logger.add("file_{time}.log", format=my_format, level="DEBUG", encoding="utf-8", backtrace=True, diagnose=True)

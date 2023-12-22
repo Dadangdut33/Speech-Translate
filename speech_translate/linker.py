@@ -14,7 +14,7 @@ from stable_whisper import WhisperResult
 from speech_translate.utils.helper import generate_color, str_separator_to_html, wrap_result
 from speech_translate.utils.types import ToInsert
 
-from ._path import dir_debug, dir_export, dir_log, dir_temp, dir_user
+from ._path import dir_debug, dir_export, dir_log, dir_temp, dir_user, p_app_icon
 from .utils.setting import SettingJson
 
 if system() == "Windows":
@@ -37,14 +37,15 @@ if TYPE_CHECKING:
     from .ui.window.translated import TlsWindow
 
 # ------------------ #
-sj: SettingJson = SettingJson(os.path.join(dir_user, "setting.json"), dir_user, [dir_temp, dir_log, dir_export, dir_debug])
+sj: SettingJson = SettingJson(
+    os.path.join(dir_user, "setting.json"), [dir_user, dir_temp, dir_log, dir_export, dir_debug], p_app_icon
+)
 
 
 class BridgeClass:
     """
-    Class containing all the static variables for the UI. It also contains some methods for the stuff to works.
-
-    Stored like this in order to allow other file to use the same thing without circular import error.
+    Class containing all references needed to avoid circular import. 
+    Some methods are also created here for easier management.
     """
     def __init__(self):
         self.cuda: str = ""

@@ -147,6 +147,19 @@ def record_session(
                 return
             bc.mw.start_lb()
 
+        # warn user if sample_rate is more than 48000
+        if sr_ori > 48000:
+            if not mbox(
+                "Warning",
+                f"Sample rate is more than 48000 Hz ({sr_ori} Hz). This might cause some issues (audio" \
+                "might not get picked up).\n\nDo you want to continue?",
+                3,
+                master,
+            ):
+                bc.mw.rec_stop()
+                bc.mw.after_rec_stop()
+                return
+
         vad_checked = False
         frame_duration_ms = get_frame_duration(sr_ori, chunk_size)
         threshold_enable = sj.cache.get(f"threshold_enable_{rec_type}", True)
@@ -242,7 +255,7 @@ def record_session(
         cbtn_enable_threshold = CustomCheckButton(
             frame_lbl_6,
             threshold_enable,
-            lambda: set_treshold(cbtn_enable_threshold.instate(["selected"])) or toggle_enable_threshold(),
+            lambda x: set_treshold(x) or toggle_enable_threshold(),
             text="Enable Threshold",
             state="disabled"
         )
@@ -251,7 +264,7 @@ def record_session(
         cbtn_auto_threshold = CustomCheckButton(
             frame_lbl_6,
             threshold_auto,
-            lambda: set_threshold_auto(cbtn_auto_threshold.instate(["selected"])) or toggle_auto_threshold(),
+            lambda x: set_threshold_auto(x) or toggle_auto_threshold(),
             text="Auto Threshold",
             state="disabled"
         )
@@ -260,7 +273,7 @@ def record_session(
         cbtn_break_buffer_on_silence = CustomCheckButton(
             frame_lbl_6,
             auto_break_buffer,
-            lambda: set_threshold_auto_break_buffer(cbtn_break_buffer_on_silence.instate(["selected"])),
+            lambda x: set_threshold_auto_break_buffer(x),  # pylint: disable=unnecessary-lambda
             text="Break buffer on silence",
             state="disabled"
         )
@@ -284,7 +297,7 @@ def record_session(
         cbtn_enable_silero = CustomCheckButton(
             frame_lbl_7,
             use_silero,
-            lambda: set_use_silero(cbtn_enable_silero.instate(["selected"])),
+            lambda x: set_use_silero(x),  # pylint: disable=unnecessary-lambda
             text="Use Silero",
             state="disabled"
         )

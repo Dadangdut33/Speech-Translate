@@ -304,7 +304,7 @@ class SettingTranscribe:
         self.spn_max_initial_timestamp.pack(side="left", padx=5)
         tk_tooltips(
             [self.lbl_max_initial_timestamp, self.spn_max_initial_timestamp],
-            "Maximum initial timestamp to use for the first window\n\nDefault is empty",
+            "Maximum initial timestamp to use for the first window\n\nDefault is 1.0",
         )
 
         self.cbtn_suppress_blank = CustomCheckButton(

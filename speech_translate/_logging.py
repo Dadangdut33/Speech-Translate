@@ -42,7 +42,7 @@ class StreamStderrToLogger(object):
 
     def write(self, buf):
         for line in buf.rstrip().splitlines():
-            line = line.strip().replace("[A", "")
+            line = line.rstrip().replace("\x1B[A", "")
 
             # checking if line is empty. exception use ^ ~ to point out the error
             # but we don't need it in logger because logger is per line
@@ -75,12 +75,10 @@ def init_logging(level):
 
     sys.stderr = StreamStderrToLogger("ERROR")
     # tqdm use stderr so we also need to redirect it
-    # stderr might be more informative in its original form so you can comment it out if you want when developing
 
 
 def change_log_level(level: str):
     global FILE_ID
-
     logger.remove(FILE_ID)
     FILE_ID = logger.add(
         dir_log + "/" + current_log, level=level, encoding="utf-8", backtrace=False, diagnose=True, format=LOG_FORMAT

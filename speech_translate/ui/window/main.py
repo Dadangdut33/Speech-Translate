@@ -120,8 +120,7 @@ class AppTray:
         bc.tray = self
         self.__create_tray()
 
-    # -- Tray icon
-    def __create_image(self, width, height, color1, color2):
+    def __image_fallback(self, width, height, color1, color2):
         # Generate an image and draw a pattern
         image = Image.new("RGB", (width, height), color1)
         dc = ImageDraw.Draw(image)
@@ -130,12 +129,11 @@ class AppTray:
 
         return image
 
-    # -- Create tray
     def __create_tray(self):
         try:
             ico = Image.open(p_app_icon)
         except Exception:
-            ico = self.__create_image(64, 64, "black", "white")
+            ico = self.__image_fallback(64, 64, "black", "white")
         try:
             self.menu_items = (
                 pystray.MenuItem(f"{APP_NAME} {__version__}", lambda *args: None, enabled=False),  # do nothing
@@ -214,7 +212,6 @@ class AppTray:
         assert bc.mw is not None
         bc.mw.show()
 
-    # -- Exit app by flagging runing false to stop main loop
     def exit_app(self):
         assert bc.mw is not None
         bc.mw.root.after(0, bc.mw.quit_app)
@@ -2084,11 +2081,12 @@ def main(with_log_init=True):
     logger.info(f"GPU: {get_gpu_info()} | CUDA: {check_cuda_and_gpu()}")
     logger.debug(f"Sys args: {sys.argv}")
     logger.debug("Loading UI...")
-    # --- GUI ---
+    # check tray
     if "--no-tray" in sys.argv:
         logger.debug("No tray mode enabled")
     else:
         AppTray()  # Start tray app in the background
+    # --- GUI ---
     main_ui = MainWindow()
     TcsWindow(main_ui.root)
     TlsWindow(main_ui.root)
