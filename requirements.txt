@@ -18,6 +18,6 @@ matplotlib==3.8.0
 onnxruntime==1.16.1
 demucs==4.0.1
 stable-ts @ git+https://github.com/jianfch/stable-ts.git@d51edb6ad86b06f4582f4c06fcf8a4b6dc8e0bca
-faster-whisper @ git+https://github.com/SYSTRAN/faster-whisper.git@65094b779e28e391bbba80a169e091144162db17
+faster-whisper @ git+https://github.com/SYSTRAN/faster-whisper.git@44f7e589478866546bfcd1d105e254a74e2caad5
 PyAudioWPatch==0.2.12.6; platform_system == "Windows"
 PyAudio==0.2.13; platform_system != "Windows"
