@@ -13,6 +13,7 @@ from wave import Wave_read, Wave_write
 from wave import open as w_open
 
 import numpy as np
+import requests
 import scipy.io.wavfile as wav
 import stable_whisper
 import torch
@@ -56,6 +57,9 @@ if system() == "Windows":
     import pyaudiowpatch as pyaudio  # type: ignore # pylint: disable=import-error
 else:
     import pyaudio  # type: ignore # pylint: disable=import-error
+
+ERROR_CON_NOTIFIED = False
+ERROR_CON_NOFIFIED_AMOUNT = 0
 
 
 # -------------------------------------------------------------------------------------------------------------------------
@@ -106,8 +110,11 @@ def record_session(
         global sr_ori, frame_duration_ms, threshold_enable, threshold_db, threshold_auto, use_silero, \
             silero_min_conf, vad_checked, num_of_channels, prev_tc_res, prev_tl_res, max_db, min_db, \
             is_silence, was_recording, t_silence, samp_width, webrtc_vad, silero_vad, use_temp, \
-            disable_silerovad, disable_auto_threshold, silero_disabled
+            disable_silerovad, disable_auto_threshold, silero_disabled, ERROR_CON_NOTIFIED, \
+            ERROR_CON_NOFIFIED_AMOUNT
 
+        ERROR_CON_NOTIFIED = False
+        ERROR_CON_NOFIFIED_AMOUNT = 0
         p = pyaudio.PyAudio()
         success, detail = get_device_details(rec_type, sj, p)
 
@@ -132,8 +139,8 @@ def record_session(
 
         # ask confirmation first if enabled
         # show the selected device and recording type
+        bc.mw.stop_lb()
         if sj.cache["rec_ask_confirmation_first"]:
-            bc.mw.stop_lb()
             if not mbox(
                 "Record Confirmation",
                 f"> Device: {device} ({'Speaker' if speaker else 'Mic'})" \
@@ -145,20 +152,42 @@ def record_session(
                 bc.mw.rec_stop()
                 bc.mw.after_rec_stop()
                 return
-            bc.mw.start_lb()
 
         # warn user if sample_rate is more than 48000
-        if sr_ori > 48000:
-            if not mbox(
-                "Warning",
-                f"Sample rate is more than 48000 Hz ({sr_ori} Hz). This might cause some issues (audio" \
-                "might not get picked up).\n\nDo you want to continue?",
-                3,
-                master,
-            ):
+        if not sj.cache["supress_record_warning"]:
+            if sr_ori > 48000 and not mbox(
+                    "Warning",
+                    f"Sample rate is more than 48000 Hz ({sr_ori} Hz). This might cause some issues (audio " \
+                    "might not get picked up). If this happen you can try to change sample rate or change the " \
+                    "conversion method. (You can turn off this warning in setting->general->suppress record warning)" \
+                    "\n\nDo you want to continue?",
+                    3,
+                    master,
+                ):
                 bc.mw.rec_stop()
                 bc.mw.after_rec_stop()
                 return
+
+            if is_tl and not tl_engine_whisper:
+                # check connection first
+                try:
+                    logger.info("Checking for internet connection")
+                    requests.get("https://www.google.com/", timeout=5)
+                except Exception as e:
+                    logger.exception(e)
+                    if not mbox(
+                        "Warning",
+                        "Failed to check for internet connection. Translation might not work. " \
+                        "(You can turn off this warning in setting->general->suppress record warning)" \
+                        "\n\nDo you want to continue?",
+                        3,
+                        master,
+                    ):
+                        bc.mw.rec_stop()
+                        bc.mw.after_rec_stop()
+                        return
+
+        bc.mw.start_lb()
 
         vad_checked = False
         frame_duration_ms = get_frame_duration(sr_ori, chunk_size)
@@ -1078,7 +1107,6 @@ def tl_api(text: str, lang_source: str, lang_target: str, engine: str, separator
 
         success, result = translate(engine, [text], lang_source, lang_target, proxies, debug_log, **kwargs)
         if not success:
-            native_notify(f"Error: translation with {engine} failed", result)
             raise Exception(result)
 
         result = result[0]
@@ -1087,4 +1115,9 @@ def tl_api(text: str, lang_source: str, lang_target: str, engine: str, separator
             bc.update_tl(result.strip(), separator)
     except Exception as e:
         logger.exception(e)
-        native_notify("Error: translating failed", str(e))
+        global ERROR_CON_NOTIFIED, ERROR_CON_NOFIFIED_AMOUNT
+        if not ERROR_CON_NOTIFIED:
+            native_notify(f"Error: translation with {engine} failed", str(e))
+            ERROR_CON_NOFIFIED_AMOUNT += 1
+            if ERROR_CON_NOFIFIED_AMOUNT > 3:  # after 3 times, stop notifying
+                ERROR_CON_NOTIFIED = True

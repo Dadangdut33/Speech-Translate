@@ -45,6 +45,7 @@ default_setting: SettingDict = {
     "show_audio_visualizer_in_setting": True,
     "supress_hidden_to_tray": False,
     "supress_device_warning": False,
+    "supress_record_warning": False,
     "bypass_no_internet": False,
     "mw_size": "1200x600",
     "sw_size": "1100x630",

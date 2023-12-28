@@ -90,15 +90,18 @@ class SettingGeneral:
         )
         self.cbtn_ask_confirmation_on_record.pack(side="left", padx=5, pady=5)
 
-        self.cbtn_supress_hidden_to_tray = CustomCheckButton(
+        self.cbtn_supress_record_warning = CustomCheckButton(
             self.f_application_1,
-            sj.cache["supress_hidden_to_tray"],
-            lambda x: sj.save_key("supress_hidden_to_tray", x),
-            text="Supress hidden to tray notif",
+            sj.cache["supress_record_warning"],
+            lambda x: sj.save_key("suppress_record_warning", x),
+            text="Supress record warning",
             style="Switch.TCheckbutton"
         )
-        self.cbtn_supress_hidden_to_tray.pack(side="left", padx=5, pady=5)
-        tk_tooltip(self.cbtn_supress_hidden_to_tray, "Supress notification when app is hidden to tray.")
+        self.cbtn_supress_record_warning.pack(side="left", padx=5, pady=5)
+        tk_tooltip(
+            self.cbtn_supress_record_warning,
+            "Supress some warning notification that might show up when something might fails before recording."
+        )
 
         self.cbtn_supress_device_warning = CustomCheckButton(
             self.f_application_1,
@@ -112,6 +115,16 @@ class SettingGeneral:
             self.cbtn_supress_device_warning,
             "Supress warning notification that usually shows up when no input device is detected.",
         )
+
+        self.cbtn_supress_hidden_to_tray = CustomCheckButton(
+            self.f_application_1,
+            sj.cache["supress_hidden_to_tray"],
+            lambda x: sj.save_key("supress_hidden_to_tray", x),
+            text="Supress hidden to tray notif",
+            style="Switch.TCheckbutton"
+        )
+        self.cbtn_supress_hidden_to_tray.pack(side="left", padx=5, pady=5)
+        tk_tooltip(self.cbtn_supress_hidden_to_tray, "Supress notification when app is hidden to tray.")
 
         self.cbtn_show_audio_visualizer_in_record = CustomCheckButton(
             self.f_application_2,

@@ -114,6 +114,7 @@ class SettingDict(TypedDict):
     show_audio_visualizer_in_setting: bool
     supress_hidden_to_tray: bool
     supress_device_warning: bool
+    supress_record_warning: bool
     bypass_no_internet: bool
     mw_size: str
     sw_size: str
