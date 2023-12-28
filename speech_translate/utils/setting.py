@@ -71,9 +71,7 @@ default_setting: SettingDict = {
     "http_proxy_enable": False,
     "supress_libre_api_key_warning": False,
     "libre_api_key": "",
-    "libre_host": "",
-    "libre_port": "",
-    "libre_https": True,
+    "libre_link": "",
     # ------------------ #
     # Record settings
     "rec_ask_confirmation_first": True,

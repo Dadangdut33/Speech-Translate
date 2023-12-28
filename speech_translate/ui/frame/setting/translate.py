@@ -120,6 +120,23 @@ class SettingTranslate:
         self.f_libre_1 = ttk.Frame(self.lf_libre)
         self.f_libre_1.pack(side="top", fill="x", pady=5, padx=5)
 
+        self.lbl_libre_link = ttk.Label(self.f_libre_1, text="Host / URL Of Hosted Libre Translate")
+        self.lbl_libre_link.pack(side="left", padx=5, pady=(0, 5))
+
+        self.entry_libre_link = ttk.Entry(self.f_libre_1, width=40)
+        self.entry_libre_link.insert(0, sj.cache["libre_link"])
+        self.entry_libre_link.pack(side="left", padx=5, pady=(0, 5))
+        self.entry_libre_link.bind("<KeyRelease>", lambda e: sj.save_key("libre_link", self.entry_libre_link.get()))
+        tk_tooltips(
+            [self.lbl_libre_link, self.entry_libre_link],
+            "The host of Libre Translate (example: https://libretranslate.com or http://127.0.0.1:5000/)." \
+            "\n\nYou can check out the official instance/mirrors at https://github.com/LibreTranslate/LibreTranslate " \
+            "or host your own instance. \n\nIt is recommended to host your own instance for free and faster result " \
+            "without limit \n\nAlso, keep in mind that the language code that is set for libretranslate in this app " \
+            "is for libretranslate version 1.5.1",
+            wrap_len=400,
+        )
+
         self.lbl_libre_key = ttk.Label(self.f_libre_1, text="API Key")
         self.lbl_libre_key.pack(side="left", padx=5, pady=(0, 5))
 
@@ -131,43 +148,6 @@ class SettingTranslate:
             [self.lbl_libre_key, self.entry_libre_key],
             "Libre Translate API Key. Leave empty if not needed or host locally.",
         )
-
-        self.lbl_libre_host = ttk.Label(self.f_libre_1, text="Host")
-        self.lbl_libre_host.pack(side="left", padx=5, pady=(0, 5))
-
-        self.entry_libre_host = ttk.Entry(self.f_libre_1, width=40)
-        self.entry_libre_host.insert(0, sj.cache["libre_host"])
-        self.entry_libre_host.pack(side="left", padx=5, pady=(0, 5))
-        self.entry_libre_host.bind("<KeyRelease>", lambda e: sj.save_key("libre_host", self.entry_libre_host.get()))
-        tk_tooltips(
-            [self.lbl_libre_host, self.entry_libre_host],
-            "The host of Libre Translate (example: libretranslate.com or localhost)." \
-            "\n\nYou can check out the official instance/mirrors at https://github.com/LibreTranslate/LibreTranslate " \
-            "or host your own instance. \n\nIt is recommended to host your own instance for free and faster result " \
-            "without limit \n\nAlso, keep in mind that the language code that is set for libretranslate in this app " \
-            "is for libretranslate version 1.5.1",
-            wrap_len=400,
-        )
-
-        self.lbl_libre_port = ttk.Label(self.f_libre_1, text="Port")
-        self.lbl_libre_port.pack(side="left", padx=5, pady=(0, 5))
-        self.lbl_libre_port.bind("<KeyRelease>", lambda e: sj.save_key("libre_port", self.entry_libre_port.get()))
-
-        self.entry_libre_port = ttk.Entry(self.f_libre_1)
-        self.entry_libre_port.insert(0, sj.cache["libre_port"])
-        self.entry_libre_port.pack(side="left", padx=5, pady=(0, 5))
-        self.entry_libre_port.bind("<KeyRelease>", lambda e: sj.save_key("libre_port", self.entry_libre_port.get()))
-        tk_tooltips([self.lbl_libre_port, self.entry_libre_port], "Libre Translate Port.")
-
-        self.cbtn_libre_https = CustomCheckButton(
-            self.f_libre_1,
-            sj.cache["libre_https"],
-            lambda x: sj.save_key("libre_https", x),
-            text="Use HTTPS",
-            style="Switch.TCheckbutton"
-        )
-        self.cbtn_libre_https.pack(side="left", padx=5, pady=(0, 5))
-        tk_tooltip(self.cbtn_libre_https, "Tips: Set it to false if you're hosting locally.")
 
         self.cbtn_supress_empty_api_key = CustomCheckButton(
             self.f_libre_1,

@@ -210,9 +210,7 @@ def libre_tl(
     to_lang: str,
     proxies: Dict,
     debug_log: bool,
-    libre_https: bool,
-    libre_host: str,
-    libre_port: str,
+    libre_link: str,
     libre_api_key: str,
     **kwargs,
 ):
@@ -223,12 +221,10 @@ def libre_tl(
         text (List[str]): Text to translate
         from_lang (str): Language From
         to_lang (str): Language to translate
-        https (bool): Use https
-        host (str): Host
-        port (str): Port
-        apiKeys (str): API Keys
-        proxies (Dict): Proxies
-        debug_log (bool, optional): Debug Log. Defaults to False.
+        proxies (Dict): Proxies. Defaults to None.
+        debug_log (bool): Debug Log. Defaults to False.
+        libre_link (str): LibreTranslate Link
+        libre_api_key (str): LibreTranslate API Key
 
     Returns
     -------
@@ -258,12 +254,7 @@ def libre_tl(
     # --- Translate ---
     try:
         req = {"q": text, "source": LCODE_FROM, "target": LCODE_TO, "format": "text"}
-        http_str = "https" if libre_https else "http"
-
-        if libre_port != "":
-            adr = http_str + "://" + libre_host + ":" + libre_port + "/translate"
-        else:
-            adr = http_str + "://" + libre_host + "/translate"
+        libre_link += "/translate"
 
         if libre_api_key != "":
             req["api_key"] = libre_api_key
@@ -272,19 +263,17 @@ def libre_tl(
         if kwargs.pop("live_input", False):
             for q in text:
                 req["q"] = q
-                response = requests.post(adr, json=req, proxies=proxies, timeout=5).json()
+                response = requests.post(libre_link, json=req, proxies=proxies, timeout=5).json()
                 if "error" in response:
                     raise Exception(response["error"])
-
                 translated = response["translatedText"]
                 arr.append(translated)
         else:
             for q in tqdm(text, desc="Translating"):
                 req["q"] = q
-                response = requests.post(adr, json=req, proxies=proxies, timeout=5).json()
+                response = requests.post(libre_link, json=req, proxies=proxies, timeout=5).json()
                 if "error" in response:
                     raise Exception(response["error"])
-
                 translated = response["translatedText"]
                 arr.append(translated)
 

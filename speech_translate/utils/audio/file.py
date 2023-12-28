@@ -536,9 +536,7 @@ def cancellable_tl(
             proxies = get_proxies(sj.cache["http_proxy"], sj.cache["https_proxy"])
             kwargs = {}
             if engine == "LibreTranslate":
-                kwargs["libre_https"] = sj.cache["libre_https"]
-                kwargs["libre_host"] = sj.cache["libre_host"]
-                kwargs["libre_port"] = sj.cache["libre_port"]
+                kwargs["libre_link"] = sj.cache["libre_link"]
                 kwargs["libre_api_key"] = sj.cache["libre_api_key"]
 
             fail_status = [False, ""]
@@ -1330,9 +1328,7 @@ def translate_result(data_files: List, engine: str, lang_target: str):
             "fail_status": fail_status
         }
         if engine == "LibreTranslate":
-            tl_args["libre_https"] = sj.cache["libre_https"]
-            tl_args["libre_host"] = sj.cache["libre_host"]
-            tl_args["libre_port"] = sj.cache["libre_port"]
+            tl_args["libre_link"] = sj.cache["libre_link"]
             tl_args["libre_api_key"] = sj.cache["libre_api_key"]
 
         t_start = time()

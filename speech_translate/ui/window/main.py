@@ -1617,11 +1617,11 @@ class MainWindow:
 
         # check when using libre
         if tl and tl_engine == "LibreTranslate":
-            # check wether libre_host is set or not
-            if sj.cache["libre_host"].strip() == "":
+            # check wether the link is set or not
+            if sj.cache["libre_link"].strip() == "":
                 mbox(
-                    "LibreTranslate host is not set!",
-                    "LibreTranslate host is not set! Please set it first in the settings!",
+                    "LibreTranslate host/URL is not set!",
+                    "LibreTranslate host/URL is not set! Please set it first in the settings!",
                     2,
                 )
                 return False
@@ -1723,11 +1723,11 @@ class MainWindow:
 
             # check when using libre
             if tl and tl_engine == "LibreTranslate":
-                # check wether libre_host is set or not
-                if sj.cache["libre_host"].strip() == "":
+                # check wether host/url is set or not
+                if sj.cache["libre_link"].strip() == "":
                     mbox(
-                        "LibreTranslate host is not set!",
-                        "LibreTranslate host is not set! Please set it first in the settings!",
+                        "LibreTranslate host/URL is not set!",
+                        "LibreTranslate host/URL is not set! Please set it first in the settings!",
                         2,
                     )
                     return False
@@ -1976,11 +1976,11 @@ class MainWindow:
 
             # check when using libre
             if tl_engine == "LibreTranslate":
-                # check wether libre_host is set or not
-                if sj.cache["libre_host"].strip() == "":
+                # check wether host/URL is set or not
+                if sj.cache["libre_link"].strip() == "":
                     mbox(
-                        "LibreTranslate host is not set!",
-                        "LibreTranslate host is not set! Please set it first in the settings!",
+                        "LibreTranslate host/URL is not set!",
+                        "LibreTranslate host/URL is not set! Please set it first in the settings!",
                         2,
                     )
                     return False

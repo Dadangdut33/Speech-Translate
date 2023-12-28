@@ -140,9 +140,7 @@ class SettingDict(TypedDict):
     http_proxy_enable: bool
     supress_libre_api_key_warning: bool
     libre_api_key: str
-    libre_host: str
-    libre_port: str
-    libre_https: bool
+    libre_link: str
     # ------------------ #
     # Record settings
     rec_ask_confirmation_first: bool

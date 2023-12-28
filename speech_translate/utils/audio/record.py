@@ -1098,14 +1098,13 @@ def tl_api(text: str, lang_source: str, lang_target: str, engine: str, separator
     try:
         debug_log = sj.cache["debug_translate"]
         proxies = get_proxies(sj.cache["http_proxy"], sj.cache["https_proxy"])
+        q = [text]
         kwargs = {"live_input": True}
         if engine == "LibreTranslate":
-            kwargs["libre_https"] = sj.cache["libre_https"]
-            kwargs["libre_host"] = sj.cache["libre_host"]  # type: ignore
-            kwargs["libre_port"] = sj.cache["libre_port"]  # type: ignore
+            kwargs["libre_link"] = sj.cache["libre_link"]  # type: ignore
             kwargs["libre_api_key"] = sj.cache["libre_api_key"]  # type: ignore
 
-        success, result = translate(engine, [text], lang_source, lang_target, proxies, debug_log, **kwargs)
+        success, result = translate(engine, q, lang_source, lang_target, proxies, debug_log, **kwargs)
         if not success:
             raise Exception(result)
 
