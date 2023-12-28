@@ -1450,12 +1450,19 @@ class MainWindow:
     def destroy_transient_toplevel(self, name, similar=False):
         for child in self.root.winfo_children():
             if isinstance(child, Toplevel):
-                if child.title() == name:
-                    child.destroy()
-                    break
-                if similar and name in child.title():
-                    child.destroy()
-                    break
+                name = child.title()
+                try:
+                    if child.title() == name:
+                        child.destroy()
+                        break
+                    if similar and name in child.title():
+                        child.destroy()
+                        break
+                except Exception as e:
+                    if "bad window path name" in str(e):
+                        logger.debug(f"Window {name} already destroyed")
+                    else:
+                        logger.exception(e)
 
     def model_dl_cancel(self, **kwargs):
         if not mbox("Cancel confirmation", "Are you sure you want to cancel downloading?", 3, self.root):
@@ -1484,6 +1491,8 @@ class MainWindow:
 
             # check model first
             use_faster_whisper = sj.cache["use_faster_whisper"]
+            if kwargs.pop("force_original_whisper", False):
+                use_faster_whisper = False
 
             model_dir = sj.cache["dir_model"] if sj.cache["dir_model"] != "auto" else get_default_download_root()
             if use_faster_whisper:
@@ -1816,7 +1825,11 @@ class MainWindow:
             nonlocal prompt
             # file = (source_file, mod_file)
             # check model first
-            m_check_kwargs = {"disabler": prompt.disable_interactions, "enabler": prompt.enable_interactions}
+            m_check_kwargs = {
+                "disabler": prompt.disable_interactions,
+                "enabler": prompt.enable_interactions,
+                "force_original_whisper": True
+            }
             status, model_tc = self.check_model(m_key, False, "file refinement", **m_check_kwargs)
             if not status:
                 return False
@@ -1896,7 +1909,11 @@ class MainWindow:
 
             # load .en model if all language is english
             logger.debug(f"all_english: {all_english} {'(load .en model because all in english)' if all_english else ''}")
-            m_check_kwargs = {"disabler": prompt.disable_interactions, "enabler": prompt.enable_interactions}
+            m_check_kwargs = {
+                "disabler": prompt.disable_interactions,
+                "enabler": prompt.enable_interactions,
+                "force_original_whisper": True
+            }
             status, model_tc = self.check_model(m_key, all_english, "file alignment", **m_check_kwargs)
             if not status:
                 return False

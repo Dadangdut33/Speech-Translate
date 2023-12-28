@@ -58,10 +58,14 @@ def update_q_process(list_of_dict: List[dict], index: int, status: str) -> None:
         "status": status,
     }
     temp = get_list_of_dict(list_of_dict, "index", index)
-    if temp is not None:
-        list_of_dict[index] = update
-    else:
-        list_of_dict.append(update)
+    try:
+        if temp is not None:
+            list_of_dict[index] = update
+        else:
+            list_of_dict.append(update)
+    except Exception as e:
+        logger.exception(e)
+        logger.warning("Failed to update processed list of dict")
 
 
 def run_whisper(func, audio: str, task: str, fail_status: List, **kwargs):
@@ -865,8 +869,8 @@ def process_file(
                 proc_thread = Thread(
                     target=cancellable_tl,
                     args=[
-                        file, lang_source, lang_target, stable_tl, engine, auto, save_name, save_meta, F_IMPORT_COUNTER,
-                        hallucination_filters
+                        file, lang_source, lang_target, stable_tl, engine, auto, save_name, save_meta,
+                        local_file_import_counter, hallucination_filters
                     ],
                     kwargs=whisper_args,
                     daemon=True,
@@ -878,7 +882,7 @@ def process_file(
                     target=cancellable_tc,
                     args=[
                         file, lang_source, lang_target, model_name_tc, stable_tc, stable_tl, auto, is_tc, is_tl, engine,
-                        save_name, save_meta, F_IMPORT_COUNTER, hallucination_filters
+                        save_name, save_meta, local_file_import_counter, hallucination_filters
                     ],
                     kwargs=whisper_args,
                     daemon=True,
@@ -919,9 +923,9 @@ def process_file(
 
         if not canceled:
             res_msg = (
-                f"Transcribed {bc.file_tced_counter} file(s) and Translated {bc.file_tled_counter} file(s)"
-                if is_tc and is_tl else
-                f"Transcribed {bc.file_tced_counter} file(s)" if is_tc else f"Translated {bc.file_tled_counter} file(s)"
+                f"Successfully Transcribed {bc.file_tced_counter} file(s) and Translated {bc.file_tled_counter} file(s)"
+                if is_tc and is_tl else f"Successfully Transcribed {bc.file_tced_counter} file(s)"
+                if is_tc else f"Successfully Translated {bc.file_tled_counter} file(s)"
             )
             mbox(f"File {taskname} Done", res_msg, 0, master)
     except Exception as e:
@@ -987,11 +991,7 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
 
         # load model
         model_args = get_model_args(sj.cache)
-        # alignment is possible using faster whisper model with stable whisper
-        if mode == "alignment" and sj.cache["use_faster_whisper"]:
-            model = stable_whisper.load_faster_whisper(model_name_tc, **model_args)
-        else:
-            model = stable_whisper.load_model(model_name_tc, **model_args)
+        model = stable_whisper.load_model(model_name_tc, **model_args)
         mod_function = model.refine if mode == "refinement" else model.align  # type: ignore
         mod_args = get_tc_args(mod_function, sj.cache, mode="refine" if mode == "refinement" else "align")
 
@@ -1023,19 +1023,23 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
 
             adding = True
             source_f, mod_f, lang = ModResultInputDialog(
-                fp.root, "Add File Pair", up_first_case(mode), with_lang=True if mode == "alignment" else False
+                fp.root, "Add File Pair", up_first_case(mode), with_lang=mode == "alignment"
             ).get_input()
 
             # if still processing file and user select / add files
             if source_f and mod_f:
                 if mode == "alignment":
-                    data_files.extend((source_f, mod_f, lang))
+                    data_files.extend([[source_f, mod_f, lang]])
                 else:
-                    data_files.extend((source_f, mod_f))
+                    data_files.extend([[source_f, mod_f]])
 
                 fp.lbl_files.set_text(text=f"{bc.mod_file_counter}/{len(data_files)}")
 
-            adding = False
+            # ask want to add more or not
+            if mbox("Add File Pair", "Do you want to add more file?", 3, fp.root):
+                add_to_files()
+            else:
+                adding = False
 
         def cancel():
             assert bc.mw is not None
@@ -1265,7 +1269,7 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
             if sj.cache["auto_open_dir_export"]:
                 start_file(export_to)
 
-        mbox(f"File {mode} Done", f"{action_name} {bc.mod_file_counter} file(s)", 0)
+        mbox(f"File {mode} Done", f"Successfully {action_name} {bc.mod_file_counter} file(s)", 0)
         # done, interaction is re enabled in main
     except Exception as e:
         bc.disable_file_process()
@@ -1482,6 +1486,8 @@ def translate_result(data_files: List, engine: str, lang_target: str):
                 update_q_process(processed, bc.mod_file_counter, "Failed to translate (check log)")
                 native_notify("Error: Translate failed", str(fail_status[1]) + " Check log for details")
                 continue  # continue to next file
+            else:
+                update_q_process(processed, bc.mod_file_counter, "Translated")
 
             save_output_stable_ts(result, path.join(export_to, save_name), sj.cache["export_to"], sj)
             bc.mod_file_counter += 1
@@ -1518,7 +1524,7 @@ def translate_result(data_files: List, engine: str, lang_target: str):
             if sj.cache["auto_open_dir_translate"]:
                 start_file(export_to)
 
-        mbox("File Translate Done", f"Translated {bc.mod_file_counter} file(s)", 0)
+        mbox("File Translate Done", f"Successfully Translated {bc.mod_file_counter} file(s)", 0)
     except Exception as e:
         bc.disable_file_process()
         if str(e) != "Cancelled":
