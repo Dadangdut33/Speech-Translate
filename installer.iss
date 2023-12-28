@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Speech Translate"
-#define MyAppVersion "1.3.7"
+#define MyAppVersion "1.3.8"
 #define MyAppPublisher "Dadangdut33"
 #define MyAppURL "https://github.com/Dadangdut33/Speech-Translate"
 #define MyAppExeName "SpeechTranslate.exe"

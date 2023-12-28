@@ -23,6 +23,7 @@ class AboutWindow:
         self.root.title(APP_NAME + " | About")
         self.root.geometry("375x220")
         self.root.minsize(375, 220)
+        self.root.maxsize(500, 300)
         self.root.wm_withdraw()
 
         # On Close

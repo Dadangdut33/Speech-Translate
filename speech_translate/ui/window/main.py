@@ -1450,7 +1450,6 @@ class MainWindow:
     def destroy_transient_toplevel(self, name, similar=False):
         for child in self.root.winfo_children():
             if isinstance(child, Toplevel):
-                name = child.title()
                 try:
                     if child.title() == name:
                         child.destroy()
