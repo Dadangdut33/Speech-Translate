@@ -272,7 +272,7 @@ def libre_tl(
         if kwargs.pop("live_input", False):
             for q in text:
                 req["q"] = q
-                response = requests.post(adr, json=req, proxies=proxies, timeout=10).json()
+                response = requests.post(adr, json=req, proxies=proxies, timeout=5).json()
                 if "error" in response:
                     raise Exception(response["error"])
 
@@ -281,7 +281,7 @@ def libre_tl(
         else:
             for q in tqdm(text, desc="Translating"):
                 req["q"] = q
-                response = requests.post(adr, json=req, proxies=proxies, timeout=10).json()
+                response = requests.post(adr, json=req, proxies=proxies, timeout=5).json()
                 if "error" in response:
                     raise Exception(response["error"])
 

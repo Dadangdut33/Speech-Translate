@@ -177,7 +177,7 @@ class AboutWindow:
                 self.update_func = self.check_for_update
                 self.tooltip_check_update.text = "Click to try again"
                 if not self.checking_on_start:  # suppress error if checking on start
-                    native_notify("Fail to check for update!", "Click to try again")
+                    native_notify("Fail to check for app update!", "Click to try again")
 
             self.lbl_check_update.configure(text=self.update_text, foreground=self.update_fg)
             self.lbl_check_update.bind("<Button-1>", self.update_func)
@@ -186,7 +186,7 @@ class AboutWindow:
         except Exception as e:
             if "HTTPSConnectionPool" in str(e):
                 logger.error("No Internet Connection! / Host might be down")
-                no_connection_notify(msg="Fail to check for update!")
+                no_connection_notify(msg="Fail to check app for update!")
             else:
                 logger.exception(e)
         finally:

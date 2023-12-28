@@ -1537,14 +1537,13 @@ class MainWindow:
         except Exception as e:
             if "HTTPSConnectionPool" in str(e):
                 logger.error("No Internet Connection! / Host might be down")
-                self.error_notif(
-                    "Fail to check for model!", title="No Internet Connection! / Host might be down", use_mbox=True
-                )
-
                 if sj.cache["bypass_no_internet"]:
                     logger.info("Bypassing no internet check")
                     return True, model_name  # here we assume model is downloaded
                 else:
+                    self.error_notif(
+                        "Fail to check for model!", title="No Internet Connection! / Host might be down", use_mbox=True
+                    )
                     return False, ""
             else:
                 logger.exception(e)

@@ -995,7 +995,7 @@ def get_base_filter() -> Dict:
         logger.warning("Base filter file not found, attempting to download it")
         filter_https = "https://raw.githubusercontent.com/Dadangdut33/Speech-Translate/" \
             "master/speech_translate/assets/base_hallucination_filter.json"
-        r = requests.get(filter_https, timeout=10)
+        r = requests.get(filter_https, timeout=5)
         if r.status_code != 200:
             logger.error("Failed to download base filter file!, returning empty!")
             return {}

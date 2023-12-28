@@ -44,7 +44,6 @@ from ..whisper.helper import (
 
 # Global variable
 # to track which file is processed
-# index 0 (even) is the name of the file, index 1 (odd) is the status (True if success, False if failed)
 processed_tc = []
 processed_tl = []
 F_IMPORT_COUNTER = 0

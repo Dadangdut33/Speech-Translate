@@ -237,7 +237,7 @@ def snapshot_download(
     library_version: Optional[str] = None,
     user_agent: Optional[Union[Dict, str]] = None,
     proxies: Optional[Dict] = None,
-    etag_timeout: float = 10,
+    etag_timeout: float = 5,
     resume_download: bool = False,
     force_download: bool = False,
     token: Optional[Union[bool, str]] = None,
@@ -476,20 +476,11 @@ def faster_whisper_download_with_progress_gui(
         except (
             huggingface_hub.utils.HfHubHTTPError,
             requests.exceptions.ConnectionError,
-        ) as exception:
-            logger.warning(
-                f"An error occured while synchronizing the model {repo_id} from the Hugging Face Hub:\n{exception}"
-            )
-            logger.warning("Trying to load the model directly from the local cache, if it exists.")
-
-            try:
-                kwargs["local_files_only"] = True
-                snapshot_download(repo_id, **kwargs)
-            except Exception as e:
-                failed = True
-                msg = "Failed to download faster whisper model. Have tried to download the model from " \
-                    "the Hugging Face Hub and from the local cache. " \
-                    f"Please check your internet connection and try again.\n\nError: {str(e)}"
+        ) as ee:
+            logger.exception(ee)
+            logger.error(f"An error occured while synchronizing the model {repo_id} from the Hugging Face Hub")
+            failed = True
+            msg = str(ee)
 
         except Exception as e:
             logger.exception(e)

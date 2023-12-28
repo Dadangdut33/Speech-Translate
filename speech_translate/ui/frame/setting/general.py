@@ -139,6 +139,19 @@ class SettingGeneral:
             "Show audio visualizer in the setting -> record page.\n\nDisabling could improve performance."
         )
 
+        self.cbtn_bypass_no_internet = CustomCheckButton(
+            self.f_application_2,
+            sj.cache["bypass_no_internet"],
+            lambda x: sj.save_key("bypass_no_internet", x),
+            text="Bypass no internet error when checking model",
+            style="Switch.TCheckbutton"
+        )
+        self.cbtn_bypass_no_internet.pack(side="left", padx=5, pady=5)
+        tk_tooltip(
+            self.cbtn_bypass_no_internet,
+            "Bypass no internet error when checking for faster whisper model before running process."
+        )
+
         # theme
         self.lbl_theme = ttk.Label(self.f_application_3, text="Theme")
         self.lbl_theme.pack(side="left", padx=5, pady=5)

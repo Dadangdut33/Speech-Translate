@@ -104,16 +104,28 @@ def verify_model_faster_whisper(model_key: str, cache_dir) -> bool:
         raise ValueError(f"Invalid model size '{model_key}', expected one of: {', '.join(FW_MODELS.keys())}")
 
     storage_folder = os.path.join(cache_dir, repo_folder_name(repo_id=repo_id, repo_type="model"))
+    try:
+        api = HfApi()
+        logger.debug("Connecting to huggingface server to verify model")
+        repo_info = api.repo_info(repo_id=repo_id, repo_type="model")
+        assert repo_info.sha is not None, "Repo info returned from server must have a revision sha."
 
-    api = HfApi()
-    repo_info = api.repo_info(repo_id=repo_id, repo_type="model")
-    assert repo_info.sha is not None, "Repo info returned from server must have a revision sha."
+        commit_hash = repo_info.sha
+        snapshot_folder = os.path.join(storage_folder, "snapshots", commit_hash)
+        blob_folder = os.path.join(storage_folder, "blobs")
 
-    commit_hash = repo_info.sha
-    snapshot_folder = os.path.join(storage_folder, "snapshots", commit_hash)
-    blob_folder = os.path.join(storage_folder, "blobs")
+        if not os.path.exists(snapshot_folder):
+            return False
+    except Exception:
+        logger.warning("Failed to connect to huggingface server, verifying using local cache instead")
+        blob_folder = os.path.join(storage_folder, "blobs")
 
-    if not os.path.exists(snapshot_folder):
+    # if blob folder does not exist, then model is not downloaded
+    if not os.path.exists(blob_folder):
+        return False
+
+    # if blob folder is empty, then model is not downloaded
+    if len(os.listdir(blob_folder)) == 0:
         return False
 
     # check if blob contain any .incomplete file or .lock file
