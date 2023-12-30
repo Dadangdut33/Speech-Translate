@@ -32,7 +32,12 @@ def clear_dir(_dir):
     try:
         if not os.path.exists(_dir):
             return
-        shutil.rmtree(_dir)
+        if os.path.isfile(_dir):
+            os.remove(_dir)
+        else:
+            # remove all files in the dir
+            for f_get in os.listdir(_dir):
+                os.remove(os.path.join(_dir, f_get))
     except Exception as e:
         print(f">> Failed to clear {_dir} reason: {e}")
 
@@ -45,11 +50,13 @@ def get_whisper_version():
 
 
 print(">> Clearing code folder")
-clear_dir("./speech_translate/_user")
+# clear_dir("./speech_translate/_user") # use this if base filter is updated
+clear_dir("./speech_translate/_user/settings.json")
 clear_dir("./speech_translate/export")
 clear_dir("./speech_translate/debug")
 clear_dir("./speech_translate/log")
 clear_dir("./speech_translate/temp")
+clear_dir("./speech_translate/assets/silero-vad/__pycache__")
 print(">> Done")
 print("Whisper version:", get_whisper_version())
 

@@ -1,4 +1,4 @@
-Thanks for downloading Speech Translate.
+Thank you for downloading Speech Translate.
 
 Speech Translate is a practical application that combines OpenAI's Whisper ASR model with free translation APIs. It serves as a versatile tool for both real-time / live speech-to-text and speech translation, allowing the user to seamlessly convert spoken language into written text. Additionally, it has the option to import and transcribe audio / video files effortlessly.  
 

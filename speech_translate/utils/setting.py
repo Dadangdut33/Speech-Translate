@@ -8,7 +8,6 @@ from loguru import logger
 from notifypy import Notify
 
 from speech_translate._version import __setting_version__
-from speech_translate.ui.custom.message import mbox
 from speech_translate.utils.types import SettingDict
 
 default_setting: SettingDict = {
@@ -244,12 +243,14 @@ class SettingJson:
     Class to handle setting.json
     """
     def __init__(self, setting_path: str, checkdirs: List[str], path_icon: str):
+        logger.debug("Loading setting environment")
         self.cache: SettingDict = {}  # type: ignore
         self.icon_path = path_icon
         self.setting_path = setting_path
         for checkdir in checkdirs:
             self.create_dir_if_not_exist(checkdir)
         self.create_default_setting_if_not_exist()
+        logger.debug("Loading setting file")
 
         # Load setting
         success, msg, data = self.load_setting()
@@ -278,7 +279,7 @@ class SettingJson:
         else:
             self.cache = default_setting
             logger.error("Error loading setting file: " + msg)
-            mbox("Error", "Error: Loading setting file. " + self.setting_path + "\nReason: " + msg, 2)
+            self.__notify("Error: Loading setting file", "Reason: " + msg)
 
     def __notify(self, title: str, msg: str, error: bool = True):
         """
@@ -305,7 +306,7 @@ class SettingJson:
             if not os.path.exists(_dir):
                 os.makedirs(_dir)
         except Exception as e:
-            mbox("Error", "Error: Creating directory. " + _dir + "\nReason: " + str(e), 2)
+            self.__notify("Error: Creating directory", "Reason: " + str(e))
 
     def create_default_setting_if_not_exist(self):
         """
@@ -318,7 +319,7 @@ class SettingJson:
                     json.dump(default_setting, f, ensure_ascii=False, indent=4)
         except Exception as e:
             logger.exception(e)
-            mbox("Error", "Error: Creating default setting file. " + setting_path + "\nReason: " + str(e), 2)
+            self.__notify("Error: Creating default setting file", "Reason: " + str(e))
 
     def save(self, data: SettingDict):
         """

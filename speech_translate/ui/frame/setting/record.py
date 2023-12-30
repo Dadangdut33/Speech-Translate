@@ -4,8 +4,6 @@ from time import sleep
 from tkinter import Frame, IntVar, LabelFrame, StringVar, Toplevel, ttk
 from typing import Literal, Union
 
-import torch
-import torchaudio
 import webrtcvad
 from loguru import logger
 
@@ -17,14 +15,8 @@ from speech_translate.ui.custom.checkbutton import CustomCheckButton
 from speech_translate.ui.custom.combobox import ComboboxTypeOnCustom
 from speech_translate.ui.custom.spinbox import SpinboxNumOnly
 from speech_translate.ui.custom.tooltip import tk_tooltip, tk_tooltips
-from speech_translate.utils.audio.device import (
-    get_db,
-    get_device_details,
-    get_frame_duration,
-    get_speech_webrtc,
-    resample_sr,
-    to_silero,
-)
+from speech_translate.utils.audio.audio import get_db, get_frame_duration, get_speech_webrtc, resample_sr, to_silero
+from speech_translate.utils.audio.device import get_device_details
 from speech_translate.utils.helper import cbtn_invoker, windows_os_only
 
 if system() == "Windows":
@@ -41,6 +33,7 @@ class RecordingOptionsDevice:
         self, root: Toplevel, master_frame: Union[ttk.Frame, Frame], device: Literal["speaker", "mic"],
         cb_sr: ComboboxTypeOnCustom, cb_channels: ComboboxTypeOnCustom
     ):
+        import torch  # pylint: disable=import-outside-toplevel
         self.on_start = True
         self.root = root
         self.master = master_frame
@@ -516,9 +509,7 @@ class RecordingOptionsDevice:
             if sj.cache.get(f"threshold_enable_{self.device}", True) and not self.auto_threshold_disabled:
                 is_speech = get_speech_webrtc(resampled, WHISPER_SR, self.frame_duration, self.webrtcvad)
                 if is_speech and sj.cache.get(f"threshold_auto_silero_{self.device}", True) and not self.silero_disabled:
-                    conf: torch.Tensor = self.silerovad(
-                        to_silero(resampled, self.device_detail["num_of_channels"]), WHISPER_SR
-                    )
+                    conf = self.silerovad(to_silero(resampled, self.device_detail["num_of_channels"]), WHISPER_SR)
                     is_speech = conf.item() >= sj.cache.get(f"threshold_silero_{self.device}_min", 0.7)
                 self.audiometer.set_recording(is_speech)
 
@@ -630,29 +621,6 @@ class SettingRecord:
         self.root = root
         self.master = master_frame
         self.on_start = True
-        torchaudio.set_audio_backend("soundfile")
-
-        self.max_mic = MAX_THRESHOLD
-        self.min_mic = MIN_THRESHOLD
-        self.p_mic = None
-        self.detail_mic = None
-        self.stream_mic = None
-        self.auto_threshold_disabled_mic = False
-        self.silero_disabled_mic = False
-        self.webrtcvad_mic = webrtcvad.Vad()
-        self.silerovad_mic, _ = torch.hub.load(repo_or_dir=dir_silero_vad, source="local", model="silero_vad", onnx=True)
-        self.frame_duration_mic = 10
-
-        self.max_speaker = MAX_THRESHOLD
-        self.min_speaker = MIN_THRESHOLD
-        self.p_speaker = None
-        self.detail_speaker = None
-        self.stream_speaker = None
-        self.auto_threshold_disabled_speaker = False
-        self.silero_disabled_speaker = False
-        self.webrtcvad_speaker = webrtcvad.Vad()
-        self.silerovad_speaker, _ = torch.hub.load(repo_or_dir=dir_silero_vad, source="local", model="silero_vad", onnx=True)
-        self.frame_duration_speaker = 10
 
         # ------------------ Record  ------------------
         self.lf_device = LabelFrame(self.master, text="• Device Parameters (Advanced Setting ⚠️)")

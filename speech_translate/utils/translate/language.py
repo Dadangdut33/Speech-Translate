@@ -1,11 +1,134 @@
-import copy
+from copy import deepcopy
 from typing import Dict, List
 
 from deep_translator import GoogleTranslator, MyMemoryTranslator
 from loguru import logger
-from whisper.tokenizer import TO_LANGUAGE_CODE
 
 from ..helper import get_similar_in_list, up_first_case
+
+# This language is copied directly from whisper.tokenizer to speed up the import time on startup
+LANGUAGES = {
+    "en": "english",
+    "zh": "chinese",
+    "de": "german",
+    "es": "spanish",
+    "ru": "russian",
+    "ko": "korean",
+    "fr": "french",
+    "ja": "japanese",
+    "pt": "portuguese",
+    "tr": "turkish",
+    "pl": "polish",
+    "ca": "catalan",
+    "nl": "dutch",
+    "ar": "arabic",
+    "sv": "swedish",
+    "it": "italian",
+    "id": "indonesian",
+    "hi": "hindi",
+    "fi": "finnish",
+    "vi": "vietnamese",
+    "he": "hebrew",
+    "uk": "ukrainian",
+    "el": "greek",
+    "ms": "malay",
+    "cs": "czech",
+    "ro": "romanian",
+    "da": "danish",
+    "hu": "hungarian",
+    "ta": "tamil",
+    "no": "norwegian",
+    "th": "thai",
+    "ur": "urdu",
+    "hr": "croatian",
+    "bg": "bulgarian",
+    "lt": "lithuanian",
+    "la": "latin",
+    "mi": "maori",
+    "ml": "malayalam",
+    "cy": "welsh",
+    "sk": "slovak",
+    "te": "telugu",
+    "fa": "persian",
+    "lv": "latvian",
+    "bn": "bengali",
+    "sr": "serbian",
+    "az": "azerbaijani",
+    "sl": "slovenian",
+    "kn": "kannada",
+    "et": "estonian",
+    "mk": "macedonian",
+    "br": "breton",
+    "eu": "basque",
+    "is": "icelandic",
+    "hy": "armenian",
+    "ne": "nepali",
+    "mn": "mongolian",
+    "bs": "bosnian",
+    "kk": "kazakh",
+    "sq": "albanian",
+    "sw": "swahili",
+    "gl": "galician",
+    "mr": "marathi",
+    "pa": "punjabi",
+    "si": "sinhala",
+    "km": "khmer",
+    "sn": "shona",
+    "yo": "yoruba",
+    "so": "somali",
+    "af": "afrikaans",
+    "oc": "occitan",
+    "ka": "georgian",
+    "be": "belarusian",
+    "tg": "tajik",
+    "sd": "sindhi",
+    "gu": "gujarati",
+    "am": "amharic",
+    "yi": "yiddish",
+    "lo": "lao",
+    "uz": "uzbek",
+    "fo": "faroese",
+    "ht": "haitian creole",
+    "ps": "pashto",
+    "tk": "turkmen",
+    "nn": "nynorsk",
+    "mt": "maltese",
+    "sa": "sanskrit",
+    "lb": "luxembourgish",
+    "my": "myanmar",
+    "bo": "tibetan",
+    "tl": "tagalog",
+    "mg": "malagasy",
+    "as": "assamese",
+    "tt": "tatar",
+    "haw": "hawaiian",
+    "ln": "lingala",
+    "ha": "hausa",
+    "ba": "bashkir",
+    "jw": "javanese",
+    "su": "sundanese",
+    "yue": "cantonese",
+}
+
+# language code lookup by name, with a few language aliases
+TO_LANGUAGE_CODE = {
+    **{
+        language: code
+        for code, language in LANGUAGES.items()
+    },
+    "burmese": "my",
+    "valencian": "ca",
+    "flemish": "nl",
+    "haitian": "ht",
+    "letzeburgesch": "lb",
+    "pushto": "ps",
+    "panjabi": "pa",
+    "moldavian": "ro",
+    "moldovan": "ro",
+    "sinhalese": "si",
+    "castilian": "es",
+    "mandarin": "zh",
+}
 
 # * using deep_translator v1.11.1
 # * v1.11.4 seems to add weird language code for mymemory
@@ -18,14 +141,14 @@ WHISPER_LANG_LIST.sort()
 WHISPER_CODE_TO_NAME = {v: k for k, v in TO_LANGUAGE_CODE.items()}
 
 # List of supported languages by Google TL
-GOOGLE_KEY_VAL = copy.deepcopy(GoogleTranslator().get_supported_languages(as_dict=True))
+GOOGLE_KEY_VAL = deepcopy(GoogleTranslator().get_supported_languages(as_dict=True))
 assert isinstance(GOOGLE_KEY_VAL, Dict)
 GOOGLE_KEY_VAL["auto detect"] = "auto"
 if "filipino" in GOOGLE_KEY_VAL.keys():
     GOOGLE_KEY_VAL["filipino (tagalog)"] = GOOGLE_KEY_VAL.pop("filipino")
 
 # List of supported languages by MyMemoryTranslator
-MYMEMORY_KEY_VAL = copy.deepcopy(MyMemoryTranslator().get_supported_languages(as_dict=True))
+MYMEMORY_KEY_VAL = deepcopy(MyMemoryTranslator().get_supported_languages(as_dict=True))
 assert isinstance(MYMEMORY_KEY_VAL, Dict)
 if "filipino" in MYMEMORY_KEY_VAL.keys():
     MYMEMORY_KEY_VAL["filipino (tagalog)"] = MYMEMORY_KEY_VAL.pop("filipino")

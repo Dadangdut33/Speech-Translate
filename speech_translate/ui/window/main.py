@@ -1,22 +1,21 @@
 import os
+import subprocess
 import sys
 from platform import processor, release, system, version
 from signal import SIGINT, signal  # Import the signal module to handle Ctrl+C
 from threading import Thread
 from time import sleep, strftime, time
-from tkinter import Frame, Menu, StringVar, Tk, Toplevel, filedialog, ttk
+from tkinter import Canvas, Frame, Menu, StringVar, Tk, Toplevel, filedialog, ttk
 from typing import Callable, Dict, Literal, Optional
 
 import pystray
 from loguru import logger
-from PIL import Image, ImageDraw
-from stable_whisper import WhisperResult
+from PIL import Image, ImageDraw, ImageTk
 from tkhtmlview import HTMLText
-from torch import cuda
 
 from speech_translate._constants import APP_NAME
 from speech_translate._logging import init_logging
-from speech_translate._path import dir_export, dir_log, p_app_icon
+from speech_translate._path import dir_export, dir_log, p_app_icon, p_splash_image
 from speech_translate._version import __version__
 from speech_translate.linker import bc, sj
 from speech_translate.ui.custom.checkbutton import CustomCheckButton
@@ -30,11 +29,6 @@ from speech_translate.ui.custom.dialog import (
 )
 from speech_translate.ui.custom.message import mbox
 from speech_translate.ui.custom.tooltip import tk_tooltip, tk_tooltips
-from speech_translate.ui.window.about import AboutWindow
-from speech_translate.ui.window.log import LogWindow
-from speech_translate.ui.window.setting import SettingWindow
-from speech_translate.ui.window.transcribed import TcsWindow
-from speech_translate.ui.window.translated import TlsWindow
 from speech_translate.utils.audio.device import (
     get_default_host_api,
     get_default_input_device,
@@ -43,8 +37,6 @@ from speech_translate.utils.audio.device import (
     get_input_devices,
     get_output_devices,
 )
-from speech_translate.utils.audio.file import mod_result, process_file, translate_result
-from speech_translate.utils.audio.record import record_session
 from speech_translate.utils.helper import (
     bind_focus_recursively,
     emoji_img,
@@ -71,12 +63,22 @@ from speech_translate.utils.whisper.download import (
     verify_model_faster_whisper,
     verify_model_whisper,
 )
-from speech_translate.utils.whisper.helper import (
-    append_dot_en,
-    create_hallucination_filter,
-    model_keys,
-    save_output_stable_ts,
-)
+from speech_translate.utils.whisper.helper import append_dot_en, create_hallucination_filter, model_keys
+
+
+# monkey patch subprocess.run
+class NoConsolePopen(subprocess.Popen):
+    """
+    A custom Popen class that disables creation of a console window in Windows.
+    """
+    def __init__(self, args, **kwargs):
+        if system() == 'Windows' and 'startupinfo' not in kwargs:
+            kwargs['startupinfo'] = subprocess.STARTUPINFO()
+            kwargs['startupinfo'].dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        super().__init__(args, **kwargs)
+
+
+subprocess.Popen = NoConsolePopen
 
 
 # modify static_ffmpeg add_paths
@@ -226,10 +228,28 @@ class MainWindow:
         # UI
         bc.mw = self
         self.root = Tk()
-        self.root.title(APP_NAME)
+        self.root.title(APP_NAME + " - Booting up...")
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.root.minsize(600, 300)
         self.root.wm_attributes("-topmost", False)  # Default False
+        self.root.lift()
+        self.root.attributes('-topmost', True)
+        self.root.after_idle(self.root.attributes, '-topmost', False)
+
+        # splash
+        try:
+            self.splash_img = Image.open(p_splash_image)
+            self.splash_img = self.splash_img.resize((640, 360))
+        except Exception:
+            self.splash_img = Image.new("RGB", (640, 360), "black")
+
+        self.root.geometry("640x350")
+        self.canvas_splash = Canvas(self.root, width=640, height=345, bg="black", highlightthickness=0)
+        self.canvas_splash.pack(side="top", fill="both", expand=True)
+
+        self.img_splash = ImageTk.PhotoImage(self.splash_img)
+        self.canvas_splash.create_image(0, 170, image=self.img_splash, anchor="w")
+        self.root.update()
 
         # Flags
         self.always_on_top: bool = False
@@ -268,6 +288,7 @@ class MainWindow:
         bc.mic_emoji = emoji_img(20, "🎤", dark)
         bc.speaker_emoji = emoji_img(20, "🔊", dark)
         bc.cuda = check_cuda_and_gpu()
+        logger.info(f"GPU: {get_gpu_info()} | CUDA: {bc.cuda}")
 
         # ------------------ Frames ------------------
         self.f1_toolbar = ttk.Frame(self.root)
@@ -632,10 +653,7 @@ class MainWindow:
 
         # ------------------ on Start ------------------
         bind_focus_recursively(self.root, self.root)
-        self.root.geometry(sj.cache["mw_size"])
-        self.root.lift()
-        self.root.attributes('-topmost', True)
-        self.root.after_idle(self.root.attributes, '-topmost', False)
+        self.canvas_splash.destroy()
         self.__on_init()
         # ------------------ Set Icon ------------------
         try:
@@ -654,6 +672,9 @@ class MainWindow:
 
         create_hallucination_filter("rec", return_if_exist=True)
         create_hallucination_filter("file", return_if_exist=True)
+
+        self.root.title(APP_NAME)
+        self.root.geometry(sj.cache["mw_size"])
 
         Thread(target=self.check_ffmpeg_start, daemon=True).start()
 
@@ -1377,24 +1398,21 @@ class MainWindow:
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(text)
         else:
-            if len(results) == 0:
-                res = results[0]
-                assert isinstance(res, WhisperResult), (
-                    "Error result should be a WhisperResult, this should not happened. " \
-                    "Please report this as bug at https://github.com/Dadangdut33/Speech-Translate/issues"
-                )
-                save_output_stable_ts(res, f_name, [f_ext.replace(".", "")], sj)
-            else:
-                for i, res in enumerate(results):
-                    assert isinstance(res, WhisperResult), (
-                        "Error result should be a WhisperResult, this should not happened. " \
-                        "Please report this as bug at https://github.com/Dadangdut33/Speech-Translate/issues"
-                    )
+            try:
+                # pylint: disable=import-outside-toplevel
+                from speech_translate.utils.whisper.save import save_output_stable_ts
+                if len(results) == 0:
+                    res = results[0]
+                    save_output_stable_ts(res, f_name, [f_ext.replace(".", "")], sj)
+                else:
+                    for i, res in enumerate(results):
+                        save_name = f"{f_name}/exported_{i}"  # folderize it
+                        logger.debug(f"Exporting {mode}d text to {save_name}")
 
-                    save_name = f"{f_name}/exported_{i}"  # folderize it
-                    logger.debug(f"Exporting {mode}d text to {save_name}")
-
-                    save_output_stable_ts(res, save_name, [f_ext.replace(".", "")], sj)
+                        save_output_stable_ts(res, save_name, [f_ext.replace(".", "")], sj)
+            except Exception as e:
+                logger.exception(e)
+                self.error_notif(str(e))
 
         # open folder
         open_folder(file_path)
@@ -1654,6 +1672,7 @@ class MainWindow:
 
         # Start thread
         try:
+            from speech_translate.utils.audio.record import record_session  # pylint: disable=import-outside-toplevel
             device = mic if not is_speaker else speaker
             rec_thread = Thread(
                 target=record_session,
@@ -1760,6 +1779,7 @@ class MainWindow:
 
             # Start thread
             try:
+                from speech_translate.utils.audio.file import process_file  # pylint: disable=import-outside-toplevel
                 f_import_thread = Thread(
                     target=process_file, args=(list(files), model_tc, source, target, tc, tl, tl_engine), daemon=True
                 )
@@ -1842,6 +1862,7 @@ class MainWindow:
 
             # Start thread
             try:
+                from speech_translate.utils.audio.file import mod_result  # pylint: disable=import-outside-toplevel
                 refine_thread = Thread(target=mod_result, args=(files, model_tc, "refinement"), daemon=True)
                 refine_thread.start()
 
@@ -1926,6 +1947,7 @@ class MainWindow:
 
             # Start thread
             try:
+                from speech_translate.utils.audio.file import mod_result  # pylint: disable=import-outside-toplevel
                 align_thread = Thread(target=mod_result, args=(files, model_tc, "alignment"), daemon=True)
                 align_thread.start()
 
@@ -2013,6 +2035,7 @@ class MainWindow:
 
             # Start thread
             try:
+                from speech_translate.utils.audio.file import translate_result  # pylint: disable=import-outside-toplevel
                 res_tl_thread = Thread(target=translate_result, args=(files, tl_engine, lang_target), daemon=True)
                 res_tl_thread.start()
 
@@ -2058,6 +2081,7 @@ class MainWindow:
 def get_gpu_info():
     result = ""
     try:
+        from torch import cuda  # pylint: disable=import-outside-toplevel
         gpu_count = cuda.device_count()
         if gpu_count == 0:
             result = "No GPU detected"
@@ -2075,6 +2099,7 @@ def get_gpu_info():
 def check_cuda_and_gpu():
     result = ""
     try:
+        from torch import cuda  # pylint: disable=import-outside-toplevel
         if not cuda.is_available():
             result = "CUDA is not available! Using CPU instead"
         else:
@@ -2091,9 +2116,8 @@ def check_cuda_and_gpu():
 def main(with_log_init=True):
     if with_log_init:
         init_logging(sj.cache["log_level"])
-    logger.info(f"App Version: {__version__}")
+    logger.info(f"App Version: {__version__} - TIME: {strftime('%Y-%m-%d %H:%M:%S')}")
     logger.info(f"OS: {system()} {release()} {version()} | CPU: {processor()}")
-    logger.info(f"GPU: {get_gpu_info()} | CUDA: {check_cuda_and_gpu()}")
     logger.debug(f"Sys args: {sys.argv}")
     logger.debug("Loading UI...")
     # check tray
@@ -2103,6 +2127,13 @@ def main(with_log_init=True):
         AppTray()  # Start tray app in the background
     # --- GUI ---
     main_ui = MainWindow()
+
+    # pylint: disable=import-outside-toplevel
+    from speech_translate.ui.window.about import AboutWindow
+    from speech_translate.ui.window.log import LogWindow
+    from speech_translate.ui.window.setting import SettingWindow
+    from speech_translate.ui.window.transcribed import TcsWindow
+    from speech_translate.ui.window.translated import TlsWindow
     TcsWindow(main_ui.root)
     TlsWindow(main_ui.root)
     SettingWindow(main_ui.root)

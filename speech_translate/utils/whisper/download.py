@@ -2,7 +2,6 @@
 import hashlib
 import os
 
-import whisper
 from huggingface_hub import HfApi
 from huggingface_hub.file_download import repo_folder_name
 from loguru import logger
@@ -29,13 +28,14 @@ def download_model(model_key, root_win, **kwargs):
         the model checkpoint as a byte string
     """
     from faster_whisper.utils import _MODELS as FW_MODELS
+    from whisper import _MODELS
 
     download_root = kwargs.pop("download_root", None)
     if download_root is None:
         download_root = get_default_download_root()
 
     use_faster_whisper = kwargs.pop("use_faster_whisper")
-    model_id = whisper._MODELS[model_key] if not use_faster_whisper else FW_MODELS[model_key]
+    model_id = _MODELS[model_key] if not use_faster_whisper else FW_MODELS[model_key]
 
     # call different download function
     if not use_faster_whisper:
@@ -60,17 +60,18 @@ def verify_model_whisper(model_key, download_root=None):
     bool
         True if the model is already downloaded
     """
+    from whisper import _MODELS, available_models
     if download_root is None:
         download_root = get_default_download_root()
 
-    if model_key not in whisper._MODELS:
-        raise RuntimeError(f"Model {model_key} not found; available models = {whisper.available_models()}")
+    if model_key not in _MODELS:
+        raise RuntimeError(f"Model {model_key} not found; available models = {available_models()}")
 
     model_file = os.path.join(download_root, model_key + ".pt")
     if not os.path.exists(model_file):
         return False
 
-    expected_sha256 = whisper._MODELS[model_key].split("/")[-2]
+    expected_sha256 = _MODELS[model_key].split("/")[-2]
 
     model_bytes = open(model_file, "rb").read()
     return hashlib.sha256(model_bytes).hexdigest() == expected_sha256

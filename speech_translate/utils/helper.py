@@ -17,7 +17,6 @@ from webbrowser import open_new
 from loguru import logger
 from notifypy import Notify, exceptions
 from PIL import Image, ImageDraw, ImageFont, ImageTk
-from stable_whisper import WhisperResult
 
 from speech_translate._constants import APP_NAME, HACKY_SPACE
 from speech_translate._path import APP_ICON_MISSING, p_app_icon, p_font_emoji
@@ -148,11 +147,13 @@ def unique_rec_list(list_of_data: List):
     if len(list_of_data) == 0:
         return list_of_data
 
-    if isinstance(list_of_data[0], WhisperResult):
+    if isinstance(list_of_data[0], List):
+        # Convert the list to a set to get unique values then convert them back to a list
+        unique_lists = list(OrderedDict.fromkeys(list_of_data))
+    else:
         seen = set()
         unique_lists = []
         for obj in list_of_data:
-            assert isinstance(obj, WhisperResult)
             meta = ""
             try:
                 # get some metadata in first segment to make it more unique
@@ -166,9 +167,6 @@ def unique_rec_list(list_of_data: List):
             if check not in seen:
                 unique_lists.append(obj)
                 seen.add(check)
-    else:
-        # Convert the list to a set to get unique values then convert them back to a list
-        unique_lists = list(OrderedDict.fromkeys(list_of_data))
 
     return unique_lists
 

@@ -8,14 +8,12 @@ from shlex import quote
 from threading import Lock, Thread
 from time import gmtime, sleep, strftime, time
 from tkinter import IntVar, Toplevel, ttk
-from typing import Optional
 from wave import Wave_read, Wave_write
 from wave import open as w_open
 
 import numpy as np
 import requests
 import scipy.io.wavfile as wav
-import stable_whisper
 import torch
 import torchaudio
 import webrtcvad
@@ -31,27 +29,15 @@ from speech_translate.ui.custom.label import LabelTitleText
 from speech_translate.ui.custom.message import mbox
 from speech_translate.ui.custom.spinbox import SpinboxNumOnly
 from speech_translate.ui.custom.tooltip import tk_tooltip
-from speech_translate.utils.audio.device import (
-    get_db,
-    get_device_details,
-    get_frame_duration,
-    get_speech_webrtc,
-    resample_sr,
-    to_silero,
-)
+from speech_translate.utils.audio.audio import get_db, get_frame_duration, get_speech_webrtc, resample_sr, to_silero
+from speech_translate.utils.audio.device import get_device_details
 from speech_translate.utils.translate.language import get_whisper_lang_name, get_whisper_lang_similar
 
 from ..helper import cbtn_invoker, generate_temp_filename, get_proxies, native_notify, str_separator_to_html, unique_rec_list
 from ..translate.translator import translate
-from ..whisper.helper import (
-    get_hallucination_filter,
-    get_model,
-    get_model_args,
-    get_tc_args,
-    model_values,
-    remove_segments_by_str,
-    stablets_verbose_log,
-)
+from ..whisper.helper import get_hallucination_filter, model_values, stablets_verbose_log
+from ..whisper.load import get_model, get_model_args, get_tc_args
+from ..whisper.result import remove_segments_by_str
 
 if system() == "Windows":
     import pyaudiowpatch as pyaudio  # type: ignore # pylint: disable=import-error
@@ -824,7 +810,7 @@ def record_session(
                     logger.info("Transcribing")
 
                 bc.current_rec_status = "▶️ Recording ⟳ Transcribing Audio"
-                result: Optional[stable_whisper.WhisperResult] = None
+                result = None
 
                 def run_tc():
                     nonlocal result
@@ -1060,9 +1046,9 @@ def run_whisper_tl(audio, stable_tl, separator: str, with_lock, hallucination_fi
     global prev_tl_res
     if with_lock:
         with bc.tc_lock:  # type: ignore
-            result: stable_whisper.WhisperResult = stable_tl(audio, task="translate", **whisper_args)
+            result = stable_tl(audio, task="translate", **whisper_args)
     else:
-        result: stable_whisper.WhisperResult = stable_tl(audio, task="translate", **whisper_args)
+        result = stable_tl(audio, task="translate", **whisper_args)
 
     if sj.cache["filter_rec"]:
         try:

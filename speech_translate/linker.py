@@ -1,20 +1,18 @@
-import copy
-import os
 from ast import literal_eval
+from copy import deepcopy
 from platform import system
 from shlex import quote
 from threading import Lock, Thread
 from tkinter import ttk
-from typing import TYPE_CHECKING, List, Literal, Optional, Sequence, Union
+from typing import TYPE_CHECKING, List, Literal, Optional, Union
 
-import tkhtmlview
 from PIL import ImageTk
-from stable_whisper import WhisperResult
+from tkhtmlview import HTMLText
 
 from speech_translate.utils.helper import generate_color, str_separator_to_html, wrap_result
 from speech_translate.utils.types import ToInsert
 
-from ._path import dir_debug, dir_export, dir_log, dir_temp, dir_user, p_app_icon
+from ._path import dir_debug, dir_export, dir_log, dir_temp, dir_user, p_app_icon, p_app_settings
 from .utils.setting import SettingJson
 
 if system() == "Windows":
@@ -37,9 +35,7 @@ if TYPE_CHECKING:
     from .ui.window.translated import TlsWindow
 
 # ------------------ #
-sj: SettingJson = SettingJson(
-    os.path.join(dir_user, "setting.json"), [dir_user, dir_temp, dir_log, dir_export, dir_debug], p_app_icon
-)
+sj: SettingJson = SettingJson(p_app_settings, [dir_user, dir_temp, dir_log, dir_export, dir_debug], p_app_icon)
 
 
 class BridgeClass:
@@ -95,8 +91,8 @@ class BridgeClass:
         self.current_rec_status: str = ""
         self.auto_detected_lang: str = "~"
         self.tc_lock: Optional[Lock] = None
-        self.tc_sentences: List[Union[WhisperResult, str]] = []
-        self.tl_sentences: List[Union[WhisperResult, str]] = []
+        self.tc_sentences: List = []
+        self.tl_sentences: List = []
 
         # file process
         self.file_tced_counter: int = 0
@@ -164,7 +160,7 @@ class BridgeClass:
         # we access setting using .get here to remove pylance warning "LiteralString" is not a string literal
         # the 0 for second argument is just a placeholder
         # make deepcopy because we would modify the list
-        copied_res = copy.deepcopy(res_with_conf)
+        copied_res = deepcopy(res_with_conf)
 
         # if not infinite and text too long
         # remove words from the start based on how over the limit it is
@@ -214,7 +210,7 @@ class BridgeClass:
                         {to_insert}
                     </div>"""
 
-        def update_it(widget: tkhtmlview.HTMLText, insert, pos):
+        def update_it(widget: HTMLText, insert, pos):
             if sj.cache.get(f"tb_{mode}_auto_scroll"):
                 widget.set_html(insert)
                 widget.see("end")
@@ -237,13 +233,13 @@ class BridgeClass:
             prev_pos = sb.get()[0]
             lbl.after(0, update_it, lbl, insert, prev_pos)
 
-    def map_result_lists(self, source_list: Sequence[Union[WhisperResult, str]], store_list: List[ToInsert], separator: str):
+    def map_result_lists(self, source_list, store_list: List[ToInsert], separator: str):
         """
         Map List of whisper result according to user setting while also calculating its color based on the confidence value.
 
         Parameters
         ----------
-        source_list : Sequence[Union[WhisperResult, str]]
+        source_list : 
             Source list to be mapped, can be either a list of whisper result or a list of string.
         store_list : List[ToInsert]
             List to store the mapped result.
@@ -326,12 +322,12 @@ class BridgeClass:
         self.update_tc(None, separator)
         self.update_tl(None, separator)
 
-    def update_tc(self, new_res: Union[WhisperResult, str, None], separator: str):
+    def update_tc(self, new_res, separator: str):
         """Update the transcribed text box with the new text.
 
         Parameters
         ----------
-        new_res : Union[WhisperResult, str]
+        new_res :
             New result to be added to the transcribed text box.
         separator : str
             Separator to be added to the end of the new result.
@@ -344,12 +340,12 @@ class BridgeClass:
         self.update_result_display(total_len, res_with_conf, "mw_tc")
         self.update_result_display(total_len, res_with_conf, "ex_tc")
 
-    def update_tl(self, new_res: Union[WhisperResult, str, None], separator: str):
+    def update_tl(self, new_res, separator: str):
         """Update the translated text box with the new text.
 
         Parameters
         ----------
-        new_res : Union[WhisperResult, str]
+        new_res : 
             New result to be added to the translated text box.
         separator :
             Separator to be added to the end of the new result.

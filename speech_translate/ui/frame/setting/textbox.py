@@ -1,7 +1,6 @@
 from tkinter import Frame, LabelFrame, Toplevel, font, ttk
 from typing import Callable, List, Union
 
-from matplotlib import pyplot as plt
 from tkhtmlview import HTMLText
 
 from speech_translate._constants import APP_NAME, PREVIEW_WORDS
@@ -451,6 +450,7 @@ class SettingTextbox:
         )
 
     def preview_gradient(self):
+        from matplotlib import pyplot as plt  # pylint: disable=import-outside-toplevel
         colors = [
             generate_color(i / 100, self.entry_gradient_low_conf.get(), self.entry_gradient_high_conf.get())
             for i in range(101)

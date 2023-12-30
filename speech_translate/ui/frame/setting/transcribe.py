@@ -19,7 +19,7 @@ from speech_translate.ui.custom.message import mbox
 from speech_translate.ui.custom.spinbox import SpinboxNumOnly
 from speech_translate.ui.custom.tooltip import CreateToolTipOnText, tk_tooltip, tk_tooltips
 from speech_translate.utils.helper import change_file_w_f_call, insert_entry_readonly, popup_menu, start_file
-from speech_translate.utils.whisper.helper import get_temperature, parse_args_stable_ts
+from speech_translate.utils.whisper.helper import get_temperature
 
 
 class SettingTranscribe:
@@ -1001,6 +1001,7 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
         sj.save_key("temperature", value)
 
     def verify_raw_args(self, value: str):
+        from speech_translate.utils.whisper.load import parse_args_stable_ts  # pylint: disable=import-outside-toplevel
         loop_for = ["load", "transcribe", "align", "refine", "save"]
         custom_func = {
             "load": [load_model, load_faster_whisper],

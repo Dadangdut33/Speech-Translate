@@ -7,7 +7,7 @@ from time import gmtime, sleep, strftime, time
 from tkinter import filedialog
 from typing import Dict, List, Literal, Union
 
-import stable_whisper  # https://github.com/jianfch/stable-ts # has no static annotation hence many type ignore
+import stable_whisper
 from torch import cuda
 from whisper.tokenizer import TO_LANGUAGE_CODE
 
@@ -29,18 +29,10 @@ from ..helper import (
     up_first_case,
 )
 from ..translate.translator import translate
-from ..whisper.helper import (
-    get_hallucination_filter,
-    get_model,
-    get_model_args,
-    get_task_format,
-    get_tc_args,
-    model_values,
-    remove_segments_by_str,
-    save_output_stable_ts,
-    split_res,
-    to_language_name,
-)
+from ..whisper.helper import get_hallucination_filter, get_task_format, model_values, to_language_name
+from ..whisper.load import get_model, get_model_args, get_tc_args
+from ..whisper.result import remove_segments_by_str, split_res
+from ..whisper.save import save_output_stable_ts
 
 # Global variable
 # to track which file is processed

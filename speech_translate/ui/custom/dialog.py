@@ -3,7 +3,6 @@ from time import sleep
 from tkinter import BooleanVar, IntVar, StringVar, Text, Tk, Toplevel, filedialog, messagebox, ttk
 from typing import List, Literal, Union
 
-import stable_whisper
 from loguru import logger
 from tksheet import Sheet
 
@@ -736,7 +735,8 @@ class ModResultInputDialog:
         # if json and alignment try to get the language
         if self.mode == "Alignment" and self.mod_file and self.mod_file.endswith(".json"):
             try:
-                get = stable_whisper.WhisperResult(self.mod_file).language
+                from stable_whisper import WhisperResult  # pylint: disable=import-outside-toplevel
+                get = WhisperResult(self.mod_file).language
                 if get:
                     self.select_cb.current(WHISPER_LIST_UPPED.index(up_first_case(get)))
                     self.lang_value = up_first_case(get)
