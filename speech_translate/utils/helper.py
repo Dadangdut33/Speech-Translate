@@ -147,7 +147,7 @@ def unique_rec_list(list_of_data: List):
     if len(list_of_data) == 0:
         return list_of_data
 
-    if isinstance(list_of_data[0], List):
+    if isinstance(list_of_data[0], str):
         # Convert the list to a set to get unique values then convert them back to a list
         unique_lists = list(OrderedDict.fromkeys(list_of_data))
     else:

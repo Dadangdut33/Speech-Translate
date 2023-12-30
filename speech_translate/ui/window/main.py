@@ -235,6 +235,10 @@ class MainWindow:
         self.root.lift()
         self.root.attributes('-topmost', True)
         self.root.after_idle(self.root.attributes, '-topmost', False)
+        try:
+            self.root.iconbitmap(p_app_icon)
+        except Exception:
+            pass
 
         # splash
         try:
@@ -244,11 +248,14 @@ class MainWindow:
             self.splash_img = Image.new("RGB", (640, 360), "black")
 
         self.root.geometry("640x350")
-        self.canvas_splash = Canvas(self.root, width=640, height=345, bg="black", highlightthickness=0)
+        self.canvas_splash = Canvas(self.root, width=640, height=325, bg="black", highlightthickness=0)
         self.canvas_splash.pack(side="top", fill="both", expand=True)
 
         self.img_splash = ImageTk.PhotoImage(self.splash_img)
-        self.canvas_splash.create_image(0, 170, image=self.img_splash, anchor="w")
+        self.canvas_splash.create_image(0, 160, image=self.img_splash, anchor="w")
+        self.lb_splash = ttk.Progressbar(self.root, orient="horizontal", length=640, mode="indeterminate")
+        self.lb_splash.pack(side="bottom", fill="x", expand=False)
+        self.lb_splash.start(15)
         self.root.update()
 
         # Flags
@@ -287,9 +294,13 @@ class MainWindow:
         bc.question_emoji = emoji_img(16, "❔", dark)
         bc.mic_emoji = emoji_img(20, "🎤", dark)
         bc.speaker_emoji = emoji_img(20, "🔊", dark)
-        bc.cuda = check_cuda_and_gpu()
-        logger.info(f"GPU: {get_gpu_info()} | CUDA: {bc.cuda}")
+        self.root.update()
 
+        def cuda_check():
+            bc.cuda = check_cuda_and_gpu()
+            logger.info(f"GPU: {get_gpu_info()} | CUDA: {bc.cuda}")
+
+        Thread(target=cuda_check, daemon=True).start()
         # ------------------ Frames ------------------
         self.f1_toolbar = ttk.Frame(self.root)
         self.f1_toolbar.pack(side="top", fill="x", expand=False, pady=(5, 0))
@@ -601,8 +612,9 @@ class MainWindow:
 
         # -- f4_statusbar
         # load bar
-        self.load_bar = ttk.Progressbar(self.f4_statusbar, orient="horizontal", length=100, mode="determinate")
+        self.load_bar = ttk.Progressbar(self.f4_statusbar, orient="horizontal", length=100, mode="indeterminate")
         self.load_bar.pack(side="left", padx=5, pady=5, fill="x", expand=True)
+        self.start_lb()
 
         # ------------------ Menubar ------------------
         self.menubar = Menu(self.root)
@@ -652,29 +664,32 @@ class MainWindow:
         self.root.bind("<F4>", self.open_detached_tlw)
 
         # ------------------ on Start ------------------
+        self.root.update()
         bind_focus_recursively(self.root, self.root)
-        self.canvas_splash.destroy()
         self.__on_init()
-        # ------------------ Set Icon ------------------
-        try:
-            self.root.iconbitmap(p_app_icon)
-        except Exception:
-            pass
 
     # on start
     def __on_init(self):
-        # update on start
+        # update widget on start
         self.cb_input_device_init()
+        self.root.update()
         self.cb_engine_change(sj.cache["tl_engine_mw"])
+        self.root.update()
         self.cbtn_task_change()
+        self.root.update()
 
         windows_os_only([self.radio_speaker, self.cb_speaker, self.lbl_speaker, self.btn_config_speaker])
+        self.root.update()
 
-        create_hallucination_filter("rec", return_if_exist=True)
-        create_hallucination_filter("file", return_if_exist=True)
+        Thread(target=create_hallucination_filter, args=["rec", True], daemon=True).start()
+        Thread(target=create_hallucination_filter, args=["file", True], daemon=True).start()
 
         self.root.title(APP_NAME)
         self.root.geometry(sj.cache["mw_size"])
+        self.canvas_splash.destroy()
+        self.lb_splash.destroy()
+        self.root.update()
+        self.stop_lb()
 
         Thread(target=self.check_ffmpeg_start, daemon=True).start()
 

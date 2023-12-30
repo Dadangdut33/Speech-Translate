@@ -140,10 +140,9 @@ class AboutWindow:
 
         self.checking = True
         self.update_text = "Checking..."
-        self.update_fg = "black"
+        self.update_fg = "yellow"
         self.tooltip_check_update.text = "Checking... Please wait"
         self.lbl_check_update.configure(text=self.update_text, foreground=self.update_fg)
-        self.root.update()
         logger.info("Checking for update...")
 
         Thread(target=self.req_update_check, daemon=True, args=[notify_up_to_date]).start()
