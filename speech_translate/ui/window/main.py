@@ -248,14 +248,11 @@ class MainWindow:
             self.splash_img = Image.new("RGB", (640, 360), "black")
 
         self.root.geometry("640x350")
-        self.canvas_splash = Canvas(self.root, width=640, height=325, bg="black", highlightthickness=0)
+        self.canvas_splash = Canvas(self.root, width=640, height=345, bg="black", highlightthickness=0)
         self.canvas_splash.pack(side="top", fill="both", expand=True)
 
         self.img_splash = ImageTk.PhotoImage(self.splash_img)
-        self.canvas_splash.create_image(0, 160, image=self.img_splash, anchor="w")
-        self.lb_splash = ttk.Progressbar(self.root, orient="horizontal", length=640, mode="indeterminate")
-        self.lb_splash.pack(side="bottom", fill="x", expand=False)
-        self.lb_splash.start(15)
+        self.canvas_splash.create_image(0, 170, image=self.img_splash, anchor="w")
         self.root.update()
 
         # Flags
@@ -612,9 +609,8 @@ class MainWindow:
 
         # -- f4_statusbar
         # load bar
-        self.load_bar = ttk.Progressbar(self.f4_statusbar, orient="horizontal", length=100, mode="indeterminate")
+        self.load_bar = ttk.Progressbar(self.f4_statusbar, orient="horizontal", length=100, mode="determinate")
         self.load_bar.pack(side="left", padx=5, pady=5, fill="x", expand=True)
-        self.start_lb()
 
         # ------------------ Menubar ------------------
         self.menubar = Menu(self.root)
@@ -687,9 +683,7 @@ class MainWindow:
         self.root.title(APP_NAME)
         self.root.geometry(sj.cache["mw_size"])
         self.canvas_splash.destroy()
-        self.lb_splash.destroy()
         self.root.update()
-        self.stop_lb()
 
         Thread(target=self.check_ffmpeg_start, daemon=True).start()
 
