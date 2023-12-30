@@ -645,9 +645,6 @@ def process_file(
         else:
             hallucination_filters = {}
 
-        # update button text
-        bc.mw.btn_import_file.configure(text="Cancel")
-
         t_start = time()
         adding = False
         taskname = "Transcribe & Translate" if is_tc and is_tl else "Transcribe" if is_tc else "Translate"
@@ -701,25 +698,33 @@ def process_file(
 
         def add_to_files():
             nonlocal data_files, adding
-            adding = True
-            to_add = filedialog.askopenfilenames(
-                title="Select a file",
-                filetypes=(
-                    ("Audio files", "*.wav *.mp3 *.ogg *.flac *.aac *.wma *.m4a"),
-                    ("Video files", "*.mp4 *.mkv *.avi *.mov *.webm"),
-                    ("All files", "*.*"),
-                ),
-            )
+            if adding:  # already adding
+                return
+            try:
+                adding = True
+                to_add = filedialog.askopenfilenames(
+                    title="Select a file",
+                    filetypes=(
+                        ("Audio files", "*.wav *.mp3 *.ogg *.flac *.aac *.wma *.m4a"),
+                        ("Video files", "*.mp4 *.mkv *.avi *.mov *.webm"),
+                        ("All files", "*.*"),
+                    ),
+                )
 
-            if len(to_add) > 0:
-                if is_tc:
-                    current_file_counter = bc.file_tced_counter
-                else:
-                    current_file_counter = bc.file_tled_counter
-                data_files.extend(list(to_add))
-                fp.lbl_files.set_text(text=f"{current_file_counter}/{len(data_files)}")
+                if len(to_add) > 0:
+                    if is_tc:
+                        current_file_counter = bc.file_tced_counter
+                    else:
+                        current_file_counter = bc.file_tled_counter
+                    data_files.extend(list(to_add))
+                    fp.lbl_files.set_text(text=f"{current_file_counter}/{len(data_files)}")
 
-            adding = False
+            except Exception as e:
+                if "invalid command name" not in str(e):
+                    logger.exception(e)
+                    logger.warning("Failed to add file | Ignore if already closed")
+            finally:
+                adding = False
 
         canceled = False
 
@@ -1010,28 +1015,33 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
 
         def add_to_files():
             nonlocal data_files, adding
-            if adding:  # add check because of custom window does not stop interaction in main window
+            if adding:  # already adding
                 return
+            try:
+                adding = True
+                source_f, mod_f, lang = ModResultInputDialog(
+                    fp.root, "Add File Pair", up_first_case(mode), with_lang=mode == "alignment"
+                ).get_input()
 
-            adding = True
-            source_f, mod_f, lang = ModResultInputDialog(
-                fp.root, "Add File Pair", up_first_case(mode), with_lang=mode == "alignment"
-            ).get_input()
+                # if still processing file and user select / add files
+                if source_f and mod_f:
+                    if mode == "alignment":
+                        data_files.extend([[source_f, mod_f, lang]])
+                    else:
+                        data_files.extend([[source_f, mod_f]])
 
-            # if still processing file and user select / add files
-            if source_f and mod_f:
-                if mode == "alignment":
-                    data_files.extend([[source_f, mod_f, lang]])
+                    fp.lbl_files.set_text(text=f"{bc.mod_file_counter}/{len(data_files)}")
+
+                # ask want to add more or not
+                if mbox("Add File Pair", "Do you want to add more file?", 3, fp.root):
+                    add_to_files()
                 else:
-                    data_files.extend([[source_f, mod_f]])
-
-                fp.lbl_files.set_text(text=f"{bc.mod_file_counter}/{len(data_files)}")
-
-            # ask want to add more or not
-            if mbox("Add File Pair", "Do you want to add more file?", 3, fp.root):
-                add_to_files()
-            else:
+                    adding = False
+            except Exception as e:
                 adding = False
+                if "invalid command name" not in str(e):
+                    logger.exception(e)
+                    logger.warning("Failed to add file | Ignore if already closed")
 
         def cancel():
             assert bc.mw is not None
@@ -1244,7 +1254,7 @@ def mod_result(data_files: List, model_name_tc: str, mode: Literal["refinement",
                 logger.debug("saved metadata")
 
             while adding:
-                sleep(0.3)
+                sleep(0.5)
 
         # destroy progress window
         if fp.root.winfo_exists():
@@ -1349,17 +1359,24 @@ def translate_result(data_files: List, engine: str, lang_target: str):
 
         def add_to_files():
             nonlocal data_files, adding
-            adding = True
-            to_add = filedialog.askopenfilenames(
-                title="Select a file",
-                filetypes=(("JSON (Whisper Result)", "*.json"), ),
-            )
+            if adding:  # already adding
+                return
+            try:
+                adding = True
+                to_add = filedialog.askopenfilenames(
+                    title="Select a file",
+                    filetypes=(("JSON (Whisper Result)", "*.json"), ),
+                )
 
-            if len(to_add) > 0:
-                data_files.extend(list(to_add))
-                fp.lbl_files.set_text(text=f"{bc.mod_file_counter}/{len(data_files)}")
-
-            adding = False
+                if len(to_add) > 0:
+                    data_files.extend(list(to_add))
+                    fp.lbl_files.set_text(text=f"{bc.mod_file_counter}/{len(data_files)}")
+            except Exception as e:
+                if "invalid command name" not in str(e):
+                    logger.exception(e)
+                    logger.warning("Failed to add file | Ignore if already closed")
+            finally:
+                adding = False
 
         def cancel():
             assert bc.mw is not None
@@ -1500,7 +1517,7 @@ def translate_result(data_files: List, engine: str, lang_target: str):
                 logger.debug("saved metadata")
 
             while adding:
-                sleep(0.3)
+                sleep(0.5)
 
         # destroy progress window
         if fp.root.winfo_exists():

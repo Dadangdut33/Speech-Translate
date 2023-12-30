@@ -870,6 +870,7 @@ class QueueDialog:
         self.root.geometry("+400+250")
         self.root.resizable(True, False)
         self.root.transient(master)
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
         self.frame = ttk.Frame(self.root)
         self.frame.pack(expand=True, fill="both", padx=5, pady=5)

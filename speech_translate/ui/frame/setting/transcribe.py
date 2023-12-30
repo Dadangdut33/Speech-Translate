@@ -2,16 +2,6 @@ import os
 from tkinter import Frame, LabelFrame, Menu, StringVar, Toplevel, ttk
 from typing import Literal, Union
 
-from stable_whisper import (
-    alignment,
-    load_faster_whisper,
-    load_model,
-    result_to_ass,
-    result_to_srt_vtt,
-    result_to_tsv,
-    whisper_word_level,
-)
-
 from speech_translate._path import p_filter_file_import, p_filter_rec, p_parameters_text
 from speech_translate.linker import bc, sj
 from speech_translate.ui.custom.checkbutton import CustomCheckButton
@@ -1001,7 +991,19 @@ For more information, see https://github.com/jianfch/stable-ts or https://github
         sj.save_key("temperature", value)
 
     def verify_raw_args(self, value: str):
-        from speech_translate.utils.whisper.load import parse_args_stable_ts  # pylint: disable=import-outside-toplevel
+        # pylint: disable=import-outside-toplevel
+        from stable_whisper import (
+            alignment,
+            load_faster_whisper,
+            load_model,
+            result_to_ass,
+            result_to_srt_vtt,
+            result_to_tsv,
+            whisper_word_level,
+        )
+
+        from speech_translate.utils.whisper.load import parse_args_stable_ts
+
         loop_for = ["load", "transcribe", "align", "refine", "save"]
         custom_func = {
             "load": [load_model, load_faster_whisper],

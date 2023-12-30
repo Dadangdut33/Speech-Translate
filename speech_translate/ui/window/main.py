@@ -697,7 +697,7 @@ class MainWindow:
             sj.save_key("first_open", False)
 
         if sj.cache["first_open"]:
-            self.root.after(100, first_open)
+            self.root.after(2500, first_open)
 
     def check_ffmpeg_start(self):
         """
@@ -848,22 +848,41 @@ class MainWindow:
 
     # ------------------ With After ------------------
     # So that we can call it from outside the mainloop
+    # If not yet initialized, will add delay to the call
     def open_about(self, _event=None):
+        if not bc.about:
+            self.root.after(2000, self.open_about)
+            return
         self.root.after(0, bc.about.show)  # type: ignore
 
     def check_update(self, _event=None):
+        if not bc.about:
+            self.root.after(2000, self.check_update)
+            return
         self.root.after(0, lambda: bc.about.check_for_update(notify_up_to_date=True))  # type: ignore
 
     def open_setting(self, _event=None):
+        if not bc.sw:
+            self.root.after(2000, self.open_setting)
+            return
         self.root.after(0, bc.sw.show)  # type: ignore
 
     def open_log(self, _event=None):
+        if not bc.lw:
+            self.root.after(2000, self.open_log)
+            return
         self.root.after(0, bc.lw.show)  # type: ignore
 
     def open_detached_tcw(self, _event=None):
+        if not bc.ex_tcw:
+            self.root.after(2000, self.open_detached_tcw)
+            return
         self.root.after(0, bc.ex_tcw.show)  # type: ignore
 
     def open_detached_tlw(self, _event=None):
+        if not bc.ex_tlw:
+            self.root.after(2000, self.open_detached_tlw)
+            return
         self.root.after(0, bc.ex_tlw.show)  # type: ignore
 
     # ------------------ Functions ------------------
@@ -2138,14 +2157,29 @@ def main(with_log_init=True):
     main_ui = MainWindow()
 
     # pylint: disable=import-outside-toplevel
-    from speech_translate.ui.window.about import AboutWindow
-    from speech_translate.ui.window.log import LogWindow
-    from speech_translate.ui.window.setting import SettingWindow
     from speech_translate.ui.window.transcribed import TcsWindow
-    from speech_translate.ui.window.translated import TlsWindow
+    main_ui.root.update()
     TcsWindow(main_ui.root)
+    main_ui.root.update()
+
+    from speech_translate.ui.window.translated import TlsWindow
+    main_ui.root.update()
     TlsWindow(main_ui.root)
+    main_ui.root.update()
+
+    from speech_translate.ui.window.setting import SettingWindow
+    main_ui.root.update()
     SettingWindow(main_ui.root)
-    LogWindow(main_ui.root)
+    main_ui.root.update()
+
+    from speech_translate.ui.window.about import AboutWindow
+    main_ui.root.update()
     AboutWindow(main_ui.root)
-    main_ui.root.mainloop()  # Start main app
+    main_ui.root.update()
+
+    from speech_translate.ui.window.log import LogWindow
+    main_ui.root.update()
+    LogWindow(main_ui.root)
+    main_ui.root.update()
+
+    main_ui.root.mainloop()  # Start mainloop

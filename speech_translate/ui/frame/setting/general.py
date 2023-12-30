@@ -6,7 +6,7 @@ from typing import Union
 from loguru import logger
 
 from speech_translate._logging import change_log_level, current_log
-from speech_translate._path import dir_debug, dir_log, dir_temp
+from speech_translate._path import dir_log, dir_temp
 from speech_translate.linker import bc, sj
 from speech_translate.ui.custom.checkbutton import CustomCheckButton
 from speech_translate.ui.custom.combobox import ComboboxWithKeyNav
@@ -542,15 +542,6 @@ class SettingGeneral:
                 except Exception as e:
                     logger.warning("Failed to delete temp file: " + file)
                     logger.warning("Reason " + str(e))
-
-    def delete_debug(self):
-        # delete all debug files
-        for file in os.listdir(dir_debug):
-            try:
-                os.remove(os.path.join(dir_debug, file))
-            except Exception as e:
-                logger.warning("Failed to delete debug file: " + file)
-                logger.warning("Reason " + str(e))
 
     def delete_log_on_start(self):
         if not sj.cache["keep_log"]:
