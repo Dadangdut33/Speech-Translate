@@ -2,18 +2,19 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Speech Translate"
-#define MyAppVersion "1.3.8"
+; #define MyAppName "Speech Translate CPU"
+#define MyAppVersion "1.3.8.1"
 #define MyAppPublisher "Dadangdut33"
 #define MyAppURL "https://github.com/Dadangdut33/Speech-Translate"
 #define MyAppExeName "SpeechTranslate.exe"
-#define EnvName ".venv"
+#define EnvName " .venv"
+; note the space before .venv
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
-; Speech Translate     -> {EDE12D07-73B0-4B1F-91C3-A0ECE1AB3F7C}
-; Speech Translate CPU -> {1C434936-CD0D-47B4-AB60-29E8AD2AEE40}
 AppId={{EDE12D07-73B0-4B1F-91C3-A0ECE1AB3F7C}
+; AppId={{1C434936-CD0D-47B4-AB60-29E8AD2AEE40}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 ;AppVerName={#MyAppName} {#MyAppVersion}
@@ -24,7 +25,7 @@ AppUpdatesURL={#MyAppURL}
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
-LicenseFile=build\SpeechTranslate {#MyAppVersion} {#EnvName}\LICENSE.txt
+LicenseFile=build\SpeechTranslate {#MyAppVersion}{#EnvName}\LICENSE.txt
 InfoBeforeFile=build\pre_install_note.txt
 InfoAfterFile=build\post_install_note.txt
 ; Remove the following line to run in administrative install mode (install for all users.)
@@ -44,8 +45,8 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "build\SpeechTranslate {#MyAppVersion} {#EnvName}\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "build\SpeechTranslate {#MyAppVersion} {#EnvName}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "build\SpeechTranslate {#MyAppVersion}{#EnvName}\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "build\SpeechTranslate {#MyAppVersion}{#EnvName}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]

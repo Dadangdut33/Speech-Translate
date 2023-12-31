@@ -37,7 +37,10 @@ def clear_dir(_dir):
         else:
             # remove all files or folders in the dir
             for f_get in os.listdir(_dir):
-                shutil.rmtree(os.path.join(_dir, f_get))
+                try:
+                    shutil.rmtree(os.path.join(_dir, f_get))
+                except Exception:
+                    os.remove(os.path.join(_dir, f_get))
     except Exception as e:
         print(f">> Failed to clear {_dir} reason: {e}")
 

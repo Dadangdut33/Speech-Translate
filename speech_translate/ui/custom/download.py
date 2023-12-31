@@ -380,7 +380,13 @@ def faster_whisper_download_with_progress_gui(
 
     storage_folder = os.path.join(cache_dir, repo_folder_name(repo_id=repo_id, repo_type="model"))
     allow_patterns = ["config.json", "preprocessor_config.json", "model.bin", "tokenizer.json", "vocabulary.*"]
-    kwargs = {"local_files_only": False, "allow_patterns": allow_patterns, "resume_download": True, "cache_dir": cache_dir}
+    kwargs = {
+        "local_files_only": False,
+        "allow_patterns": allow_patterns,
+        "resume_download": True,
+        "cache_dir": cache_dir,
+        "local_dir_use_symlinks": True
+    }
 
     # Show toplevel window
     root = Toplevel(master)

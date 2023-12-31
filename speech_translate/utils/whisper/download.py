@@ -125,10 +125,6 @@ def verify_model_faster_whisper(model_key: str, cache_dir) -> bool:
     if not os.path.exists(blob_folder):
         return False
 
-    # if blob folder is empty, then model is not downloaded
-    if len(os.listdir(blob_folder)) == 0:
-        return False
-
     # check if blob contain any .incomplete file or .lock file
     # meaning that the download is not finished
     for _root, _dirs, files in os.walk(blob_folder):
