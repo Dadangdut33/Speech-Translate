@@ -14,11 +14,8 @@ root = tk.Tk()
 try:
     root.title("ComboBox Example")
 
-    values = ["Option 1", "Option 2", "Option 3"]
-    INITIAL = "Option 2"
-    # initial_value = "33"
-    # initial_value = "test"
-    editable_combo = ComboboxTypeOnCustom(root, root, values, "1", "25", print, INITIAL)
+    values = ["1", "2", "3"]
+    editable_combo = ComboboxTypeOnCustom(root, root, values, "1", "25", print, "2")
     editable_combo.pack(pady=10)
 
     categories = {
