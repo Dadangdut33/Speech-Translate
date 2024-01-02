@@ -6,7 +6,7 @@ import requests
 from loguru import logger
 
 from speech_translate._path import p_base_filter, p_filter_file_import, p_filter_rec
-from speech_translate.utils.types import StableTsResultDict, StableTsSegmentResult
+from speech_translate.utils.types import StableTsResultDict
 
 from ..translate.language import LANGUAGES
 
@@ -53,32 +53,28 @@ def stablets_verbose_log(result):
     result:
         whisper result
     """
-    res = result.to_dict()
-    assert isinstance(res, StableTsResultDict)
+    res = result.to_dict()  # type: StableTsResultDict
     logger.debug(f"Language: {res['language']}")
     logger.debug(f"Text: {res['text']}")
-    logger.debug("Segments:")
     for segment in res["segments"]:
-        assert isinstance(segment, StableTsSegmentResult)
-        logger.debug(f"Segment {segment['id']}")
-        logger.debug(f"Seek: {segment['seek']}")
-        logger.debug(f"Start: {segment['start']}")
-        logger.debug(f"End: {segment['end']}")
-        logger.debug(f"Text: {segment['text']}")
-        logger.debug(f"Tokens: {segment['tokens']}")
-        logger.debug(f"Temperature: {segment['temperature']}")
-        logger.debug(f"Avg Logprob: {segment['avg_logprob']}")
-        logger.debug(f"Compression Ratio: {segment['compression_ratio']}")
-        logger.debug(f"No Speech Prob: {segment['no_speech_prob']}")
+        logger.debug(f"Segment {segment['id']}\n" \
+                    f"Seek: {segment['seek']}\n" \
+                    f"Start: {segment['start']}\n" \
+                    f"End: {segment['end']}\n" \
+                    f"Text: {segment['text']}\n" \
+                    f"Tokens: {segment['tokens']}\n" \
+                    f"Temperature: {segment['temperature']}\n" \
+                    f"Avg Logprob: {segment['avg_logprob']}\n" \
+                    f"Compression Ratio: {segment['compression_ratio']}\n" \
+                    f"No Speech Prob: {segment['no_speech_prob']}")
 
-        logger.debug("Words:")
         for words in segment["words"]:
-            logger.debug(f"Word {words['id']} | Segment {words['segment_id']}")
-            logger.debug(f"Start: {words['start']}")
-            logger.debug(f"End: {words['end']}")
-            logger.debug(f"Word: {words['word']}")
-            logger.debug(f"Tokens: {words['tokens']}")
-            logger.debug(f"Probability: {words['probability']}")
+            logger.debug(f"Segment {words['segment_id']} - Word {words['id']}\n" \
+                        f"Start: {words['start']}\n" \
+                        f"End: {words['end']}\n" \
+                        f"Word: {words['word']}\n" \
+                        f"Tokens: {words['tokens']}\n" \
+                        f"Probability: {words['probability']}")
 
 
 def get_temperature(args):
