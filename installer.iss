@@ -3,7 +3,7 @@
 
 #define MyAppName "Speech Translate"
 ; #define MyAppName "Speech Translate CPU"
-#define MyAppVersion "1.3.8.1"
+#define MyAppVersion "1.3.9"
 #define MyAppPublisher "Dadangdut33"
 #define MyAppURL "https://github.com/Dadangdut33/Speech-Translate"
 #define MyAppExeName "SpeechTranslate.exe"
