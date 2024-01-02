@@ -87,6 +87,7 @@ class SettingWindow:
         """
         Thread(target=self.f_general.delete_log_on_start, daemon=True).start()
         Thread(target=self.f_general.delete_temp_on_start, daemon=True).start()
+        Thread(target=self.f_general.delete_debug_audio_rec_on_start, daemon=True).start()
 
     def save_win_size(self):
         """

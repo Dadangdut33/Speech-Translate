@@ -6,7 +6,7 @@ from typing import Union
 from loguru import logger
 
 from speech_translate._logging import change_log_level, current_log
-from speech_translate._path import dir_log, dir_temp
+from speech_translate._path import dir_debug, dir_log, dir_temp
 from speech_translate.linker import bc, sj
 from speech_translate.ui.custom.checkbutton import CustomCheckButton
 from speech_translate.ui.custom.combobox import ComboboxWithKeyNav
@@ -333,9 +333,9 @@ class SettingGeneral:
         self.cbtn_debug_recorded_audio.pack(side="left", padx=5, pady=(0, 5))
         tk_tooltip(
             self.cbtn_debug_recorded_audio,
-            "Save recorded audio as .wav file in the debug folder. "
-            "Keep in mind that the files in that directory will be deleted automatically every time the app run\n\n"
-            "Enabling could slow down the app.",
+            "Save recorded audio as .wav file in the debug folder. You can open the debug folder from view in menubar.\n\n"
+            "Keep in mind that the files in the directory will be deleted automatically every time the app run when this "
+            "option is unchecked\n\nEnabling could slow down the app.",
             wrap_len=300,
         )
 
@@ -543,6 +543,16 @@ class SettingGeneral:
                     logger.warning("Failed to delete temp file: " + file)
                     logger.warning("Reason " + str(e))
 
+    def delete_debug_audio_rec(self):
+        # delete all temp wav files
+        for file in os.listdir(dir_debug):
+            if file.endswith(".wav"):
+                try:
+                    os.remove(os.path.join(dir_debug, file))
+                except Exception as e:
+                    logger.warning("Failed to delete debug file: " + file)
+                    logger.warning("Reason " + str(e))
+
     def delete_log_on_start(self):
         if not sj.cache["keep_log"]:
             self.delete_log()
@@ -550,6 +560,10 @@ class SettingGeneral:
     def delete_temp_on_start(self):
         if not sj.cache["keep_temp"]:
             self.delete_temp()
+
+    def delete_debug_audio_rec_on_start(self):
+        if not sj.cache["debug_realtime_record"]:
+            self.delete_debug_audio_rec()
 
     def prompt_del_log(self):
         # confirmation using mbox

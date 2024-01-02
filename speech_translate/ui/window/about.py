@@ -138,6 +138,9 @@ class AboutWindow:
         if self.checking:
             return
 
+        Thread(target=self.req_update_check, daemon=True, args=[notify_up_to_date]).start()
+
+    def req_update_check(self, notify_up_to_date=False):
         self.checking = True
         self.update_text = "Checking..."
         self.update_fg = "yellow"
@@ -145,9 +148,6 @@ class AboutWindow:
         self.lbl_check_update.configure(text=self.update_text, foreground=self.update_fg)
         logger.info("Checking for update...")
 
-        Thread(target=self.req_update_check, daemon=True, args=[notify_up_to_date]).start()
-
-    def req_update_check(self, notify_up_to_date=False):
         try:
             # request to github api, compare version. If not same tell user to update
             req = get("https://api.github.com/repos/Dadangdut33/Speech-Translate/releases/latest", timeout=7)
