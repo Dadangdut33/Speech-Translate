@@ -157,6 +157,7 @@ default_setting: SettingDict = {
     "word_level": True,  # 1 of this must be true
     "visualize_suppression": False,
     "use_faster_whisper": True,
+    "use_en_model": True,
     "transcribe_rate": 300,
     # option for some DecodingOptions that is not available in the command line parameter is moved to the gui
     "decoding_preset": "beam search",  # greedy, beam search, custom

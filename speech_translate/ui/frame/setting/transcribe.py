@@ -70,6 +70,19 @@ class SettingTranscribe:
             "using less memory. \n\nDefault is checked",
         )
 
+        self.cbtn_use_en_model = CustomCheckButton(
+            self.f_whisper_args_0,
+            sj.cache["use_en_model"],
+            lambda x: sj.save_key("use_en_model", x),
+            text="Use English only model for English",
+            style="Switch.TCheckbutton",
+        )
+        self.cbtn_use_en_model.pack(side="left", padx=5)
+        tk_tooltip(
+            self.cbtn_use_en_model,
+            "Use English only model when language is set to English for more accuracy.\n\nDefault is checked",
+        )
+
         # decoding options
         self.radio_decoding_var = StringVar()
         # 1

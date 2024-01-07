@@ -23,7 +23,7 @@ model_keys = list(model_select_dict.keys())
 model_values = list(model_select_dict.values())
 
 
-def append_dot_en(model_key: str, src_english: bool):
+def append_dot_en(model_key: str, src_english: bool, use_en_model):
     """
     Append .en to model name if src_english is True and model is not large (large does not have english version)
 
@@ -37,7 +37,7 @@ def append_dot_en(model_key: str, src_english: bool):
     logger.info("Checking model name")
     logger.debug(f"modelKey: {model_key}, src_english: {src_english}")
     name = model_select_dict[model_key]
-    if "large" not in name and src_english:
+    if "large" not in name and src_english and use_en_model:
         name = name + ".en"
 
     logger.debug(f"modelName: {name}")

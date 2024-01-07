@@ -22,14 +22,18 @@ def tl_batch_with_tqdm(self, batch: List[str], **kwargs) -> list:
         raise Exception("Enter your text list that you want to translate")
     arr = []
     with_tqdm = kwargs.pop("with_tqdm", True)
+
+    def _inner_tl(text: str):
+        if text.isdigit():
+            text += " "  # add a space in the end to prevent error
+        return self.translate(text, **kwargs)
+
     if with_tqdm:
         for text in tqdm(batch, desc="Translating"):
-            translated = self.translate(text, **kwargs)
-            arr.append(translated)
+            arr.append(_inner_tl(text))
     else:
         for text in batch:
-            translated = self.translate(text, **kwargs)
-            arr.append(translated)
+            arr.append(_inner_tl(text))
 
     return arr
 

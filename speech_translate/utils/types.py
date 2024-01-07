@@ -224,6 +224,7 @@ class SettingDict(TypedDict):
     word_level: bool  # 1 of this must be bool
     visualize_suppression: bool
     use_faster_whisper: bool
+    use_en_model: bool
     transcribe_rate: int
     decoding_preset: str  # greedy beam search custom
     temperature: str  # 0.0 - 1.0

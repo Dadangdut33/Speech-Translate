@@ -1533,7 +1533,7 @@ class MainWindow:
             task()
 
     def check_model(self, key: str, is_english: bool, taskname: str, task: Optional[Callable] = None, **kwargs):
-        model_name = append_dot_en(key, is_english)
+        model_name = append_dot_en(key, is_english, sj.cache["use_en_model"])
         try:
             if kwargs.get("disabler", None):
                 logger.debug("Running disabler...")
@@ -1656,7 +1656,7 @@ class MainWindow:
         m_check_kwargs = {"disabler": self.disable_interactions, "enabler": self.enable_interactions}
 
         if (tl and not tl_whisper) or tc:  # check tc model if tc or tl only but not whisper
-            status, model_tc = self.check_model(m_key, source == "english", "mic record", self.rec, **m_check_kwargs)
+            status, model_tc = self.check_model(m_key, source == "english", "recording", self.rec, **m_check_kwargs)
             if not status:
                 return
 
