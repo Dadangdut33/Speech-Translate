@@ -32,8 +32,7 @@ class StreamStderrToLogger(object):
     """
     For stderr and tqdm progress bar
     """
-    def __init__(self, level):
-        self.level = level
+    def __init__(self):
         # tqdm use stderr to print, so we can consider it as info
         self.considered_info = [
             "Downloading", "Fetching", "run_threaded", "Estimating duration from bitrate", "Translating", "Refine", "Align",
@@ -60,7 +59,7 @@ class StreamStderrToLogger(object):
                 if len(recent_stderr) > 10:
                     recent_stderr.pop(0)
             else:
-                logger.log(self.level, line)
+                logger.error(line)
 
     def flush(self):
         pass
@@ -73,7 +72,7 @@ def init_logging(level):
         dir_log + "/" + current_log, level=level, encoding="utf-8", backtrace=False, diagnose=True, format=LOG_FORMAT
     )
 
-    sys.stderr = StreamStderrToLogger("ERROR")
+    sys.stderr = StreamStderrToLogger()
     # tqdm use stderr so we also need to redirect it
 
 

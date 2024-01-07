@@ -2,6 +2,7 @@ from threading import Thread
 from tkinter import Canvas, Tk, Toplevel, ttk
 
 from loguru import logger
+from packaging import version
 from PIL import Image, ImageTk
 from requests import get
 
@@ -155,7 +156,7 @@ class AboutWindow:
             if req is not None and req.status_code == 200:
                 data = req.json()
                 latest_version = str(data["tag_name"])
-                if __version__ < latest_version:
+                if version.parse(__version__) < version.parse(latest_version):
                     logger.info(f"New version found: {latest_version}")
                     self.update_text = "New version available"
                     self.update_fg = "blue"
