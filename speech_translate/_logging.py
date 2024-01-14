@@ -36,7 +36,7 @@ class StreamStderrToLogger(object):
         # tqdm use stderr to print, so we can consider it as info
         self.considered_info = [
             "Downloading", "Fetching", "run_threaded", "Estimating duration from bitrate", "Translating", "Refine", "Align",
-            "Running", "done", "Using cache found in", "%|#", "0%|", "model.bin"
+            "Running", "done", "Using cache found in", "%|#", "0%|", "model.bin", "Extracting", "Download"
         ]
 
     def write(self, buf):
@@ -59,7 +59,13 @@ class StreamStderrToLogger(object):
                 if len(recent_stderr) > 10:
                     recent_stderr.pop(0)
             else:
-                logger.error(line)
+                try:
+                    logger.error(line)
+                    # if fail for some reason, just ignore
+                except OSError:
+                    pass
+                except Exception:
+                    pass
 
     def flush(self):
         pass

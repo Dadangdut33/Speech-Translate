@@ -62,7 +62,7 @@ Speech Translate aims to expand whisper ability by combining it with some transl
   - [As A Module](#as-a-module)
   - [From Git](#from-git)
 - [📚 More Information](#-more-information)
-- [🛠️ Building / Developing / Compiling Yourself](#️-building--developing--compiling-yourself)
+- [🛠️ Development](#️-development)
   - [Setup](#setup)
   - [Running the app](#running-the-app)
   - [Building](#building)
@@ -160,7 +160,9 @@ If you prefer cloning the app directly from git/github, you can follow the guide
 
 Check out the [wiki](https://github.com/Dadangdut33/Speech-Translate/wiki) for more information about the app, user settings, how to use it, and more.
 
-# 🛠️ Building / Developing / Compiling Yourself
+# 🛠️ Development
+
+![](speech_translate/assets/splash.png)
 
 > [!NOTE]  
 > Check the [wiki](https://github.com/Dadangdut33/Speech-Translate/wiki) for more details

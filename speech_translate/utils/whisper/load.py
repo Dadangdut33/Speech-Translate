@@ -414,6 +414,9 @@ def get_tc_args(process_func, setting_cache: SettingDict, mode="transcribe"):
     try:
         suppress_tokens = [int(x) for x in setting_cache["suppress_tokens"].split(",")]
     except Exception:
+        # suppres token in the setting is saved as string
+        # if fail to parse, it means that the suppress_tokens is set to empty
+        # if empty, faster whisper needs to be set to None
         if "faster_whisper" in str(process_func):
             suppress_tokens = None
         else:
